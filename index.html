@@ -29,7 +29,8 @@
   --blue-dim: #1d4ed818;
   --silver: #8a9bb0;
   --accent: #2a9d5c;
-  --sidebar-w: 230px;
+  --sidebar-w: 48px;
+  --sidebar-expanded: 220px;
   --radius: 10px;
   --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
@@ -86,50 +87,107 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 
 /* SIDEBAR */
 .sidebar {
-  width: var(--sidebar-w); background: #111111;
+  width: var(--sidebar-w);
+  background: #111111;
   display: flex; flex-direction: column;
-  flex-shrink: 0; overflow-y: auto;
+  flex-shrink: 0; overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
+  position: relative; z-index: 50;
+}
+.sidebar:hover, .sidebar.pinned {
+  width: var(--sidebar-expanded);
 }
 .sidebar-logo {
-  padding: 1.5rem 1.25rem 1.25rem;
+  padding: 1.1rem 0.75rem 1rem;
   border-bottom: 1px solid rgba(255,255,255,0.08);
+  white-space: nowrap; overflow: hidden; min-height: 56px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sidebar-logo-icon {
+  width: 26px; height: 26px; flex-shrink: 0;
+  background: var(--green); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
 }
 .logo-mark {
   font-family: 'Outfit', sans-serif;
-  font-size: 18px; font-weight: 700; color: #fff;
-  letter-spacing: -0.5px;
+  font-size: 13px; font-weight: 700; color: #fff;
+  letter-spacing: -0.3px; white-space: nowrap;
+  opacity: 0; transition: opacity 0.2s 0.05s;
 }
 .logo-mark span { color: var(--green); }
-.logo-name { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
-.sidebar-section { padding: 1.25rem 1rem 0.35rem; font-size: 9px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+.sidebar:hover .logo-mark, .sidebar.pinned .logo-mark { opacity: 1; }
+.logo-name { display: none; }
+.sidebar-section {
+  padding: 1rem 0.75rem 0.25rem;
+  font-size: 9px; color: rgba(255,255,255,0.25);
+  letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
+  white-space: nowrap; overflow: hidden;
+  opacity: 0; transition: opacity 0.15s;
+  height: 28px;
+}
+.sidebar:hover .sidebar-section, .sidebar.pinned .sidebar-section { opacity: 1; }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 1rem; font-size: 13px; color: rgba(255,255,255,0.55);
-  cursor: pointer; border-radius: 8px; margin: 1px 0.5rem;
-  transition: all 0.15s; font-weight: 400;
+  padding: 9px 0.75rem; font-size: 13px; color: rgba(255,255,255,0.5);
+  cursor: pointer; border-radius: 8px; margin: 1px 0.375rem;
+  transition: all 0.15s; white-space: nowrap; overflow: hidden;
+  min-height: 38px;
 }
 .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
 .nav-item.active { background: rgba(42,157,92,0.2); color: #4ade80; }
-.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.nav-label {
+  opacity: 0; transition: opacity 0.15s 0.05s;
+  white-space: nowrap;
+}
+.sidebar:hover .nav-label, .sidebar.pinned .nav-label { opacity: 1; }
+.nav-arrow {
+  margin-left: auto; font-size: 10px; opacity: 0.5;
+  transition: transform 0.2s;
+}
+.nav-item.open .nav-arrow { transform: rotate(90deg); }
+
+/* SUBMENU CONFIGURAÇÕES */
+.submenu {
+  display: none; flex-direction: column; margin: 0 0.375rem;
+  overflow: hidden;
+}
+.submenu.open { display: flex; }
+.submenu-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 0.75rem 7px 2.25rem;
+  font-size: 12px; color: rgba(255,255,255,0.45);
+  cursor: pointer; border-radius: 6px;
+  transition: all 0.15s; white-space: nowrap;
+  min-height: 32px;
+}
+.submenu-item:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+.submenu-item.active { color: #4ade80; }
+.submenu-label { opacity: 0; transition: opacity 0.15s 0.05s; }
+.sidebar:hover .submenu-label, .sidebar.pinned .submenu-label { opacity: 1; }
+
 .sidebar-footer {
-  margin-top: auto; padding: 1rem;
+  margin-top: auto; padding: 0.75rem;
   border-top: 1px solid rgba(255,255,255,0.08);
-  font-size: 12px;
+  white-space: nowrap; overflow: hidden;
 }
 .user-badge { display: flex; align-items: center; gap: 8px; }
 .user-avatar {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
   background: rgba(42,157,92,0.3); color: #4ade80;
   font-size: 11px; font-weight: 600;
   display: flex; align-items: center; justify-content: center;
 }
+.user-info { opacity: 0; transition: opacity 0.15s 0.05s; }
+.sidebar:hover .user-info, .sidebar.pinned .user-info { opacity: 1; }
 .btn-logout {
   margin-top: 8px; width: 100%; padding: 7px;
   font-size: 12px; background: transparent;
   border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
   color: rgba(255,255,255,0.4); cursor: pointer; font-family: 'Outfit', sans-serif;
-  transition: all 0.15s;
+  transition: all 0.15s; display: none;
 }
+.sidebar:hover .btn-logout, .sidebar.pinned .btn-logout { display: block; }
 .btn-logout:hover { border-color: var(--red); color: #f87171; }
 
 /* MAIN */
@@ -382,58 +440,79 @@ tbody tr:hover { background: var(--bg3); }
     <!-- SIDEBAR -->
     <div class="sidebar">
       <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
         <div class="logo-mark">Visão do <span>Negócio</span></div>
-        <div class="logo-name">Controladoria Financeira</div>
       </div>
 
       <div class="sidebar-section">Principal</div>
       <div class="nav-item active" onclick="showPage('dashboard',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Dashboard
+        <span class="nav-label">Dashboard</span>
       </div>
       <div class="nav-item" onclick="showPage('lancamentos',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-        Lançamentos
+        <span class="nav-label">Lançamentos</span>
       </div>
       <div class="nav-item" onclick="showPage('contas-pagar',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
-        Contas a Pagar
+        <span class="nav-label">Contas a Pagar</span>
       </div>
 
       <div class="sidebar-section">Relatórios</div>
       <div class="nav-item" onclick="showPage('importar',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Importar Dados
+        <span class="nav-label">Importar Dados</span>
       </div>
       <div class="nav-item" onclick="showPage('servicos',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
-        Serviços
+        <span class="nav-label">Serviços</span>
       </div>
       <div class="nav-item" onclick="showPage('clientes',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-        Clientes
+        <span class="nav-label">Clientes</span>
       </div>
       <div class="nav-item" onclick="showPage('produtos',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-        Produtos
+        <span class="nav-label">Produtos</span>
       </div>
       <div class="nav-item" onclick="showPage('performance',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        Performance
+        <span class="nav-label">Performance</span>
       </div>
 
       <div class="sidebar-section">Sistema</div>
-      <div class="nav-item" onclick="showPage('configuracoes',this)">
+      <div class="nav-item" id="nav-cfg" onclick="toggleCfgMenu(this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        Configurações
+        <span class="nav-label">Configurações</span>
+        <span class="nav-arrow nav-label">›</span>
+      </div>
+      <div class="submenu" id="submenu-cfg">
+        <div class="submenu-item" onclick="showCfgPage('fornecedores',this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+          <span class="submenu-label">Fornecedores</span>
+        </div>
+        <div class="submenu-item" onclick="showCfgPage('plano-contas',this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/></svg>
+          <span class="submenu-label">Plano de Contas</span>
+        </div>
+        <div class="submenu-item" onclick="showCfgPage('bancos',this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+          <span class="submenu-label">Bancos</span>
+        </div>
+        <div class="submenu-item" onclick="showCfgPage('usuarios',this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          <span class="submenu-label">Usuários</span>
+        </div>
       </div>
 
       <div class="sidebar-footer">
         <div class="user-badge">
           <div class="user-avatar" id="user-initials">?</div>
-          <div>
-            <div style="font-size:12px;color:var(--text)" id="user-name">Usuário</div>
-            <div style="font-size:11px;color:var(--text3)" id="user-role">Admin</div>
+          <div class="user-info">
+            <div style="font-size:12px;color:#fff" id="user-name">Usuário</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.4)" id="user-role">Admin</div>
           </div>
         </div>
         <button class="btn-logout" onclick="doLogout()">Sair</button>
@@ -661,10 +740,11 @@ tbody tr:hover { background: var(--bg3); }
 
         <!-- CONFIGURAÇÕES -->
         <div class="page" id="page-configuracoes">
-          <div style="display:flex;gap:8px;margin-bottom:1.25rem;border-bottom:1.5px solid var(--border);padding-bottom:0">
+          <div style="display:flex;gap:0;margin-bottom:1.25rem;border-bottom:1.5px solid var(--border);padding-bottom:0">
             <button class="cfg-tab active" onclick="showCfgTab('fornecedores',this)">Fornecedores</button>
             <button class="cfg-tab" onclick="showCfgTab('plano-contas',this)">Plano de Contas</button>
             <button class="cfg-tab" onclick="showCfgTab('bancos',this)">Bancos</button>
+            <button class="cfg-tab" onclick="showCfgTab('usuarios',this)">Usuários</button>
           </div>
 
           <!-- TAB FORNECEDORES -->
@@ -711,7 +791,41 @@ tbody tr:hover { background: var(--bg3); }
             </div>
             <div id="bancos-grid"><div class="loading"><div class="spin"></div> Carregando...</div></div>
           </div>
+
+          <!-- TAB USUÁRIOS -->
+          <div class="cfg-panel" id="cfg-usuarios">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div style="font-size:13px;color:var(--text2)">Usuários com acesso ao sistema</div>
+              <button class="btn btn-primary" onclick="openModal('modal-usuario')">+ Novo usuário</button>
+            </div>
+            <div class="card">
+              <div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+            </div>
+          </div>
         </div>
+
+<!-- MODAL USUÁRIO -->
+<div class="modal-overlay" id="modal-usuario">
+  <div class="modal">
+    <div class="modal-title">Novo usuário</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nome</label><input type="text" id="usr-nome" placeholder="Nome completo"></div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="usr-email" placeholder="email@empresa.com"></div>
+      <div class="form-group"><label>Senha</label><input type="password" id="usr-senha" placeholder="Mínimo 6 caracteres"></div>
+      <div class="form-group"><label>Perfil</label>
+        <select id="usr-perfil">
+          <option value="admin">Administrador</option>
+          <option value="cliente">Cliente (somente leitura)</option>
+          <option value="operador">Operador</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-usuario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveUsuario()">Criar usuário</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL FORNECEDOR -->
 <div class="modal-overlay" id="modal-fornecedor">
@@ -1417,6 +1531,71 @@ function showToast(msg, type='') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
+// ─── MENU RECOLHÍVEL ──────────────────────────────────
+function toggleCfgMenu(el) {
+  el.classList.toggle('open');
+  document.getElementById('submenu-cfg').classList.toggle('open');
+}
+
+function showCfgPage(tab, el) {
+  document.querySelectorAll('.submenu-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-title').textContent = {
+    fornecedores:'Fornecedores', 'plano-contas':'Plano de Contas',
+    bancos:'Bancos', usuarios:'Usuários'
+  }[tab] || 'Configurações';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-configuracoes').classList.add('active');
+  document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
+  const tabEl = document.querySelector(`.cfg-tab[onclick*="${tab}"]`);
+  if (tabEl) tabEl.classList.add('active');
+  const panel = document.getElementById('cfg-' + tab);
+  if (panel) panel.classList.add('active');
+  if (tab === 'fornecedores') loadFornecedores();
+  if (tab === 'plano-contas') loadPlanoContas();
+  if (tab === 'bancos') loadBancos();
+  if (tab === 'usuarios') loadUsuarios();
+}
+
+// ─── USUÁRIOS ─────────────────────────────────────────
+async function loadUsuarios() {
+  const { data } = await sb.from('perfis_usuarios').select('*').order('created_at', {ascending:false});
+  if (!data?.length) { document.getElementById('usuarios-table').innerHTML = '<div class="empty">Nenhum usuário cadastrado</div>'; return; }
+  let html = `<div class="table-wrap"><table><thead><tr>
+    <th>Nome</th><th>E-mail</th><th>Perfil</th><th>Cadastrado em</th>
+  </tr></thead><tbody>`;
+  data.forEach(u => {
+    const perfil = u.perfil || 'cliente';
+    html += `<tr>
+      <td style="font-weight:500">${u.nome||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${u.email||'—'}</td>
+      <td><span class="badge ${perfil==='admin'?'badge-green':perfil==='operador'?'badge-blue':'badge-gray'}">${perfil}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${fmtDate(u.created_at?.substring(0,10))}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('usuarios-table').innerHTML = html;
+}
+
+async function saveUsuario() {
+  const email = document.getElementById('usr-email').value.trim();
+  const senha = document.getElementById('usr-senha').value;
+  const nome = document.getElementById('usr-nome').value.trim();
+  const perfil = document.getElementById('usr-perfil').value;
+  if (!email || !senha || !nome) { showToast('Preencha todos os campos','error'); return; }
+  const { data, error } = await sb.auth.admin ? 
+    sb.auth.admin.createUser({ email, password: senha, email_confirm: true }) :
+    sb.auth.signUp({ email, password: senha });
+  if (error) { showToast('Erro: ' + error.message,'error'); return; }
+  if (data?.user?.id) {
+    await sb.from('perfis_usuarios').update({ nome, perfil }).eq('id', data.user.id);
+  }
+  showToast('Usuário criado!','success');
+  closeModal('modal-usuario');
+  loadUsuarios();
+}
+
 function showCfgTab(tab, el) {
   document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
@@ -1425,7 +1604,9 @@ function showCfgTab(tab, el) {
   if (tab === 'fornecedores') loadFornecedores();
   if (tab === 'plano-contas') loadPlanoContas();
   if (tab === 'bancos') loadBancos();
+  if (tab === 'usuarios') loadUsuarios();
 }
+
 
 // ─── NAVEGAÇÃO CADASTROS ─────────────────────────────
 const pageTitlesExtra = {
