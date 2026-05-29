@@ -317,6 +317,18 @@ tbody tr:hover { background: var(--bg3); }
 .toast.success { background: var(--green); }
 .toast.error { background: var(--red); }
 
+/* ABAS CONFIGURAÇÕES */
+.cfg-tab {
+  padding: 8px 16px; font-size: 13px; font-weight: 500;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; color: var(--text2); font-family: 'Outfit', sans-serif;
+  margin-bottom: -1.5px; transition: all 0.15s;
+}
+.cfg-tab:hover { color: var(--text); }
+.cfg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.cfg-panel { display: none; }
+.cfg-panel.active { display: block; }
+
 /* SCROLLBAR */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -408,6 +420,12 @@ tbody tr:hover { background: var(--bg3); }
       <div class="nav-item" onclick="showPage('performance',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         Performance
+      </div>
+
+      <div class="sidebar-section">Sistema</div>
+      <div class="nav-item" onclick="showPage('configuracoes',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Configurações
       </div>
 
       <div class="sidebar-footer">
@@ -641,6 +659,163 @@ tbody tr:hover { background: var(--bg3); }
   </div>
 </div>
 
+        <!-- CONFIGURAÇÕES -->
+        <div class="page" id="page-configuracoes">
+          <div style="display:flex;gap:8px;margin-bottom:1.25rem;border-bottom:1.5px solid var(--border);padding-bottom:0">
+            <button class="cfg-tab active" onclick="showCfgTab('fornecedores',this)">Fornecedores</button>
+            <button class="cfg-tab" onclick="showCfgTab('plano-contas',this)">Plano de Contas</button>
+            <button class="cfg-tab" onclick="showCfgTab('bancos',this)">Bancos</button>
+          </div>
+
+          <!-- TAB FORNECEDORES -->
+          <div class="cfg-panel active" id="cfg-fornecedores">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
+              <button class="btn btn-primary" onclick="openModal('modal-fornecedor')">+ Novo fornecedor</button>
+            </div>
+            <div class="card">
+              <div id="forn-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+            </div>
+          </div>
+
+          <!-- TAB PLANO DE CONTAS -->
+          <div class="cfg-panel" id="cfg-plano-contas">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div style="font-size:13px;color:var(--text2)">Grupos e categorias do DRE e DFC</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn" onclick="openModal('modal-grupo')">+ Novo grupo</button>
+                <button class="btn btn-primary" onclick="openModal('modal-categoria')">+ Nova categoria</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="card">
+                <div class="card-header"><div class="card-title">Grupos — DFC</div></div>
+                <div id="grupos-dfc"><div class="loading"><div class="spin"></div></div></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">Grupos — DRE</div></div>
+                <div id="grupos-dre"><div class="loading"><div class="spin"></div></div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Categorias do plano de contas</div></div>
+              <div id="categorias-table"><div class="loading"><div class="spin"></div></div></div>
+            </div>
+          </div>
+
+          <!-- TAB BANCOS -->
+          <div class="cfg-panel" id="cfg-bancos">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <div style="font-size:13px;color:var(--text2)">Contas bancárias e caixas</div>
+              <button class="btn btn-primary" onclick="openModal('modal-banco')">+ Novo banco</button>
+            </div>
+            <div id="bancos-grid"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+          </div>
+        </div>
+
+<!-- MODAL FORNECEDOR -->
+<div class="modal-overlay" id="modal-fornecedor">
+  <div class="modal">
+    <div class="modal-title">Novo fornecedor</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1"><label>Nome</label><input type="text" id="forn-nome" placeholder="Nome do fornecedor"></div>
+      <div class="form-group"><label>CNPJ</label><input type="text" id="forn-cnpj" placeholder="00.000.000/0001-00"></div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="forn-tipo"><option>Fixo</option><option>Variável</option></select>
+      </div>
+      <div class="form-group"><label>Grupo do plano de contas</label>
+        <select id="forn-grupo"></select>
+      </div>
+      <div class="form-group"><label>Forma de pagamento</label>
+        <select id="forn-pagto"><option>PIX</option><option>Boleto</option><option>Cartão</option><option>Débito automático</option><option>Dinheiro</option></select>
+      </div>
+      <div class="form-group"><label>Dia vencimento</label><input type="number" id="forn-venc" placeholder="Ex: 5" min="1" max="31"></div>
+      <div class="form-group"><label>Valor fixo (R$)</label><input type="number" id="forn-valor" placeholder="0,00" step="0.01"></div>
+      <div class="form-group"><label>Contato</label><input type="text" id="forn-contato" placeholder="Telefone ou nome"></div>
+      <div class="form-group" style="grid-column:1/-1"><label>E-mail</label><input type="email" id="forn-email" placeholder="email@fornecedor.com"></div>
+      <div class="form-group" style="grid-column:1/-1"><label>Observação</label><input type="text" id="forn-obs" placeholder="Anotações"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-fornecedor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveFornecedor()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GRUPO -->
+<div class="modal-overlay" id="modal-grupo">
+  <div class="modal">
+    <div class="modal-title">Novo grupo</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1"><label>Nome do grupo</label><input type="text" id="grp-nome" placeholder="Ex: Custo Variável"></div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="grp-tipo"><option value="ENTRADA">Entrada (+)</option><option value="SAIDA">Saída (-)</option></select>
+      </div>
+      <div class="form-group"><label>Demonstrativo</label>
+        <select id="grp-demo"><option value="DFC">DFC</option><option value="DRE">DRE</option><option value="AMBOS">Ambos</option></select>
+      </div>
+      <div class="form-group"><label>Ordem</label><input type="number" id="grp-ordem" placeholder="1" min="1"></div>
+      <div class="form-group"><label>Cor</label><input type="color" id="grp-cor" value="#6b7280"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-grupo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveGrupo()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CATEGORIA -->
+<div class="modal-overlay" id="modal-categoria">
+  <div class="modal">
+    <div class="modal-title">Nova categoria</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Código</label><input type="text" id="cat-codigo" placeholder="Ex: 3.1"></div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="cat-tipo"><option value="ENTRADA">Entrada</option><option value="SAIDA">Saída</option></select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1"><label>Nome da categoria</label><input type="text" id="cat-nome" placeholder="Ex: Insumos/Fornecedores"></div>
+      <div class="form-group"><label>Demonstrativo</label>
+        <select id="cat-demo"><option value="DFC">DFC</option><option value="DRE">DRE</option><option value="AMBOS">Ambos</option></select>
+      </div>
+      <div class="form-group"><label>Grupo</label>
+        <select id="cat-grupo"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-categoria')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCategoria()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BANCO -->
+<div class="modal-overlay" id="modal-banco">
+  <div class="modal">
+    <div class="modal-title">Nova conta bancária</div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1"><label>Nome</label><input type="text" id="bnc-nome" placeholder="Ex: Nubank PJ"></div>
+      <div class="form-group"><label>Banco</label>
+        <select id="bnc-banco">
+          <option>Itaú</option><option>Stone</option><option>C6 Bank</option>
+          <option>Nubank</option><option>Bradesco</option><option>Santander</option>
+          <option>Caixa Econômica</option><option>Banco do Brasil</option>
+          <option>Inter</option><option>PicPay</option><option>Sicoob</option><option>Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="bnc-tipo"><option>Conta Corrente</option><option>Poupança</option><option>Caixa Físico</option><option>PIX</option></select>
+      </div>
+      <div class="form-group"><label>Agência</label><input type="text" id="bnc-agencia" placeholder="0000"></div>
+      <div class="form-group"><label>Conta</label><input type="text" id="bnc-conta" placeholder="00000-0"></div>
+      <div class="form-group"><label>Saldo inicial (R$)</label><input type="number" id="bnc-saldo" placeholder="0,00" step="0.01"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-banco')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveBanco()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL LANÇAMENTO -->
 <div class="modal-overlay" id="modal-lanc">
   <div class="modal">
@@ -796,6 +971,10 @@ function showPage(id, el) {
   if (id === 'clientes') loadClientes();
   if (id === 'produtos') loadProdutos();
   if (id === 'performance') loadPerformance();
+  if (id === 'configuracoes') loadFornecedores();
+  if (id === 'fornecedores') loadFornecedores();
+  if (id === 'plano-contas') loadPlanoContas();
+  if (id === 'bancos') loadBancos();
 }
 
 // ─── DASHBOARD ────────────────────────────────────────
@@ -1236,6 +1415,191 @@ function showToast(msg, type='') {
   t.textContent = msg;
   t.className = 'toast show ' + type;
   setTimeout(() => t.className = 'toast', 3000);
+}
+
+function showCfgTab(tab, el) {
+  document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('cfg-' + tab).classList.add('active');
+  if (tab === 'fornecedores') loadFornecedores();
+  if (tab === 'plano-contas') loadPlanoContas();
+  if (tab === 'bancos') loadBancos();
+}
+
+// ─── NAVEGAÇÃO CADASTROS ─────────────────────────────
+const pageTitlesExtra = {
+  configuracoes:'Configurações', fornecedores:'Fornecedores', 'plano-contas':'Plano de Contas', bancos:'Bancos'
+};
+Object.assign(pageTitles, pageTitlesExtra);
+
+// ─── FORNECEDORES ─────────────────────────────────────
+async function loadFornecedores() {
+  const { data } = await sb.from('fornecedores').select('*').order('nome');
+  if (!data?.length) { document.getElementById('forn-table').innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
+  let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>CNPJ</th><th>Tipo</th><th>Grupo</th><th>Vencimento</th><th>Valor Fixo</th><th>Pagamento</th></tr></thead><tbody>';
+  data.forEach(r => {
+    html += `<tr>
+      <td style="font-weight:500">${r.nome}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
+      <td><span class="badge ${r.tipo==='Fixo'?'badge-blue':'badge-amber'}">${r.tipo||'—'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${r.categoria||'—'}</td>
+      <td style="font-size:12px">Dia ${r.vencimento_dia||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--red)">${r.valor_fixo?fmtBRL(r.valor_fixo):'—'}</td>
+      <td style="font-size:12px">${r.forma_pagamento||'—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('forn-table').innerHTML = html;
+}
+
+async function openModal(id) {
+  if (id === 'modal-fornecedor') await loadGruposSelect('forn-grupo');
+  if (id === 'modal-categoria') await loadGruposSelect('cat-grupo');
+  document.getElementById(id).classList.add('open');
+}
+
+async function loadGruposSelect(selectId) {
+  const { data } = await sb.from('grupos_plano').select('*').order('ordem');
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = (data||[]).map(g => `<option value="${g.id}">${g.nome} (${g.demonstrativo})</option>`).join('');
+}
+
+async function saveFornecedor() {
+  const nome = document.getElementById('forn-nome').value.trim();
+  if (!nome) { showToast('Digite o nome do fornecedor','error'); return; }
+  const grupoSel = document.getElementById('forn-grupo');
+  const grupoNome = grupoSel.options[grupoSel.selectedIndex]?.text || '';
+  const { error } = await sb.from('fornecedores').insert({
+    nome,
+    cnpj: document.getElementById('forn-cnpj').value,
+    tipo: document.getElementById('forn-tipo').value,
+    categoria: grupoNome,
+    forma_pagamento: document.getElementById('forn-pagto').value,
+    vencimento_dia: parseInt(document.getElementById('forn-venc').value)||null,
+    valor_fixo: parseFloat(document.getElementById('forn-valor').value)||null,
+    contato: document.getElementById('forn-contato').value,
+    email: document.getElementById('forn-email').value,
+    observacao: document.getElementById('forn-obs').value,
+  });
+  if (error) { showToast('Erro ao salvar','error'); return; }
+  showToast('Fornecedor salvo!','success');
+  closeModal('modal-fornecedor');
+  loadFornecedores();
+}
+
+// ─── PLANO DE CONTAS ─────────────────────────────────────
+async function loadPlanoContas() {
+  const { data: grupos } = await sb.from('grupos_plano').select('*').order('ordem');
+  const { data: cats } = await sb.from('plano_contas').select('*').order('ordem');
+
+  const dfc = (grupos||[]).filter(g=>g.demonstrativo==='DFC'||g.demonstrativo==='AMBOS');
+  const dre = (grupos||[]).filter(g=>g.demonstrativo==='DRE'||g.demonstrativo==='AMBOS');
+
+  const renderGrupos = (list, targetId) => {
+    if (!list.length) { document.getElementById(targetId).innerHTML = '<div class="empty">Nenhum grupo</div>'; return; }
+    let html = '<div style="display:flex;flex-direction:column;gap:6px">';
+    list.forEach(g => {
+      const sinal = g.tipo==='ENTRADA' ? '+' : '−';
+      html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg3);border-radius:8px;border-left:3px solid ${g.cor||'#6b7280'}">
+        <span style="font-size:13px;font-weight:500">${g.nome}</span>
+        <span style="font-size:12px;color:${g.tipo==='ENTRADA'?'var(--green)':'var(--red)'};font-weight:600">${sinal}</span>
+      </div>`;
+    });
+    html += '</div>';
+    document.getElementById(targetId).innerHTML = html;
+  };
+
+  renderGrupos(dfc, 'grupos-dfc');
+  renderGrupos(dre, 'grupos-dre');
+
+  if (!cats?.length) { document.getElementById('categorias-table').innerHTML = '<div class="empty">Nenhuma categoria</div>'; return; }
+  let html = '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Demonstrativo</th><th>Grupo</th></tr></thead><tbody>';
+  (cats||[]).forEach(c => {
+    html += `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${c.codigo||'—'}</td>
+      <td style="font-weight:500">${c.nome}</td>
+      <td><span class="badge ${c.tipo==='ENTRADA'?'badge-green':'badge-red'}">${c.tipo}</span></td>
+      <td><span class="badge badge-blue">${c.demonstrativo}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${c.grupo||'—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('categorias-table').innerHTML = html;
+}
+
+async function saveGrupo() {
+  const nome = document.getElementById('grp-nome').value.trim();
+  if (!nome) { showToast('Digite o nome do grupo','error'); return; }
+  const { error } = await sb.from('grupos_plano').insert({
+    nome,
+    tipo: document.getElementById('grp-tipo').value,
+    demonstrativo: document.getElementById('grp-demo').value,
+    sinal: document.getElementById('grp-tipo').value==='ENTRADA'?'(+)':'(-)',
+    ordem: parseInt(document.getElementById('grp-ordem').value)||99,
+    cor: document.getElementById('grp-cor').value,
+  });
+  if (error) { showToast('Erro ao salvar','error'); return; }
+  showToast('Grupo salvo!','success');
+  closeModal('modal-grupo');
+  loadPlanoContas();
+}
+
+async function saveCategoria() {
+  const nome = document.getElementById('cat-nome').value.trim();
+  if (!nome) { showToast('Digite o nome da categoria','error'); return; }
+  const grupoSel = document.getElementById('cat-grupo');
+  const grupoNome = grupoSel.options[grupoSel.selectedIndex]?.text?.split(' (')[0] || '';
+  const { error } = await sb.from('plano_contas').insert({
+    codigo: document.getElementById('cat-codigo').value,
+    nome,
+    tipo: document.getElementById('cat-tipo').value,
+    demonstrativo: document.getElementById('cat-demo').value,
+    grupo: grupoNome,
+  });
+  if (error) { showToast('Erro ao salvar','error'); return; }
+  showToast('Categoria salva!','success');
+  closeModal('modal-categoria');
+  loadPlanoContas();
+}
+
+// ─── BANCOS ─────────────────────────────────────────────
+async function loadBancos() {
+  const { data } = await sb.from('bancos_cadastrados').select('*').order('nome');
+  if (!data?.length) { document.getElementById('bancos-grid').innerHTML = '<div class="empty">Nenhum banco cadastrado</div>'; return; }
+  const cores = {'Itaú':'#f97316','Stone':'#10b981','C6 Bank':'#000','Nubank':'#7c3aed','Bradesco':'#dc2626','Santander':'#dc2626','Inter':'#f97316','PicPay':'#10b981'};
+  let html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+  data.forEach(r => {
+    const cor = cores[r.banco]||'#6b7280';
+    html += `<div class="card" style="border-left:4px solid ${cor}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-weight:600;font-size:14px">${r.nome}</div>
+        <span class="badge badge-gray">${r.tipo||'—'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:12px">${r.banco||'—'} ${r.agencia?'· Ag: '+r.agencia:''} ${r.conta?'· Cc: '+r.conta:''}</div>
+      <div style="font-size:11px;color:var(--text2)">Saldo inicial</div>
+      <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(r.saldo_inicial||0)}</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('bancos-grid').innerHTML = html;
+}
+
+async function saveBanco() {
+  const nome = document.getElementById('bnc-nome').value.trim();
+  if (!nome) { showToast('Digite o nome da conta','error'); return; }
+  const { error } = await sb.from('bancos_cadastrados').insert({
+    nome,
+    banco: document.getElementById('bnc-banco').value,
+    tipo: document.getElementById('bnc-tipo').value,
+    agencia: document.getElementById('bnc-agencia').value,
+    conta: document.getElementById('bnc-conta').value,
+    saldo_inicial: parseFloat(document.getElementById('bnc-saldo').value)||0,
+  });
+  if (error) { showToast('Erro ao salvar','error'); return; }
+  showToast('Banco salvo!','success');
+  closeModal('modal-banco');
+  loadBancos();
 }
 
 // ─── INIT ────────────────────────────────────────────
