@@ -1150,6 +1150,10 @@ tbody tr:hover { background: var(--bg3); }
       <div class="form-group"><label>Agência</label><input type="text" id="bnc-agencia" placeholder="0000"></div>
       <div class="form-group"><label>Conta</label><input type="text" id="bnc-conta" placeholder="00000-0"></div>
       <div class="form-group"><label>Saldo inicial (R$)</label><input type="number" id="bnc-saldo" placeholder="0,00" step="0.01"></div>
+      <div class="form-group"><label>Data do saldo inicial</label><input type="date" id="bnc-data-saldo"></div>
+    </div>
+    <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);margin-bottom:1rem">
+      💡 O saldo inicial aparecerá como primeira linha no extrato a partir da data informada.
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-banco')">Cancelar</button>
@@ -1475,14 +1479,32 @@ async function loadLancamentos() {
     document.getElementById('lanc-count').textContent = lancs.length;
   }
 
-  if (!lancs.length) {
+  // Busca saldo inicial dos bancos para o período
+  let qBancos = sb.from('bancos_cadastrados').select('*').not('data_saldo_inicial','is',null).lte('data_saldo_inicial', fim);
+  if (bancoFilter) qBancos = qBancos.eq('id', bancoFilter);
+  const { data: bancosComSaldo } = await qBancos;
+
+  // Monta linha de saldo inicial para cada banco
+  let saldoInicial = 0;
+  let htmlSaldoInicial = '';
+  (bancosComSaldo||[]).forEach(b => {
+    if (!b.saldo_inicial) return;
+    saldoInicial += b.saldo_inicial;
+    htmlSaldoInicial += `<tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px;font-size:12px;color:var(--text2)">${fmtDate(b.data_saldo_inicial)}</td>
+      <td style="padding:9px 12px;font-size:12px;color:var(--text2);font-style:italic">Saldo inicial</td>
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;color:var(--green);font-weight:600">${fmtBRL(b.saldo_inicial)}</td>
+      <td colspan="7" style="padding:9px 12px;font-size:12px;color:var(--text2)">${b.nome}</td>
+    </tr>`;
+  });
+
+  if (!lancs.length && !htmlSaldoInicial) {
     el.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
     return;
   }
 
-  // Saldo acumulado
-  let saldoAcum = 0;
-  let html = '';
+  let saldoAcum = saldoInicial;
+  let html = htmlSaldoInicial;
   lancs.forEach(l => {
     const entrada = Number(l.entrada || (l.tipo==='ENTRADA'? l.valor : 0) || 0);
     const saida = Number(l.saida || (l.tipo==='SAIDA'? l.valor : 0) || 0);
@@ -2787,6 +2809,29 @@ async function salvarBancoInline(id, rowId) {
   const { error } = await sb.from('bancos_cadastrados').update(payload).eq('id', id);
   if (error) { showToast('Erro ao salvar','error'); return; }
   showToast('Salvo!','success');
+  loadBancos();
+}
+
+async function saveBanco() {
+  const nome = document.getElementById('bnc-nome').value.trim();
+  if (!nome) { showToast('Digite o nome da conta','error'); return; }
+  const editId = document.getElementById('modal-banco').dataset.editId;
+  const payload = {
+    nome,
+    banco: document.getElementById('bnc-banco').value,
+    tipo: document.getElementById('bnc-tipo').value,
+    agencia: document.getElementById('bnc-agencia').value,
+    conta: document.getElementById('bnc-conta').value,
+    saldo_inicial: parseFloat(document.getElementById('bnc-saldo').value)||0,
+    data_saldo_inicial: document.getElementById('bnc-data-saldo').value || null,
+  };
+  const { error } = editId
+    ? await sb.from('bancos_cadastrados').update(payload).eq('id', editId)
+    : await sb.from('bancos_cadastrados').insert(payload);
+  if (error) { showToast('Erro ao salvar','error'); return; }
+  showToast('Banco salvo!','success');
+  delete document.getElementById('modal-banco').dataset.editId;
+  closeModal('modal-banco');
   loadBancos();
 }
 
