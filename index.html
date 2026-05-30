@@ -1449,7 +1449,17 @@ async function initLancamentos() {
 async function loadLancamentos() {
   const el = document.getElementById('lanc-tbody');
   if (!el) return;
-  await initLancamentos();
+
+  // Carrega bancos se ainda não carregou
+  if (!_bancos.length) {
+    try { await initLancamentos(); } catch(e) { console.warn('init:', e); }
+  } else {
+    // Só atualiza o filtro de bancos se já carregado
+    const selBancoFilter = document.getElementById('lanc-banco-filter');
+    if (selBancoFilter && selBancoFilter.options.length <= 1) {
+      selBancoFilter.innerHTML = '<option value="">Todos os bancos</option>' + _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
+    }
+  }
 
   const tipo = document.getElementById('lanc-tipo')?.value;
   const mes = document.getElementById('lanc-mes')?.value || '2026-05';
