@@ -1733,33 +1733,60 @@ function toggleFormFornecedor() {
 
 // ─── FORNECEDORES ─────────────────────────────────────
 async function loadFornecedores() {
+  const el = document.getElementById('forn-table');
+  if (!el) return;
   const { data } = await sb.from('fornecedores').select('*').order('nome');
-  if (!data?.length) { document.getElementById('forn-table').innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
+  if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
   let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>E-mail</th><th>Contato</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(r => {
-    html += `<tr>
-      <td style="font-weight:500">${r.nome}</td>
-      <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
-      <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
-      <td style="font-size:12px;color:var(--text2)">${r.email||'—'}</td>
-      <td style="font-size:12px">${r.contato||'—'}</td>
-      <td><button class="btn btn-sm" onclick="editarFornecedor('${r.id}','${r.nome}','${r.cnpj||''}','${r.tipo||''}','${r.email||''}','${r.contato||''}')">✏️ Editar</button></td>
+    html += `<tr id="forn-row-${r.id}">
+      <td><span class="cell-view" style="font-weight:500">${r.nome||''}</span><input class="cell-edit" style="display:none;width:100%" value="${r.nome||''}"></td>
+      <td><span class="cell-view" style="font-size:12px">${r.cnpj||'—'}</span><input class="cell-edit" style="display:none;width:100%" value="${r.cnpj||''}"></td>
+      <td><span class="cell-view"><span class="badge badge-blue">${r.tipo||'—'}</span></span>
+        <select class="cell-edit" style="display:none">
+          <option ${r.tipo==='Fornecedor'?'selected':''}>Fornecedor</option>
+          <option ${r.tipo==='Cliente'?'selected':''}>Cliente</option>
+          <option ${r.tipo==='Cliente e Fornecedor'?'selected':''}>Cliente e Fornecedor</option>
+        </select>
+      </td>
+      <td><span class="cell-view" style="font-size:12px">${r.email||'—'}</span><input class="cell-edit" style="display:none;width:100%" value="${r.email||''}"></td>
+      <td><span class="cell-view" style="font-size:12px">${r.contato||'—'}</span><input class="cell-edit" style="display:none;width:100%" value="${r.contato||''}"></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="toggleInline('forn-row-${r.id}')">✏️ Editar</button>
+        <button class="btn btn-sm btn-save-inline" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarFornecedorInline('${r.id}','forn-row-${r.id}')">💾 Salvar</button>
+        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirFornecedor('${r.id}')">🗑️</button>
+      </td>
     </tr>`;
   });
   html += '</tbody></table></div>';
-  document.getElementById('forn-table').innerHTML = html;
+  el.innerHTML = html;
 }
 
-function editarFornecedor(id, nome, cnpj, tipo, email, contato) {
-  document.getElementById('forn-nome').value = nome;
-  document.getElementById('forn-cnpj').value = cnpj;
-  document.getElementById('forn-tipo-pessoa').value = tipo;
-  document.getElementById('forn-email').value = email;
-  document.getElementById('forn-contato').value = contato;
-  document.getElementById('forn-codigo').value = id;
-  document.getElementById('form-fornecedor').style.display = 'block';
-  document.getElementById('form-fornecedor').scrollIntoView({behavior:'smooth'});
+async function salvarFornecedorInline(id, rowId) {
+  const row = document.getElementById(rowId);
+  const inputs = row.querySelectorAll('.cell-edit');
+  const payload = {
+    nome: inputs[0].value.trim(),
+    cnpj: inputs[1].value.trim(),
+    tipo: inputs[2].value,
+    email: inputs[3].value.trim(),
+    contato: inputs[4].value.trim(),
+  };
+  if (!payload.nome) { showToast('Nome obrigatório','error'); return; }
+  const { error } = await sb.from('fornecedores').update(payload).eq('id', id);
+  if (error) { showToast('Erro ao salvar','error'); return; }
+  showToast('Salvo!','success');
+  loadFornecedores();
 }
+
+async function excluirFornecedor(id) {
+  if (!confirm('Excluir este fornecedor?')) return;
+  await sb.from('fornecedores').delete().eq('id', id);
+  showToast('Excluído!','success');
+  loadFornecedores();
+}
+
+function editarFornecedor() {} // mantido para compatibilidade
 
 async function openModal(id) {
   if (id === 'modal-fornecedor') await loadGruposSelect('forn-grupo');
@@ -1877,20 +1904,45 @@ async function loadPlanoContas() {
   if (!cats?.length) { elCats.innerHTML = '<div class="empty">Nenhuma categoria</div>'; return; }
   let html = '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Demo</th><th>Grupo</th><th>Ações</th></tr></thead><tbody>';
   cats.forEach(c => {
-    html += `<tr>
-      <td style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent)">${c.codigo||'—'}</td>
-      <td style="font-weight:500">${c.nome}</td>
-      <td><span class="badge ${c.tipo==='ENTRADA'?'badge-green':'badge-red'}">${c.tipo}</span></td>
-      <td><span class="badge badge-blue">${c.demonstrativo}</span></td>
+    html += `<tr id="cat-row-${c.id}">
+      <td><span class="cell-view" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent)">${c.codigo||'—'}</span><input class="cell-edit" style="display:none;width:60px;font-family:monospace" value="${c.codigo||''}"></td>
+      <td><span class="cell-view" style="font-weight:500">${c.nome}</span><input class="cell-edit" style="display:none;width:100%" value="${c.nome||''}"></td>
+      <td><span class="cell-view"><span class="badge ${c.tipo==='ENTRADA'?'badge-green':'badge-red'}">${c.tipo}</span></span>
+        <select class="cell-edit" style="display:none"><option value="ENTRADA" ${c.tipo==='ENTRADA'?'selected':''}>ENTRADA</option><option value="SAIDA" ${c.tipo==='SAIDA'?'selected':''}>SAIDA</option></select>
+      </td>
+      <td><span class="cell-view"><span class="badge badge-blue">${c.demonstrativo}</span></span>
+        <select class="cell-edit" style="display:none"><option ${c.demonstrativo==='DFC'?'selected':''}>DFC</option><option ${c.demonstrativo==='DRE'?'selected':''}>DRE</option><option ${c.demonstrativo==='AMBOS'?'selected':''}>AMBOS</option></select>
+      </td>
       <td style="font-size:12px;color:var(--text2)">${c.grupo||'—'}</td>
       <td style="display:flex;gap:6px">
-        <button class="btn btn-sm" data-cid="${c.id}" onclick="abrirEditarCategoria(this)">✏️ Editar</button>
+        <button class="btn btn-sm" onclick="toggleInline('cat-row-${c.id}')">✏️ Editar</button>
+        <button class="btn btn-sm btn-save-inline" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarCategoriaInline('${c.id}','cat-row-${c.id}')">💾 Salvar</button>
         <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirCategoria('${c.id}')">🗑️</button>
       </td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   elCats.innerHTML = html;
+}
+
+async function salvarCategoriaInline(id, rowId) {
+  const row = document.getElementById(rowId);
+  const inputs = row.querySelectorAll('.cell-edit');
+  const payload = {
+    codigo: inputs[0].value.trim(),
+    nome: inputs[1].value.trim(),
+    tipo: inputs[2].value,
+    demonstrativo: inputs[3].value,
+  };
+  if (!payload.nome) { showToast('Nome obrigatório','error'); return; }
+  const { data: ant } = await sb.from('plano_contas').select('nome').eq('id', id).single();
+  const { error } = await sb.from('plano_contas').update(payload).eq('id', id);
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+  if (ant?.nome && ant.nome !== payload.nome) {
+    await sb.from('lancamentos').update({ categoria: payload.nome }).eq('categoria', ant.nome);
+  }
+  showToast('Salvo!','success');
+  loadPlanoContas();
 }
 
 // Abre modal de grupo para editar
@@ -2098,85 +2150,112 @@ async function openModal(id) {
 
 // ─── BANCOS ─────────────────────────────────────────────
 async function loadBancos() {
+  const el = document.getElementById('bancos-grid');
+  if (!el) return;
   const { data } = await sb.from('bancos_cadastrados').select('*').order('nome');
-  if (!data?.length) { document.getElementById('bancos-grid').innerHTML = '<div class="empty">Nenhum banco cadastrado</div>'; return; }
+  if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum banco cadastrado</div>'; return; }
+  const bancos = ['Itaú','Stone','C6 Bank','Nubank','Bradesco','Santander','Caixa Econômica','Banco do Brasil','Inter','PicPay','Sicoob','Outro'];
+  const tipos = ['Conta Corrente','Poupança','Caixa Físico','PIX'];
   let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Banco</th><th>Tipo</th><th>Agência</th><th>Conta</th><th>Saldo inicial</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(r => {
-    html += `<tr>
-      <td style="font-weight:500">${r.nome}</td>
-      <td>${r.banco||'—'}</td>
-      <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
-      <td style="font-size:12px;color:var(--text2)">${r.agencia||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${r.conta||'—'}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--green)">${fmtBRL(r.saldo_inicial||0)}</td>
-      <td><button class="btn btn-sm" onclick="editarBanco('${r.id}','${r.nome}','${r.banco||''}','${r.tipo||''}','${r.agencia||''}','${r.conta||''}',${r.saldo_inicial||0})">✏️ Editar</button></td>
+    html += `<tr id="banco-row-${r.id}">
+      <td><span class="cell-view">${r.nome||''}</span><input class="cell-edit" style="display:none;width:100%" value="${r.nome||''}"></td>
+      <td><span class="cell-view">${r.banco||'—'}</span>
+        <select class="cell-edit" style="display:none">${bancos.map(b=>`<option ${r.banco===b?'selected':''}>${b}</option>`).join('')}</select>
+      </td>
+      <td><span class="cell-view"><span class="badge badge-blue">${r.tipo||'—'}</span></span>
+        <select class="cell-edit" style="display:none">${tipos.map(t=>`<option ${r.tipo===t?'selected':''}>${t}</option>`).join('')}</select>
+      </td>
+      <td><span class="cell-view">${r.agencia||'—'}</span><input class="cell-edit" style="display:none;width:80px" value="${r.agencia||''}"></td>
+      <td><span class="cell-view">${r.conta||'—'}</span><input class="cell-edit" style="display:none;width:100px" value="${r.conta||''}"></td>
+      <td><span class="cell-view" style="color:var(--green)">${fmtBRL(r.saldo_inicial||0)}</span><input class="cell-edit" type="number" style="display:none;width:100px" value="${r.saldo_inicial||0}"></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="toggleInline('banco-row-${r.id}')">✏️ Editar</button>
+        <button class="btn btn-sm btn-save-inline" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarBancoInline('${r.id}','banco-row-${r.id}')">💾 Salvar</button>
+        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirBanco('${r.id}')">🗑️</button>
+      </td>
     </tr>`;
   });
   html += '</tbody></table></div>';
-  document.getElementById('bancos-grid').innerHTML = html;
+  el.innerHTML = html;
 }
 
-function editarBanco(id, nome, banco, tipo, agencia, conta, saldo) {
-  document.getElementById('bnc-nome').value = nome;
-  document.getElementById('bnc-banco').value = banco;
-  document.getElementById('bnc-tipo').value = tipo;
-  document.getElementById('bnc-agencia').value = agencia;
-  document.getElementById('bnc-conta').value = conta;
-  document.getElementById('bnc-saldo').value = saldo;
-  document.getElementById('modal-banco').dataset.editId = id;
-  document.getElementById('modal-banco').classList.add('open');
-}
-
-async function saveBanco() {
-  const nome = document.getElementById('bnc-nome').value.trim();
-  if (!nome) { showToast('Digite o nome da conta','error'); return; }
-  const editId = document.getElementById('modal-banco').dataset.editId;
+async function salvarBancoInline(id, rowId) {
+  const row = document.getElementById(rowId);
+  const inputs = row.querySelectorAll('.cell-edit');
   const payload = {
-    nome,
-    banco: document.getElementById('bnc-banco').value,
-    tipo: document.getElementById('bnc-tipo').value,
-    agencia: document.getElementById('bnc-agencia').value,
-    conta: document.getElementById('bnc-conta').value,
-    saldo_inicial: parseFloat(document.getElementById('bnc-saldo').value)||0,
+    nome: inputs[0].value.trim(),
+    banco: inputs[1].value,
+    tipo: inputs[2].value,
+    agencia: inputs[3].value.trim(),
+    conta: inputs[4].value.trim(),
+    saldo_inicial: parseFloat(inputs[5].value)||0,
   };
-  const { error } = editId
-    ? await sb.from('bancos_cadastrados').update(payload).eq('id', editId)
-    : await sb.from('bancos_cadastrados').insert(payload);
+  if (!payload.nome) { showToast('Nome obrigatório','error'); return; }
+  const { error } = await sb.from('bancos_cadastrados').update(payload).eq('id', id);
   if (error) { showToast('Erro ao salvar','error'); return; }
-  showToast('Banco salvo!','success');
-  delete document.getElementById('modal-banco').dataset.editId;
-  closeModal('modal-banco');
+  showToast('Salvo!','success');
+  loadBancos();
+}
+
+async function excluirBanco(id) {
+  if (!confirm('Excluir este banco?')) return;
+  await sb.from('bancos_cadastrados').delete().eq('id', id);
+  showToast('Excluído!','success');
   loadBancos();
 }
 
 async function loadUsuarios() {
+  const el = document.getElementById('usuarios-table');
+  if (!el) return;
   const { data } = await sb.from('perfis_usuarios').select('*').order('created_at', {ascending:false});
-  if (!data?.length) { document.getElementById('usuarios-table').innerHTML = '<div class="empty">Nenhum usuário cadastrado</div>'; return; }
-  let html = `<div class="table-wrap"><table><thead><tr>
-    <th>Nome</th><th>E-mail</th><th>Perfil</th><th>Cadastrado em</th><th>Ações</th>
-  </tr></thead><tbody>`;
+  if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum usuário cadastrado</div>'; return; }
+  let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Cadastrado em</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(u => {
     const perfil = u.perfil || 'cliente';
-    html += `<tr>
-      <td style="font-weight:500">${u.nome||'—'}</td>
+    html += `<tr id="usr-row-${u.id}">
+      <td><span class="cell-view">${u.nome||'—'}</span><input class="cell-edit" style="display:none;width:100%" value="${u.nome||''}"></td>
       <td style="font-size:12px;color:var(--text2)">${u.email||'—'}</td>
-      <td><span class="badge ${perfil==='admin'?'badge-green':perfil==='operador'?'badge-blue':'badge-gray'}">${perfil}</span></td>
+      <td><span class="cell-view"><span class="badge ${perfil==='admin'?'badge-green':perfil==='operador'?'badge-blue':'badge-gray'}">${perfil}</span></span>
+        <select class="cell-edit" style="display:none">
+          <option ${perfil==='admin'?'selected':''} value="admin">Admin</option>
+          <option ${perfil==='operador'?'selected':''} value="operador">Operador</option>
+          <option ${perfil==='cliente'?'selected':''} value="cliente">Cliente</option>
+        </select>
+      </td>
       <td style="font-size:12px;color:var(--text2)">${fmtDate(u.created_at?.substring(0,10))}</td>
-      <td><button class="btn btn-sm" onclick="editarUsuario('${u.id}','${u.nome||''}','${u.email||''}','${u.perfil||'cliente'}')">✏️ Editar</button></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="toggleInline('usr-row-${u.id}')">✏️ Editar</button>
+        <button class="btn btn-sm btn-save-inline" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarUsuarioInline('${u.id}','usr-row-${u.id}')">💾 Salvar</button>
+      </td>
     </tr>`;
   });
   html += '</tbody></table></div>';
-  document.getElementById('usuarios-table').innerHTML = html;
+  el.innerHTML = html;
 }
 
-function editarUsuario(id, nome, email, perfil) {
-  document.getElementById('usr-nome').value = nome;
-  document.getElementById('usr-email').value = email;
-  document.getElementById('usr-perfil').value = perfil;
-  document.getElementById('usr-senha').value = '';
-  document.getElementById('modal-usuario').dataset.editId = id;
-  document.getElementById('modal-usuario').classList.add('open');
+async function salvarUsuarioInline(id, rowId) {
+  const row = document.getElementById(rowId);
+  const inputs = row.querySelectorAll('.cell-edit');
+  const payload = { nome: inputs[0].value.trim(), perfil: inputs[1].value };
+  const { error } = await sb.from('perfis_usuarios').update(payload).eq('id', id);
+  if (error) { showToast('Erro ao salvar','error'); return; }
+  showToast('Salvo!','success');
+  loadUsuarios();
 }
+
+function toggleInline(rowId) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  const views = row.querySelectorAll('.cell-view');
+  const edits = row.querySelectorAll('.cell-edit');
+  const btnSave = row.querySelector('.btn-save-inline');
+  const editing = edits[0] && edits[0].style.display !== 'none';
+  views.forEach(v => v.style.display = editing ? '' : 'none');
+  edits.forEach(e => e.style.display = editing ? 'none' : '');
+  if (btnSave) btnSave.style.display = editing ? 'none' : '';
+}
+
 
 // ─── INIT ────────────────────────────────────────────
 checkSession();
