@@ -1840,7 +1840,9 @@ async function loadPlanoContas() {
     let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Demonstrativo</th><th>Ações</th></tr></thead><tbody>';
     list.forEach(g => {
       html += `<tr>
-        <td style="font-weight:500;border-left:3px solid ${g.cor||'#6b7280'};padding-left:10px">${g.nome}</td>
+        <td style="font-weight:500;border-left:3px solid ${g.cor||'#6b7280'};padding-left:10px">
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);margin-right:6px">${g.ordem}.</span>${g.nome}
+        </td>
         <td><span class="badge ${g.tipo==='ENTRADA'?'badge-green':'badge-red'}">${g.tipo==='ENTRADA'?'Entrada (+)':'Saída (-)'}</span></td>
         <td><span class="badge badge-blue">${g.demonstrativo}</span></td>
         <td style="display:flex;gap:6px">
@@ -1868,7 +1870,9 @@ async function loadPlanoContas() {
       <td style="font-weight:500">${c.nome}</td>
       <td><span class="badge ${c.tipo==='ENTRADA'?'badge-green':'badge-red'}">${c.tipo}</span></td>
       <td><span class="badge badge-blue">${c.demonstrativo}</span></td>
-      <td style="font-size:12px;color:var(--text2)">${c.grupo||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">
+        <span style="font-family:'DM Mono',monospace;color:var(--accent)">${c.codigo?.split('.')[0]||''}.</span> ${c.grupo||'—'}
+      </td>
       <td style="display:flex;gap:6px">
         <button class="btn btn-sm" 
           data-id="${c.id}" data-codigo="${c.codigo||''}" 
