@@ -616,33 +616,63 @@ tbody tr:hover { background: var(--bg3); }
           </div>
 
           <!-- FORMULÁRIO NOVO LANÇAMENTO -->
-          <div class="card" id="form-lanc-inline" style="display:none;margin-bottom:1rem">
-            <div style="font-size:14px;font-weight:600;margin-bottom:1rem">Novo lançamento</div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">
-              <div class="form-group"><label>Data</label><input type="date" id="nl-data"></div>
-              <div class="form-group"><label>Extrato (nome original)</label><input type="text" id="nl-extrato" placeholder="Ex: PIX SABESP" oninput="reconhecerFornecedor(this.value)"></div>
-              <div class="form-group"><label>Tipo</label>
-                <select id="nl-tipo">
-                  <option value="ENTRADA">ENTRADA</option>
-                  <option value="SAIDA">SAIDA</option>
-                </select>
+          <div class="card" id="form-lanc-inline" style="display:none;margin-bottom:1rem;max-width:700px">
+            <div style="font-size:15px;font-weight:600;margin-bottom:1.25rem">Cadastro de Movimentação Financeira</div>
+
+            <!-- ENTRADA OU SAÍDA -->
+            <div style="display:flex;gap:10px;margin-bottom:1.25rem">
+              <button id="btn-tipo-entrada" onclick="selecionarTipoLanc('ENTRADA')"
+                style="flex:1;padding:10px;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;border:2px solid var(--green);background:var(--green);color:#fff;font-family:'Outfit',sans-serif">
+                ↓ ENTRADA
+              </button>
+              <button id="btn-tipo-saida" onclick="selecionarTipoLanc('SAIDA')"
+                style="flex:1;padding:10px;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);font-family:'Outfit',sans-serif">
+                ↑ SAÍDA
+              </button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+              <div class="form-group">
+                <label>Data Movimentação <span style="color:var(--red)">*</span></label>
+                <input type="date" id="nl-data">
               </div>
-              <div class="form-group"><label>Banco</label>
-                <select id="nl-banco"></select>
+              <div class="form-group">
+                <label>Extrato (nome original do banco)</label>
+                <input type="text" id="nl-extrato" placeholder="Ex: PIX RECEBIDO JOAO" oninput="reconhecerFornecedor(this.value)">
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-              <div class="form-group"><label>Entrada (R$)</label><input type="number" id="nl-entrada" placeholder="0,00" step="0.01" oninput="if(this.value)document.getElementById('nl-saida').value=''"></div>
-              <div class="form-group"><label>Saída (R$)</label><input type="number" id="nl-saida" placeholder="0,00" step="0.01" oninput="if(this.value)document.getElementById('nl-entrada').value=''"></div>
-              <div class="form-group"><label>Descrição</label><input type="text" id="nl-descricao" placeholder="Descrição do lançamento"></div>
-              <div class="form-group"><label>Categoria DFC/DRE</label>
-                <select id="nl-categoria">
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+              <div class="form-group">
+                <label>Plano de Contas / Categoria <span style="color:var(--red)">*</span></label>
+                <select id="nl-categoria" style="width:100%">
+                  <option value="">Selecione...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Banco <span style="color:var(--red)">*</span></label>
+                <select id="nl-banco" style="width:100%">
                   <option value="">Selecione...</option>
                 </select>
               </div>
             </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+              <div class="form-group">
+                <label>Valor <span style="color:var(--red)">*</span></label>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:13px;color:var(--text2);font-weight:500">R$</span>
+                  <input type="number" id="nl-valor" placeholder="0,00" step="0.01" min="0" style="flex:1">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Descrição / Complemento</label>
+                <input type="text" id="nl-descricao" placeholder="Descrição opcional">
+              </div>
+            </div>
+
             <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn btn-primary" onclick="salvarLancamento()">💾 Salvar lançamento</button>
+              <button class="btn btn-primary" onclick="salvarLancamento()">💾 Salvar</button>
               <button class="btn" onclick="toggleFormLanc()">Cancelar</button>
               <span id="nl-reconhecido" style="font-size:12px;color:var(--green)"></span>
             </div>
@@ -1521,12 +1551,106 @@ async function loadLancamentos() {
   el.innerHTML = html;
 }
 
+let _tipoLanc = 'ENTRADA';
+
+function selecionarTipoLanc(tipo) {
+  _tipoLanc = tipo;
+  const btnE = document.getElementById('btn-tipo-entrada');
+  const btnS = document.getElementById('btn-tipo-saida');
+  if (tipo === 'ENTRADA') {
+    btnE.style.background = 'var(--green)'; btnE.style.borderColor = 'var(--green)'; btnE.style.color = '#fff';
+    btnS.style.background = 'var(--bg3)'; btnS.style.borderColor = 'var(--border)'; btnS.style.color = 'var(--text2)';
+  } else {
+    btnS.style.background = 'var(--red)'; btnS.style.borderColor = 'var(--red)'; btnS.style.color = '#fff';
+    btnE.style.background = 'var(--bg3)'; btnE.style.borderColor = 'var(--border)'; btnE.style.color = 'var(--text2)';
+  }
+  // Filtra categorias por tipo
+  filtrarCategoriasPorTipo(tipo);
+}
+
+function filtrarCategoriasPorTipo(tipo) {
+  const sel = document.getElementById('nl-categoria');
+  if (!sel || !_categorias.length) return;
+
+  // Agrupa por nome filtrando pelo tipo
+  const catMap = {};
+  _categorias.filter(c => c.tipo === tipo || c.tipo === 'AMBOS').forEach(c => {
+    if (!catMap[c.nome]) catMap[c.nome] = { nome: c.nome, dfc: null, dre: null };
+    if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') catMap[c.nome].dfc = c.codigo;
+    if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') catMap[c.nome].dre = c.codigo;
+  });
+
+  sel.innerHTML = '<option value="">Selecione a categoria...</option>' +
+    Object.values(catMap).map(c => {
+      const refs = [c.dfc ? `DFC: ${c.dfc}` : null, c.dre ? `DRE: ${c.dre}` : null].filter(Boolean).join(' / ');
+      const val = JSON.stringify({ nome: c.nome, dfc: c.dfc||'', dre: c.dre||'' });
+      return `<option value='${val}'>${c.nome} (${refs})</option>`;
+    }).join('');
+}
+
 function toggleFormLanc() {
   const f = document.getElementById('form-lanc-inline');
   f.style.display = f.style.display === 'none' ? '' : 'none';
+  if (f.style.display !== 'none') {
+    const hoje = new Date().toISOString().substring(0,10);
+    if(document.getElementById('nl-data')) document.getElementById('nl-data').value = hoje;
+    if(document.getElementById('nl-valor')) document.getElementById('nl-valor').value = '';
+    if(document.getElementById('nl-extrato')) document.getElementById('nl-extrato').value = '';
+    if(document.getElementById('nl-descricao')) document.getElementById('nl-descricao').value = '';
+    if(document.getElementById('nl-reconhecido')) document.getElementById('nl-reconhecido').textContent = '';
+    selecionarTipoLanc('ENTRADA');
+    f.scrollIntoView({behavior:'smooth'});
+  }
 }
 
-// Reconhece fornecedor pelo nome digitado
+async function salvarLancamento() {
+  const data = document.getElementById('nl-data').value;
+  const extrato = document.getElementById('nl-extrato').value.trim();
+  const valor = parseFloat(document.getElementById('nl-valor').value) || 0;
+  const descricao = document.getElementById('nl-descricao').value.trim();
+  const catVal = document.getElementById('nl-categoria').value;
+  const bancoId = document.getElementById('nl-banco').value;
+  const mes = document.getElementById('lanc-mes').value;
+  const [ano, m] = mes.split('-');
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  if (!data) { showToast('Informe a data','error'); return; }
+  if (!valor) { showToast('Informe o valor','error'); return; }
+  if (!catVal) { showToast('Selecione uma categoria','error'); return; }
+
+  let catNome = '', catDfc = '', catDre = '';
+  try {
+    const catObj = JSON.parse(catVal);
+    catNome = catObj.nome; catDfc = catObj.dfc; catDre = catObj.dre;
+  } catch(e) { catNome = catVal; }
+
+  const entrada = _tipoLanc === 'ENTRADA' ? valor : null;
+  const saida = _tipoLanc === 'SAIDA' ? valor : null;
+  const bancoNome = _bancos.find(b=>b.id===bancoId)?.nome || '';
+
+  const payload = {
+    data_lancamento: data,
+    extrato: extrato || descricao,
+    entrada,
+    saida,
+    descricao: descricao || extrato,
+    tipo: _tipoLanc,
+    valor,
+    categoria: catNome,
+    categoria_dfc: catDfc,
+    categoria_dre: catDre,
+    banco_id: bancoId || null,
+    banco_nome: bancoNome,
+    mes: meses[parseInt(m)-1]?.toUpperCase(),
+    status: 'pago',
+  };
+
+  const { error } = await sb.from('lancamentos').insert(payload);
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+  showToast('Lançamento salvo!','success');
+  toggleFormLanc();
+  loadLancamentos();
+}
 function reconhecerFornecedor(texto) {
   const el = document.getElementById('nl-reconhecido');
   if (!texto || texto.length < 3) { if(el) el.textContent = ''; return; }
@@ -1548,51 +1672,6 @@ function reconhecerFornecedor(texto) {
   }
 }
 
-async function salvarLancamento() {
-  const data = document.getElementById('nl-data').value;
-  const extrato = document.getElementById('nl-extrato').value.trim();
-  const entrada = parseFloat(document.getElementById('nl-entrada').value) || 0;
-  const saida = parseFloat(document.getElementById('nl-saida').value) || 0;
-  const descricao = document.getElementById('nl-descricao').value.trim();
-  const catVal = document.getElementById('nl-categoria').value;
-  let catNome = '', catDfc = '', catDre = '';
-  try {
-    const catObj = JSON.parse(catVal);
-    catNome = catObj.nome;
-    catDfc = catObj.dfc;
-    catDre = catObj.dre;
-  } catch(e) { catNome = catVal; }
-
-  const bancoNome = _bancos.find(b=>b.id===bancoId)?.nome || '';
-
-  const payload = {
-    data_lancamento: data,
-    extrato: extrato || descricao,
-    entrada: entrada || null,
-    saida: saida || null,
-    descricao,
-    tipo,
-    valor,
-    categoria: catNome,
-    categoria_dfc: catDfc,
-    categoria_dre: catDre,
-    banco_id: bancoId || null,
-    banco_nome: bancoNome,
-    mes: meses[parseInt(m)-1]?.toUpperCase(),
-    status: 'pago',
-  };
-
-  const { error } = await sb.from('lancamentos').insert(payload);
-  if (error) { showToast('Erro: '+error.message,'error'); return; }
-
-  showToast('Lançamento salvo!','success');
-  document.getElementById('nl-extrato').value = '';
-  document.getElementById('nl-entrada').value = '';
-  document.getElementById('nl-saida').value = '';
-  document.getElementById('nl-descricao').value = '';
-  document.getElementById('nl-reconhecido').textContent = '';
-  loadLancamentos();
-}
 
 async function salvarLancamentoInline(id, rowId) {
   const row = document.getElementById(rowId);
