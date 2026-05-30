@@ -734,7 +734,10 @@ tbody tr:hover { background: var(--bg3); }
         <div class="page" id="page-fornecedores">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
-            <button class="btn btn-primary" onclick="toggleFormFornecedor()">+ Novo fornecedor</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="loadFornecedores()">↻ Atualizar</button>
+              <button class="btn btn-primary" onclick="toggleFormFornecedor()">+ Novo fornecedor</button>
+            </div>
           </div>
 
           <!-- FORMULÁRIO INLINE -->
@@ -806,6 +809,7 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Grupos e categorias do DRE e DFC</div>
             <div style="display:flex;gap:8px">
+              <button class="btn" onclick="loadPlanoContas()">↻ Atualizar</button>
               <button class="btn" onclick="openModal('modal-grupo')">+ Novo grupo</button>
               <button class="btn btn-primary" onclick="openModal('modal-categoria')">+ Nova categoria</button>
             </div>
@@ -821,7 +825,10 @@ tbody tr:hover { background: var(--bg3); }
         <div class="page" id="page-bancos">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Contas bancárias e caixas</div>
-            <button class="btn btn-primary" onclick="openModal('modal-banco')">+ Novo banco</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="loadBancos()">↻ Atualizar</button>
+              <button class="btn btn-primary" onclick="openModal('modal-banco')">+ Novo banco</button>
+            </div>
           </div>
           <div id="bancos-grid"><div class="loading"><div class="spin"></div> Carregando...</div></div>
         </div>
@@ -830,7 +837,10 @@ tbody tr:hover { background: var(--bg3); }
         <div class="page" id="page-usuarios">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Usuários com acesso ao sistema</div>
-            <button class="btn btn-primary" onclick="openModal('modal-usuario')">+ Novo usuário</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="loadUsuarios()">↻ Atualizar</button>
+              <button class="btn btn-primary" onclick="openModal('modal-usuario')">+ Novo usuário</button>
+            </div>
           </div>
           <div class="card"><div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div></div>
         </div>
@@ -1851,13 +1861,20 @@ function editarGrupo(id, nome, tipo, demo, ordem, cor) {
   document.getElementById('modal-grupo').classList.add('open');
 }
 
-function editarCategoria(id, codigo, nome, tipo, demo, grupo) {
+async function editarCategoria(id, codigo, nome, tipo, demo, grupo) {
   document.getElementById('cat-codigo').value = codigo;
   document.getElementById('cat-nome').value = nome;
   document.getElementById('cat-tipo').value = tipo;
   document.getElementById('cat-demo').value = demo;
   document.getElementById('modal-categoria').dataset.editId = id;
   document.getElementById('modal-categoria').dataset.grupo = grupo;
+  // Carrega grupos filtrados pelo demonstrativo
+  await loadGruposSelect('cat-grupo', demo === 'AMBOS' ? null : demo);
+  // Seleciona o grupo correto
+  const sel = document.getElementById('cat-grupo');
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].text.startsWith(grupo)) { sel.selectedIndex = i; break; }
+  }
   document.getElementById('modal-categoria').classList.add('open');
 }
 
@@ -1914,9 +1931,7 @@ async function saveCategoria() {
   if (!nome) { showToast('Digite o nome da categoria','error'); return; }
   const editId = document.getElementById('modal-categoria').dataset.editId;
   const grupoSel = document.getElementById('cat-grupo');
-  const grupoNome = editId
-    ? document.getElementById('modal-categoria').dataset.grupo
-    : grupoSel.options[grupoSel.selectedIndex]?.text?.split(' (')[0] || '';
+  const grupoNome = grupoSel.options[grupoSel.selectedIndex]?.text?.split(' (')[0] || '';
   const payload = {
     codigo: document.getElementById('cat-codigo').value,
     nome,
