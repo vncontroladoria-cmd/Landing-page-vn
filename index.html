@@ -90,14 +90,21 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   width: var(--sidebar-w);
   background: #111111;
   display: flex; flex-direction: column;
-  flex-shrink: 0; overflow: hidden;
+  overflow: hidden;
   transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
-  position: fixed; left: 0; top: 0; bottom: 0; z-index: 50;
+  position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
 }
-.sidebar:hover, .sidebar.pinned {
+.sidebar:hover {
   width: var(--sidebar-expanded);
+  box-shadow: 4px 0 20px rgba(0,0,0,0.25);
 }
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-left: var(--sidebar-w); transition: margin-left 0.25s cubic-bezier(0.4,0,0.2,1); }
+.main { 
+  flex: 1; display: flex; flex-direction: column; 
+  overflow: hidden;
+  padding-left: var(--sidebar-w);
+  min-height: 100vh;
+  width: 100%;
+}
 .sidebar-logo {
   padding: 1.1rem 0.75rem 1rem;
   border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -481,28 +488,21 @@ tbody tr:hover { background: var(--bg3); }
       </div>
 
       <div class="sidebar-section">Sistema</div>
-      <div class="nav-item" id="nav-cfg" onclick="toggleCfgMenu(this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        <span class="nav-label">Configurações</span>
-        <span class="nav-arrow nav-label">›</span>
+      <div class="nav-item" onclick="showPage('fornecedores',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="nav-label">Fornecedores</span>
       </div>
-      <div class="submenu" id="submenu-cfg">
-        <div class="submenu-item" onclick="showCfgPage('fornecedores',this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-          <span class="submenu-label">Fornecedores</span>
-        </div>
-        <div class="submenu-item" onclick="showCfgPage('plano-contas',this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/></svg>
-          <span class="submenu-label">Plano de Contas</span>
-        </div>
-        <div class="submenu-item" onclick="showCfgPage('bancos',this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-          <span class="submenu-label">Bancos</span>
-        </div>
-        <div class="submenu-item" onclick="showCfgPage('usuarios',this)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          <span class="submenu-label">Usuários</span>
-        </div>
+      <div class="nav-item" onclick="showPage('plano-contas',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/></svg>
+        <span class="nav-label">Plano de Contas</span>
+      </div>
+      <div class="nav-item" onclick="showPage('bancos',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        <span class="nav-label">Bancos</span>
+      </div>
+      <div class="nav-item" onclick="showPage('usuarios',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <span class="nav-label">Usuários</span>
       </div>
 
       <div class="sidebar-footer">
@@ -737,68 +737,59 @@ tbody tr:hover { background: var(--bg3); }
 </div>
 
         <!-- CONFIGURAÇÕES -->
-        <div class="page" id="page-configuracoes">
-          <div style="display:flex;gap:0;margin-bottom:1.25rem;border-bottom:1.5px solid var(--border);padding-bottom:0">
-            <button class="cfg-tab active" onclick="showCfgTab('fornecedores',this)">Fornecedores</button>
-            <button class="cfg-tab" onclick="showCfgTab('plano-contas',this)">Plano de Contas</button>
-            <button class="cfg-tab" onclick="showCfgTab('bancos',this)">Bancos</button>
-            <button class="cfg-tab" onclick="showCfgTab('usuarios',this)">Usuários</button>
+        <!-- FORNECEDORES -->
+        <div class="page" id="page-fornecedores">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
+            <button class="btn btn-primary" onclick="openModal('modal-fornecedor')">+ Novo fornecedor</button>
           </div>
+          <div class="card">
+            <div id="forn-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+          </div>
+        </div>
 
-          <!-- TAB FORNECEDORES -->
-          <div class="cfg-panel active" id="cfg-fornecedores">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-              <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
-              <button class="btn btn-primary" onclick="openModal('modal-fornecedor')">+ Novo fornecedor</button>
+        <!-- PLANO DE CONTAS -->
+        <div class="page" id="page-plano-contas">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div style="font-size:13px;color:var(--text2)">Grupos e categorias do DRE e DFC</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="openModal('modal-grupo')">+ Novo grupo</button>
+              <button class="btn btn-primary" onclick="openModal('modal-categoria')">+ Nova categoria</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Grupos — DFC</div></div>
+              <div id="grupos-dfc"><div class="loading"><div class="spin"></div></div></div>
             </div>
             <div class="card">
-              <div id="forn-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+              <div class="card-header"><div class="card-title">Grupos — DRE</div></div>
+              <div id="grupos-dre"><div class="loading"><div class="spin"></div></div></div>
             </div>
           </div>
-
-          <!-- TAB PLANO DE CONTAS -->
-          <div class="cfg-panel" id="cfg-plano-contas">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-              <div style="font-size:13px;color:var(--text2)">Grupos e categorias do DRE e DFC</div>
-              <div style="display:flex;gap:8px">
-                <button class="btn" onclick="openModal('modal-grupo')">+ Novo grupo</button>
-                <button class="btn btn-primary" onclick="openModal('modal-categoria')">+ Nova categoria</button>
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-              <div class="card">
-                <div class="card-header"><div class="card-title">Grupos — DFC</div></div>
-                <div id="grupos-dfc"><div class="loading"><div class="spin"></div></div></div>
-              </div>
-              <div class="card">
-                <div class="card-header"><div class="card-title">Grupos — DRE</div></div>
-                <div id="grupos-dre"><div class="loading"><div class="spin"></div></div></div>
-              </div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Categorias do plano de contas</div></div>
-              <div id="categorias-table"><div class="loading"><div class="spin"></div></div></div>
-            </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Categorias do plano de contas</div></div>
+            <div id="categorias-table"><div class="loading"><div class="spin"></div></div></div>
           </div>
+        </div>
 
-          <!-- TAB BANCOS -->
-          <div class="cfg-panel" id="cfg-bancos">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-              <div style="font-size:13px;color:var(--text2)">Contas bancárias e caixas</div>
-              <button class="btn btn-primary" onclick="openModal('modal-banco')">+ Novo banco</button>
-            </div>
-            <div id="bancos-grid"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+        <!-- BANCOS -->
+        <div class="page" id="page-bancos">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div style="font-size:13px;color:var(--text2)">Contas bancárias e caixas</div>
+            <button class="btn btn-primary" onclick="openModal('modal-banco')">+ Novo banco</button>
           </div>
+          <div id="bancos-grid"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+        </div>
 
-          <!-- TAB USUÁRIOS -->
-          <div class="cfg-panel" id="cfg-usuarios">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-              <div style="font-size:13px;color:var(--text2)">Usuários com acesso ao sistema</div>
-              <button class="btn btn-primary" onclick="openModal('modal-usuario')">+ Novo usuário</button>
-            </div>
-            <div class="card">
-              <div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
-            </div>
+        <!-- USUÁRIOS -->
+        <div class="page" id="page-usuarios">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div style="font-size:13px;color:var(--text2)">Usuários com acesso ao sistema</div>
+            <button class="btn btn-primary" onclick="openModal('modal-usuario')">+ Novo usuário</button>
+          </div>
+          <div class="card">
+            <div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
           </div>
         </div>
 
@@ -1088,6 +1079,7 @@ function showPage(id, el) {
   if (id === 'fornecedores') loadFornecedores();
   if (id === 'plano-contas') loadPlanoContas();
   if (id === 'bancos') loadBancos();
+  if (id === 'usuarios') loadUsuarios();
 }
 
 // ─── DASHBOARD ────────────────────────────────────────
@@ -1621,7 +1613,8 @@ function showCfgTab(tab, el) {
 
 // ─── NAVEGAÇÃO CADASTROS ─────────────────────────────
 const pageTitlesExtra = {
-  configuracoes:'Configurações', fornecedores:'Fornecedores', 'plano-contas':'Plano de Contas', bancos:'Bancos'
+  configuracoes:'Configurações', fornecedores:'Fornecedores',
+  'plano-contas':'Plano de Contas', bancos:'Bancos', usuarios:'Usuários'
 };
 Object.assign(pageTitles, pageTitlesExtra);
 
