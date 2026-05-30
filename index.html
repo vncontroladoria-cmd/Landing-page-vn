@@ -975,9 +975,8 @@ tbody tr:hover { background: var(--bg3); }
         <select id="cat-grupo" onchange="previewCodigo()"></select>
       </div>
       <div class="form-group" style="grid-column:1/-1">
-        <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2)">
-          Código gerado automaticamente: <strong id="cat-codigo-preview" style="color:var(--accent)">—</strong>
-        </div>
+        <label>Código <span style="font-size:11px;color:var(--text3)">(gerado automaticamente — você pode editar)</span></label>
+        <input type="text" id="cat-codigo-input" placeholder="Ex: 1.1" style="font-family:'DM Mono',monospace;font-weight:600">
       </div>
     </div>
     <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);margin-top:4px">
@@ -1951,23 +1950,20 @@ async function abrirEditarCategoria(btn) {
   const { data: c } = await sb.from('plano_contas').select('*').eq('id', cid).single();
   if (!c) return;
 
-  // Preenche o modal
   document.getElementById('cat-tipo').value = c.tipo;
   document.getElementById('cat-demo').value = c.demonstrativo;
   document.getElementById('cat-nome').value = c.nome;
+  document.getElementById('cat-codigo-input').value = c.codigo || '';
   document.getElementById('modal-categoria').dataset.editId = c.id;
   document.getElementById('modal-categoria').dataset.codigoOriginal = c.codigo || '';
   document.getElementById('modal-categoria').querySelector('.modal-title').textContent = 'Editar categoria';
 
-  // Carrega grupos filtrados e seleciona o correto
+  // Carrega grupos e seleciona o correto
   await carregarGruposSelect(c.demonstrativo);
   const sel = document.getElementById('cat-grupo');
   for (let i = 0; i < sel.options.length; i++) {
     if (sel.options[i].dataset.nome === c.grupo) { sel.selectedIndex = i; break; }
   }
-
-  // Mostra código original
-  document.getElementById('cat-codigo-preview').textContent = c.codigo || '—';
   document.getElementById('modal-categoria').classList.add('open');
 }
 
@@ -2002,7 +1998,9 @@ async function previewCodigo() {
   const total = (data?.length || 0) + (editId ? 0 : 1);
   const codigo = `${grupoOrdem}.${total}`;
 
-  document.getElementById('cat-codigo-preview').textContent = codigo;
+  const inputCod = document.getElementById('cat-codigo-input');
+  inputCod.value = codigo;
+  inputCod.dataset.auto = codigo;
 }
 
 // Salva categoria (novo ou edição)
@@ -2019,8 +2017,9 @@ async function saveCategoria() {
   const grupoOrdem = parseInt(opt.dataset.ordem);
   const demo = document.getElementById('cat-demo').value;
 
-  // Calcula código correto
-  let codigo;
+  // Pega código do input (editável pelo usuário ou gerado automaticamente)
+  const codigoInput = document.getElementById('cat-codigo-input').value.trim();
+  let codigo = codigoInput;
   if (editId) {
     // Mantém código original ao editar
     codigo = document.getElementById('modal-categoria').dataset.codigoOriginal || '';
@@ -2080,7 +2079,8 @@ async function openModal(id) {
     document.getElementById('modal-categoria').dataset.editId = '';
     document.getElementById('modal-categoria').dataset.codigoOriginal = '';
     document.getElementById('modal-categoria').querySelector('.modal-title').textContent = 'Nova categoria';
-    document.getElementById('cat-codigo-preview').textContent = '—';
+    document.getElementById('cat-codigo-input').value = '';
+    document.getElementById('cat-codigo-input').placeholder = 'Gerado automaticamente';
     await carregarGruposSelect('DFC');
   }
   if (id === 'modal-grupo') {
