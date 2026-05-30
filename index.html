@@ -2816,20 +2816,46 @@ async function saveBanco() {
   const nome = document.getElementById('bnc-nome').value.trim();
   if (!nome) { showToast('Digite o nome da conta','error'); return; }
   const editId = document.getElementById('modal-banco').dataset.editId;
+  const saldo = parseFloat(document.getElementById('bnc-saldo').value)||0;
+  const dataSaldo = document.getElementById('bnc-data-saldo').value || null;
   const payload = {
     nome,
     banco: document.getElementById('bnc-banco').value,
     tipo: document.getElementById('bnc-tipo').value,
     agencia: document.getElementById('bnc-agencia').value,
     conta: document.getElementById('bnc-conta').value,
-    saldo_inicial: parseFloat(document.getElementById('bnc-saldo').value)||0,
-    data_saldo_inicial: document.getElementById('bnc-data-saldo').value || null,
+    saldo_inicial: saldo,
+    data_saldo_inicial: dataSaldo,
   };
-  const { error } = editId
-    ? await sb.from('bancos_cadastrados').update(payload).eq('id', editId)
-    : await sb.from('bancos_cadastrados').insert(payload);
+  const { data: saved, error } = editId
+    ? await sb.from('bancos_cadastrados').update(payload).eq('id', editId).select().single()
+    : await sb.from('bancos_cadastrados').insert(payload).select().single();
   if (error) { showToast('Erro ao salvar','error'); return; }
-  showToast('Banco salvo!','success');
+
+  // Se novo banco com saldo inicial e data, cria lançamento automático
+  if (!editId && saldo > 0 && dataSaldo) {
+    const mes = new Date(dataSaldo).toLocaleString('pt-BR',{month:'long'}).toUpperCase();
+    await sb.from('lancamentos').insert({
+      data_lancamento: dataSaldo,
+      extrato: `Saldo inicial — ${nome}`,
+      descricao: `Saldo inicial — ${nome}`,
+      entrada: saldo,
+      saida: null,
+      valor: saldo,
+      tipo: 'ENTRADA',
+      categoria: 'Saldo Inicial',
+      categoria_dfc: '',
+      categoria_dre: '',
+      banco_id: saved.id,
+      banco_nome: nome,
+      mes,
+      status: 'pago',
+    });
+    showToast('Banco salvo e saldo lançado no extrato!','success');
+  } else {
+    showToast('Banco salvo!','success');
+  }
+
   delete document.getElementById('modal-banco').dataset.editId;
   closeModal('modal-banco');
   loadBancos();
