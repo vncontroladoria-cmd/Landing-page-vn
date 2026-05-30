@@ -206,9 +206,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   background: var(--green-light); color: var(--green);
   border-radius: 20px; border: 1px solid rgba(42,157,92,0.2);
 }
-.content { flex: 1; overflow-y: auto; padding: 1.5rem; }
-
-/* PAGES */
+.content { flex: 1; overflow-y: auto; padding: 1.5rem; scroll-behavior: auto; }
 .page { display: none; }
 .page.active { display: block; }
 
@@ -1078,6 +1076,7 @@ function showPage(id, el) {
   document.getElementById('page-' + id).classList.add('active');
   if (el) el.classList.add('active');
   document.getElementById('page-title').textContent = pageTitles[id] || id;
+  document.querySelector('.content').scrollTop = 0;
   if (id === 'dashboard') loadDashboard();
   if (id === 'lancamentos') loadLancamentos();
   if (id === 'contas-pagar') loadContasPagar();
@@ -1556,6 +1555,7 @@ function showCfgPage(tab, el) {
   if (tab === 'plano-contas') loadPlanoContas();
   if (tab === 'bancos') loadBancos();
   if (tab === 'usuarios') loadUsuarios();
+  document.querySelector('.content').scrollTop = 0;
 }
 
 // ─── USUÁRIOS ─────────────────────────────────────────
