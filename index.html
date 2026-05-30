@@ -1660,19 +1660,28 @@ async function loadUsuarios() {
 }
 
 async function saveUsuario() {
-  const email = document.getElementById('usr-email').value.trim();
-  const senha = document.getElementById('usr-senha').value;
   const nome = document.getElementById('usr-nome').value.trim();
+  const email = document.getElementById('usr-email').value.trim();
   const perfil = document.getElementById('usr-perfil').value;
-  if (!email || !senha || !nome) { showToast('Preencha todos os campos','error'); return; }
-  const { data, error } = await sb.auth.admin ? 
-    sb.auth.admin.createUser({ email, password: senha, email_confirm: true }) :
-    sb.auth.signUp({ email, password: senha });
-  if (error) { showToast('Erro: ' + error.message,'error'); return; }
-  if (data?.user?.id) {
-    await sb.from('perfis_usuarios').update({ nome, perfil }).eq('id', data.user.id);
+  const editId = document.getElementById('modal-usuario').dataset.editId;
+
+  if (editId) {
+    // Edição — só atualiza nome e perfil
+    const { error } = await sb.from('perfis_usuarios').update({ nome, perfil }).eq('id', editId);
+    if (error) { showToast('Erro ao salvar','error'); return; }
+    showToast('Usuário atualizado!','success');
+    delete document.getElementById('modal-usuario').dataset.editId;
+  } else {
+    // Novo usuário
+    const senha = document.getElementById('usr-senha').value;
+    if (!email || !senha || !nome) { showToast('Preencha todos os campos','error'); return; }
+    const { data, error } = await sb.auth.signUp({ email, password: senha });
+    if (error) { showToast('Erro: ' + error.message,'error'); return; }
+    if (data?.user?.id) {
+      await sb.from('perfis_usuarios').update({ nome, perfil }).eq('id', data.user.id);
+    }
+    showToast('Usuário criado!','success');
   }
-  showToast('Usuário criado!','success');
   closeModal('modal-usuario');
   loadUsuarios();
 }
@@ -1706,20 +1715,30 @@ function toggleFormFornecedor() {
 async function loadFornecedores() {
   const { data } = await sb.from('fornecedores').select('*').order('nome');
   if (!data?.length) { document.getElementById('forn-table').innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
-  let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>CNPJ</th><th>Tipo</th><th>Grupo</th><th>Vencimento</th><th>Valor Fixo</th><th>Pagamento</th></tr></thead><tbody>';
+  let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>E-mail</th><th>Contato</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(r => {
     html += `<tr>
       <td style="font-weight:500">${r.nome}</td>
       <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
-      <td><span class="badge ${r.tipo==='Fixo'?'badge-blue':'badge-amber'}">${r.tipo||'—'}</span></td>
-      <td style="font-size:12px;color:var(--text2)">${r.categoria||'—'}</td>
-      <td style="font-size:12px">Dia ${r.vencimento_dia||'—'}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--red)">${r.valor_fixo?fmtBRL(r.valor_fixo):'—'}</td>
-      <td style="font-size:12px">${r.forma_pagamento||'—'}</td>
+      <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${r.email||'—'}</td>
+      <td style="font-size:12px">${r.contato||'—'}</td>
+      <td><button class="btn btn-sm" onclick="editarFornecedor('${r.id}','${r.nome}','${r.cnpj||''}','${r.tipo||''}','${r.email||''}','${r.contato||''}')">✏️ Editar</button></td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   document.getElementById('forn-table').innerHTML = html;
+}
+
+function editarFornecedor(id, nome, cnpj, tipo, email, contato) {
+  document.getElementById('forn-nome').value = nome;
+  document.getElementById('forn-cnpj').value = cnpj;
+  document.getElementById('forn-tipo-pessoa').value = tipo;
+  document.getElementById('forn-email').value = email;
+  document.getElementById('forn-contato').value = contato;
+  document.getElementById('forn-codigo').value = id;
+  document.getElementById('form-fornecedor').style.display = 'block';
+  document.getElementById('form-fornecedor').scrollIntoView({behavior:'smooth'});
 }
 
 async function openModal(id) {
@@ -1737,17 +1756,22 @@ async function loadGruposSelect(selectId) {
 async function saveFornecedor() {
   const nome = document.getElementById('forn-nome').value.trim();
   if (!nome) { showToast('Digite o nome do fornecedor','error'); return; }
-  const { error } = await sb.from('fornecedores').insert({
+  const id = document.getElementById('forn-codigo').value;
+  const payload = {
     nome,
     cnpj: document.getElementById('forn-cnpj').value,
     tipo: document.getElementById('forn-tipo-pessoa').value,
     email: document.getElementById('forn-email').value,
     contato: document.getElementById('forn-contato').value,
     observacao: document.getElementById('forn-obs').value,
-  });
+  };
+  const { error } = id && !id.includes('Auto')
+    ? await sb.from('fornecedores').update(payload).eq('id', id)
+    : await sb.from('fornecedores').insert(payload);
   if (error) { showToast('Erro ao salvar','error'); return; }
   showToast('Fornecedor salvo!','success');
-  closeModal('modal-fornecedor');
+  toggleFormFornecedor();
+  document.getElementById('forn-codigo').value = '';
   loadFornecedores();
 }
 
@@ -1830,39 +1854,82 @@ async function saveCategoria() {
 async function loadBancos() {
   const { data } = await sb.from('bancos_cadastrados').select('*').order('nome');
   if (!data?.length) { document.getElementById('bancos-grid').innerHTML = '<div class="empty">Nenhum banco cadastrado</div>'; return; }
-  const cores = {'Itaú':'#f97316','Stone':'#10b981','C6 Bank':'#000','Nubank':'#7c3aed','Bradesco':'#dc2626','Santander':'#dc2626','Inter':'#f97316','PicPay':'#10b981'};
-  let html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+  let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Banco</th><th>Tipo</th><th>Agência</th><th>Conta</th><th>Saldo inicial</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(r => {
-    const cor = cores[r.banco]||'#6b7280';
-    html += `<div class="card" style="border-left:4px solid ${cor}">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-weight:600;font-size:14px">${r.nome}</div>
-        <span class="badge badge-gray">${r.tipo||'—'}</span>
-      </div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:12px">${r.banco||'—'} ${r.agencia?'· Ag: '+r.agencia:''} ${r.conta?'· Cc: '+r.conta:''}</div>
-      <div style="font-size:11px;color:var(--text2)">Saldo inicial</div>
-      <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(r.saldo_inicial||0)}</div>
-    </div>`;
+    html += `<tr>
+      <td style="font-weight:500">${r.nome}</td>
+      <td>${r.banco||'—'}</td>
+      <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${r.agencia||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.conta||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--green)">${fmtBRL(r.saldo_inicial||0)}</td>
+      <td><button class="btn btn-sm" onclick="editarBanco('${r.id}','${r.nome}','${r.banco||''}','${r.tipo||''}','${r.agencia||''}','${r.conta||''}',${r.saldo_inicial||0})">✏️ Editar</button></td>
+    </tr>`;
   });
-  html += '</div>';
+  html += '</tbody></table></div>';
   document.getElementById('bancos-grid').innerHTML = html;
+}
+
+function editarBanco(id, nome, banco, tipo, agencia, conta, saldo) {
+  document.getElementById('bnc-nome').value = nome;
+  document.getElementById('bnc-banco').value = banco;
+  document.getElementById('bnc-tipo').value = tipo;
+  document.getElementById('bnc-agencia').value = agencia;
+  document.getElementById('bnc-conta').value = conta;
+  document.getElementById('bnc-saldo').value = saldo;
+  document.getElementById('modal-banco').dataset.editId = id;
+  document.getElementById('modal-banco').classList.add('open');
 }
 
 async function saveBanco() {
   const nome = document.getElementById('bnc-nome').value.trim();
   if (!nome) { showToast('Digite o nome da conta','error'); return; }
-  const { error } = await sb.from('bancos_cadastrados').insert({
+  const editId = document.getElementById('modal-banco').dataset.editId;
+  const payload = {
     nome,
     banco: document.getElementById('bnc-banco').value,
     tipo: document.getElementById('bnc-tipo').value,
     agencia: document.getElementById('bnc-agencia').value,
     conta: document.getElementById('bnc-conta').value,
     saldo_inicial: parseFloat(document.getElementById('bnc-saldo').value)||0,
-  });
+  };
+  const { error } = editId
+    ? await sb.from('bancos_cadastrados').update(payload).eq('id', editId)
+    : await sb.from('bancos_cadastrados').insert(payload);
   if (error) { showToast('Erro ao salvar','error'); return; }
   showToast('Banco salvo!','success');
+  delete document.getElementById('modal-banco').dataset.editId;
   closeModal('modal-banco');
   loadBancos();
+}
+
+async function loadUsuarios() {
+  const { data } = await sb.from('perfis_usuarios').select('*').order('created_at', {ascending:false});
+  if (!data?.length) { document.getElementById('usuarios-table').innerHTML = '<div class="empty">Nenhum usuário cadastrado</div>'; return; }
+  let html = `<div class="table-wrap"><table><thead><tr>
+    <th>Nome</th><th>E-mail</th><th>Perfil</th><th>Cadastrado em</th><th>Ações</th>
+  </tr></thead><tbody>`;
+  data.forEach(u => {
+    const perfil = u.perfil || 'cliente';
+    html += `<tr>
+      <td style="font-weight:500">${u.nome||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${u.email||'—'}</td>
+      <td><span class="badge ${perfil==='admin'?'badge-green':perfil==='operador'?'badge-blue':'badge-gray'}">${perfil}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${fmtDate(u.created_at?.substring(0,10))}</td>
+      <td><button class="btn btn-sm" onclick="editarUsuario('${u.id}','${u.nome||''}','${u.email||''}','${u.perfil||'cliente'}')">✏️ Editar</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('usuarios-table').innerHTML = html;
+}
+
+function editarUsuario(id, nome, email, perfil) {
+  document.getElementById('usr-nome').value = nome;
+  document.getElementById('usr-email').value = email;
+  document.getElementById('usr-perfil').value = perfil;
+  document.getElementById('usr-senha').value = '';
+  document.getElementById('modal-usuario').dataset.editId = id;
+  document.getElementById('modal-usuario').classList.add('open');
 }
 
 // ─── INIT ────────────────────────────────────────────
