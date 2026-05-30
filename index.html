@@ -573,23 +573,104 @@ tbody tr:hover { background: var(--bg3); }
 
         <!-- LANÇAMENTOS -->
         <div class="page" id="page-lancamentos">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-            <div class="filters">
+          <!-- FILTROS E AÇÕES -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+            <div class="filters" style="margin-bottom:0">
               <select class="filter-select" id="lanc-tipo" onchange="loadLancamentos()">
-                <option value="">Todos</option>
+                <option value="">Todos os tipos</option>
                 <option value="ENTRADA">Entradas</option>
                 <option value="SAIDA">Saídas</option>
               </select>
               <select class="filter-select" id="lanc-mes" onchange="loadLancamentos()">
-                <option value="2026-05">Maio 2026</option>
-                <option value="2026-04">Abril 2026</option>
+                <option value="2026-01">Janeiro 2026</option>
+                <option value="2026-02">Fevereiro 2026</option>
                 <option value="2026-03">Março 2026</option>
+                <option value="2026-04">Abril 2026</option>
+                <option value="2026-05" selected>Maio 2026</option>
+                <option value="2026-06">Junho 2026</option>
+                <option value="2026-07">Julho 2026</option>
+                <option value="2026-08">Agosto 2026</option>
+                <option value="2026-09">Setembro 2026</option>
+                <option value="2026-10">Outubro 2026</option>
+                <option value="2026-11">Novembro 2026</option>
+                <option value="2026-12">Dezembro 2026</option>
               </select>
+              <select class="filter-select" id="lanc-banco-filter" onchange="loadLancamentos()">
+                <option value="">Todos os bancos</option>
+              </select>
+              <button class="btn" onclick="loadLancamentos()">↻ Atualizar</button>
             </div>
-            <button class="btn btn-primary" onclick="openModalLanc()">+ Novo lançamento</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="toggleFormLanc()">+ Novo lançamento</button>
+              <button class="btn btn-primary" onclick="document.getElementById('imp-extrato-input').click()">↑ Importar extrato</button>
+              <input type="file" id="imp-extrato-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExtrato(this)">
+            </div>
           </div>
-          <div class="card">
-            <div id="lanc-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+
+          <!-- RESUMO DO MÊS -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem" id="lanc-resumo">
+            <div class="metric-card"><div class="metric-label">Entradas</div><div class="metric-val green" id="lanc-total-entrada">—</div></div>
+            <div class="metric-card"><div class="metric-label">Saídas</div><div class="metric-val red" id="lanc-total-saida">—</div></div>
+            <div class="metric-card"><div class="metric-label">Saldo do mês</div><div class="metric-val" id="lanc-saldo-mes">—</div></div>
+            <div class="metric-card"><div class="metric-label">Lançamentos</div><div class="metric-val" id="lanc-count">—</div></div>
+          </div>
+
+          <!-- FORMULÁRIO NOVO LANÇAMENTO -->
+          <div class="card" id="form-lanc-inline" style="display:none;margin-bottom:1rem">
+            <div style="font-size:14px;font-weight:600;margin-bottom:1rem">Novo lançamento</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px">
+              <div class="form-group"><label>Data</label><input type="date" id="nl-data"></div>
+              <div class="form-group"><label>Extrato (nome original)</label><input type="text" id="nl-extrato" placeholder="Ex: PIX SABESP" oninput="reconhecerFornecedor(this.value)"></div>
+              <div class="form-group"><label>Tipo</label>
+                <select id="nl-tipo">
+                  <option value="ENTRADA">ENTRADA</option>
+                  <option value="SAIDA">SAIDA</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Banco</label>
+                <select id="nl-banco"></select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+              <div class="form-group"><label>Entrada (R$)</label><input type="number" id="nl-entrada" placeholder="0,00" step="0.01" oninput="if(this.value)document.getElementById('nl-saida').value=''"></div>
+              <div class="form-group"><label>Saída (R$)</label><input type="number" id="nl-saida" placeholder="0,00" step="0.01" oninput="if(this.value)document.getElementById('nl-entrada').value=''"></div>
+              <div class="form-group"><label>Descrição</label><input type="text" id="nl-descricao" placeholder="Descrição do lançamento"></div>
+              <div class="form-group"><label>Categoria DFC/DRE</label>
+                <select id="nl-categoria">
+                  <option value="">Selecione...</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-primary" onclick="salvarLancamento()">💾 Salvar lançamento</button>
+              <button class="btn" onclick="toggleFormLanc()">Cancelar</button>
+              <span id="nl-reconhecido" style="font-size:12px;color:var(--green)"></span>
+            </div>
+          </div>
+
+          <!-- TABELA DE LANÇAMENTOS -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="overflow-x:auto">
+              <table id="lanc-main-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:1100px">
+                <thead>
+                  <tr style="background:var(--bg3)">
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DATA</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">EXTRATO</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--green);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">ENTRADA</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--red);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SAÍDA</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DESCRIÇÃO</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">CATEGORIA DFC/DRE</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">BANCO</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">MÊS</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SALDO</th>
+                    <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap" class="no-sort">AÇÕES</th>
+                  </tr>
+                </thead>
+                <tbody id="lanc-tbody">
+                  <tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -777,6 +858,23 @@ tbody tr:hover { background: var(--bg3); }
 
             <div style="margin-bottom:12px">
               <div class="form-group"><label>Observação</label><textarea id="forn-obs" rows="3" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical" placeholder="Anotações sobre o fornecedor"></textarea></div>
+            </div>
+
+            <div style="border-top:1.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
+              <div style="font-size:13px;font-weight:600;margin-bottom:0.75rem;color:var(--accent)">🔗 Reconhecimento automático</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                <div class="form-group"><label>Palavra-chave no extrato</label><input type="text" id="forn-palavra-chave" placeholder="Ex: SABESP, CEMIG, ALUGUEL"></div>
+                <div class="form-group"><label>Categoria DFC</label>
+                  <select id="forn-cat-dfc">
+                    <option value="">Selecione...</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Categoria DRE</label>
+                  <select id="forn-cat-dre">
+                    <option value="">Selecione...</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div style="border-top:1.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
@@ -1259,40 +1357,312 @@ async function loadDashboard() {
 }
 
 // ─── LANÇAMENTOS ────────────────────────────────────────
-async function loadLancamentos() {
-  const tipo = document.getElementById('lanc-tipo')?.value;
-  const mes = document.getElementById('lanc-mes')?.value || '2026-05';
-  const [ano, m] = mes.split('-');
-  const ini = `${ano}-${m}-01`, fim = `${ano}-${m}-31`;
-  let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending:false});
-  if (tipo) q = q.eq('tipo', tipo);
-  const { data } = await q;
-  renderLancTable(data||[], 'lanc-table', false);
+// ─── LANÇAMENTOS ─────────────────────────────────────────
+let _bancos = [];
+let _categorias = [];
+let _fornecedores = [];
+
+async function initLancamentos() {
+  // Carrega bancos para o select
+  const { data: bancos } = await sb.from('bancos_cadastrados').select('*').order('nome');
+  _bancos = bancos || [];
+
+  const selBanco = document.getElementById('nl-banco');
+  const selBancoFilter = document.getElementById('lanc-banco-filter');
+  if (selBanco) selBanco.innerHTML = _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
+  if (selBancoFilter) {
+    selBancoFilter.innerHTML = '<option value="">Todos os bancos</option>' + _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
+  }
+
+  // Carrega categorias do plano de contas
+  const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
+  _categorias = cats || [];
+  const selCat = document.getElementById('nl-categoria');
+  if (selCat) {
+    selCat.innerHTML = '<option value="">Selecione categoria...</option>' +
+      _categorias.map(c => `<option value="${c.id}" data-nome="${c.nome}">${c.codigo} — ${c.nome} (${c.demonstrativo})</option>`).join('');
+  }
+
+  // Carrega fornecedores para reconhecimento
+  const { data: forns } = await sb.from('fornecedores').select('*');
+  _fornecedores = forns || [];
+
+  // Data padrão = hoje
+  const hoje = new Date().toISOString().substring(0,10);
+  if (document.getElementById('nl-data')) document.getElementById('nl-data').value = hoje;
 }
 
+async function loadLancamentos() {
+  const el = document.getElementById('lanc-tbody');
+  if (!el) return;
+  await initLancamentos();
+
+  const tipo = document.getElementById('lanc-tipo')?.value;
+  const mes = document.getElementById('lanc-mes')?.value || '2026-05';
+  const bancoFilter = document.getElementById('lanc-banco-filter')?.value;
+  const [ano, m] = mes.split('-');
+  const ini = `${ano}-${m}-01`;
+  const fim = `${ano}-${m}-31`;
+
+  let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: true});
+  if (tipo) q = q.eq('tipo', tipo);
+  if (bancoFilter) q = q.eq('banco_id', bancoFilter);
+
+  const { data } = await q;
+  const lancs = data || [];
+
+  // Calcula saldo acumulado
+  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
+  const totalSaida = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+  const saldoMes = totalEntrada - totalSaida;
+
+  // Atualiza resumo
+  if (document.getElementById('lanc-total-entrada')) {
+    document.getElementById('lanc-total-entrada').textContent = fmtBRL(totalEntrada);
+    document.getElementById('lanc-total-saida').textContent = fmtBRL(totalSaida);
+    document.getElementById('lanc-saldo-mes').textContent = fmtBRL(saldoMes);
+    document.getElementById('lanc-saldo-mes').className = 'metric-val ' + (saldoMes >= 0 ? 'green' : 'red');
+    document.getElementById('lanc-count').textContent = lancs.length;
+  }
+
+  if (!lancs.length) {
+    el.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
+    return;
+  }
+
+  // Saldo acumulado
+  let saldoAcum = 0;
+  let html = '';
+  lancs.forEach(l => {
+    const entrada = Number(l.entrada || (l.tipo==='ENTRADA'? l.valor : 0) || 0);
+    const saida = Number(l.saida || (l.tipo==='SAIDA'? l.valor : 0) || 0);
+    saldoAcum += entrada - saida;
+    const mesNome = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(l.data_lancamento?.substring(5,7))-1] || '';
+    const bancoNome = _bancos.find(b=>b.id===l.banco_id)?.nome || l.banco_nome || '—';
+    html += `<tr id="lr-${l.id}" style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px;white-space:nowrap;color:var(--text2);font-size:12px">
+        <span class="cell-view">${fmtDate(l.data_lancamento)}</span>
+        <input class="cell-edit" type="date" style="display:none;width:120px" value="${l.data_lancamento||''}">
+      </td>
+      <td style="padding:9px 12px;max-width:180px">
+        <span class="cell-view" style="font-size:12px;color:var(--text2)">${l.extrato||l.descricao||'—'}</span>
+        <input class="cell-edit" style="display:none;width:100%;font-size:12px" value="${l.extrato||l.descricao||''}">
+      </td>
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;color:var(--green);font-size:12px">
+        <span class="cell-view">${entrada > 0 ? fmtBRL(entrada) : ''}</span>
+        <input class="cell-edit" type="number" style="display:none;width:90px;text-align:right" value="${entrada||''}">
+      </td>
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;color:var(--red);font-size:12px">
+        <span class="cell-view">${saida > 0 ? fmtBRL(saida) : ''}</span>
+        <input class="cell-edit" type="number" style="display:none;width:90px;text-align:right" value="${saida||''}">
+      </td>
+      <td style="padding:9px 12px;max-width:160px">
+        <span class="cell-view" style="font-size:12px">${l.descricao||'—'}</span>
+        <input class="cell-edit" style="display:none;width:100%;font-size:12px" value="${l.descricao||''}">
+      </td>
+      <td style="padding:9px 12px">
+        <span class="cell-view"><span class="badge badge-blue" style="font-size:10px">${l.categoria||l.categoria_dfc||'—'}</span></span>
+        <select class="cell-edit" style="display:none;font-size:11px">
+          <option value="">—</option>
+          ${_categorias.map(c=>`<option value="${c.nome}" ${(l.categoria||l.categoria_dfc)===c.nome?'selected':''}>${c.codigo} ${c.nome}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:9px 12px;font-size:12px;color:var(--text2)">
+        <span class="cell-view">${bancoNome}</span>
+        <select class="cell-edit" style="display:none;font-size:11px">
+          ${_bancos.map(b=>`<option value="${b.id}" ${l.banco_id===b.id?'selected':''}>${b.nome}</option>`).join('')}
+        </select>
+      </td>
+      <td style="padding:9px 12px;font-size:12px;color:var(--text2);white-space:nowrap">${mesNome} ${ano}</td>
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--green)':'var(--red)'}">
+        ${fmtBRL(saldoAcum)}
+      </td>
+      <td style="padding:9px 12px;white-space:nowrap;display:flex;gap:4px">
+        <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="toggleInline('lr-${l.id}')">✏️</button>
+        <button class="btn btn-sm btn-save-inline" style="display:none;padding:3px 8px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarLancamentoInline('${l.id}','lr-${l.id}')">💾</button>
+        <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="excluirLancamento('${l.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  });
+  el.innerHTML = html;
+}
+
+function toggleFormLanc() {
+  const f = document.getElementById('form-lanc-inline');
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+}
+
+// Reconhece fornecedor pelo nome digitado
+function reconhecerFornecedor(texto) {
+  const el = document.getElementById('nl-reconhecido');
+  if (!texto || texto.length < 3) { if(el) el.textContent = ''; return; }
+  const match = _fornecedores.find(f =>
+    f.palavra_chave && texto.toLowerCase().includes(f.palavra_chave.toLowerCase()) ||
+    f.nome && texto.toLowerCase().includes(f.nome.toLowerCase().substring(0,5))
+  );
+  if (match && el) {
+    el.textContent = `✓ Reconhecido: ${match.nome}`;
+    // Auto-seleciona categoria se fornecedor tem vínculo
+    if (match.categoria_dfc) {
+      const selCat = document.getElementById('nl-categoria');
+      for (let o of selCat.options) {
+        if (o.dataset.nome === match.categoria_dfc) { selCat.value = o.value; break; }
+      }
+    }
+  } else if (el) {
+    el.textContent = '';
+  }
+}
+
+async function salvarLancamento() {
+  const data = document.getElementById('nl-data').value;
+  const extrato = document.getElementById('nl-extrato').value.trim();
+  const entrada = parseFloat(document.getElementById('nl-entrada').value) || 0;
+  const saida = parseFloat(document.getElementById('nl-saida').value) || 0;
+  const descricao = document.getElementById('nl-descricao').value.trim();
+  const catId = document.getElementById('nl-categoria').value;
+  const bancoId = document.getElementById('nl-banco').value;
+  const mes = document.getElementById('lanc-mes').value;
+  const [ano, m] = mes.split('-');
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  if (!data) { showToast('Informe a data','error'); return; }
+  if (!entrada && !saida) { showToast('Informe entrada ou saída','error'); return; }
+
+  const tipo = entrada > 0 ? 'ENTRADA' : 'SAIDA';
+  const valor = entrada > 0 ? entrada : saida;
+  const catNome = document.getElementById('nl-categoria').options[document.getElementById('nl-categoria').selectedIndex]?.dataset.nome || '';
+  const bancoNome = _bancos.find(b=>b.id===bancoId)?.nome || '';
+
+  const payload = {
+    data_lancamento: data,
+    extrato: extrato || descricao,
+    entrada: entrada || null,
+    saida: saida || null,
+    descricao,
+    tipo,
+    valor,
+    categoria: catNome,
+    categoria_dfc: catNome,
+    banco_id: bancoId || null,
+    banco_nome: bancoNome,
+    mes: meses[parseInt(m)-1]?.toUpperCase(),
+    status: 'pago',
+  };
+
+  const { error } = await sb.from('lancamentos').insert(payload);
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+
+  showToast('Lançamento salvo!','success');
+  document.getElementById('nl-extrato').value = '';
+  document.getElementById('nl-entrada').value = '';
+  document.getElementById('nl-saida').value = '';
+  document.getElementById('nl-descricao').value = '';
+  document.getElementById('nl-reconhecido').textContent = '';
+  loadLancamentos();
+}
+
+async function salvarLancamentoInline(id, rowId) {
+  const row = document.getElementById(rowId);
+  const edits = row.querySelectorAll('.cell-edit');
+  const entrada = parseFloat(edits[2].value) || 0;
+  const saida = parseFloat(edits[3].value) || 0;
+  const payload = {
+    data_lancamento: edits[0].value,
+    extrato: edits[1].value,
+    entrada: entrada || null,
+    saida: saida || null,
+    valor: entrada || saida,
+    tipo: entrada > 0 ? 'ENTRADA' : 'SAIDA',
+    descricao: edits[4].value,
+    categoria: edits[5].value,
+    categoria_dfc: edits[5].value,
+    banco_id: edits[6].value || null,
+  };
+  const { error } = await sb.from('lancamentos').update(payload).eq('id', id);
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+  showToast('Salvo!','success');
+  loadLancamentos();
+}
+
+async function excluirLancamento(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  await sb.from('lancamentos').delete().eq('id', id);
+  showToast('Excluído!','success');
+  loadLancamentos();
+}
+
+async function importarExtrato(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showToast('Importando...','');
+  const XLSX = await loadXLSX();
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+  const mes = document.getElementById('lanc-mes').value;
+  const [ano, m] = mes.split('-');
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  let count = 0;
+  for (const r of rows) {
+    const data = parseDate(r['DATA'] || r['Data'] || r['data']);
+    if (!data) continue;
+    const extratoTxt = String(r['EXTRATO'] || r['Extrato'] || r['extrato'] || '');
+    const entrada = parseFloat(String(r['ENTRADA']||r['Entrada']||'0').replace(',','.').replace(/[^0-9.-]/g,'')) || 0;
+    const saida = Math.abs(parseFloat(String(r['SAIDA']||r['Saida']||'0').replace(',','.').replace(/[^0-9.-]/g,'')) || 0);
+    const tipo = entrada > 0 ? 'ENTRADA' : 'SAIDA';
+    const valor = entrada || saida;
+
+    // Reconhece categoria pelo fornecedor
+    const match = _fornecedores.find(f =>
+      f.palavra_chave && extratoTxt.toLowerCase().includes(f.palavra_chave.toLowerCase()) ||
+      f.nome && extratoTxt.toLowerCase().includes(f.nome.toLowerCase().substring(0,5))
+    );
+    const catNome = match?.categoria_dfc || '';
+
+    await sb.from('lancamentos').insert({
+      data_lancamento: data,
+      extrato: extratoTxt,
+      entrada: entrada || null,
+      saida: saida || null,
+      valor,
+      tipo,
+      descricao: extratoTxt,
+      categoria: catNome,
+      categoria_dfc: catNome,
+      mes: meses[parseInt(m)-1]?.toUpperCase(),
+      status: 'pago',
+    });
+    count++;
+  }
+
+  showToast(`${count} lançamentos importados!`,'success');
+  input.value = '';
+  loadLancamentos();
+}
+
+// Mantém compatibilidade com dashboard
 function renderLancTable(data, targetId, mini) {
-  if (!data.length) { document.getElementById(targetId).innerHTML = '<div class="empty">Nenhum lançamento encontrado</div>'; return; }
-  let html = '<div class="table-wrap"><table><thead><tr>';
-  if (!mini) html += '<th>Data</th>';
-  html += '<th>Descrição</th><th>Categoria</th>';
-  if (!mini) html += '<th>Pagamento</th>';
-  html += '<th>Tipo</th><th>Valor</th>';
-  if (!mini) html += '<th>Status</th>';
-  html += '</tr></thead><tbody>';
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  if (!data.length) { el.innerHTML = '<div class="empty">Nenhum lançamento</div>'; return; }
+  let html = '<div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th></tr></thead><tbody>';
   data.forEach(l => {
     const cor = l.tipo==='ENTRADA' ? 'green' : 'red';
-    const sinal = l.tipo==='ENTRADA' ? '+' : '−';
-    html += `<tr>`;
-    if (!mini) html += `<td style="color:var(--text2);font-size:12px">${fmtDate(l.data_lancamento)}</td>`;
-    html += `<td>${l.descricao||'—'}</td><td><span class="badge badge-blue">${l.categoria||'—'}</span></td>`;
-    if (!mini) html += `<td style="font-size:12px;color:var(--text2)">${l.forma_pagamento||'—'}</td>`;
-    html += `<td><span class="badge badge-${cor}">${l.tipo}</span></td>`;
-    html += `<td style="color:var(--${cor});font-family:'DM Mono',monospace">${sinal} ${fmtBRL(l.valor)}</td>`;
-    if (!mini) html += `<td><span class="badge ${l.status==='pago'?'badge-green':'badge-amber'}">${l.status||'—'}</span></td>`;
-    html += `</tr>`;
+    const val = l.entrada || l.saida || l.valor || 0;
+    html += `<tr>
+      <td style="font-size:12px;color:var(--text2)">${fmtDate(l.data_lancamento)}</td>
+      <td style="font-size:12px">${l.descricao||l.extrato||'—'}</td>
+      <td><span class="badge badge-blue" style="font-size:10px">${l.categoria||'—'}</span></td>
+      <td><span class="badge badge-${cor}" style="font-size:10px">${l.tipo}</span></td>
+      <td style="color:var(--${cor});font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(val)}</td>
+    </tr>`;
   });
   html += '</tbody></table></div>';
-  document.getElementById(targetId).innerHTML = html;
+  el.innerHTML = html;
 }
 
 // ─── CONTAS A PAGAR ────────────────────────────────────────
@@ -1738,7 +2108,19 @@ Object.assign(pageTitles, pageTitlesExtra);
 function toggleFormFornecedor() {
   const f = document.getElementById('form-fornecedor');
   f.style.display = f.style.display === 'none' ? 'block' : 'none';
-  if (f.style.display === 'block') f.scrollIntoView({behavior:'smooth'});
+  if (f.style.display === 'block') {
+    f.scrollIntoView({behavior:'smooth'});
+    carregarCatsFornecedor();
+  }
+}
+
+async function carregarCatsFornecedor() {
+  const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
+  const opts = '<option value="">Selecione...</option>' + (cats||[]).map(c => `<option value="${c.nome}">${c.codigo} — ${c.nome} (${c.demonstrativo})</option>`).join('');
+  const dfc = document.getElementById('forn-cat-dfc');
+  const dre = document.getElementById('forn-cat-dre');
+  if (dfc) dfc.innerHTML = opts;
+  if (dre) dre.innerHTML = opts;
 }
 
 // ─── FORNECEDORES ─────────────────────────────────────
@@ -1855,6 +2237,9 @@ async function saveFornecedor() {
     email: document.getElementById('forn-email').value,
     contato: document.getElementById('forn-contato').value,
     observacao: document.getElementById('forn-obs').value,
+    palavra_chave: document.getElementById('forn-palavra-chave')?.value || '',
+    categoria_dfc: document.getElementById('forn-cat-dfc')?.value || '',
+    categoria_dre: document.getElementById('forn-cat-dre')?.value || '',
   };
   const { error } = id && !id.includes('Auto')
     ? await sb.from('fornecedores').update(payload).eq('id', id)
