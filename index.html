@@ -816,15 +816,19 @@ tbody tr:hover { background: var(--bg3); }
             <div style="font-size:13px;color:var(--text2)">Grupos e categorias do DRE e DFC</div>
             <div style="display:flex;gap:8px">
               <button class="btn" onclick="loadPlanoContas()">↻ Atualizar</button>
-              <button class="btn" onclick="openModal('modal-grupo')">+ Novo grupo</button>
-              <button class="btn btn-primary" onclick="openModal('modal-categoria')">+ Nova categoria</button>
+              <button class="btn btn-primary" onclick="openModal('modal-grupo')">+ Novo grupo</button>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-            <div class="card"><div class="card-header"><div class="card-title">Grupos — DFC</div></div><div id="grupos-dfc"><div class="loading"><div class="spin"></div></div></div></div>
-            <div class="card"><div class="card-header"><div class="card-title">Grupos — DRE</div></div><div id="grupos-dre"><div class="loading"><div class="spin"></div></div></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">DFC — Demonstrativo de Fluxo de Caixa</div>
+              <div id="grupos-dfc"><div class="loading"><div class="spin"></div></div></div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">DRE — Demonstrativo de Resultado</div>
+              <div id="grupos-dre"><div class="loading"><div class="spin"></div></div></div>
+            </div>
           </div>
-          <div class="card"><div class="card-header"><div class="card-title">Categorias</div></div><div id="categorias-table"><div class="loading"><div class="spin"></div></div></div></div>
         </div>
 
         <!-- BANCOS -->
@@ -1870,67 +1874,114 @@ let _grupos = [];
 async function loadPlanoContas() {
   const elDfc = document.getElementById('grupos-dfc');
   const elDre = document.getElementById('grupos-dre');
-  const elCats = document.getElementById('categorias-table');
-  if (!elDfc || !elDre || !elCats) return;
+  if (!elDfc || !elDre) return;
 
   elDfc.innerHTML = '<div class="loading"><div class="spin"></div></div>';
   elDre.innerHTML = '<div class="loading"><div class="spin"></div></div>';
-  elCats.innerHTML = '<div class="loading"><div class="spin"></div></div>';
 
   const { data: grupos } = await sb.from('grupos_plano').select('*').order('ordem');
   const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
 
   _grupos = grupos || [];
 
-  // Renderiza grupos
-  const renderGrupos = (list, targetId) => {
-    if (!list.length) { document.getElementById(targetId).innerHTML = '<div class="empty">Nenhum grupo</div>'; return; }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>Tipo</th><th>Demo</th><th>Ações</th></tr></thead><tbody>';
+  const renderGrupoComCats = (list, targetId) => {
+    const el = document.getElementById(targetId);
+    if (!list.length) { el.innerHTML = '<div class="empty">Nenhum grupo</div>'; return; }
+
+    let html = '';
     list.forEach(g => {
-      html += `<tr>
-        <td style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent)">${g.ordem}</td>
-        <td style="font-weight:500;border-left:3px solid ${g.cor||'#6b7280'};padding-left:8px">${g.nome}</td>
-        <td><span class="badge ${g.tipo==='ENTRADA'?'badge-green':'badge-red'}">${g.tipo==='ENTRADA'?'(+)':'(-)'}</span></td>
-        <td><span class="badge badge-blue">${g.demonstrativo}</span></td>
-        <td style="display:flex;gap:6px">
-          <button class="btn btn-sm" data-gid="${g.id}" onclick="abrirEditarGrupo(this)">✏️ Editar</button>
-          <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirGrupo('${g.id}')">🗑️</button>
-        </td>
-      </tr>`;
+      const gCats = (cats||[]).filter(c => c.grupo === g.nome && c.demonstrativo === g.demonstrativo);
+      html += `<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:13px;color:var(--accent);border-left:3px solid ${g.cor||'#6b7280'};padding-left:8px">${g.ordem}.</span>
+            <span style="font-weight:600;font-size:13px">${g.nome}</span>
+            <span class="badge ${g.tipo==='ENTRADA'?'badge-green':'badge-red'}" style="font-size:10px">${g.tipo==='ENTRADA'?'(+)':'(-)'}</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm" onclick="adicionarCategoriaNoGrupo('${g.id}','${g.nome}','${g.demonstrativo}',${g.ordem})" style="color:var(--accent);border-color:var(--accent)">+ Categoria</button>
+            <button class="btn btn-sm" data-gid="${g.id}" onclick="abrirEditarGrupo(this)">✏️</button>
+            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirGrupo('${g.id}')">🗑️</button>
+          </div>
+        </div>`;
+
+      // Linha para nova categoria (oculta)
+      html += `<div id="nova-cat-${g.id}" style="display:none;padding:10px 14px;background:#f0fdf4;border-bottom:1px solid var(--border)">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="nova-cat-nome-${g.id}" placeholder="Nome da categoria" style="flex:1;padding:7px 10px;font-size:13px;border:1.5px solid var(--accent);border-radius:8px;font-family:'Outfit',sans-serif">
+          <span style="font-size:12px;color:var(--text2);white-space:nowrap">Código: <strong id="nova-cat-cod-${g.id}" style="color:var(--accent)">${g.ordem}.${gCats.length+1}</strong></span>
+          <button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarNovaCategoria('${g.id}','${g.nome}','${g.demonstrativo}',${g.ordem},${gCats.length})">💾 Salvar</button>
+          <button class="btn btn-sm" onclick="document.getElementById('nova-cat-${g.id}').style.display='none'">✕</button>
+        </div>
+      </div>`;
+
+      // Categorias do grupo
+      if (gCats.length) {
+        html += `<div style="padding:0">`;
+        gCats.forEach((c, idx) => {
+          html += `<div id="cat-row-${c.id}" style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);${idx%2===1?'background:var(--bg3)':''}">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:32px" class="cell-view">${c.codigo||''}</span>
+            <input class="cell-edit" style="display:none;width:50px;font-family:monospace;font-size:12px" value="${c.codigo||''}">
+            <span style="font-size:13px;flex:1" class="cell-view">${c.nome}</span>
+            <input class="cell-edit" style="display:none;flex:1;font-size:13px" value="${c.nome||''}">
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="moverCategoria('${c.id}','up','${g.nome}','${g.demonstrativo}')" ${idx===0?'disabled':''}>↑</button>
+              <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="moverCategoria('${c.id}','down','${g.nome}','${g.demonstrativo}')" ${idx===gCats.length-1?'disabled':''}>↓</button>
+              <button class="btn btn-sm cell-view" onclick="toggleInline('cat-row-${c.id}')">✏️</button>
+              <button class="btn btn-sm btn-save-inline cell-edit" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarCategoriaInline('${c.id}','cat-row-${c.id}')">💾</button>
+              <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);padding:3px 7px" onclick="excluirCategoria('${c.id}')">🗑️</button>
+            </div>
+          </div>`;
+        });
+        html += `</div>`;
+      } else {
+        html += `<div style="padding:12px 14px;font-size:12px;color:var(--text3)">Nenhuma categoria. Clique em + Categoria para adicionar.</div>`;
+      }
+      html += `</div>`;
     });
-    html += '</tbody></table></div>';
-    document.getElementById(targetId).innerHTML = html;
+    el.innerHTML = html;
   };
 
-  const dfc = _grupos.filter(g => g.demonstrativo === 'DFC' || g.demonstrativo === 'AMBOS');
-  const dre = _grupos.filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
-  renderGrupos(dfc, 'grupos-dfc');
-  renderGrupos(dre, 'grupos-dre');
+  const dfc = _grupos.filter(g => g.demonstrativo === 'DFC');
+  const dre = _grupos.filter(g => g.demonstrativo === 'DRE');
+  renderGrupoComCats(dfc, 'grupos-dfc');
+  renderGrupoComCats(dre, 'grupos-dre');
+}
 
-  // Renderiza categorias
-  if (!cats?.length) { elCats.innerHTML = '<div class="empty">Nenhuma categoria</div>'; return; }
-  let html = '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Demo</th><th>Grupo</th><th>Ações</th></tr></thead><tbody>';
-  cats.forEach(c => {
-    html += `<tr id="cat-row-${c.id}">
-      <td><span class="cell-view" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent)">${c.codigo||'—'}</span><input class="cell-edit" style="display:none;width:60px;font-family:monospace" value="${c.codigo||''}"></td>
-      <td><span class="cell-view" style="font-weight:500">${c.nome}</span><input class="cell-edit" style="display:none;width:100%" value="${c.nome||''}"></td>
-      <td><span class="cell-view"><span class="badge ${c.tipo==='ENTRADA'?'badge-green':'badge-red'}">${c.tipo}</span></span>
-        <select class="cell-edit" style="display:none"><option value="ENTRADA" ${c.tipo==='ENTRADA'?'selected':''}>ENTRADA</option><option value="SAIDA" ${c.tipo==='SAIDA'?'selected':''}>SAIDA</option></select>
-      </td>
-      <td><span class="cell-view"><span class="badge badge-blue">${c.demonstrativo}</span></span>
-        <select class="cell-edit" style="display:none"><option ${c.demonstrativo==='DFC'?'selected':''}>DFC</option><option ${c.demonstrativo==='DRE'?'selected':''}>DRE</option><option ${c.demonstrativo==='AMBOS'?'selected':''}>AMBOS</option></select>
-      </td>
-      <td style="font-size:12px;color:var(--text2)">${c.grupo||'—'}</td>
-      <td style="display:flex;gap:6px">
-        <button class="btn btn-sm" onclick="toggleInline('cat-row-${c.id}')">✏️ Editar</button>
-        <button class="btn btn-sm btn-save-inline" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarCategoriaInline('${c.id}','cat-row-${c.id}')">💾 Salvar</button>
-        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirCategoria('${c.id}')">🗑️</button>
-      </td>
-    </tr>`;
-  });
-  html += '</tbody></table></div>';
-  elCats.innerHTML = html;
-  aplicarSort(elCats);
+function adicionarCategoriaNoGrupo(gid, gNome, demo, ordem) {
+  const el = document.getElementById('nova-cat-' + gid);
+  el.style.display = el.style.display === 'none' ? '' : 'none';
+  if (el.style.display !== 'none') {
+    document.getElementById('nova-cat-nome-' + gid).focus();
+  }
+}
+
+async function salvarNovaCategoria(gid, gNome, demo, ordem, totalAtual) {
+  const nome = document.getElementById('nova-cat-nome-' + gid).value.trim();
+  if (!nome) { showToast('Digite o nome','error'); return; }
+  const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', gNome).eq('demonstrativo', demo);
+  const codigo = `${ordem}.${(cats?.length||0)+1}`;
+  const tipo = demo === 'DFC' ? (ordem <= 2 ? 'ENTRADA' : 'SAIDA') : (ordem === 1 || ordem === 8 ? 'ENTRADA' : 'SAIDA');
+  const { error } = await sb.from('plano_contas').insert({ codigo, nome, tipo, demonstrativo: demo, grupo: gNome, ordem: (cats?.length||0)+1 });
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+  showToast('Categoria adicionada!','success');
+  document.getElementById('nova-cat-' + gid).style.display = 'none';
+  document.getElementById('nova-cat-nome-' + gid).value = '';
+  loadPlanoContas();
+}
+
+async function moverCategoria(id, dir, grupo, demo) {
+  const { data: cats } = await sb.from('plano_contas').select('*').eq('grupo', grupo).eq('demonstrativo', demo).order('codigo');
+  const idx = cats.findIndex(c => c.id === id);
+  const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= cats.length) return;
+
+  const a = cats[idx];
+  const b = cats[swapIdx];
+  // Troca os códigos e ordens
+  await sb.from('plano_contas').update({ codigo: b.codigo, ordem: b.ordem }).eq('id', a.id);
+  await sb.from('plano_contas').update({ codigo: a.codigo, ordem: a.ordem }).eq('id', b.id);
+  loadPlanoContas();
 }
 
 async function salvarCategoriaInline(id, rowId) {
