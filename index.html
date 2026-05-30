@@ -1996,12 +1996,14 @@ async function saveGrupo() {
 async function saveCategoria() {
   const nome = document.getElementById('cat-nome').value.trim();
   if (!nome) { showToast('Digite o nome da categoria','error'); return; }
-  const editId = document.getElementById('modal-categoria').dataset.editId;
-  const grupoSel = document.getElementById('cat-grupo');
-  const grupoNome = grupoSel.options[grupoSel.selectedIndex]?.text?.split(' (')[0] || '';
-  const codigoGerado = document.getElementById('modal-categoria').dataset.codigoGerado || '';
   
-  // Busca código original se estiver editando
+  const editId = document.getElementById('modal-categoria').dataset.editId || '';
+  const grupoSel = document.getElementById('cat-grupo');
+  const grupoTexto = grupoSel.options[grupoSel.selectedIndex]?.text || '';
+  // Remove o "(DFC)" ou "(DRE)" do final
+  const grupoNome = grupoTexto.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const codigoGerado = document.getElementById('modal-categoria').dataset.codigoGerado || '';
+
   let codigoFinal = codigoGerado;
   if (editId) {
     const { data: orig } = await sb.from('plano_contas').select('codigo').eq('id', editId).single();
@@ -2016,25 +2018,24 @@ async function saveCategoria() {
     grupo: grupoNome,
   };
 
+  let error;
   if (editId) {
-    // Busca o nome antigo antes de atualizar
     const { data: antigo } = await sb.from('plano_contas').select('nome').eq('id', editId).single();
     const nomeAntigo = antigo?.nome;
-
-    await sb.from('plano_contas').update(payload).eq('id', editId);
-
-    // Atualiza em cascata onde o nome antigo aparece
-    if (nomeAntigo && nomeAntigo !== nome) {
+    const res = await sb.from('plano_contas').update(payload).eq('id', editId);
+    error = res.error;
+    if (!error && nomeAntigo && nomeAntigo !== nome) {
       await sb.from('lancamentos').update({ categoria: nome }).eq('categoria', nomeAntigo);
-      await sb.from('servicos_importados').update({ categoria: nome }).eq('categoria', nomeAntigo);
-      await sb.from('plano_contas').update({ grupo: nome }).eq('grupo', nomeAntigo);
     }
   } else {
-    await sb.from('plano_contas').insert(payload);
+    const res = await sb.from('plano_contas').insert(payload);
+    error = res.error;
   }
 
-  showToast('Categoria salva!','success');
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Categoria salva!', 'success');
   delete document.getElementById('modal-categoria').dataset.editId;
+  delete document.getElementById('modal-categoria').dataset.codigoGerado;
   closeModal('modal-categoria');
   loadPlanoContas();
 }
