@@ -1999,9 +1999,7 @@ async function saveCategoria() {
   const editId = document.getElementById('modal-categoria').dataset.editId;
   const grupoSel = document.getElementById('cat-grupo');
   const grupoNome = grupoSel.options[grupoSel.selectedIndex]?.text?.split(' (')[0] || '';
-  // Ao editar mantém o código original, ao criar usa o gerado
   const codigoGerado = document.getElementById('modal-categoria').dataset.codigoGerado || '';
-  const editId = document.getElementById('modal-categoria').dataset.editId;
   
   // Busca código original se estiver editando
   let codigoFinal = codigoGerado;
