@@ -2769,7 +2769,7 @@ async function loadBancos() {
   if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum banco cadastrado</div>'; return; }
   const bancos = ['Itaú','Stone','C6 Bank','Nubank','Bradesco','Santander','Caixa Econômica','Banco do Brasil','Inter','PicPay','Sicoob','Outro'];
   const tipos = ['Conta Corrente','Poupança','Caixa Físico','PIX'];
-  let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Banco</th><th>Tipo</th><th>Agência</th><th>Conta</th><th>Saldo inicial</th><th>Ações</th></tr></thead><tbody>';
+  let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Banco</th><th>Tipo</th><th>Agência</th><th>Conta</th><th>Saldo inicial</th><th>Data saldo</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(r => {
     html += `<tr id="banco-row-${r.id}">
       <td><span class="cell-view">${r.nome||''}</span><input class="cell-edit" style="display:none;width:100%" value="${r.nome||''}"></td>
@@ -2782,6 +2782,7 @@ async function loadBancos() {
       <td><span class="cell-view">${r.agencia||'—'}</span><input class="cell-edit" style="display:none;width:80px" value="${r.agencia||''}"></td>
       <td><span class="cell-view">${r.conta||'—'}</span><input class="cell-edit" style="display:none;width:100px" value="${r.conta||''}"></td>
       <td><span class="cell-view" style="color:var(--green)">${fmtBRL(r.saldo_inicial||0)}</span><input class="cell-edit" type="number" style="display:none;width:100px" value="${r.saldo_inicial||0}"></td>
+      <td><span class="cell-view" style="font-size:12px;color:var(--text2)">${r.data_saldo_inicial ? fmtDate(r.data_saldo_inicial) : '—'}</span><input class="cell-edit" type="date" style="display:none;width:130px" value="${r.data_saldo_inicial||''}"></td>
       <td style="display:flex;gap:6px">
         <button class="btn btn-sm" onclick="toggleInline('banco-row-${r.id}')">✏️ Editar</button>
         <button class="btn btn-sm btn-save-inline" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarBancoInline('${r.id}','banco-row-${r.id}')">💾 Salvar</button>
@@ -2804,6 +2805,7 @@ async function salvarBancoInline(id, rowId) {
     agencia: inputs[3].value.trim(),
     conta: inputs[4].value.trim(),
     saldo_inicial: parseFloat(inputs[5].value)||0,
+    data_saldo_inicial: inputs[6].value || null,
   };
   if (!payload.nome) { showToast('Nome obrigatório','error'); return; }
   const { error } = await sb.from('bancos_cadastrados').update(payload).eq('id', id);
