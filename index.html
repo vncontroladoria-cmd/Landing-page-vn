@@ -83,7 +83,6 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 
 /* APP */
 #app { display: none; }
-html, body { height: 100%; overflow: hidden; }
 .layout { display: flex; height: 100vh; overflow: hidden; position: relative; }
 
 /* SIDEBAR */
@@ -731,12 +730,6 @@ tbody tr:hover { background: var(--bg3); }
           </div>
         </div>
 
-      </div>
-    </div>
-  </div>
-</div>
-
-        <!-- CONFIGURAÇÕES -->
         <!-- FORNECEDORES -->
         <div class="page" id="page-fornecedores">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -758,19 +751,10 @@ tbody tr:hover { background: var(--bg3); }
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-            <div class="card">
-              <div class="card-header"><div class="card-title">Grupos — DFC</div></div>
-              <div id="grupos-dfc"><div class="loading"><div class="spin"></div></div></div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Grupos — DRE</div></div>
-              <div id="grupos-dre"><div class="loading"><div class="spin"></div></div></div>
-            </div>
+            <div class="card"><div class="card-header"><div class="card-title">Grupos — DFC</div></div><div id="grupos-dfc"><div class="loading"><div class="spin"></div></div></div></div>
+            <div class="card"><div class="card-header"><div class="card-title">Grupos — DRE</div></div><div id="grupos-dre"><div class="loading"><div class="spin"></div></div></div></div>
           </div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Categorias do plano de contas</div></div>
-            <div id="categorias-table"><div class="loading"><div class="spin"></div></div></div>
-          </div>
+          <div class="card"><div class="card-header"><div class="card-title">Categorias</div></div><div id="categorias-table"><div class="loading"><div class="spin"></div></div></div></div>
         </div>
 
         <!-- BANCOS -->
@@ -788,10 +772,13 @@ tbody tr:hover { background: var(--bg3); }
             <div style="font-size:13px;color:var(--text2)">Usuários com acesso ao sistema</div>
             <button class="btn btn-primary" onclick="openModal('modal-usuario')">+ Novo usuário</button>
           </div>
-          <div class="card">
-            <div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
-          </div>
+          <div class="card"><div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div></div>
         </div>
+
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL USUÁRIO -->
 <div class="modal-overlay" id="modal-usuario">
