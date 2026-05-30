@@ -615,67 +615,6 @@ tbody tr:hover { background: var(--bg3); }
             <div class="metric-card"><div class="metric-label">Lançamentos</div><div class="metric-val" id="lanc-count">—</div></div>
           </div>
 
-          <!-- FORMULÁRIO NOVO LANÇAMENTO -->
-          <div class="card" id="form-lanc-inline" style="display:none;margin-bottom:1rem;max-width:700px">
-            <div style="font-size:15px;font-weight:600;margin-bottom:1.25rem">Cadastro de Movimentação Financeira</div>
-
-            <div style="display:flex;gap:10px;margin-bottom:1.25rem">
-              <button id="btn-tipo-entrada" onclick="selecionarTipoLanc('ENTRADA')"
-                style="flex:1;padding:10px;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;border:2px solid var(--green);background:var(--green);color:#fff;font-family:'Outfit',sans-serif">
-                ↓ ENTRADA
-              </button>
-              <button id="btn-tipo-saida" onclick="selecionarTipoLanc('SAIDA')"
-                style="flex:1;padding:10px;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;border:2px solid var(--border);background:var(--bg3);color:var(--text2);font-family:'Outfit',sans-serif">
-                ↑ SAÍDA
-              </button>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-              <div class="form-group">
-                <label>Data <span style="color:var(--red)">*</span></label>
-                <input type="date" id="nl-data">
-              </div>
-              <div class="form-group">
-                <label>Extrato (nome original do banco)</label>
-                <input type="text" id="nl-extrato" placeholder="Ex: PIX RECEBIDO JOAO" oninput="reconhecerFornecedor(this.value)">
-              </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-              <div class="form-group" style="position:relative">
-                <label>Categoria <span style="color:var(--red)">*</span></label>
-                <input type="text" id="nl-categoria-busca" placeholder="Digite para buscar..." autocomplete="off"
-                  oninput="buscarCategoria(this.value)"
-                  style="width:100%">
-                <input type="hidden" id="nl-categoria">
-                <div id="nl-cat-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
-              </div>
-              <div class="form-group">
-                <label>Banco <span style="color:var(--red)">*</span></label>
-                <select id="nl-banco" style="width:100%">
-                  <option value="">Selecione...</option>
-                </select>
-              </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-              <div class="form-group">
-                <label>Valor (R$) <span style="color:var(--red)">*</span></label>
-                <input type="number" id="nl-valor" placeholder="0,00" step="0.01" min="0">
-              </div>
-              <div class="form-group">
-                <label>Descrição / Complemento</label>
-                <input type="text" id="nl-descricao" placeholder="Opcional">
-              </div>
-            </div>
-
-            <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn btn-primary" onclick="salvarLancamento()">💾 Salvar</button>
-              <button class="btn" onclick="toggleFormLanc()">Cancelar</button>
-              <span id="nl-reconhecido" style="font-size:12px;color:var(--green)"></span>
-            </div>
-          </div>
-
           <!-- TABELA DE LANÇAMENTOS -->
           <div class="card" style="padding:0;overflow:hidden">
             <div style="overflow-x:auto">
@@ -981,6 +920,72 @@ tbody tr:hover { background: var(--bg3); }
           <div class="card"><div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div></div>
         </div>
 
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LANÇAMENTO NOVO -->
+<div class="modal-overlay" id="modal-novo-lanc">
+  <div class="modal" style="max-width:580px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <div style="font-size:16px;font-weight:700">Novo Lançamento</div>
+      <button onclick="closeModal('modal-novo-lanc')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);line-height:1">×</button>
+    </div>
+
+    <!-- ENTRADA / SAÍDA -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem">
+      <button id="btn-tipo-entrada" onclick="selecionarTipoLanc('ENTRADA')"
+        style="padding:12px;font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;border:2px solid var(--green);background:var(--green);color:#fff;font-family:'Outfit',sans-serif;transition:all 0.15s">
+        ↓ ENTRADA
+      </button>
+      <button id="btn-tipo-saida" onclick="selecionarTipoLanc('SAIDA')"
+        style="padding:12px;font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:'Outfit',sans-serif;transition:all 0.15s">
+        ↑ SAÍDA
+      </button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group">
+        <label>Data <span style="color:var(--red)">*</span></label>
+        <input type="date" id="nl-data">
+      </div>
+      <div class="form-group">
+        <label>Valor (R$) <span style="color:var(--red)">*</span></label>
+        <input type="number" id="nl-valor" placeholder="0,00" step="0.01" min="0">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px;position:relative">
+      <label>Categoria <span style="color:var(--red)">*</span></label>
+      <input type="text" id="nl-categoria-busca" placeholder="Digite para buscar a categoria..." autocomplete="off"
+        oninput="buscarCategoria(this.value)" style="width:100%">
+      <input type="hidden" id="nl-categoria">
+      <div id="nl-cat-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,0.12)"></div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Banco</label>
+      <select id="nl-banco" style="width:100%">
+        <option value="">Selecione...</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Extrato (nome original do banco)</label>
+      <input type="text" id="nl-extrato" placeholder="Ex: PIX RECEBIDO / BOLETO CEMIG" oninput="reconhecerFornecedor(this.value)" style="width:100%">
+    </div>
+
+    <div class="form-group" style="margin-bottom:1.25rem">
+      <label>Descrição / Complemento</label>
+      <input type="text" id="nl-descricao" placeholder="Opcional" style="width:100%">
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span id="nl-reconhecido" style="font-size:12px;color:var(--green)"></span>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-novo-lanc')">Fechar</button>
+        <button class="btn btn-primary" onclick="salvarLancamento()">💾 Salvar e lançar outro</button>
       </div>
     </div>
   </div>
@@ -1578,7 +1583,18 @@ function filtrarCategoriasPorTipo(tipo) {
   if(document.getElementById('nl-categoria')) document.getElementById('nl-categoria').value = '';
 }
 
-// Busca categoria com autocomplete
+function toggleFormLanc() {
+  const hoje = new Date().toISOString().substring(0,10);
+  if(document.getElementById('nl-data')) document.getElementById('nl-data').value = hoje;
+  if(document.getElementById('nl-valor')) document.getElementById('nl-valor').value = '';
+  if(document.getElementById('nl-extrato')) document.getElementById('nl-extrato').value = '';
+  if(document.getElementById('nl-descricao')) document.getElementById('nl-descricao').value = '';
+  if(document.getElementById('nl-categoria-busca')) document.getElementById('nl-categoria-busca').value = '';
+  if(document.getElementById('nl-categoria')) document.getElementById('nl-categoria').value = '';
+  if(document.getElementById('nl-reconhecido')) document.getElementById('nl-reconhecido').textContent = '';
+  selecionarTipoLanc('ENTRADA');
+  document.getElementById('modal-novo-lanc').classList.add('open');
+}
 let _catMapAtual = {};
 function buscarCategoria(texto) {
   const dropdown = document.getElementById('nl-cat-dropdown');
@@ -1667,8 +1683,17 @@ async function salvarLancamento() {
 
   const { error } = await sb.from('lancamentos').insert(payload);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
-  showToast('Lançamento salvo!','success');
-  toggleFormLanc();
+  showToast('✓ Lançamento salvo!','success');
+
+  // Limpa campos mas mantém modal aberto para próximo lançamento
+  document.getElementById('nl-valor').value = '';
+  document.getElementById('nl-extrato').value = '';
+  document.getElementById('nl-descricao').value = '';
+  document.getElementById('nl-categoria-busca').value = '';
+  document.getElementById('nl-categoria').value = '';
+  document.getElementById('nl-reconhecido').textContent = '';
+  document.getElementById('nl-data').value = new Date().toISOString().substring(0,10);
+  document.getElementById('nl-valor').focus();
   loadLancamentos();
 }
 function reconhecerFornecedor(texto) {
