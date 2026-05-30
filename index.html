@@ -1871,7 +1871,7 @@ async function loadPlanoContas() {
       <td><span class="badge ${c.tipo==='ENTRADA'?'badge-green':'badge-red'}">${c.tipo}</span></td>
       <td><span class="badge badge-blue">${c.demonstrativo}</span></td>
       <td style="font-size:12px;color:var(--text2)">
-        <span style="font-family:'DM Mono',monospace;color:var(--accent)">${c.codigo?.split('.')[0]||''}.</span> ${c.grupo||'—'}
+        <span style="font-family:'DM Mono',monospace;color:var(--accent)">${c.codigo||''}</span> — ${c.grupo||'—'}
       </td>
       <td style="display:flex;gap:6px">
         <button class="btn btn-sm" 
@@ -1918,12 +1918,14 @@ async function editarCategoriaBtn(btn) {
 }
 
 async function editarCategoria(id, codigo, nome, tipo, demo, grupo) {
-  document.getElementById('cat-codigo').value = codigo;
   document.getElementById('cat-nome').value = nome;
   document.getElementById('cat-tipo').value = tipo;
   document.getElementById('cat-demo').value = demo;
   document.getElementById('modal-categoria').dataset.editId = id;
-  document.getElementById('modal-categoria').dataset.grupo = grupo;
+  document.getElementById('modal-categoria').dataset.codigoGerado = codigo;
+  // Atualiza preview do código
+  const preview = document.getElementById('cat-codigo-preview');
+  if (preview) preview.textContent = codigo || '—';
   // Carrega grupos filtrados pelo demonstrativo
   await loadGruposSelect('cat-grupo', demo === 'AMBOS' ? null : demo);
   // Seleciona o grupo correto
