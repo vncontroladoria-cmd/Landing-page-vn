@@ -1798,6 +1798,13 @@ async function importarExtrato(input) {
 
   if (!rows.length) { showToast('Nenhuma linha encontrada','error'); input.value = ''; return; }
 
+  // Mostra loading na tabela
+  const tbody = document.getElementById('lanc-tbody');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text2)">
+    <div class="spin" style="margin:0 auto 10px"></div>
+    Importando ${rows.length} lançamentos... aguarde
+  </td></tr>`;
+
   let count = 0, erros = 0;
   for (const r of rows) {
     if (!r.data || (!r.entrada && !r.saida)) continue;
@@ -1814,7 +1821,7 @@ async function importarExtrato(input) {
     const { error } = await sb.from('lancamentos').insert({
       data_lancamento: r.data,
       extrato: desc,
-      descricao: desc,
+      descricao: '',
       entrada: r.entrada || null,
       saida: r.saida || null,
       valor: r.entrada || r.saida,
