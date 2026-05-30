@@ -1374,13 +1374,30 @@ async function initLancamentos() {
     selBancoFilter.innerHTML = '<option value="">Todos os bancos</option>' + _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
   }
 
-  // Carrega categorias do plano de contas
+  // Carrega categorias agrupando DFC+DRE pelo nome
   const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
   _categorias = cats || [];
+
+  // Agrupa categorias por nome — mesclando DFC e DRE
+  const catMap = {};
+  _categorias.forEach(c => {
+    if (!catMap[c.nome]) catMap[c.nome] = { nome: c.nome, dfc: null, dre: null };
+    if (c.demonstrativo === 'DFC') catMap[c.nome].dfc = c;
+    if (c.demonstrativo === 'DRE') catMap[c.nome].dre = c;
+    if (c.demonstrativo === 'AMBOS') { catMap[c.nome].dfc = c; catMap[c.nome].dre = c; }
+  });
+
   const selCat = document.getElementById('nl-categoria');
   if (selCat) {
     selCat.innerHTML = '<option value="">Selecione categoria...</option>' +
-      _categorias.map(c => `<option value="${c.id}" data-nome="${c.nome}">${c.codigo} — ${c.nome} (${c.demonstrativo})</option>`).join('');
+      Object.values(catMap).map(c => {
+        const label = c.dfc && c.dre
+          ? `${c.nome} (DFC: ${c.dfc.codigo} / DRE: ${c.dre.codigo})`
+          : c.dfc ? `${c.nome} (DFC: ${c.dfc.codigo})`
+          : `${c.nome} (DRE: ${c.dre?.codigo})`;
+        const val = JSON.stringify({ nome: c.nome, dfc: c.dfc?.codigo||'', dre: c.dre?.codigo||'' });
+        return `<option value='${val}'>${label}</option>`;
+      }).join('');
   }
 
   // Carrega fornecedores para reconhecimento
@@ -1461,10 +1478,27 @@ async function loadLancamentos() {
         <input class="cell-edit" style="display:none;width:100%;font-size:12px" value="${l.descricao||''}">
       </td>
       <td style="padding:9px 12px">
-        <span class="cell-view"><span class="badge badge-blue" style="font-size:10px">${l.categoria||l.categoria_dfc||'—'}</span></span>
+        <span class="cell-view" style="font-size:11px;line-height:1.6">
+          ${l.categoria ? `<strong>${l.categoria}</strong><br>` : ''}
+          ${l.categoria_dfc ? `<span class="badge badge-blue" style="font-size:10px;margin-right:2px">DFC: ${l.categoria_dfc}</span>` : ''}
+          ${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : ''}
+          ${!l.categoria && !l.categoria_dfc && !l.categoria_dre ? '—' : ''}
+        </span>
         <select class="cell-edit" style="display:none;font-size:11px">
           <option value="">—</option>
-          ${_categorias.map(c=>`<option value="${c.nome}" ${(l.categoria||l.categoria_dfc)===c.nome?'selected':''}>${c.codigo} ${c.nome}</option>`).join('')}
+          ${Object.values((() => {
+            const m = {};
+            _categorias.forEach(c => {
+              if (!m[c.nome]) m[c.nome] = {nome:c.nome,dfc:null,dre:null};
+              if (c.demonstrativo==='DFC') m[c.nome].dfc=c.codigo;
+              if (c.demonstrativo==='DRE') m[c.nome].dre=c.codigo;
+            });
+            return m;
+          })()).map(c => {
+            const label = c.dfc && c.dre ? `${c.nome} (DFC:${c.dfc}/DRE:${c.dre})` : c.dfc ? `${c.nome} (DFC:${c.dfc})` : `${c.nome} (DRE:${c.dre})`;
+            const val = JSON.stringify({nome:c.nome,dfc:c.dfc||'',dre:c.dre||''});
+            return `<option value='${val}' ${l.categoria===c.nome?'selected':''}>${label}</option>`;
+          }).join('')}
         </select>
       </td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2)">
@@ -1520,18 +1554,15 @@ async function salvarLancamento() {
   const entrada = parseFloat(document.getElementById('nl-entrada').value) || 0;
   const saida = parseFloat(document.getElementById('nl-saida').value) || 0;
   const descricao = document.getElementById('nl-descricao').value.trim();
-  const catId = document.getElementById('nl-categoria').value;
-  const bancoId = document.getElementById('nl-banco').value;
-  const mes = document.getElementById('lanc-mes').value;
-  const [ano, m] = mes.split('-');
-  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const catVal = document.getElementById('nl-categoria').value;
+  let catNome = '', catDfc = '', catDre = '';
+  try {
+    const catObj = JSON.parse(catVal);
+    catNome = catObj.nome;
+    catDfc = catObj.dfc;
+    catDre = catObj.dre;
+  } catch(e) { catNome = catVal; }
 
-  if (!data) { showToast('Informe a data','error'); return; }
-  if (!entrada && !saida) { showToast('Informe entrada ou saída','error'); return; }
-
-  const tipo = entrada > 0 ? 'ENTRADA' : 'SAIDA';
-  const valor = entrada > 0 ? entrada : saida;
-  const catNome = document.getElementById('nl-categoria').options[document.getElementById('nl-categoria').selectedIndex]?.dataset.nome || '';
   const bancoNome = _bancos.find(b=>b.id===bancoId)?.nome || '';
 
   const payload = {
@@ -1543,7 +1574,8 @@ async function salvarLancamento() {
     tipo,
     valor,
     categoria: catNome,
-    categoria_dfc: catNome,
+    categoria_dfc: catDfc,
+    categoria_dre: catDre,
     banco_id: bancoId || null,
     banco_nome: bancoNome,
     mes: meses[parseInt(m)-1]?.toUpperCase(),
@@ -1567,6 +1599,13 @@ async function salvarLancamentoInline(id, rowId) {
   const edits = row.querySelectorAll('.cell-edit');
   const entrada = parseFloat(edits[2].value) || 0;
   const saida = parseFloat(edits[3].value) || 0;
+  
+  let catNome = '', catDfc = '', catDre = '';
+  try {
+    const catObj = JSON.parse(edits[5].value);
+    catNome = catObj.nome; catDfc = catObj.dfc; catDre = catObj.dre;
+  } catch(e) { catNome = edits[5].value; }
+
   const payload = {
     data_lancamento: edits[0].value,
     extrato: edits[1].value,
@@ -1575,8 +1614,9 @@ async function salvarLancamentoInline(id, rowId) {
     valor: entrada || saida,
     tipo: entrada > 0 ? 'ENTRADA' : 'SAIDA',
     descricao: edits[4].value,
-    categoria: edits[5].value,
-    categoria_dfc: edits[5].value,
+    categoria: catNome,
+    categoria_dfc: catDfc,
+    categoria_dre: catDre,
     banco_id: edits[6].value || null,
   };
   const { error } = await sb.from('lancamentos').update(payload).eq('id', id);
