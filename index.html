@@ -734,8 +734,68 @@ tbody tr:hover { background: var(--bg3); }
         <div class="page" id="page-fornecedores">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
-            <button class="btn btn-primary" onclick="openModal('modal-fornecedor')">+ Novo fornecedor</button>
+            <button class="btn btn-primary" onclick="toggleFormFornecedor()">+ Novo fornecedor</button>
           </div>
+
+          <!-- FORMULÁRIO INLINE -->
+          <div class="card" id="form-fornecedor" style="display:none;margin-bottom:1rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+              <div style="font-size:15px;font-weight:600">Cadastro de Fornecedor</div>
+              <button onclick="toggleFormFornecedor()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">×</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:0.5fr 1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="form-group"><label>Código</label><input type="text" id="forn-codigo" placeholder="Auto" disabled style="background:var(--bg3)"></div>
+              <div class="form-group"><label>Tipo Pessoa</label>
+                <select id="forn-tipo-pessoa"><option>Fornecedor</option><option>Cliente</option><option>Cliente e Fornecedor</option></select>
+              </div>
+              <div class="form-group"><label>CPF/CNPJ</label><input type="text" id="forn-cnpj" placeholder="00.000.000/0001-00"></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="form-group"><label>Nome <span style="color:var(--red)">*</span></label><input type="text" id="forn-nome" placeholder="Nome completo"></div>
+              <div class="form-group"><label>Data de Aniversário</label><input type="date" id="forn-aniversario"></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+              <div class="form-group"><label>Telefone</label><input type="text" id="forn-telefone" placeholder="(00) 0000-0000"></div>
+              <div class="form-group"><label>E-mail</label><input type="email" id="forn-email" placeholder="email@fornecedor.com"></div>
+            </div>
+
+            <div style="margin-bottom:12px">
+              <div class="form-group"><label>Nome do contato</label><input type="text" id="forn-contato" placeholder="Responsável pelo contato"></div>
+            </div>
+
+            <div style="margin-bottom:12px">
+              <div class="form-group"><label>Observação</label><textarea id="forn-obs" rows="3" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical" placeholder="Anotações sobre o fornecedor"></textarea></div>
+            </div>
+
+            <div style="border-top:1.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
+              <div style="font-size:13px;font-weight:600;margin-bottom:0.75rem">Endereço</div>
+              <div style="display:grid;grid-template-columns:0.8fr 2fr 0.4fr;gap:12px;margin-bottom:12px">
+                <div class="form-group"><label>CEP</label><input type="text" id="forn-cep" placeholder="00000-000"></div>
+                <div class="form-group"><label>Cidade</label><input type="text" id="forn-cidade" placeholder="Cidade"></div>
+                <div class="form-group"><label>UF</label>
+                  <select id="forn-uf"><option>SP</option><option>RJ</option><option>MG</option><option>RS</option><option>PR</option><option>SC</option><option>BA</option><option>GO</option><option>DF</option><option>Outro</option></select>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:2fr 1fr 0.5fr;gap:12px">
+                <div class="form-group"><label>Endereço</label><input type="text" id="forn-endereco" placeholder="Rua, Avenida..."></div>
+                <div class="form-group"><label>Bairro</label><input type="text" id="forn-bairro" placeholder="Bairro"></div>
+                <div class="form-group"><label>Número</label><input type="text" id="forn-numero" placeholder="000"></div>
+              </div>
+              <div style="margin-top:12px">
+                <div class="form-group"><label>Complemento</label><input type="text" id="forn-complemento" placeholder="Apto, Sala..."></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-primary" onclick="saveFornecedor()">Salvar</button>
+              <button class="btn" onclick="toggleFormFornecedor()">Cancelar</button>
+            </div>
+          </div>
+
+          <!-- TABELA DE FORNECEDORES -->
           <div class="card">
             <div id="forn-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
           </div>
@@ -1635,6 +1695,12 @@ const pageTitlesExtra = {
   'plano-contas':'Plano de Contas', bancos:'Bancos', usuarios:'Usuários'
 };
 Object.assign(pageTitles, pageTitlesExtra);
+
+function toggleFormFornecedor() {
+  const f = document.getElementById('form-fornecedor');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  if (f.style.display === 'block') f.scrollIntoView({behavior:'smooth'});
+}
 
 // ─── FORNECEDORES ─────────────────────────────────────
 async function loadFornecedores() {
