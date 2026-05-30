@@ -1622,23 +1622,6 @@ function selecionarCategoria(el) {
   document.getElementById('nl-cat-dropdown').style.display = 'none';
 }
 
-function toggleFormLanc() {
-  const f = document.getElementById('form-lanc-inline');
-  const aberto = f.style.display !== 'none';
-  f.style.display = aberto ? 'none' : '';
-  if (!aberto) {
-    const hoje = new Date().toISOString().substring(0,10);
-    if(document.getElementById('nl-data')) document.getElementById('nl-data').value = hoje;
-    if(document.getElementById('nl-valor')) document.getElementById('nl-valor').value = '';
-    if(document.getElementById('nl-extrato')) document.getElementById('nl-extrato').value = '';
-    if(document.getElementById('nl-descricao')) document.getElementById('nl-descricao').value = '';
-    if(document.getElementById('nl-categoria-busca')) document.getElementById('nl-categoria-busca').value = '';
-    if(document.getElementById('nl-categoria')) document.getElementById('nl-categoria').value = '';
-    if(document.getElementById('nl-reconhecido')) document.getElementById('nl-reconhecido').textContent = '';
-    selecionarTipoLanc('ENTRADA');
-  }
-}
-
 async function salvarLancamento() {
   const data = document.getElementById('nl-data').value;
   const extrato = document.getElementById('nl-extrato').value.trim();
