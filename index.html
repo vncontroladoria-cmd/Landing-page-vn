@@ -1784,27 +1784,21 @@ async function loadGruposSelect(selectId, demo) {
 async function previewCodigo() {
   const grupoSel = document.getElementById('cat-grupo');
   const grupoId = grupoSel.value;
-  if (!grupoId) return;
+  const preview = document.getElementById('cat-codigo-preview');
+  if (!grupoId) { preview.textContent = '—'; return; }
 
-  // Busca a ordem do grupo selecionado no banco
+  // Busca ordem e nome do grupo
   const { data: grp } = await sb.from('grupos_plano').select('ordem,nome,demonstrativo').eq('id', grupoId).single();
-  if (!grp) return;
+  if (!grp) { preview.textContent = '—'; return; }
 
-  const prefixo = grp.ordem;
-  const grupoNome = grp.nome;
-  const demo = grp.demonstrativo;
+  // Conta categorias já nesse grupo
+  const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', grp.nome).eq('demonstrativo', grp.demonstrativo);
+  const proximo = (cats?.length || 0) + 1;
+  const codigo = `${grp.ordem}.${proximo}`;
 
-  // Conta categorias já existentes nesse grupo e demonstrativo
-  const { data } = await sb.from('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo);
-  
-  // Se estiver editando, não conta a própria
-  const editId = document.getElementById('modal-categoria').dataset.editId;
-  const total = editId ? (data?.length || 0) : (data?.length || 0) + 1;
-  const proximo = editId ? (data?.length || 0) : total;
-
-  const codigo = `${prefixo}.${proximo}`;
-  document.getElementById('cat-codigo-preview').textContent = codigo;
+  preview.textContent = codigo;
   document.getElementById('modal-categoria').dataset.codigoGerado = codigo;
+  document.getElementById('modal-categoria').dataset.grupoOrdem = grp.ordem;
 }
 
 async function filtrarGruposPorDemo() {
@@ -1837,6 +1831,15 @@ async function saveFornecedor() {
 
 // ─── PLANO DE CONTAS ─────────────────────────────────────
 async function loadPlanoContas() {
+  const elDfc = document.getElementById('grupos-dfc');
+  const elDre = document.getElementById('grupos-dre');
+  const elCats = document.getElementById('categorias-table');
+  if (!elDfc || !elDre || !elCats) return;
+
+  elDfc.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+  elDre.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+  elCats.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+
   const { data: grupos } = await sb.from('grupos_plano').select('*').order('ordem');
   const { data: cats } = await sb.from('plano_contas').select('*').order('ordem');
 
@@ -1867,7 +1870,6 @@ async function loadPlanoContas() {
     document.getElementById(targetId).innerHTML = html;
   };
 
-  if (!document.getElementById('grupos-dfc')) return;
   renderGrupos(dfc, 'grupos-dfc');
   renderGrupos(dre, 'grupos-dre');
 
