@@ -262,7 +262,13 @@ thead th {
   font-size: 11px; font-weight: 600; color: var(--text2);
   border-bottom: 1.5px solid var(--border); white-space: nowrap;
   letter-spacing: 0.03em; text-transform: uppercase; background: var(--bg3);
+  cursor: pointer; user-select: none; transition: color 0.15s;
 }
+thead th:hover { color: var(--accent); }
+thead th.sort-asc::after { content: ' ↑'; color: var(--accent); }
+thead th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+thead th.no-sort { cursor: default; }
+thead th.no-sort:hover { color: var(--text2); }
 thead th:first-child { border-radius: 8px 0 0 0; }
 thead th:last-child { border-radius: 0 8px 0 0; }
 tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
@@ -1760,6 +1766,7 @@ async function loadFornecedores() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
+  aplicarSort(el);
 }
 
 async function salvarFornecedorInline(id, rowId) {
@@ -1923,6 +1930,7 @@ async function loadPlanoContas() {
   });
   html += '</tbody></table></div>';
   elCats.innerHTML = html;
+  aplicarSort(elCats);
 }
 
 async function salvarCategoriaInline(id, rowId) {
@@ -2178,6 +2186,7 @@ async function loadBancos() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
+  aplicarSort(el);
 }
 
 async function salvarBancoInline(id, rowId) {
@@ -2232,6 +2241,7 @@ async function loadUsuarios() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
+  aplicarSort(el);
 }
 
 async function salvarUsuarioInline(id, rowId) {
@@ -2256,6 +2266,35 @@ function toggleInline(rowId) {
   if (btnSave) btnSave.style.display = editing ? 'none' : '';
 }
 
+
+// ─── ORDENAÇÃO DE TABELAS ────────────────────────────────
+function sortTable(th) {
+  const table = th.closest('table');
+  const tbody = table.querySelector('tbody');
+  const ths = table.querySelectorAll('thead th');
+  const col = Array.from(ths).indexOf(th);
+  const asc = !th.classList.contains('sort-asc');
+
+  ths.forEach(t => t.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const av = a.cells[col]?.querySelector('.cell-view')?.textContent?.trim() || a.cells[col]?.textContent?.trim() || '';
+    const bv = b.cells[col]?.querySelector('.cell-view')?.textContent?.trim() || b.cells[col]?.textContent?.trim() || '';
+    const an = parseFloat(av.replace(/[R$\s.]/g,'').replace(',','.'));
+    const bn = parseFloat(bv.replace(/[R$\s.]/g,'').replace(',','.'));
+    if (!isNaN(an) && !isNaN(bn)) return asc ? an-bn : bn-an;
+    return asc ? av.localeCompare(bv,'pt-BR') : bv.localeCompare(av,'pt-BR');
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// Aplica sortTable em todas as tabelas ao carregar
+function aplicarSort(containerEl) {
+  const ths = containerEl?.querySelectorAll('thead th:not(.no-sort)');
+  ths?.forEach(th => { th.onclick = () => sortTable(th); });
+}
 
 // ─── INIT ────────────────────────────────────────────
 checkSession();
