@@ -2792,19 +2792,46 @@ async function loadBancos() {
 async function salvarBancoInline(id, rowId) {
   const row = document.getElementById(rowId);
   const inputs = row.querySelectorAll('.cell-edit');
+  const nome = inputs[0].value.trim();
+  const saldo = parseFloat(inputs[5].value)||0;
+  const dataSaldo = inputs[6].value || null;
+
   const payload = {
-    nome: inputs[0].value.trim(),
+    nome,
     banco: inputs[1].value,
     tipo: inputs[2].value,
     agencia: inputs[3].value.trim(),
     conta: inputs[4].value.trim(),
-    saldo_inicial: parseFloat(inputs[5].value)||0,
-    data_saldo_inicial: inputs[6].value || null,
+    saldo_inicial: saldo,
+    data_saldo_inicial: dataSaldo,
   };
-  if (!payload.nome) { showToast('Nome obrigatório','error'); return; }
+  if (!nome) { showToast('Nome obrigatório','error'); return; }
   const { error } = await sb.from('bancos_cadastrados').update(payload).eq('id', id);
   if (error) { showToast('Erro ao salvar','error'); return; }
-  showToast('Salvo!','success');
+
+  // Atualiza o lançamento de saldo inicial correspondente
+  if (saldo > 0 && dataSaldo) {
+    const descricao = `Saldo inicial — ${nome}`;
+    const { data: lancs } = await sb.from('lancamentos')
+      .select('id').eq('banco_id', id).like('extrato', 'Saldo inicial%');
+    if (lancs?.length) {
+      await sb.from('lancamentos').update({
+        entrada: saldo, valor: saldo,
+        data_lancamento: dataSaldo,
+        extrato: descricao, descricao, banco_nome: nome,
+      }).eq('id', lancs[0].id);
+    } else {
+      // Cria se não existia
+      const mes = new Date(dataSaldo).toLocaleString('pt-BR',{month:'long'}).toUpperCase();
+      await sb.from('lancamentos').insert({
+        data_lancamento: dataSaldo, extrato: descricao, descricao,
+        entrada: saldo, valor: saldo, tipo: 'ENTRADA',
+        categoria: 'Saldo Inicial', banco_id: id, banco_nome: nome, mes, status: 'pago',
+      });
+    }
+  }
+
+  showToast('Salvo e lançamento atualizado!','success');
   loadBancos();
 }
 
@@ -2828,26 +2855,31 @@ async function saveBanco() {
     : await sb.from('bancos_cadastrados').insert(payload).select().single();
   if (error) { showToast('Erro ao salvar','error'); return; }
 
-  // Se novo banco com saldo inicial e data, cria lançamento automático
-  if (!editId && saldo > 0 && dataSaldo) {
+  // Se editando, sincroniza o lançamento de saldo inicial
+  if (editId && saldo > 0 && dataSaldo) {
+    const descricao = `Saldo inicial — ${nome}`;
+    const { data: lancs } = await sb.from('lancamentos')
+      .select('id').eq('banco_id', editId).like('extrato', 'Saldo inicial%');
+    if (lancs?.length) {
+      await sb.from('lancamentos').update({
+        entrada: saldo, valor: saldo,
+        data_lancamento: dataSaldo,
+        extrato: descricao, descricao, banco_nome: nome,
+      }).eq('id', lancs[0].id);
+    }
+    showToast('Banco e lançamento atualizados!','success');
+  } else if (!editId && saldo > 0 && dataSaldo) {
+    // Novo banco — cria lançamento automático
     const mes = new Date(dataSaldo).toLocaleString('pt-BR',{month:'long'}).toUpperCase();
     await sb.from('lancamentos').insert({
       data_lancamento: dataSaldo,
       extrato: `Saldo inicial — ${nome}`,
       descricao: `Saldo inicial — ${nome}`,
-      entrada: saldo,
-      saida: null,
-      valor: saldo,
-      tipo: 'ENTRADA',
-      categoria: 'Saldo Inicial',
-      categoria_dfc: '',
-      categoria_dre: '',
-      banco_id: saved.id,
-      banco_nome: nome,
-      mes,
-      status: 'pago',
+      entrada: saldo, saida: null, valor: saldo, tipo: 'ENTRADA',
+      categoria: 'Saldo Inicial', categoria_dfc: '', categoria_dre: '',
+      banco_id: saved.id, banco_nome: nome, mes, status: 'pago',
     });
-    showToast('Banco salvo e saldo lançado no extrato!','success');
+    showToast('Banco salvo e saldo lançado!','success');
   } else {
     showToast('Banco salvo!','success');
   }
