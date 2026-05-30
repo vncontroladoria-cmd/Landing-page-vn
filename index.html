@@ -956,11 +956,18 @@ tbody tr:hover { background: var(--bg3); }
       </div>
       <div class="form-group" style="grid-column:1/-1"><label>Nome da categoria</label><input type="text" id="cat-nome" placeholder="Ex: Insumos/Fornecedores"></div>
       <div class="form-group"><label>Demonstrativo</label>
-        <select id="cat-demo"><option value="DFC">DFC</option><option value="DRE">DRE</option><option value="AMBOS">Ambos</option></select>
+        <select id="cat-demo" onchange="filtrarGruposPorDemo()">
+          <option value="DFC">DFC</option>
+          <option value="DRE">DRE</option>
+          <option value="AMBOS">Ambos</option>
+        </select>
       </div>
       <div class="form-group"><label>Grupo</label>
         <select id="cat-grupo"></select>
       </div>
+    </div>
+    <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);margin-top:4px">
+      💡 Se a categoria aparece nos dois relatórios com códigos diferentes, cadastre duas vezes — uma para DFC e outra para DRE.
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-categoria')">Cancelar</button>
@@ -1743,14 +1750,25 @@ function editarFornecedor(id, nome, cnpj, tipo, email, contato) {
 
 async function openModal(id) {
   if (id === 'modal-fornecedor') await loadGruposSelect('forn-grupo');
-  if (id === 'modal-categoria') await loadGruposSelect('cat-grupo');
+  if (id === 'modal-categoria') {
+    const demo = document.getElementById('cat-demo').value;
+    await loadGruposSelect('cat-grupo', demo === 'AMBOS' ? null : demo);
+  }
   document.getElementById(id).classList.add('open');
 }
 
-async function loadGruposSelect(selectId) {
+async function loadGruposSelect(selectId, demo) {
   const { data } = await sb.from('grupos_plano').select('*').order('ordem');
   const sel = document.getElementById(selectId);
-  sel.innerHTML = (data||[]).map(g => `<option value="${g.id}">${g.nome} (${g.demonstrativo})</option>`).join('');
+  const filtrado = demo
+    ? (data||[]).filter(g => g.demonstrativo === demo || g.demonstrativo === 'AMBOS')
+    : (data||[]);
+  sel.innerHTML = filtrado.map(g => `<option value="${g.id}">${g.nome} (${g.demonstrativo})</option>`).join('');
+}
+
+async function filtrarGruposPorDemo() {
+  const demo = document.getElementById('cat-demo').value;
+  await loadGruposSelect('cat-grupo', demo === 'AMBOS' ? null : demo);
 }
 
 async function saveFornecedor() {
