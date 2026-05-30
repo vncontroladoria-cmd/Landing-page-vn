@@ -206,7 +206,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   background: var(--green-light); color: var(--green);
   border-radius: 20px; border: 1px solid rgba(42,157,92,0.2);
 }
-.content { flex: 1; overflow-y: auto; padding: 1.5rem; scroll-behavior: auto; }
+.content { flex: 1; overflow-y: auto; padding: 1.5rem; scroll-behavior: auto; min-height: 0; }
 .page { display: none; }
 .page.active { display: block; }
 
@@ -1537,25 +1537,36 @@ function toggleCfgMenu(el) {
 }
 
 function showCfgPage(tab, el) {
+  // Ativa a página de configurações
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-cfg').classList.add('active');
+  document.getElementById('page-configuracoes').classList.add('active');
+
+  // Ativa o submenu item
   document.querySelectorAll('.submenu-item').forEach(i => i.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('page-title').textContent = {
-    fornecedores:'Fornecedores', 'plano-contas':'Plano de Contas',
-    bancos:'Bancos', usuarios:'Usuários'
-  }[tab] || 'Configurações';
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-configuracoes').classList.add('active');
+
+  // Ativa a aba correta
   document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
   const tabEl = document.querySelector(`.cfg-tab[onclick*="${tab}"]`);
   if (tabEl) tabEl.classList.add('active');
   const panel = document.getElementById('cfg-' + tab);
   if (panel) panel.classList.add('active');
+
+  // Título
+  const titles = {fornecedores:'Fornecedores','plano-contas':'Plano de Contas',bancos:'Bancos',usuarios:'Usuários'};
+  document.getElementById('page-title').textContent = titles[tab] || 'Configurações';
+
+  // Carrega dados
   if (tab === 'fornecedores') loadFornecedores();
   if (tab === 'plano-contas') loadPlanoContas();
   if (tab === 'bancos') loadBancos();
   if (tab === 'usuarios') loadUsuarios();
-  document.querySelector('.content').scrollTop = 0;
+
+  // Scroll topo
+  setTimeout(() => { document.querySelector('.content').scrollTop = 0; }, 10);
 }
 
 // ─── USUÁRIOS ─────────────────────────────────────────
