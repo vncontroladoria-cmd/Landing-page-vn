@@ -1783,18 +1783,26 @@ async function loadGruposSelect(selectId, demo) {
 
 async function previewCodigo() {
   const grupoSel = document.getElementById('cat-grupo');
-  const grupoNome = grupoSel.options[grupoSel.selectedIndex]?.text?.split(' (')[0] || '';
-  if (!grupoNome) return;
+  const grupoId = grupoSel.value;
+  if (!grupoId) return;
 
-  // Pega o número do grupo ex: "3. Custo Variável" -> "3"
-  const match = grupoNome.match(/^(\d+)/);
-  const prefixo = match ? match[1] : '0';
+  // Busca a ordem do grupo selecionado no banco
+  const { data: grp } = await sb.from('grupos_plano').select('ordem,nome,demonstrativo').eq('id', grupoId).single();
+  if (!grp) return;
 
-  // Conta quantas categorias já existem nesse grupo
-  const { data } = await sb.from('plano_contas').select('codigo').eq('grupo', grupoNome);
-  const proximo = (data?.length || 0) + 1;
+  const prefixo = grp.ordem;
+  const grupoNome = grp.nome;
+  const demo = grp.demonstrativo;
+
+  // Conta categorias já existentes nesse grupo e demonstrativo
+  const { data } = await sb.from('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo);
+  
+  // Se estiver editando, não conta a própria
+  const editId = document.getElementById('modal-categoria').dataset.editId;
+  const total = editId ? (data?.length || 0) : (data?.length || 0) + 1;
+  const proximo = editId ? (data?.length || 0) : total;
+
   const codigo = `${prefixo}.${proximo}`;
-
   document.getElementById('cat-codigo-preview').textContent = codigo;
   document.getElementById('modal-categoria').dataset.codigoGerado = codigo;
 }
@@ -1859,6 +1867,7 @@ async function loadPlanoContas() {
     document.getElementById(targetId).innerHTML = html;
   };
 
+  if (!document.getElementById('grupos-dfc')) return;
   renderGrupos(dfc, 'grupos-dfc');
   renderGrupos(dre, 'grupos-dre');
 
@@ -1990,9 +1999,19 @@ async function saveCategoria() {
   const editId = document.getElementById('modal-categoria').dataset.editId;
   const grupoSel = document.getElementById('cat-grupo');
   const grupoNome = grupoSel.options[grupoSel.selectedIndex]?.text?.split(' (')[0] || '';
+  // Ao editar mantém o código original, ao criar usa o gerado
   const codigoGerado = document.getElementById('modal-categoria').dataset.codigoGerado || '';
+  const editId = document.getElementById('modal-categoria').dataset.editId;
+  
+  // Busca código original se estiver editando
+  let codigoFinal = codigoGerado;
+  if (editId) {
+    const { data: orig } = await sb.from('plano_contas').select('codigo').eq('id', editId).single();
+    codigoFinal = orig?.codigo || codigoGerado;
+  }
+
   const payload = {
-    codigo: codigoGerado,
+    codigo: codigoFinal,
     nome,
     tipo: document.getElementById('cat-tipo').value,
     demonstrativo: document.getElementById('cat-demo').value,
