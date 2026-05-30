@@ -1768,79 +1768,58 @@ async function importarExtrato(input) {
   const bancoNome = _bancos.find(b=>b.id===bancoId)?.nome || '';
 
   let rows = [];
-
   try {
     if (ext === 'ofx' || ext === 'ofc') {
-      // Lê OFX como texto
       const text = await file.text();
       rows = parseOFX(text);
     } else if (ext === 'csv') {
       const text = await file.text();
-      rows = parseCSV(text);
+      rows = parseStoneCSV(text);
     } else {
-      // Excel (xlsx, xls)
       const XLSX = await loadXLSX();
       const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const wb = XLSX.read(buf, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
-      rows = raw.map(r => {
-        // Tenta detectar colunas automaticamente
-        const data = r['DATA'] || r['Data'] || r['data'] || r['DATE'] || r['Date'] || Object.values(r)[0] || '';
-        const extrato = r['EXTRATO'] || r['Extrato'] || r['extrato'] || r['DESCRICAO'] || r['Descrição'] || r['HISTORICO'] || r['Histórico'] || r['MEMO'] || r['Memo'] || Object.values(r)[1] || '';
-        const valor = r['VALOR'] || r['Valor'] || r['valor'] || r['AMOUNT'] || '';
-        const entrada = r['ENTRADA'] || r['Entrada'] || r['entrada'] || r['CREDITO'] || r['Crédito'] || '';
-        const saida = r['SAIDA'] || r['Saída'] || r['saida'] || r['DEBITO'] || r['Débito'] || '';
-        return { data, extrato, valor, entrada, saida };
-      });
+      const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+
+      // Detecta formato: Itaú tem cabeçalho "Data" na coluna A
+      const isItau = raw.some(r => String(r['__EMPTY']||Object.values(r)[0]||'').includes('Data') || String(r[Object.keys(r)[0]]||'').trim() === 'Data');
+
+      if (isItau) {
+        rows = parseItauXLSX(ws, XLSX);
+      } else {
+        rows = parseStoneRows(raw);
+      }
     }
   } catch(e) {
-    showToast('Erro ao ler arquivo: ' + e.message, 'error');
-    input.value = '';
-    return;
+    showToast('Erro ao ler: ' + e.message, 'error');
+    input.value = ''; return;
   }
 
-  if (!rows.length) { showToast('Nenhuma linha encontrada no arquivo','error'); input.value = ''; return; }
+  if (!rows.length) { showToast('Nenhuma linha encontrada','error'); input.value = ''; return; }
 
   let count = 0, erros = 0;
   for (const r of rows) {
-    const dataStr = parseDate(r.data);
-    if (!dataStr) continue;
+    if (!r.data || (!r.entrada && !r.saida)) continue;
 
-    const extratoTxt = String(r.extrato || '').trim();
-    let entrada = 0, saida = 0;
-
-    if (r.entrada || r.saida) {
-      entrada = parseValor(r.entrada);
-      saida = parseValor(r.saida);
-    } else if (r.valor !== undefined && r.valor !== '') {
-      const v = parseValor(r.valor);
-      if (v > 0) entrada = v;
-      else if (v < 0) saida = Math.abs(v);
-    }
-
-    if (!entrada && !saida) continue;
-    const tipo = entrada > 0 ? 'ENTRADA' : 'SAIDA';
-    const valor = entrada || saida;
-
-    // Reconhece fornecedor
+    // Reconhece fornecedor pela descrição
+    const desc = r.extrato || '';
     const match = _fornecedores.find(f =>
-      (f.palavra_chave && extratoTxt.toLowerCase().includes(f.palavra_chave.toLowerCase())) ||
-      (f.nome && extratoTxt.toLowerCase().includes(f.nome.toLowerCase().substring(0, 4)))
+      (f.palavra_chave && desc.toLowerCase().includes(f.palavra_chave.toLowerCase())) ||
+      (f.nome && desc.toLowerCase().includes(f.nome.toLowerCase().substring(0, 5)))
     );
-    const catNome = match?.categoria_dfc || '';
     const catDfc = match?.categoria_dfc || '';
     const catDre = match?.categoria_dre || '';
 
     const { error } = await sb.from('lancamentos').insert({
-      data_lancamento: dataStr,
-      extrato: extratoTxt,
-      entrada: entrada || null,
-      saida: saida || null,
-      valor,
-      tipo,
-      descricao: extratoTxt,
-      categoria: catNome,
+      data_lancamento: r.data,
+      extrato: desc,
+      descricao: desc,
+      entrada: r.entrada || null,
+      saida: r.saida || null,
+      valor: r.entrada || r.saida,
+      tipo: r.entrada > 0 ? 'ENTRADA' : 'SAIDA',
+      categoria: catDfc || catDre,
       categoria_dfc: catDfc,
       categoria_dre: catDre,
       banco_id: bancoId || null,
@@ -1848,8 +1827,7 @@ async function importarExtrato(input) {
       mes: meses[parseInt(m)-1]?.toUpperCase(),
       status: 'pago',
     });
-    if (error) erros++;
-    else count++;
+    if (error) erros++; else count++;
   }
 
   input.value = '';
@@ -1857,45 +1835,115 @@ async function importarExtrato(input) {
   loadLancamentos();
 }
 
-// Parser OFX
-function parseOFX(text) {
+// Parser Itaú Excel — cabeçalho na linha 10, dados a partir da 11
+function parseItauXLSX(ws, XLSX) {
   const rows = [];
-  const stmttrn = text.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi) || [];
-  stmttrn.forEach(block => {
-    const get = tag => {
-      const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i'));
-      return m ? m[1].trim() : '';
-    };
-    const dtposted = get('DTPOSTED') || get('DTUSER');
-    const trnamt = get('TRNAMT');
-    const memo = get('MEMO') || get('NAME') || '';
-    if (!dtposted || !trnamt) return;
-    // Data OFX: YYYYMMDD ou YYYYMMDDHHMMSS
-    const d = dtposted.substring(0,8);
-    const data = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
-    const v = parseFloat(trnamt.replace(',','.'));
-    rows.push({ data, extrato: memo, valor: v.toString(), entrada: '', saida: '' });
-  });
+  // Lê todas as linhas como array
+  const all = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  // Acha a linha do cabeçalho (contém "Data")
+  let headerRow = -1;
+  for (let i = 0; i < all.length; i++) {
+    if (String(all[i][0]).trim() === 'Data') { headerRow = i; break; }
+  }
+  if (headerRow < 0) return [];
+  for (let i = headerRow + 1; i < all.length; i++) {
+    const row = all[i];
+    const dataStr = String(row[0]||'').trim();
+    const lancamento = String(row[1]||'').trim();
+    const razao = String(row[2]||'').trim();
+    const valorRaw = row[4];
+    // Ignora linhas de saldo (sem valor na col 4)
+    if (!dataStr || valorRaw === '' || valorRaw === null || valorRaw === undefined) continue;
+    if (lancamento.includes('SALDO')) continue;
+    const data = parseDateBR(dataStr);
+    if (!data) continue;
+    const v = parseFloat(String(valorRaw).replace(',','.')) || 0;
+    const extrato = (lancamento + (razao ? ' — ' + razao : '')).trim();
+    rows.push({
+      data,
+      extrato,
+      entrada: v > 0 ? v : 0,
+      saida: v < 0 ? Math.abs(v) : 0,
+    });
+  }
   return rows;
 }
 
-// Parser CSV genérico
-function parseCSV(text) {
+// Parser Stone Excel — linhas já em objeto
+function parseStoneRows(rows) {
+  return rows.map(r => {
+    const mov = String(r['Movimentação'] || r['Movimentacao'] || '').toLowerCase();
+    const valorStr = String(r['Valor'] || '').replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.');
+    const v = parseFloat(valorStr) || 0;
+    const entrada = (mov === 'crédito' || mov === 'credito' || v > 0) ? Math.abs(v) : 0;
+    const saida = (mov === 'débito' || mov === 'debito' || v < 0) ? Math.abs(v) : 0;
+    const destino = String(r['Destino'] || '').trim();
+    const origem = String(r['Origem'] || '').trim();
+    const tipo = String(r['Tipo'] || '').trim();
+    const extrato = entrada > 0
+      ? (origem && origem !== 'Desconhecido' ? origem : destino) + (tipo ? ` (${tipo})` : '')
+      : (destino && destino !== 'Desconhecido' ? destino : origem) + (tipo ? ` (${tipo})` : '');
+    const dataStr = String(r['Data'] || '').trim().substring(0, 10);
+    const data = parseDateBR(dataStr);
+    return { data, extrato: extrato.trim(), entrada, saida };
+  }).filter(r => r.data);
+}
+
+// Parser CSV Stone
+function parseStoneCSV(text) {
   const lines = text.trim().split('\n').filter(l => l.trim());
   if (lines.length < 2) return [];
   const sep = lines[0].includes(';') ? ';' : ',';
   const headers = lines[0].split(sep).map(h => h.replace(/"/g,'').trim());
-  return lines.slice(1).map(line => {
-    const vals = line.split(sep).map(v => v.replace(/"/g,'').trim());
+  const raw = lines.slice(1).map(line => {
+    const vals = splitCSVLine(line, sep);
     const obj = {};
-    headers.forEach((h, i) => obj[h] = vals[i] || '');
-    const data = obj['DATA'] || obj['Data'] || obj['data'] || obj['DATE'] || Object.values(obj)[0] || '';
-    const extrato = obj['EXTRATO'] || obj['Extrato'] || obj['DESCRICAO'] || obj['Descrição'] || obj['HISTORICO'] || obj['Histórico'] || obj['MEMO'] || Object.values(obj)[1] || '';
-    const valor = obj['VALOR'] || obj['Valor'] || obj['AMOUNT'] || '';
-    const entrada = obj['ENTRADA'] || obj['Entrada'] || obj['CREDITO'] || obj['Crédito'] || '';
-    const saida = obj['SAIDA'] || obj['Saída'] || obj['DEBITO'] || obj['Débito'] || '';
-    return { data, extrato, valor, entrada, saida };
+    headers.forEach((h, i) => obj[h] = (vals[i]||'').replace(/"/g,'').trim());
+    return obj;
   });
+  return parseStoneRows(raw);
+}
+
+function splitCSVLine(line, sep) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQ = !inQ; continue; }
+    if (line[i] === sep && !inQ) { result.push(cur); cur = ''; continue; }
+    cur += line[i];
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseDateBR(str) {
+  if (!str) return null;
+  // DD/MM/YYYY ou YYYY-MM-DD
+  const partes = str.includes('/') ? str.split('/') : null;
+  if (partes && partes.length === 3) {
+    const [d, mo, y] = partes;
+    return `${y.substring(0,4)}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0,10);
+  return null;
+}
+
+// Parser OFX
+function parseOFX(text) {
+  const rows = [];
+  const blocks = text.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi) || [];
+  blocks.forEach(block => {
+    const get = tag => { const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`,'i')); return m ? m[1].trim() : ''; };
+    const dtposted = get('DTPOSTED') || get('DTUSER');
+    const trnamt = get('TRNAMT');
+    const memo = get('MEMO') || get('NAME') || '';
+    if (!dtposted || !trnamt) return;
+    const d = dtposted.substring(0,8);
+    const data = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
+    const v = parseFloat(trnamt.replace(',','.'));
+    rows.push({ data, extrato: memo, entrada: v > 0 ? v : 0, saida: v < 0 ? Math.abs(v) : 0 });
+  });
+  return rows;
 }
 
 function parseValor(v) {
