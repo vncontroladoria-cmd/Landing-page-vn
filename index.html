@@ -1830,6 +1830,10 @@ async function saveFornecedor() {
 }
 
 // ─── PLANO DE CONTAS ─────────────────────────────────────
+
+// Variável global para guardar grupos carregados
+let _grupos = [];
+
 async function loadPlanoContas() {
   const elDfc = document.getElementById('grupos-dfc');
   const elDre = document.getElementById('grupos-dre');
@@ -1841,27 +1845,22 @@ async function loadPlanoContas() {
   elCats.innerHTML = '<div class="loading"><div class="spin"></div></div>';
 
   const { data: grupos } = await sb.from('grupos_plano').select('*').order('ordem');
-  const { data: cats } = await sb.from('plano_contas').select('*').order('ordem');
+  const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
 
-  const dfc = (grupos||[]).filter(g=>g.demonstrativo==='DFC'||g.demonstrativo==='AMBOS');
-  const dre = (grupos||[]).filter(g=>g.demonstrativo==='DRE'||g.demonstrativo==='AMBOS');
+  _grupos = grupos || [];
 
+  // Renderiza grupos
   const renderGrupos = (list, targetId) => {
-    if (!list.length) { document.getElementById(targetId).innerHTML = '<div class="empty">Nenhum grupo cadastrado</div>'; return; }
-    let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Demonstrativo</th><th>Ações</th></tr></thead><tbody>';
+    if (!list.length) { document.getElementById(targetId).innerHTML = '<div class="empty">Nenhum grupo</div>'; return; }
+    let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>Tipo</th><th>Demo</th><th>Ações</th></tr></thead><tbody>';
     list.forEach(g => {
       html += `<tr>
-        <td style="font-weight:500;border-left:3px solid ${g.cor||'#6b7280'};padding-left:10px">
-          <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);margin-right:6px">${g.ordem}.</span>${g.nome}
-        </td>
-        <td><span class="badge ${g.tipo==='ENTRADA'?'badge-green':'badge-red'}">${g.tipo==='ENTRADA'?'Entrada (+)':'Saída (-)'}</span></td>
+        <td style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent)">${g.ordem}</td>
+        <td style="font-weight:500;border-left:3px solid ${g.cor||'#6b7280'};padding-left:8px">${g.nome}</td>
+        <td><span class="badge ${g.tipo==='ENTRADA'?'badge-green':'badge-red'}">${g.tipo==='ENTRADA'?'(+)':'(-)'}</span></td>
         <td><span class="badge badge-blue">${g.demonstrativo}</span></td>
         <td style="display:flex;gap:6px">
-          <button class="btn btn-sm"
-            data-id="${g.id}" data-nome="${encodeURIComponent(g.nome)}"
-            data-tipo="${g.tipo}" data-demo="${g.demonstrativo}"
-            data-ordem="${g.ordem}" data-cor="${g.cor||'#6b7280'}"
-            onclick="editarGrupoBtn(this)">✏️ Editar</button>
+          <button class="btn btn-sm" data-gid="${g.id}" onclick="abrirEditarGrupo(this)">✏️ Editar</button>
           <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirGrupo('${g.id}')">🗑️</button>
         </td>
       </tr>`;
@@ -1870,164 +1869,182 @@ async function loadPlanoContas() {
     document.getElementById(targetId).innerHTML = html;
   };
 
+  const dfc = _grupos.filter(g => g.demonstrativo === 'DFC' || g.demonstrativo === 'AMBOS');
+  const dre = _grupos.filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
   renderGrupos(dfc, 'grupos-dfc');
   renderGrupos(dre, 'grupos-dre');
 
-  if (!cats?.length) { document.getElementById('categorias-table').innerHTML = '<div class="empty">Nenhuma categoria cadastrada</div>'; return; }
-  let html = '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Demonstrativo</th><th>Grupo</th><th>Ações</th></tr></thead><tbody>';
-  (cats||[]).forEach(c => {
+  // Renderiza categorias
+  if (!cats?.length) { elCats.innerHTML = '<div class="empty">Nenhuma categoria</div>'; return; }
+  let html = '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Nome</th><th>Tipo</th><th>Demo</th><th>Grupo</th><th>Ações</th></tr></thead><tbody>';
+  cats.forEach(c => {
     html += `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)">${c.codigo||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent)">${c.codigo||'—'}</td>
       <td style="font-weight:500">${c.nome}</td>
       <td><span class="badge ${c.tipo==='ENTRADA'?'badge-green':'badge-red'}">${c.tipo}</span></td>
       <td><span class="badge badge-blue">${c.demonstrativo}</span></td>
-      <td style="font-size:12px;color:var(--text2)">
-        <span style="font-family:'DM Mono',monospace;color:var(--accent)">${c.codigo||''}</span> — ${c.grupo||'—'}
-      </td>
+      <td style="font-size:12px;color:var(--text2)">${c.grupo||'—'}</td>
       <td style="display:flex;gap:6px">
-        <button class="btn btn-sm" 
-          data-id="${c.id}" data-codigo="${c.codigo||''}" 
-          data-nome="${encodeURIComponent(c.nome)}" data-tipo="${c.tipo}" 
-          data-demo="${c.demonstrativo}" data-grupo="${encodeURIComponent(c.grupo||'')}"
-          onclick="editarCategoriaBtn(this)">✏️ Editar</button>
+        <button class="btn btn-sm" data-cid="${c.id}" onclick="abrirEditarCategoria(this)">✏️ Editar</button>
         <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirCategoria('${c.id}')">🗑️</button>
       </td>
     </tr>`;
   });
   html += '</tbody></table></div>';
-  document.getElementById('categorias-table').innerHTML = html;
+  elCats.innerHTML = html;
 }
 
-function editarGrupoBtn(btn) {
-  const id = btn.dataset.id;
-  const nome = decodeURIComponent(btn.dataset.nome);
-  const tipo = btn.dataset.tipo;
-  const demo = btn.dataset.demo;
-  const ordem = btn.dataset.ordem;
-  const cor = btn.dataset.cor;
-  editarGrupo(id, nome, tipo, demo, ordem, cor);
-}
-
-function editarGrupo(id, nome, tipo, demo, ordem, cor) {
-  document.getElementById('grp-nome').value = nome;
-  document.getElementById('grp-tipo').value = tipo;
-  document.getElementById('grp-demo').value = demo;
-  document.getElementById('grp-ordem').value = ordem;
-  document.getElementById('grp-cor').value = cor;
-  document.getElementById('modal-grupo').dataset.editId = id;
+// Abre modal de grupo para editar
+function abrirEditarGrupo(btn) {
+  const gid = btn.dataset.gid;
+  const g = _grupos.find(x => x.id === gid);
+  if (!g) return;
+  document.getElementById('grp-nome').value = g.nome;
+  document.getElementById('grp-tipo').value = g.tipo;
+  document.getElementById('grp-demo').value = g.demonstrativo;
+  document.getElementById('grp-ordem').value = g.ordem;
+  document.getElementById('grp-cor').value = g.cor || '#6b7280';
+  document.getElementById('modal-grupo').dataset.editId = g.id;
+  document.getElementById('modal-grupo').querySelector('.modal-title').textContent = 'Editar grupo';
   document.getElementById('modal-grupo').classList.add('open');
 }
 
-async function editarCategoriaBtn(btn) {
-  const id = btn.dataset.id;
-  const codigo = btn.dataset.codigo;
-  const nome = decodeURIComponent(btn.dataset.nome);
-  const tipo = btn.dataset.tipo;
-  const demo = btn.dataset.demo;
-  const grupo = decodeURIComponent(btn.dataset.grupo);
-  await editarCategoria(id, codigo, nome, tipo, demo, grupo);
-}
-
-async function editarCategoria(id, codigo, nome, tipo, demo, grupo) {
-  document.getElementById('cat-nome').value = nome;
-  document.getElementById('cat-tipo').value = tipo;
-  document.getElementById('cat-demo').value = demo;
-  document.getElementById('modal-categoria').dataset.editId = id;
-  document.getElementById('modal-categoria').dataset.codigoGerado = codigo;
-  // Atualiza preview do código
-  const preview = document.getElementById('cat-codigo-preview');
-  if (preview) preview.textContent = codigo || '—';
-  // Carrega grupos filtrados pelo demonstrativo
-  await loadGruposSelect('cat-grupo', demo === 'AMBOS' ? null : demo);
-  // Seleciona o grupo correto
-  const sel = document.getElementById('cat-grupo');
-  for (let i = 0; i < sel.options.length; i++) {
-    if (sel.options[i].text.startsWith(grupo)) { sel.selectedIndex = i; break; }
+// Salva grupo (novo ou edição)
+async function saveGrupo() {
+  const nome = document.getElementById('grp-nome').value.trim();
+  if (!nome) { showToast('Digite o nome','error'); return; }
+  const editId = document.getElementById('modal-grupo').dataset.editId || '';
+  const payload = {
+    nome,
+    tipo: document.getElementById('grp-tipo').value,
+    demonstrativo: document.getElementById('grp-demo').value,
+    sinal: document.getElementById('grp-tipo').value === 'ENTRADA' ? '(+)' : '(-)',
+    ordem: parseInt(document.getElementById('grp-ordem').value) || 99,
+    cor: document.getElementById('grp-cor').value,
+  };
+  if (editId) {
+    const { data: ant } = await sb.from('grupos_plano').select('nome').eq('id', editId).single();
+    await sb.from('grupos_plano').update(payload).eq('id', editId);
+    if (ant?.nome && ant.nome !== nome) {
+      await sb.from('plano_contas').update({ grupo: nome }).eq('grupo', ant.nome);
+    }
+  } else {
+    await sb.from('grupos_plano').insert(payload);
   }
-  document.getElementById('modal-categoria').classList.add('open');
+  showToast('Grupo salvo!', 'success');
+  delete document.getElementById('modal-grupo').dataset.editId;
+  document.getElementById('modal-grupo').querySelector('.modal-title').textContent = 'Novo grupo';
+  closeModal('modal-grupo');
+  loadPlanoContas();
 }
 
 async function excluirGrupo(id) {
   if (!confirm('Excluir este grupo?')) return;
   await sb.from('grupos_plano').delete().eq('id', id);
-  showToast('Grupo excluído!','success');
+  showToast('Grupo excluído!', 'success');
   loadPlanoContas();
 }
 
-async function excluirCategoria(id) {
-  if (!confirm('Excluir esta categoria?')) return;
-  await sb.from('plano_contas').delete().eq('id', id);
-  showToast('Categoria excluída!','success');
-  loadPlanoContas();
-}
+// Abre modal de categoria para editar — busca dados direto do banco
+async function abrirEditarCategoria(btn) {
+  const cid = btn.dataset.cid;
+  const { data: c } = await sb.from('plano_contas').select('*').eq('id', cid).single();
+  if (!c) return;
 
-async function saveGrupo() {
-  const nome = document.getElementById('grp-nome').value.trim();
-  if (!nome) { showToast('Digite o nome do grupo','error'); return; }
-  const editId = document.getElementById('modal-grupo').dataset.editId;
-  const payload = {
-    nome,
-    tipo: document.getElementById('grp-tipo').value,
-    demonstrativo: document.getElementById('grp-demo').value,
-    sinal: document.getElementById('grp-tipo').value==='ENTRADA'?'(+)':'(-)',
-    ordem: parseInt(document.getElementById('grp-ordem').value)||99,
-    cor: document.getElementById('grp-cor').value,
-  };
+  // Preenche o modal
+  document.getElementById('cat-tipo').value = c.tipo;
+  document.getElementById('cat-demo').value = c.demonstrativo;
+  document.getElementById('cat-nome').value = c.nome;
+  document.getElementById('modal-categoria').dataset.editId = c.id;
+  document.getElementById('modal-categoria').dataset.codigoOriginal = c.codigo || '';
+  document.getElementById('modal-categoria').querySelector('.modal-title').textContent = 'Editar categoria';
 
-  if (editId) {
-    // Busca nome antigo antes de atualizar
-    const { data: antigo } = await sb.from('grupos_plano').select('nome').eq('id', editId).single();
-    const nomeAntigo = antigo?.nome;
-
-    await sb.from('grupos_plano').update(payload).eq('id', editId);
-
-    // Atualiza em cascata no plano de contas onde o grupo aparece
-    if (nomeAntigo && nomeAntigo !== nome) {
-      await sb.from('plano_contas').update({ grupo: nome }).eq('grupo', nomeAntigo);
-    }
-  } else {
-    await sb.from('grupos_plano').insert(payload);
+  // Carrega grupos filtrados e seleciona o correto
+  await carregarGruposSelect(c.demonstrativo);
+  const sel = document.getElementById('cat-grupo');
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].dataset.nome === c.grupo) { sel.selectedIndex = i; break; }
   }
 
-  showToast('Grupo salvo!','success');
-  delete document.getElementById('modal-grupo').dataset.editId;
-  closeModal('modal-grupo');
-  loadPlanoContas();
+  // Mostra código original
+  document.getElementById('cat-codigo-preview').textContent = c.codigo || '—';
+  document.getElementById('modal-categoria').classList.add('open');
 }
 
+// Carrega select de grupos com data-nome e data-ordem
+async function carregarGruposSelect(demo) {
+  const sel = document.getElementById('cat-grupo');
+  const filtrado = demo && demo !== 'AMBOS'
+    ? _grupos.filter(g => g.demonstrativo === demo || g.demonstrativo === 'AMBOS')
+    : _grupos;
+  sel.innerHTML = filtrado.map(g =>
+    `<option value="${g.id}" data-nome="${g.nome}" data-ordem="${g.ordem}">${g.nome} (${g.demonstrativo})</option>`
+  ).join('');
+}
+
+async function filtrarGruposPorDemo() {
+  const demo = document.getElementById('cat-demo').value;
+  await carregarGruposSelect(demo);
+  await previewCodigo();
+}
+
+async function previewCodigo() {
+  const sel = document.getElementById('cat-grupo');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt) return;
+  const grupoNome = opt.dataset.nome;
+  const grupoOrdem = opt.dataset.ordem;
+  const demo = document.getElementById('cat-demo').value;
+
+  // Conta categorias existentes nesse grupo
+  const { data } = await sb.from('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo === 'AMBOS' ? opt.text.includes('DFC') ? 'DFC' : 'DRE' : demo);
+  const editId = document.getElementById('modal-categoria').dataset.editId || '';
+  const total = (data?.length || 0) + (editId ? 0 : 1);
+  const codigo = `${grupoOrdem}.${total}`;
+
+  document.getElementById('cat-codigo-preview').textContent = codigo;
+}
+
+// Salva categoria (novo ou edição)
 async function saveCategoria() {
   const nome = document.getElementById('cat-nome').value.trim();
-  if (!nome) { showToast('Digite o nome da categoria','error'); return; }
-  
-  const editId = document.getElementById('modal-categoria').dataset.editId || '';
-  const grupoSel = document.getElementById('cat-grupo');
-  const grupoTexto = grupoSel.options[grupoSel.selectedIndex]?.text || '';
-  // Remove o "(DFC)" ou "(DRE)" do final
-  const grupoNome = grupoTexto.replace(/\s*\([^)]*\)\s*$/, '').trim();
-  const codigoGerado = document.getElementById('modal-categoria').dataset.codigoGerado || '';
+  if (!nome) { showToast('Digite o nome','error'); return; }
 
-  let codigoFinal = codigoGerado;
+  const editId = document.getElementById('modal-categoria').dataset.editId || '';
+  const sel = document.getElementById('cat-grupo');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt) { showToast('Selecione um grupo','error'); return; }
+
+  const grupoNome = opt.dataset.nome;
+  const grupoOrdem = parseInt(opt.dataset.ordem);
+  const demo = document.getElementById('cat-demo').value;
+
+  // Calcula código correto
+  let codigo;
   if (editId) {
-    const { data: orig } = await sb.from('plano_contas').select('codigo').eq('id', editId).single();
-    codigoFinal = orig?.codigo || codigoGerado;
+    // Mantém código original ao editar
+    codigo = document.getElementById('modal-categoria').dataset.codigoOriginal || '';
+    // Se mudou de grupo, recalcula
+    const { data: orig } = await sb.from('plano_contas').select('grupo').eq('id', editId).single();
+    if (orig?.grupo !== grupoNome) {
+      const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo).neq('id', editId);
+      codigo = `${grupoOrdem}.${(cats?.length || 0) + 1}`;
+    }
+  } else {
+    const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo);
+    codigo = `${grupoOrdem}.${(cats?.length || 0) + 1}`;
   }
 
-  const payload = {
-    codigo: codigoFinal,
-    nome,
-    tipo: document.getElementById('cat-tipo').value,
-    demonstrativo: document.getElementById('cat-demo').value,
-    grupo: grupoNome,
-  };
+  const payload = { codigo, nome, tipo: document.getElementById('cat-tipo').value, demonstrativo: demo, grupo: grupoNome };
 
   let error;
   if (editId) {
-    const { data: antigo } = await sb.from('plano_contas').select('nome').eq('id', editId).single();
-    const nomeAntigo = antigo?.nome;
+    // Atualiza cascata se nome mudou
+    const { data: ant } = await sb.from('plano_contas').select('nome').eq('id', editId).single();
     const res = await sb.from('plano_contas').update(payload).eq('id', editId);
     error = res.error;
-    if (!error && nomeAntigo && nomeAntigo !== nome) {
-      await sb.from('lancamentos').update({ categoria: nome }).eq('categoria', nomeAntigo);
+    if (!error && ant?.nome && ant.nome !== nome) {
+      await sb.from('lancamentos').update({ categoria: nome }).eq('categoria', ant.nome);
     }
   } else {
     const res = await sb.from('plano_contas').insert(payload);
@@ -2037,9 +2054,46 @@ async function saveCategoria() {
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   showToast('Categoria salva!', 'success');
   delete document.getElementById('modal-categoria').dataset.editId;
-  delete document.getElementById('modal-categoria').dataset.codigoGerado;
+  delete document.getElementById('modal-categoria').dataset.codigoOriginal;
+  document.getElementById('modal-categoria').querySelector('.modal-title').textContent = 'Nova categoria';
   closeModal('modal-categoria');
   loadPlanoContas();
+}
+
+async function excluirCategoria(id) {
+  if (!confirm('Excluir esta categoria?')) return;
+  await sb.from('plano_contas').delete().eq('id', id);
+  showToast('Categoria excluída!', 'success');
+  loadPlanoContas();
+}
+
+async function loadGruposSelect(selectId, demo) {
+  await carregarGruposSelect(demo);
+}
+
+// Abre modal novo — reseta campos
+async function openModal(id) {
+  if (id === 'modal-categoria') {
+    document.getElementById('cat-nome').value = '';
+    document.getElementById('cat-tipo').value = 'ENTRADA';
+    document.getElementById('cat-demo').value = 'DFC';
+    document.getElementById('modal-categoria').dataset.editId = '';
+    document.getElementById('modal-categoria').dataset.codigoOriginal = '';
+    document.getElementById('modal-categoria').querySelector('.modal-title').textContent = 'Nova categoria';
+    document.getElementById('cat-codigo-preview').textContent = '—';
+    await carregarGruposSelect('DFC');
+  }
+  if (id === 'modal-grupo') {
+    document.getElementById('grp-nome').value = '';
+    document.getElementById('grp-tipo').value = 'ENTRADA';
+    document.getElementById('grp-demo').value = 'DFC';
+    document.getElementById('grp-ordem').value = '';
+    document.getElementById('grp-cor').value = '#6b7280';
+    document.getElementById('modal-grupo').dataset.editId = '';
+    document.getElementById('modal-grupo').querySelector('.modal-title').textContent = 'Novo grupo';
+  }
+  if (id === 'modal-fornecedor') await loadGruposSelect('forn-grupo');
+  document.getElementById(id).classList.add('open');
 }
 
 // ─── BANCOS ─────────────────────────────────────────────
