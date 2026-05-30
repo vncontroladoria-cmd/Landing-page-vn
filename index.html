@@ -603,7 +603,7 @@ tbody tr:hover { background: var(--bg3); }
             <div style="display:flex;gap:8px">
               <button class="btn" onclick="toggleFormLanc()">+ Novo lançamento</button>
               <button class="btn btn-primary" onclick="document.getElementById('imp-extrato-input').click()">↑ Importar extrato</button>
-              <input type="file" id="imp-extrato-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExtrato(this)">
+              <input type="file" id="imp-extrato-input" accept=".xlsx,.xls,.csv,.ofx,.ofc" style="display:none" onchange="importarExtrato(this)">
             </div>
           </div>
 
@@ -1758,36 +1758,82 @@ async function excluirLancamento(id) {
 async function importarExtrato(input) {
   const file = input.files[0];
   if (!file) return;
-  showToast('Importando...','');
-  const XLSX = await loadXLSX();
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf);
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  const ext = file.name.split('.').pop().toLowerCase();
+  showToast('Lendo arquivo...', '');
 
   const mes = document.getElementById('lanc-mes').value;
   const [ano, m] = mes.split('-');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const bancoId = document.getElementById('lanc-banco-filter')?.value || null;
+  const bancoNome = _bancos.find(b=>b.id===bancoId)?.nome || '';
 
-  let count = 0;
+  let rows = [];
+
+  try {
+    if (ext === 'ofx' || ext === 'ofc') {
+      // Lê OFX como texto
+      const text = await file.text();
+      rows = parseOFX(text);
+    } else if (ext === 'csv') {
+      const text = await file.text();
+      rows = parseCSV(text);
+    } else {
+      // Excel (xlsx, xls)
+      const XLSX = await loadXLSX();
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+      rows = raw.map(r => {
+        // Tenta detectar colunas automaticamente
+        const data = r['DATA'] || r['Data'] || r['data'] || r['DATE'] || r['Date'] || Object.values(r)[0] || '';
+        const extrato = r['EXTRATO'] || r['Extrato'] || r['extrato'] || r['DESCRICAO'] || r['Descrição'] || r['HISTORICO'] || r['Histórico'] || r['MEMO'] || r['Memo'] || Object.values(r)[1] || '';
+        const valor = r['VALOR'] || r['Valor'] || r['valor'] || r['AMOUNT'] || '';
+        const entrada = r['ENTRADA'] || r['Entrada'] || r['entrada'] || r['CREDITO'] || r['Crédito'] || '';
+        const saida = r['SAIDA'] || r['Saída'] || r['saida'] || r['DEBITO'] || r['Débito'] || '';
+        return { data, extrato, valor, entrada, saida };
+      });
+    }
+  } catch(e) {
+    showToast('Erro ao ler arquivo: ' + e.message, 'error');
+    input.value = '';
+    return;
+  }
+
+  if (!rows.length) { showToast('Nenhuma linha encontrada no arquivo','error'); input.value = ''; return; }
+
+  let count = 0, erros = 0;
   for (const r of rows) {
-    const data = parseDate(r['DATA'] || r['Data'] || r['data']);
-    if (!data) continue;
-    const extratoTxt = String(r['EXTRATO'] || r['Extrato'] || r['extrato'] || '');
-    const entrada = parseFloat(String(r['ENTRADA']||r['Entrada']||'0').replace(',','.').replace(/[^0-9.-]/g,'')) || 0;
-    const saida = Math.abs(parseFloat(String(r['SAIDA']||r['Saida']||'0').replace(',','.').replace(/[^0-9.-]/g,'')) || 0);
+    const dataStr = parseDate(r.data);
+    if (!dataStr) continue;
+
+    const extratoTxt = String(r.extrato || '').trim();
+    let entrada = 0, saida = 0;
+
+    if (r.entrada || r.saida) {
+      entrada = parseValor(r.entrada);
+      saida = parseValor(r.saida);
+    } else if (r.valor !== undefined && r.valor !== '') {
+      const v = parseValor(r.valor);
+      if (v > 0) entrada = v;
+      else if (v < 0) saida = Math.abs(v);
+    }
+
+    if (!entrada && !saida) continue;
     const tipo = entrada > 0 ? 'ENTRADA' : 'SAIDA';
     const valor = entrada || saida;
 
-    // Reconhece categoria pelo fornecedor
+    // Reconhece fornecedor
     const match = _fornecedores.find(f =>
-      f.palavra_chave && extratoTxt.toLowerCase().includes(f.palavra_chave.toLowerCase()) ||
-      f.nome && extratoTxt.toLowerCase().includes(f.nome.toLowerCase().substring(0,5))
+      (f.palavra_chave && extratoTxt.toLowerCase().includes(f.palavra_chave.toLowerCase())) ||
+      (f.nome && extratoTxt.toLowerCase().includes(f.nome.toLowerCase().substring(0, 4)))
     );
     const catNome = match?.categoria_dfc || '';
+    const catDfc = match?.categoria_dfc || '';
+    const catDre = match?.categoria_dre || '';
 
-    await sb.from('lancamentos').insert({
-      data_lancamento: data,
+    const { error } = await sb.from('lancamentos').insert({
+      data_lancamento: dataStr,
       extrato: extratoTxt,
       entrada: entrada || null,
       saida: saida || null,
@@ -1795,16 +1841,66 @@ async function importarExtrato(input) {
       tipo,
       descricao: extratoTxt,
       categoria: catNome,
-      categoria_dfc: catNome,
+      categoria_dfc: catDfc,
+      categoria_dre: catDre,
+      banco_id: bancoId || null,
+      banco_nome: bancoNome,
       mes: meses[parseInt(m)-1]?.toUpperCase(),
       status: 'pago',
     });
-    count++;
+    if (error) erros++;
+    else count++;
   }
 
-  showToast(`${count} lançamentos importados!`,'success');
   input.value = '';
+  showToast(`✓ ${count} lançamentos importados${erros ? ` (${erros} erros)` : ''}!`, 'success');
   loadLancamentos();
+}
+
+// Parser OFX
+function parseOFX(text) {
+  const rows = [];
+  const stmttrn = text.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi) || [];
+  stmttrn.forEach(block => {
+    const get = tag => {
+      const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i'));
+      return m ? m[1].trim() : '';
+    };
+    const dtposted = get('DTPOSTED') || get('DTUSER');
+    const trnamt = get('TRNAMT');
+    const memo = get('MEMO') || get('NAME') || '';
+    if (!dtposted || !trnamt) return;
+    // Data OFX: YYYYMMDD ou YYYYMMDDHHMMSS
+    const d = dtposted.substring(0,8);
+    const data = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
+    const v = parseFloat(trnamt.replace(',','.'));
+    rows.push({ data, extrato: memo, valor: v.toString(), entrada: '', saida: '' });
+  });
+  return rows;
+}
+
+// Parser CSV genérico
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const sep = lines[0].includes(';') ? ';' : ',';
+  const headers = lines[0].split(sep).map(h => h.replace(/"/g,'').trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(sep).map(v => v.replace(/"/g,'').trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i] || '');
+    const data = obj['DATA'] || obj['Data'] || obj['data'] || obj['DATE'] || Object.values(obj)[0] || '';
+    const extrato = obj['EXTRATO'] || obj['Extrato'] || obj['DESCRICAO'] || obj['Descrição'] || obj['HISTORICO'] || obj['Histórico'] || obj['MEMO'] || Object.values(obj)[1] || '';
+    const valor = obj['VALOR'] || obj['Valor'] || obj['AMOUNT'] || '';
+    const entrada = obj['ENTRADA'] || obj['Entrada'] || obj['CREDITO'] || obj['Crédito'] || '';
+    const saida = obj['SAIDA'] || obj['Saída'] || obj['DEBITO'] || obj['Débito'] || '';
+    return { data, extrato, valor, entrada, saida };
+  });
+}
+
+function parseValor(v) {
+  if (!v && v !== 0) return 0;
+  return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,'')) || 0;
 }
 
 // Mantém compatibilidade com dashboard
