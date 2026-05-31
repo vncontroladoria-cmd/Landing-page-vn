@@ -471,6 +471,9 @@ tbody tr:hover { background: var(--bg3); }
       </div>
 
       <div class="sidebar-section">Relatórios</div>
+      <div class="nav-item" onclick="showPage('conciliacao',this)">
+        <span class="nav-icon">⇄</span><span class="nav-label">Conciliação</span>
+      </div>
       <div class="nav-item" onclick="showPage('importar',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <span class="nav-label">Importar Dados</span>
@@ -737,6 +740,15 @@ tbody tr:hover { background: var(--bg3); }
           </div>
         </div>
 
+        <!-- CONCILIAÇÃO BANCÁRIA -->
+        <div class="page" id="page-conciliacao">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div style="font-size:13px;color:var(--text2)">Importe o extrato do banco e concilie os lançamentos</div>
+            <button class="btn btn-primary" onclick="abrirModalConciliacao()">↑ Importar extrato</button>
+          </div>
+          <div id="conc-container"><div class="empty">Clique em "Importar extrato" para começar</div></div>
+        </div>
+
         <!-- SERVIÇOS -->
         <div class="page" id="page-servicos">
           <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
@@ -922,6 +934,47 @@ tbody tr:hover { background: var(--bg3); }
 
       </div>
     </div>
+  </div>
+</div>
+
+<!-- MODAL CONCILIAÇÃO -->
+<div class="modal-overlay" id="modal-conciliacao">
+  <div class="modal" style="max-width:500px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <div style="font-size:16px;font-weight:700">Importar Extrato Bancário</div>
+      <button onclick="closeModal('modal-conciliacao')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>Banco <span style="color:var(--red)">*</span></label>
+      <select id="conc-banco-sel" style="width:100%">
+        <option value="">Selecione o banco...</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:1.25rem">
+      <label>Arquivo do extrato</label>
+      <div onclick="document.getElementById('conc-file-input').click()" id="conc-dropzone"
+        style="border:2px dashed var(--border);border-radius:10px;padding:2rem;text-align:center;cursor:pointer">
+        <div style="font-size:28px;margin-bottom:8px">📂</div>
+        <div style="font-size:13px;font-weight:500" id="conc-file-label">Clique para selecionar</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Excel (.xlsx), CSV ou OFX</div>
+        <input type="file" id="conc-file-input" accept=".xlsx,.xls,.csv,.ofx,.ofc" style="display:none" onchange="conc_fileSelected(this)">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn" onclick="closeModal('modal-conciliacao')">Cancelar</button>
+      <button class="btn btn-primary" onclick="iniciarConciliacao()">Ler extrato →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AUDITORIA -->
+<div class="modal-overlay" id="modal-auditoria">
+  <div class="modal" style="max-width:420px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:15px;font-weight:700">🔍 Informações do lançamento</div>
+      <button onclick="closeModal('modal-auditoria')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div id="auditoria-content"></div>
   </div>
 </div>
 
@@ -1507,6 +1560,7 @@ async function loadLancamentos() {
     const bancoNome = _bancos.find(b=>b.id===l.banco_id)?.nome || l.banco_nome || '—';
     html += `<tr id="lr-${l.id}" style="border-bottom:1px solid var(--border)">
       <td style="padding:9px 12px;white-space:nowrap;color:var(--text2);font-size:12px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">${l.codigo||''}</div>
         <span class="cell-view">${fmtDate(l.data_lancamento)}</span>
         <input class="cell-edit" type="date" style="display:none;width:120px" value="${l.data_lancamento||''}">
       </td>
@@ -1561,6 +1615,7 @@ async function loadLancamentos() {
         ${fmtBRL(saldoAcum)}
       </td>
       <td style="padding:9px 12px;white-space:nowrap;display:flex;gap:4px">
+        <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" title="Auditoria" onclick="verAuditoria('${l.id}')">🔍</button>
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="toggleInline('lr-${l.id}')">✏️</button>
         <button class="btn btn-sm btn-save-inline" style="display:none;padding:3px 8px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarLancamentoInline('${l.id}','lr-${l.id}')">💾</button>
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="excluirLancamento('${l.id}')">🗑️</button>
@@ -3127,6 +3182,331 @@ function sortTable(th) {
 function aplicarSort(containerEl) {
   const ths = containerEl?.querySelectorAll('thead th:not(.no-sort)');
   ths?.forEach(th => { th.onclick = () => sortTable(th); });
+}
+
+// ─── CONCILIAÇÃO ─────────────────────────────────────────
+let _concFile = null;
+let _concRows = []; // linhas lidas do extrato
+let _concBancoId = '';
+let _concBancoNome = '';
+
+async function abrirModalConciliacao() {
+  // Carrega bancos no select
+  if (!_bancos.length) await initLancamentos();
+  const sel = document.getElementById('conc-banco-sel');
+  sel.innerHTML = '<option value="">Selecione o banco...</option>' +
+    _bancos.map(b => `<option value="${b.id}" data-nome="${b.nome}">${b.nome}</option>`).join('');
+  _concFile = null;
+  document.getElementById('conc-file-label').textContent = 'Clique para selecionar';
+  document.getElementById('conc-file-input').value = '';
+  document.getElementById('modal-conciliacao').classList.add('open');
+}
+
+function conc_fileSelected(input) {
+  _concFile = input.files[0];
+  if (_concFile) {
+    document.getElementById('conc-file-label').textContent = '✓ ' + _concFile.name;
+    document.getElementById('conc-dropzone').style.borderColor = 'var(--green)';
+  }
+}
+
+async function iniciarConciliacao() {
+  const sel = document.getElementById('conc-banco-sel');
+  _concBancoId = sel.value;
+  _concBancoNome = sel.options[sel.selectedIndex]?.dataset.nome || '';
+  if (!_concBancoId) { showToast('Selecione o banco','error'); return; }
+  if (!_concFile) { showToast('Selecione o arquivo','error'); return; }
+
+  closeModal('modal-conciliacao');
+
+  const container = document.getElementById('conc-container');
+  container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text2)">
+    <div class="spin" style="margin:0 auto 12px"></div>
+    Lendo extrato de <strong>${_concBancoNome}</strong>...
+  </div>`;
+
+  const ext = _concFile.name.split('.').pop().toLowerCase();
+  try {
+    if (ext === 'ofx' || ext === 'ofc') {
+      const text = await _concFile.text();
+      _concRows = parseOFX(text);
+    } else if (ext === 'csv') {
+      const text = await _concFile.text();
+      _concRows = parseStoneCSV(text);
+    } else {
+      const XLSX = await loadXLSX();
+      const buf = await _concFile.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+      const isItau = raw.some(r => String(Object.values(r)[0]||'').trim() === 'Data' || String(Object.values(r)[0]||'').trim() === 'Lançamentos');
+      _concRows = isItau ? parseItauXLSX(ws, XLSX) : parseStoneRows(raw);
+    }
+  } catch(e) {
+    container.innerHTML = `<div class="empty">Erro ao ler arquivo: ${e.message}</div>`;
+    return;
+  }
+
+  if (!_concRows.length) {
+    container.innerHTML = '<div class="empty">Nenhum lançamento encontrado no arquivo</div>';
+    return;
+  }
+
+  renderConciliacao();
+}
+
+function renderConciliacao() {
+  const container = document.getElementById('conc-container');
+  const mes = document.getElementById('lanc-mes')?.value || new Date().toISOString().substring(0,7);
+  const [ano, m] = mes.split('-');
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNome = meses[parseInt(m)-1]?.toUpperCase() || '';
+
+  // Detecta repetidos — agrupa por extrato
+  const contagem = {};
+  _concRows.forEach(r => { contagem[r.extrato] = (contagem[r.extrato]||0) + 1; });
+
+  let html = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div>
+      <strong>${_concRows.length}</strong> lançamentos de <strong>${_concBancoNome}</strong>
+      <span style="font-size:12px;color:var(--text2);margin-left:8px">${_concFile?.name}</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="conciliarRepetidos()" style="border-color:var(--accent);color:var(--accent)">⚡ Conciliar repetidos</button>
+      <button class="btn btn-primary" onclick="concluirConciliacao()">✓ Concluir e salvar todos</button>
+    </div>
+  </div>`;
+
+  _concRows.forEach((r, idx) => {
+    // Reconhece fornecedor
+    const match = _fornecedores.find(f =>
+      (f.palavra_chave && r.extrato.toLowerCase().includes(f.palavra_chave.toLowerCase())) ||
+      (f.nome && r.extrato.toLowerCase().includes(f.nome.toLowerCase().substring(0, 5)))
+    );
+    const catDfc = match?.categoria_dfc || '';
+    const catDre = match?.categoria_dre || '';
+    const catNome = catDfc || catDre || '';
+    const reconhecido = !!match;
+    const qtdRepetidos = contagem[r.extrato] || 1;
+    const tipo = r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
+
+    // Guarda dados no objeto para concluir depois
+    r._catDfc = catDfc; r._catDre = catDre; r._catNome = catNome;
+    r._mes = mesNome; r._tipo = tipo; r._concluido = false;
+
+    html += `<div class="card" id="conc-card-${idx}" style="margin-bottom:10px;border-left:4px solid ${tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <!-- LADO ESQUERDO: dados do extrato -->
+        <div style="min-width:200px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:2px">${fmtDate(r.data)}</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">${r.extrato}</div>
+          <div style="font-size:15px;font-weight:700;color:${tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
+            ${tipo==='ENTRADA'?'+':'-'} ${fmtBRL(r.entrada||r.saida)}
+          </div>
+          ${qtdRepetidos > 1 ? `<div style="margin-top:6px"><span style="background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600">⚠ ${qtdRepetidos}x repetido</span></div>` : ''}
+        </div>
+
+        <!-- LADO DIREITO: classificação -->
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="form-group" style="margin:0">
+            <label style="font-size:10px">Categoria</label>
+            <input type="text" value="${catNome}" id="conc-cat-${idx}"
+              placeholder="Buscar categoria..."
+              oninput="buscaCatConc(this.value, ${idx})"
+              style="font-size:12px;${reconhecido?'border-color:var(--green)':''}">
+            <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
+            <input type="hidden" id="conc-cat-dre-${idx}" value="${catDre}">
+            <div id="conc-cat-dd-${idx}" style="display:none;position:absolute;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:200;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="font-size:10px">Descrição (opcional)</label>
+            <input type="text" id="conc-desc-${idx}" placeholder="Sua anotação" style="font-size:12px">
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:6px">
+            ${reconhecido ? `<span style="font-size:11px;color:var(--green);background:#f0fdf4;padding:4px 8px;border-radius:6px">✓ ${match.nome}</span>` : ''}
+            ${qtdRepetidos > 1 ? `<button class="btn btn-sm" style="font-size:11px;color:var(--accent);border-color:var(--accent)" onclick="aplicarIgual(${idx})">Aplicar a todos iguais</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html += `<div style="display:flex;justify-content:flex-end;margin-top:1rem">
+    <button class="btn btn-primary" style="padding:12px 24px;font-size:14px" onclick="concluirConciliacao()">✓ Concluir e salvar todos</button>
+  </div>`;
+
+  container.innerHTML = html;
+}
+
+function buscaCatConc(texto, idx) {
+  const dd = document.getElementById(`conc-cat-dd-${idx}`);
+  if (!dd) return;
+  const termo = texto.toLowerCase();
+  const resultados = Object.values((() => {
+    const map = {};
+    _categorias.forEach(c => {
+      if (!map[c.nome]) map[c.nome] = {nome:c.nome, dfc:null, dre:null};
+      if (c.demonstrativo==='DFC') map[c.nome].dfc = c.codigo;
+      if (c.demonstrativo==='DRE') map[c.nome].dre = c.codigo;
+    });
+    return map;
+  })()).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+
+  if (!resultados.length || !texto) { dd.style.display='none'; return; }
+  dd.style.display = 'block';
+  dd.style.position = 'absolute';
+  dd.innerHTML = resultados.map(c => {
+    const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
+    return `<div onclick="selecionarCatConc('${c.nome}','${c.dfc||''}','${c.dre||''}',${idx})"
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:11px">${refs}</span>
+    </div>`;
+  }).join('');
+}
+
+function selecionarCatConc(nome, dfc, dre, idx) {
+  document.getElementById(`conc-cat-${idx}`).value = nome;
+  document.getElementById(`conc-cat-dfc-${idx}`).value = dfc;
+  document.getElementById(`conc-cat-dre-${idx}`).value = dre;
+  document.getElementById(`conc-cat-dd-${idx}`).style.display = 'none';
+  _concRows[idx]._catNome = nome;
+  _concRows[idx]._catDfc = dfc;
+  _concRows[idx]._catDre = dre;
+}
+
+function aplicarIgual(idx) {
+  const extrato = _concRows[idx].extrato;
+  const catNome = document.getElementById(`conc-cat-${idx}`).value;
+  const catDfc = document.getElementById(`conc-cat-dfc-${idx}`).value;
+  const catDre = document.getElementById(`conc-cat-dre-${idx}`).value;
+  const desc = document.getElementById(`conc-desc-${idx}`).value;
+  let count = 0;
+  _concRows.forEach((r, i) => {
+    if (r.extrato === extrato && i !== idx) {
+      document.getElementById(`conc-cat-${i}`).value = catNome;
+      document.getElementById(`conc-cat-dfc-${i}`).value = catDfc;
+      document.getElementById(`conc-cat-dre-${i}`).value = catDre;
+      if (desc) document.getElementById(`conc-desc-${i}`).value = desc;
+      r._catNome = catNome; r._catDfc = catDfc; r._catDre = catDre;
+      count++;
+    }
+  });
+  showToast(`Aplicado em mais ${count} lançamentos iguais!`, 'success');
+}
+
+function conciliarRepetidos() {
+  // Pega o primeiro de cada grupo e aplica a todos os iguais
+  const vistos = new Set();
+  _concRows.forEach((r, idx) => {
+    if (!vistos.has(r.extrato) && r._catNome) {
+      vistos.add(r.extrato);
+      aplicarIgual(idx);
+    }
+  });
+  showToast('Repetidos conciliados!', 'success');
+}
+
+async function concluirConciliacao() {
+  const mes = document.getElementById('lanc-mes')?.value || new Date().toISOString().substring(0,7);
+  const [ano, m] = mes.split('-');
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNome = meses[parseInt(m)-1]?.toUpperCase() || '';
+  const agora = new Date().toISOString();
+  const usuario = (await sb.auth.getUser())?.data?.user?.email || 'sistema';
+
+  const container = document.getElementById('conc-container');
+  container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text2)">
+    <div class="spin" style="margin:0 auto 12px"></div>
+    Salvando ${_concRows.length} lançamentos...
+  </div>`;
+
+  let count = 0, erros = 0;
+  for (let idx = 0; idx < _concRows.length; idx++) {
+    const r = _concRows[idx];
+    const catNome = document.getElementById(`conc-cat-${idx}`)?.value || r._catNome || '';
+    const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || r._catDfc || '';
+    const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || r._catDre || '';
+    const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
+    const tipo = r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
+
+    // Gera código automático: ANO-MES-SEQUENCIA
+    const codigo = `${ano}${m.padStart(2,'0')}${String(idx+1).padStart(4,'0')}`;
+
+    const { error } = await sb.from('lancamentos').insert({
+      codigo,
+      data_lancamento: r.data,
+      extrato: r.extrato,
+      descricao: desc,
+      entrada: r.entrada || null,
+      saida: r.saida || null,
+      valor: r.entrada || r.saida,
+      tipo,
+      categoria: catNome,
+      categoria_dfc: catDfc,
+      categoria_dre: catDre,
+      banco_id: _concBancoId || null,
+      banco_nome: _concBancoNome,
+      mes: mesNome,
+      status: 'pago',
+      conciliado: true,
+      origem: 'importacao',
+      origem_arquivo: _concFile?.name || '',
+      criado_por: usuario,
+      criado_em: agora,
+    });
+    if (error) erros++; else count++;
+  }
+
+  showToast(`✓ ${count} lançamentos salvos${erros ? ` (${erros} erros)` : ''}!`, 'success');
+  _concRows = [];
+  container.innerHTML = `<div class="card" style="text-align:center;padding:2rem">
+    <div style="font-size:32px;margin-bottom:8px">✅</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:4px">${count} lançamentos conciliados!</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem">Importado de: ${_concFile?.name}</div>
+    <button class="btn btn-primary" onclick="abrirModalConciliacao()">Importar outro extrato</button>
+    <button class="btn" onclick="showPage('lancamentos')" style="margin-left:8px">Ver lançamentos</button>
+  </div>`;
+}
+
+// Auditoria — mostra de onde veio o lançamento
+async function verAuditoria(id) {
+  const { data: l } = await sb.from('lancamentos').select('*').eq('id', id).single();
+  if (!l) return;
+  const content = document.getElementById('auditoria-content');
+  content.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Código</span>
+        <strong style="font-family:'DM Mono',monospace">${l.codigo || '—'}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Origem</span>
+        <strong>${l.origem === 'importacao' ? '📂 Importação de extrato' : '✏️ Lançamento manual'}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Arquivo</span>
+        <strong>${l.origem_arquivo || '—'}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Criado por</span>
+        <strong>${l.criado_por || '—'}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Data/hora</span>
+        <strong>${l.criado_em ? new Date(l.criado_em).toLocaleString('pt-BR') : '—'}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2)">Banco</span>
+        <strong>${l.banco_nome || '—'}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0">
+        <span style="color:var(--text2)">Conciliado</span>
+        <strong>${l.conciliado ? '✅ Sim' : '❌ Não'}</strong>
+      </div>
+    </div>`;
+  document.getElementById('modal-auditoria').classList.add('open');
 }
 
 // ─── INIT ────────────────────────────────────────────
