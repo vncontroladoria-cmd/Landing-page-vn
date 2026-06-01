@@ -530,7 +530,7 @@ tbody tr:hover { background: var(--bg3); }
       <div class="topbar">
         <div class="topbar-title" id="page-title">Dashboard</div>
         <div class="topbar-right">
-          <select class="filter-select" id="global-mes" onchange="loadDashboard()">
+          <select class="filter-select" id="global-mes" onchange="loadDashboard()" style="display:none">
             <option value="2026-05">Maio 2026</option>
             <option value="2026-04">Abril 2026</option>
             <option value="2026-03">Março 2026</option>
@@ -821,9 +821,8 @@ tbody tr:hover { background: var(--bg3); }
               <div class="form-group"><label>CPF/CNPJ</label><input type="text" id="forn-cnpj" placeholder="00.000.000/0001-00"></div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div style="margin-bottom:12px">
               <div class="form-group"><label>Nome <span style="color:var(--red)">*</span></label><input type="text" id="forn-nome" placeholder="Nome completo"></div>
-              <div class="form-group"><label>Data de Aniversário</label><input type="date" id="forn-aniversario"></div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
@@ -1370,6 +1369,11 @@ function showPage(id, el) {
   if (el) el.classList.add('active');
   document.getElementById('page-title').textContent = pageTitles[id] || id;
   const c = document.querySelector('.content'); if(c) c.scrollTop = 0;
+
+  // Mostra select de mês só no dashboard
+  const selMes = document.getElementById('global-mes');
+  if (selMes) selMes.style.display = id === 'dashboard' ? '' : 'none';
+
   if (id === 'dashboard') loadDashboard();
   if (id === 'lancamentos') loadLancamentos();
   if (id === 'contas-pagar') loadContasPagar();
