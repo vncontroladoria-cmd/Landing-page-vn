@@ -1819,9 +1819,7 @@ function reconhecerFornecedor(texto) {
   const el = document.getElementById('nl-reconhecido');
   if (!texto || texto.length < 3) { if(el) el.textContent = ''; return; }
   const match = _fornecedores.find(f =>
-    (f.palavra_chave && texto.toLowerCase().includes(f.palavra_chave.toLowerCase().trim())) ||
-    (f.nome && texto.toLowerCase().includes(f.nome.toLowerCase().trim())) ||
-    (f.nome && f.nome.toLowerCase().split(/\s+/).filter(p=>p.length>=4).some(p=>texto.toLowerCase().includes(p)))
+fornecedorBate(f, texto)
   );
   if (match && el) {
     el.textContent = `✓ Reconhecido: ${match.nome}`;
@@ -1933,9 +1931,7 @@ async function importarExtrato(input) {
     // Reconhece fornecedor pela descrição
     const desc = r.extrato || '';
     const match = _fornecedores.find(f =>
-      (f.palavra_chave && desc.toLowerCase().includes(f.palavra_chave.toLowerCase().trim())) ||
-      (f.nome && desc.toLowerCase().includes(f.nome.toLowerCase().trim())) ||
-      (f.nome && f.nome.toLowerCase().split(/\s+/).filter(p=>p.length>=4).some(p=>desc.toLowerCase().includes(p)))
+fornecedorBate(f, desc)
     );
     const catDfc = match?.categoria_dfc || '';
     const catDre = match?.categoria_dre || '';
@@ -3525,19 +3521,7 @@ function renderConciliacao() {
 
   _concRows.forEach((r, idx) => {
     // Reconhece por palavra-chave ou nome do fornecedor
-    const extratoLower = r.extrato.toLowerCase();
-    const match = _fornecedores.find(f => {
-      // 1. Palavra-chave exata (prioridade máxima)
-      if (f.palavra_chave && extratoLower.includes(f.palavra_chave.toLowerCase().trim())) return true;
-      // 2. Nome completo do fornecedor
-      if (f.nome && extratoLower.includes(f.nome.toLowerCase().trim())) return true;
-      // 3. Palavras individuais do nome (mínimo 4 letras)
-      if (f.nome) {
-        const palavras = f.nome.toLowerCase().split(/\s+/).filter(p => p.length >= 4);
-        return palavras.some(p => extratoLower.includes(p));
-      }
-      return false;
-    });
+    const match = _fornecedores.find(f => fornecedorBate(f, r.extrato));
     const catDfc = match?.categoria_dfc || '';
     const catDre = match?.categoria_dre || '';
     const catNome = catDfc || catDre || '';
@@ -3904,6 +3888,35 @@ async function atualizarBancos() {
 
 async function atualizarUsuarios() {
   await loadUsuarios();
+}
+
+
+// Normaliza texto: minúsculo, sem acentos, sem caracteres especiais
+function normText(s) {
+  return (s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\s]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+
+// Verifica se fornecedor bate com extrato
+function fornecedorBate(f, extrato) {
+  const ext = normText(extrato);
+  // 1. Palavra-chave
+  if (f.palavra_chave) {
+    const pk = normText(f.palavra_chave);
+    if (pk && ext.includes(pk)) return true;
+  }
+  // 2. Nome completo normalizado
+  if (f.nome) {
+    const nome = normText(f.nome);
+    if (nome.length >= 3 && ext.includes(nome)) return true;
+    // 3. Cada palavra do nome com 4+ letras
+    const palavras = nome.split(' ').filter(p => p.length >= 4);
+    const achou = palavras.filter(p => ext.includes(p));
+    if (palavras.length > 0 && achou.length >= Math.min(2, palavras.length)) return true;
+  }
+  return false;
 }
 
 // ─── INIT ────────────────────────────────────────────
