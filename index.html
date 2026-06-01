@@ -255,7 +255,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px; }
 
 /* TABELAS */
-.table-wrap { overflow-x: auto; }
+.lanc-sticky { position: sticky; top: 0; z-index: 50; background: var(--bg2); padding-bottom: 8px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead th {
   text-align: left; padding: 8px 12px;
@@ -471,6 +471,12 @@ tbody tr:hover { background: var(--bg3); }
       </div>
 
       <div class="sidebar-section">Relatórios</div>
+      <div class="nav-item" data-page="dfc" onclick="showPage('dfc',this)">
+        <span class="nav-icon">💵</span><span class="nav-label">DFC</span>
+      </div>
+      <div class="nav-item" data-page="dre" onclick="showPage('dre',this)">
+        <span class="nav-icon">📈</span><span class="nav-label">DRE</span>
+      </div>
       <div class="nav-item" data-page="conciliacao" onclick="showPage('conciliacao',this)">
         <span class="nav-icon">⇄</span><span class="nav-label">Conciliação</span>
       </div>
@@ -576,6 +582,7 @@ tbody tr:hover { background: var(--bg3); }
 
         <!-- LANÇAMENTOS -->
         <div class="page" id="page-lancamentos">
+          <div class="lanc-sticky">
           <!-- FILTROS E AÇÕES -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div class="filters" style="margin-bottom:0">
@@ -627,6 +634,8 @@ tbody tr:hover { background: var(--bg3); }
               <div id="lanc-saldo-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
             </div>
           </div>
+
+          </div><!-- fim sticky -->
 
           <!-- BARRA DE SELEÇÃO -->
           <div id="lanc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px">
@@ -758,6 +767,36 @@ tbody tr:hover { background: var(--bg3); }
               <div id="imp-profissional-status"></div>
             </div>
           </div>
+        </div>
+
+        <!-- DFC -->
+        <div class="page" id="page-dfc">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div style="font-size:13px;color:var(--text2)">Demonstrativo de Fluxo de Caixa</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="dfc-ano" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+              </select>
+              <button class="btn" onclick="loadDFC()">↻ Atualizar</button>
+            </div>
+          </div>
+          <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+        </div>
+
+        <!-- DRE -->
+        <div class="page" id="page-dre">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div style="font-size:13px;color:var(--text2)">Demonstrativo de Resultado do Exercício</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="dre-ano" onchange="loadDRE()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+              </select>
+              <button class="btn" onclick="loadDRE()">↻ Atualizar</button>
+            </div>
+          </div>
+          <div id="dre-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
         </div>
 
         <!-- CONCILIAÇÃO BANCÁRIA -->
@@ -1427,7 +1466,8 @@ function showPage(id, el) {
   const selMes = document.getElementById('global-mes');
   if (selMes) selMes.style.display = id === 'dashboard' ? '' : 'none';
 
-  if (id === 'dashboard') loadDashboard();
+  if (id === 'dfc') loadDFC();
+  if (id === 'dre') loadDRE();
   if (id === 'lancamentos') loadLancamentos();
   if (id === 'contas-pagar') loadContasPagar();
   if (id === 'servicos') loadServicos();
@@ -1672,22 +1712,15 @@ async function loadLancamentos() {
           ${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : ''}
           ${!l.categoria && !l.categoria_dfc && !l.categoria_dre ? '—' : ''}
         </span>
-        <select class="cell-edit" style="display:none;font-size:11px">
-          <option value="">—</option>
-          ${Object.values((() => {
-            const m = {};
-            _categorias.forEach(c => {
-              if (!m[c.nome]) m[c.nome] = {nome:c.nome,dfc:null,dre:null};
-              if (c.demonstrativo==='DFC') m[c.nome].dfc=c.codigo;
-              if (c.demonstrativo==='DRE') m[c.nome].dre=c.codigo;
-            });
-            return m;
-          })()).map(c => {
-            const label = c.dfc && c.dre ? `${c.nome} (DFC:${c.dfc}/DRE:${c.dre})` : c.dfc ? `${c.nome} (DFC:${c.dfc})` : `${c.nome} (DRE:${c.dre})`;
-            const val = JSON.stringify({nome:c.nome,dfc:c.dfc||'',dre:c.dre||''});
-            return `<option value='${val}' ${l.categoria===c.nome?'selected':''}>${label}</option>`;
-          }).join('')}
-        </select>
+        <div class="cell-edit" style="display:none;position:relative">
+          <input type="text" id="lcat-${l.id}" value="${l.categoria||''}" placeholder="Buscar categoria..."
+            oninput="buscaCatInline(this.value,'${l.id}')" onfocus="buscaCatInline(this.value,'${l.id}')"
+            onblur="setTimeout(()=>{const d=document.getElementById('lcat-dd-${l.id}');if(d)d.style.display='none'},200)"
+            style="width:180px;font-size:11px">
+          <input type="hidden" id="lcat-dfc-${l.id}" value="${l.categoria_dfc||''}">
+          <input type="hidden" id="lcat-dre-${l.id}" value="${l.categoria_dre||''}">
+          <div id="lcat-dd-${l.id}" style="display:none;position:absolute;top:100%;left:0;width:220px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:160px;overflow-y:auto;z-index:400;box-shadow:0 4px 12px rgba(0,0,0,0.15)"></div>
+        </div>
       </td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2)">
         <span class="cell-view">${bancoNome}</span>
@@ -1861,12 +1894,11 @@ async function salvarLancamentoInline(id, rowId) {
   const edits = row.querySelectorAll('.cell-edit');
   const entrada = parseFloat(edits[2].value) || 0;
   const saida = parseFloat(edits[3].value) || 0;
-  
-  let catNome = '', catDfc = '', catDre = '';
-  try {
-    const catObj = JSON.parse(edits[5].value);
-    catNome = catObj.nome; catDfc = catObj.dfc; catDre = catObj.dre;
-  } catch(e) { catNome = edits[5].value; }
+
+  // Categoria vem do input com busca
+  const catNome = document.getElementById(`lcat-${id}`)?.value || '';
+  const catDfc = document.getElementById(`lcat-dfc-${id}`)?.value || '';
+  const catDre = document.getElementById(`lcat-dre-${id}`)?.value || '';
 
   const payload = {
     data_lancamento: edits[0].value,
@@ -3429,6 +3461,250 @@ function aplicarSort(containerEl) {
   ths?.forEach(th => { th.onclick = () => sortTable(th); });
 }
 
+// ─── DFC ─────────────────────────────────────────────────
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+async function loadDFC() {
+  const el = document.getElementById('dfc-table');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spin"></div> Calculando...</div>';
+
+  const ano = document.getElementById('dfc-ano')?.value || '2026';
+
+  // Busca grupos DFC ordenados
+  const { data: grupos } = await sb.from('grupos_plano')
+    .select('*').eq('demonstrativo','DFC').order('ordem');
+  // Busca categorias DFC
+  const { data: cats } = await sb.from('plano_contas')
+    .select('*').eq('demonstrativo','DFC').order('codigo');
+  // Busca todos os lançamentos do ano
+  const { data: lancs } = await sb.from('lancamentos')
+    .select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+
+  if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DFC no Plano de Contas</div>'; return; }
+
+  // Monta tabela
+  const mCols = MESES.map((_,i) => String(i+1).padStart(2,'0'));
+
+  // Calcula valor por categoria/mês
+  function calcular(categoriaMatch, mes) {
+    return (lancs||[]).filter(l => {
+      const lMes = l.data_lancamento?.substring(5,7);
+      return lMes === mes && categoriaMatch(l);
+    }).reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
+  }
+
+  // Saldo inicial (pega dos bancos)
+  const { data: bancos } = await sb.from('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
+  const saldoInicial = (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
+
+  let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px">
+    <thead>
+      <tr style="background:var(--bg3)">
+        <th style="padding:10px 12px;text-align:left;border-bottom:2px solid var(--border);min-width:220px;position:sticky;left:0;background:var(--bg3)">DESCRIÇÃO</th>
+        ${MESES.map(m => `<th style="padding:10px 8px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;font-size:11px">${m}</th>`).join('')}
+        <th style="padding:10px 8px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;background:#f0f4ff;font-weight:700">TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  // Linha de saldo inicial
+  let saldoAcum = Array(12).fill(saldoInicial);
+  html += `<tr style="background:#f0fdf4">
+    <td style="padding:9px 12px;font-weight:700;position:sticky;left:0;background:#f0fdf4">Saldo Inicial</td>
+    ${MESES.map((_,i) => `<td style="padding:9px 8px;text-align:right;font-family:'DM Mono',monospace;color:var(--green)">${fmtBRL(saldoInicial)}</td>`).join('')}
+    <td style="padding:9px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#f0f4ff">${fmtBRL(saldoInicial)}</td>
+  </tr>`;
+
+  let saldoFinalMes = Array(12).fill(saldoInicial);
+
+  // Grupos e categorias
+  for (const g of (grupos||[])) {
+    const gCats = (cats||[]).filter(c => c.grupo === g.nome);
+    const totalGrupo = Array(12).fill(0);
+
+    // Linha do grupo
+    html += `<tr style="background:var(--bg3);border-top:2px solid var(--border)">
+      <td style="padding:10px 12px;font-weight:700;color:${g.cor||'var(--text)'};border-left:3px solid ${g.cor||'#6b7280'};position:sticky;left:0;background:var(--bg3)">
+        ${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:11px">${g.sinal}</span>
+      </td>
+      ${MESES.map((_,i) => `<td id="dfc-g-${g.id}-${i}" style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:600">—</td>`).join('')}
+      <td id="dfc-gt-${g.id}" style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#f0f4ff">—</td>
+    </tr>`;
+
+    // Categorias do grupo
+    for (const c of gCats) {
+      const vals = mCols.map(m => calcular(l => {
+        const cat = l.categoria || l.categoria_dfc || '';
+        return cat === c.nome;
+      }, m));
+      const total = vals.reduce((s,v) => s+v, 0);
+      vals.forEach((v,i) => totalGrupo[i] += v);
+
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 12px 7px 24px;color:var(--text2);position:sticky;left:0;background:var(--bg2)">${c.codigo} ${c.nome}</td>
+        ${vals.map(v => `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
+        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;background:#f0f4ff;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtBRL(Math.abs(total)):''}</td>
+      </tr>`;
+    }
+
+    // Preenche totais do grupo
+    const totalG = totalGrupo.reduce((s,v) => s+v, 0);
+    mCols.forEach((_,i) => {
+      const el2 = document.createElement('span');
+      totalGrupo[i]; // placeholder — será atualizado abaixo
+    });
+
+    // Atualiza saldo acumulado
+    totalGrupo.forEach((v,i) => { saldoFinalMes[i] += v; });
+
+    // Guarda para preencher depois
+    g._totalGrupo = totalGrupo;
+  }
+
+  // Linha saldo final
+  html += `<tr style="background:#1a1a2e;color:#fff;border-top:3px solid var(--accent)">
+    <td style="padding:11px 12px;font-weight:700;position:sticky;left:0;background:#1a1a2e">SALDO FINAL</td>
+    ${saldoFinalMes.map(v => `<td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${v>=0?'#4ade80':'#f87171'}">${fmtBRL(v)}</td>`).join('')}
+    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f0f1a"></td>
+  </tr>`;
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+
+  // Preenche totais dos grupos agora que o DOM existe
+  (grupos||[]).forEach(g => {
+    if (!g._totalGrupo) return;
+    const totalG = g._totalGrupo.reduce((s,v) => s+v, 0);
+    g._totalGrupo.forEach((v,i) => {
+      const cell = document.getElementById(`dfc-g-${g.id}-${i}`);
+      if (cell) {
+        cell.textContent = v!==0 ? fmtBRL(Math.abs(v)) : '';
+        cell.style.color = v>0?'var(--green)':v<0?'var(--red)':'var(--text3)';
+      }
+    });
+    const cellT = document.getElementById(`dfc-gt-${g.id}`);
+    if (cellT) {
+      cellT.textContent = totalG!==0 ? fmtBRL(Math.abs(totalG)) : '';
+      cellT.style.color = totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)';
+    }
+  });
+}
+
+// ─── DRE ─────────────────────────────────────────────────
+async function loadDRE() {
+  const el = document.getElementById('dre-table');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spin"></div> Calculando...</div>';
+
+  const ano = document.getElementById('dre-ano')?.value || '2026';
+
+  const { data: grupos } = await sb.from('grupos_plano')
+    .select('*').eq('demonstrativo','DRE').order('ordem');
+  const { data: cats } = await sb.from('plano_contas')
+    .select('*').eq('demonstrativo','DRE').order('codigo');
+  const { data: lancs } = await sb.from('lancamentos')
+    .select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+
+  if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
+
+  const mCols = MESES.map((_,i) => String(i+1).padStart(2,'0'));
+
+  function calcular(categoriaMatch, mes) {
+    return (lancs||[]).filter(l => {
+      const lMes = l.data_lancamento?.substring(5,7);
+      return lMes === mes && categoriaMatch(l);
+    }).reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
+  }
+
+  let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px">
+    <thead>
+      <tr style="background:var(--bg3)">
+        <th style="padding:10px 12px;text-align:left;border-bottom:2px solid var(--border);min-width:220px;position:sticky;left:0;background:var(--bg3)">DESCRIÇÃO</th>
+        ${MESES.map(m => `<th style="padding:10px 8px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;font-size:11px">${m}</th>`).join('')}
+        <th style="padding:10px 8px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;background:#f0f4ff;font-weight:700">TOTAL</th>
+        <th style="padding:10px 8px;text-align:right;border-bottom:2px solid var(--border);background:#fef9f0;font-weight:700;font-size:11px">%</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  let receitaBrutaTotal = Array(12).fill(0);
+  let resultadoAcum = Array(12).fill(0);
+
+  for (const g of (grupos||[])) {
+    const gCats = (cats||[]).filter(c => c.grupo === g.nome);
+    const totalGrupo = Array(12).fill(0);
+    const sinal = g.sinal === '(+)' ? 1 : -1;
+
+    html += `<tr style="background:var(--bg3);border-top:2px solid var(--border)">
+      <td style="padding:10px 12px;font-weight:700;color:${g.cor||'var(--text)'};border-left:3px solid ${g.cor||'#6b7280'};position:sticky;left:0;background:var(--bg3)">
+        ${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:11px">${g.sinal}</span>
+      </td>
+      ${MESES.map((_,i) => `<td id="dre-g-${g.id}-${i}" style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:600">—</td>`).join('')}
+      <td id="dre-gt-${g.id}" style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#f0f4ff">—</td>
+      <td id="dre-gp-${g.id}" style="padding:10px 8px;text-align:right;font-size:11px;background:#fef9f0;color:var(--text2)">—</td>
+    </tr>`;
+
+    for (const c of gCats) {
+      const vals = mCols.map(m => calcular(l => {
+        const cat = l.categoria || l.categoria_dre || '';
+        return cat === c.nome;
+      }, m));
+      const total = vals.reduce((s,v) => s+v, 0);
+      vals.forEach((v,i) => totalGrupo[i] += v);
+
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 12px 7px 24px;color:var(--text2);position:sticky;left:0;background:var(--bg2)">${c.codigo} ${c.nome}</td>
+        ${vals.map(v => `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
+        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;background:#f0f4ff"></td>
+        <td style="background:#fef9f0"></td>
+      </tr>`;
+    }
+
+    // Acumula resultado
+    totalGrupo.forEach((v,i) => { resultadoAcum[i] += sinal * v; });
+    if (g.ordem === 1) receitaBrutaTotal = [...totalGrupo];
+    g._totalGrupo = totalGrupo;
+    g._sinal = sinal;
+  }
+
+  // Linha resultado líquido
+  const totalResultado = resultadoAcum.reduce((s,v) => s+v, 0);
+  html += `<tr style="background:var(--accent);color:#fff;border-top:3px solid var(--accent)">
+    <td style="padding:11px 12px;font-weight:700;position:sticky;left:0;background:var(--accent)">RESULTADO LÍQUIDO</td>
+    ${resultadoAcum.map(v => `<td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${v>=0?'#4ade80':'#f87171'}">${fmtBRL(v)}</td>`).join('')}
+    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:rgba(0,0,0,0.2);color:${totalResultado>=0?'#4ade80':'#f87171'}">${fmtBRL(totalResultado)}</td>
+    <td style="background:rgba(0,0,0,0.2)"></td>
+  </tr>`;
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+
+  // Preenche totais dos grupos
+  const receitaBrutaAnual = receitaBrutaTotal.reduce((s,v) => s+v, 0);
+  (grupos||[]).forEach(g => {
+    if (!g._totalGrupo) return;
+    const totalG = g._totalGrupo.reduce((s,v) => s+v, 0);
+    g._totalGrupo.forEach((v,i) => {
+      const cell = document.getElementById(`dre-g-${g.id}-${i}`);
+      if (cell) {
+        cell.textContent = v!==0 ? fmtBRL(Math.abs(v)) : '';
+        cell.style.color = v>0?'var(--green)':v<0?'var(--red)':'var(--text3)';
+      }
+    });
+    const cellT = document.getElementById(`dre-gt-${g.id}`);
+    if (cellT) {
+      cellT.textContent = totalG!==0 ? fmtBRL(Math.abs(totalG)) : '';
+      cellT.style.color = totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)';
+    }
+    const cellP = document.getElementById(`dre-gp-${g.id}`);
+    if (cellP && receitaBrutaAnual !== 0) {
+      const pct = (Math.abs(totalG) / Math.abs(receitaBrutaAnual) * 100).toFixed(1);
+      cellP.textContent = `${pct}%`;
+    }
+  });
+}
+
 // ─── CONCILIAÇÃO ─────────────────────────────────────────
 let _concFile = null;
 let _concRows = []; // linhas lidas do extrato
@@ -3745,6 +4021,40 @@ async function verAuditoria(id) {
       </div>
     </div>`;
   document.getElementById('modal-auditoria').classList.add('open');
+}
+
+function buscaCatInline(texto, lancId) {
+  const dd = document.getElementById(`lcat-dd-${lancId}`);
+  if (!dd) return;
+  const termo = (texto||'').toLowerCase().trim();
+  const map = {};
+  _categorias.forEach(c => {
+    if (!map[c.nome]) map[c.nome] = {nome:c.nome,dfc:null,dre:null};
+    if (c.demonstrativo==='DFC') map[c.nome].dfc = c.codigo;
+    if (c.demonstrativo==='DRE') map[c.nome].dre = c.codigo;
+  });
+  const res = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  if (!res.length) { dd.style.display='none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = res.slice(0,10).map(c => {
+    const refs = [c.dfc?`DFC:${c.dfc}`:null,c.dre?`DRE:${c.dre}`:null].filter(Boolean).join('/');
+    return `<div onmousedown="selecionarCatInline('${lancId}','${c.nome}','${c.dfc||''}','${c.dre||''}')"
+      style="padding:7px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong> <span style="color:var(--text3)">${refs}</span>
+    </div>`;
+  }).join('');
+}
+
+function selecionarCatInline(lancId, nome, dfc, dre) {
+  const inp = document.getElementById(`lcat-${lancId}`);
+  const hDfc = document.getElementById(`lcat-dfc-${lancId}`);
+  const hDre = document.getElementById(`lcat-dre-${lancId}`);
+  const dd = document.getElementById(`lcat-dd-${lancId}`);
+  if (inp) inp.value = nome;
+  if (hDfc) hDfc.value = dfc;
+  if (hDre) hDre.value = dre;
+  if (dd) dd.style.display = 'none';
 }
 
 function buscaCatConc(texto, idx) {
