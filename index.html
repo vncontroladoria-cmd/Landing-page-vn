@@ -2598,7 +2598,27 @@ async function filtrarGruposPorDemo() {
 async function saveFornecedor() {
   const nome = document.getElementById('forn-nome').value.trim();
   if (!nome) { showToast('Digite o nome do fornecedor','error'); return; }
+  const cnpj = document.getElementById('forn-cnpj').value.trim();
   const id = document.getElementById('forn-codigo').value;
+
+  // Verifica duplicata por nome
+  const { data: existeNome } = await sb.from('fornecedores').select('id,nome').ilike('nome', nome);
+  const dupNome = existeNome?.filter(f => f.id !== id);
+  if (dupNome?.length) {
+    showToast(`⚠ Já existe um fornecedor com o nome "${dupNome[0].nome}"`, 'error');
+    return;
+  }
+
+  // Verifica duplicata por CNPJ/CPF
+  if (cnpj) {
+    const cnpjLimpo = cnpj.replace(/\D/g,'');
+    const { data: existeCnpj } = await sb.from('fornecedores').select('id,nome,cnpj').not('cnpj','is',null);
+    const dupCnpj = existeCnpj?.filter(f => f.id !== id && f.cnpj?.replace(/\D/g,'') === cnpjLimpo);
+    if (dupCnpj?.length) {
+      showToast(`⚠ CPF/CNPJ já cadastrado para "${dupCnpj[0].nome}"`, 'error');
+      return;
+    }
+  }
   const payload = {
     nome,
     cnpj: document.getElementById('forn-cnpj').value,
