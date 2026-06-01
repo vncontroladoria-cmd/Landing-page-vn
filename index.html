@@ -2482,8 +2482,18 @@ Object.assign(pageTitles, pageTitlesExtra);
 
 function toggleFormFornecedor() {
   const f = document.getElementById('form-fornecedor');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
-  if (f.style.display === 'block') {
+  const abrindo = f.style.display === 'none' || f.style.display === '';
+  f.style.display = abrindo ? 'block' : 'none';
+  if (abrindo) {
+    // Limpa todos os campos
+    ['forn-nome','forn-cnpj','forn-email','forn-telefone','forn-contato','forn-obs',
+     'forn-palavra-chave','forn-cat-dfc-busca','forn-cat-dre-busca',
+     'forn-cep','forn-cidade','forn-endereco','forn-bairro','forn-numero','forn-complemento'
+    ].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    document.getElementById('forn-cat-dfc').value = '';
+    document.getElementById('forn-cat-dre').value = '';
+    document.getElementById('forn-codigo').value = '';
+    document.getElementById('forn-tipo-pessoa').value = 'Fornecedor';
     f.scrollIntoView({behavior:'smooth'});
     carregarCatsFornecedor();
   }
@@ -2649,9 +2659,9 @@ async function saveFornecedor() {
   const cnpj = document.getElementById('forn-cnpj').value.trim();
   const id = document.getElementById('forn-codigo').value;
 
-  // Verifica duplicata por nome
+  // Verifica duplicata por nome EXATO (não parcial)
   const { data: existeNome } = await sb.from('fornecedores').select('id,nome').ilike('nome', nome);
-  const dupNome = existeNome?.filter(f => f.id !== id);
+  const dupNome = existeNome?.filter(f => f.id !== id && f.nome.toLowerCase() === nome.toLowerCase());
   if (dupNome?.length) {
     showToast(`⚠ Já existe um fornecedor com o nome "${dupNome[0].nome}"`, 'error');
     return;
