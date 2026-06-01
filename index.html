@@ -3447,10 +3447,19 @@ function toggleInline(rowId) {
     const lancId = rowId.replace('lr-', '');
     const catInput = document.getElementById(`lcat-${lancId}`);
     if (catInput) {
-      setTimeout(() => {
+      // Garante categorias carregadas antes de abrir dropdown
+      const abrirDropdown = () => {
         catInput.focus();
         buscaCatInline(catInput.value, lancId);
-      }, 100);
+      };
+      if (!_categorias.length) {
+        sb.from('plano_contas').select('*').order('codigo').then(({data}) => {
+          _categorias = data || [];
+          setTimeout(abrirDropdown, 100);
+        });
+      } else {
+        setTimeout(abrirDropdown, 100);
+      }
     }
   }
 }
