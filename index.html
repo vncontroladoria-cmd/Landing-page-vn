@@ -2693,7 +2693,20 @@ async function saveFornecedor() {
     ? await sb.from('fornecedores').insert(payload)
     : await sb.from('fornecedores').update(payload).eq('id', id);
   if (error) { showToast('Erro: ' + error.message,'error'); return; }
+  showToast('Fornecedor salvo!','success');
+
+  // Limpa campos e mantém aberto para novo cadastro
+  ['forn-nome','forn-cnpj','forn-email','forn-telefone','forn-contato','forn-obs',
+   'forn-palavra-chave','forn-cat-dfc-busca','forn-cat-dre-busca','forn-cep',
+   'forn-cidade','forn-endereco','forn-bairro','forn-numero','forn-complemento'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('forn-cat-dfc').value = '';
+  document.getElementById('forn-cat-dre').value = '';
   document.getElementById('forn-codigo').value = '';
+  document.getElementById('forn-tipo-pessoa').value = 'Fornecedor';
+  document.getElementById('forn-nome').focus();
   loadFornecedores();
 }
 
