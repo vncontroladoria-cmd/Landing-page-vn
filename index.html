@@ -601,6 +601,9 @@ tbody tr:hover { background: var(--bg3); }
               <select class="filter-select" id="lanc-banco-filter" onchange="loadLancamentos()">
                 <option value="">Todos os bancos</option>
               </select>
+              <input type="text" id="lanc-busca" placeholder="🔍 Buscar..." 
+                oninput="filtrarLancamentos(this.value)"
+                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:200px">
               <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
             </div>
             <div style="display:flex;gap:8px">
@@ -3663,6 +3666,15 @@ function aplicarIgual(idx) {
     }
   });
   showToast(`Aplicado em mais ${count} iguais!`, 'success');
+}
+
+function filtrarLancamentos(termo) {
+  const t = termo.toLowerCase().trim();
+  const rows = document.querySelectorAll('#lanc-tbody tr');
+  rows.forEach(row => {
+    const txt = row.textContent.toLowerCase();
+    row.style.display = !t || txt.includes(t) ? '' : 'none';
+  });
 }
 
 function selecionarTodosLanc(checked) {
