@@ -601,20 +601,21 @@ tbody tr:hover { background: var(--bg3); }
               <select class="filter-select" id="lanc-banco-filter" onchange="loadLancamentos()">
                 <option value="">Todos os bancos</option>
               </select>
-              <input type="text" id="lanc-busca" placeholder="🔍 Buscar..." 
+              <input type="text" id="lanc-busca" placeholder="🔍 Buscar..."
                 oninput="filtrarLancamentos(this.value)"
-                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:200px">
+                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
             </div>
             <div style="display:flex;gap:8px">
-              <button class="btn" onclick="toggleFormLanc()">+ Novo lançamento</button>
-              <button class="btn btn-primary" onclick="document.getElementById('imp-extrato-input').click()">↑ Importar extrato</button>
-              <input type="file" id="imp-extrato-input" accept=".xlsx,.xls,.csv,.ofx,.ofc" style="display:none" onchange="importarExtrato(this)">
+              <button class="btn btn-primary" onclick="toggleFormLanc()">+ Novo lançamento</button>
             </div>
           </div>
 
+          <!-- CARDS DE SALDO POR BANCO -->
+          <div id="lanc-saldo-bancos" style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap"></div>
+
           <!-- RESUMO DO MÊS -->
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem" id="lanc-resumo">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem">
             <div class="metric-card"><div class="metric-label">Entradas</div><div class="metric-val green" id="lanc-total-entrada">—</div></div>
             <div class="metric-card"><div class="metric-label">Saídas</div><div class="metric-val red" id="lanc-total-saida">—</div></div>
             <div class="metric-card"><div class="metric-label">Saldo do mês</div><div class="metric-val" id="lanc-saldo-mes">—</div></div>
@@ -622,7 +623,7 @@ tbody tr:hover { background: var(--bg3); }
           </div>
 
           <!-- BARRA DE SELEÇÃO -->
-          <div id="lanc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin-bottom:10px;display:none;align-items:center;gap:12px">
+          <div id="lanc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px">
             <span id="lanc-sel-count" style="font-size:13px;font-weight:600;color:#92400e">0 selecionados</span>
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionados()">🗑️ Excluir selecionados</button>
             <button class="btn btn-sm" onclick="limparSelecao()">✕ Cancelar</button>
@@ -1576,15 +1577,35 @@ async function loadLancamentos() {
   const ini = `${ano}-${m}-01`;
   const fim = `${ano}-${m}-31`;
 
+  // Cards de saldo por banco
+  const saldoDiv = document.getElementById('lanc-saldo-bancos');
+  if (saldoDiv && _bancos.length) {
+    const { data: todoLanc } = await sb.from('lancamentos').select('entrada,saida,banco_id,banco_nome');
+    let saldoTotal = 0;
+    let cardsHtml = '';
+    _bancos.forEach(b => {
+      const lancsB = (todoLanc||[]).filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
+      const saldoB = lancsB.reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
+      saldoTotal += saldoB;
+      const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
+      cardsHtml += `<div class="metric-card" style="min-width:140px;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
+        <div class="metric-label" style="display:flex;align-items:center;gap:4px">${b.nome} <span style="font-size:9px;color:var(--text3)">(clique p/ filtrar)</span></div>
+        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
+      </div>`;
+    });
+    cardsHtml += `<div class="metric-card" style="min-width:140px;border:2px solid var(--accent)">
+      <div class="metric-label">💰 Saldo Total</div>
+      <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:${saldoTotal>=0?'var(--green)':'var(--red)'}">${fmtBRL(saldoTotal)}</div>
+    </div>`;
+    saldoDiv.innerHTML = cardsHtml;
+  }
+
   let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: true});
   if (tipo) q = q.eq('tipo', tipo);
   if (bancoFilter) {
     const bancoNomeFiltro = _bancos.find(b => b.id === bancoFilter)?.nome || '';
-    if (bancoNomeFiltro) {
-      q = q.or(`banco_id.eq.${bancoFilter},banco_nome.eq."${bancoNomeFiltro}"`);
-    } else {
-      q = q.eq('banco_id', bancoFilter);
-    }
+    // Busca por banco_id ou banco_nome (case insensitive)
+    q = q.or(`banco_id.eq.${bancoFilter},banco_nome.ilike.${bancoNomeFiltro}`);
   }
 
   const { data } = await q;
@@ -3788,12 +3809,20 @@ function aplicarIgual(idx) {
   showToast(`Aplicado em mais ${count} iguais!`, 'success');
 }
 
+function filtrarPorBanco(bancoId) {
+  const sel = document.getElementById('lanc-banco-filter');
+  if (sel) { sel.value = bancoId; loadLancamentos(); }
+}
+
 function filtrarLancamentos(termo) {
-  const t = termo.toLowerCase().trim();
-  const rows = document.querySelectorAll('#lanc-tbody tr');
+  const t = (termo||'').toLowerCase().trim();
+  const rows = document.querySelectorAll('#lanc-tbody tr[id]');
   rows.forEach(row => {
-    const txt = row.textContent.toLowerCase();
-    row.style.display = !t || txt.includes(t) ? '' : 'none';
+    if (!t) { row.style.display = ''; return; }
+    // Pega texto de todas as células cell-view e células normais
+    const views = Array.from(row.querySelectorAll('.cell-view')).map(el => el.textContent).join(' ');
+    const allText = (row.textContent + ' ' + views).toLowerCase();
+    row.style.display = allText.includes(t) ? '' : 'none';
   });
 }
 
