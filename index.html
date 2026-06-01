@@ -3496,6 +3496,67 @@ async function verAuditoria(id) {
   document.getElementById('modal-auditoria').classList.add('open');
 }
 
+function buscaCatConc(texto, idx) {
+  const dd = document.getElementById(`conc-cat-dd-${idx}`);
+  if (!dd) return;
+  const termo = texto.toLowerCase().trim();
+  const map = {};
+  _categorias.forEach(c => {
+    if (!map[c.nome]) map[c.nome] = { nome: c.nome, dfc: null, dre: null };
+    if (c.demonstrativo === 'DFC') map[c.nome].dfc = c.codigo;
+    if (c.demonstrativo === 'DRE') map[c.nome].dre = c.codigo;
+  });
+  const resultados = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  if (!resultados.length || !texto) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = resultados.slice(0,10).map(c => {
+    const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
+    return `<div
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmousedown="selecionarCatConc('${c.nome}','${c.dfc||''}','${c.dre||''}',${idx})"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:11px">${refs}</span>
+    </div>`;
+  }).join('');
+}
+
+function selecionarCatConc(nome, dfc, dre, idx) {
+  const inp = document.getElementById(`conc-cat-${idx}`);
+  const hDfc = document.getElementById(`conc-cat-dfc-${idx}`);
+  const hDre = document.getElementById(`conc-cat-dre-${idx}`);
+  const dd = document.getElementById(`conc-cat-dd-${idx}`);
+  if (inp) inp.value = nome;
+  if (hDfc) hDfc.value = dfc;
+  if (hDre) hDre.value = dre;
+  if (dd) dd.style.display = 'none';
+  if (_concRows[idx]) {
+    _concRows[idx]._catNome = nome;
+    _concRows[idx]._catDfc = dfc;
+    _concRows[idx]._catDre = dre;
+  }
+}
+
+function aplicarIgual(idx) {
+  const extrato = _concRows[idx]?.extrato;
+  if (!extrato) return;
+  const catNome = document.getElementById(`conc-cat-${idx}`)?.value || '';
+  const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
+  const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
+  const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
+  let count = 0;
+  _concRows.forEach((r, i) => {
+    if (r.extrato === extrato && i !== idx && !r._concluido) {
+      if(document.getElementById(`conc-cat-${i}`)) document.getElementById(`conc-cat-${i}`).value = catNome;
+      if(document.getElementById(`conc-cat-dfc-${i}`)) document.getElementById(`conc-cat-dfc-${i}`).value = catDfc;
+      if(document.getElementById(`conc-cat-dre-${i}`)) document.getElementById(`conc-cat-dre-${i}`).value = catDre;
+      if(desc && document.getElementById(`conc-desc-${i}`)) document.getElementById(`conc-desc-${i}`).value = desc;
+      r._catNome = catNome; r._catDfc = catDfc; r._catDre = catDre;
+      count++;
+    }
+  });
+  showToast(`Aplicado em mais ${count} iguais!`, 'success');
+}
+
 // ─── INIT ────────────────────────────────────────────
 checkSession();
 document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
