@@ -2486,33 +2486,6 @@ async function loadUsuarios() {
   document.getElementById('usuarios-table').innerHTML = html;
 }
 
-async function saveUsuario() {
-  const nome = document.getElementById('usr-nome').value.trim();
-  const email = document.getElementById('usr-email').value.trim();
-  const perfil = document.getElementById('usr-perfil').value;
-  const editId = document.getElementById('modal-usuario').dataset.editId;
-
-  if (editId) {
-    // Edição — só atualiza nome e perfil
-    const { error } = await sb.from('perfis_usuarios').update({ nome, perfil }).eq('id', editId);
-    if (error) { showToast('Erro ao salvar','error'); return; }
-    showToast('Usuário atualizado!','success');
-    delete document.getElementById('modal-usuario').dataset.editId;
-  } else {
-    // Novo usuário
-    const senha = document.getElementById('usr-senha').value;
-    if (!email || !senha || !nome) { showToast('Preencha todos os campos','error'); return; }
-    const { data, error } = await sb.auth.signUp({ email, password: senha });
-    if (error) { showToast('Erro: ' + error.message,'error'); return; }
-    if (data?.user?.id) {
-      await sb.from('perfis_usuarios').update({ nome, perfil }).eq('id', data.user.id);
-    }
-    showToast('Usuário criado!','success');
-  }
-  closeModal('modal-usuario');
-  loadUsuarios();
-}
-
 function showCfgTab(tab, el) {
   document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
