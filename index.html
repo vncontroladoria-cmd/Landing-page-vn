@@ -2480,11 +2480,15 @@ const pageTitlesExtra = {
 };
 Object.assign(pageTitles, pageTitlesExtra);
 
-function toggleFormFornecedor() {
+async function toggleFormFornecedor() {
   const f = document.getElementById('form-fornecedor');
   const abrindo = f.style.display === 'none' || f.style.display === '';
   f.style.display = abrindo ? 'block' : 'none';
   if (abrindo) {
+    // Sempre busca categorias frescas do banco
+    const { data } = await sb.from('plano_contas').select('*').order('codigo');
+    _categorias = data || [];
+
     // Limpa todos os campos
     ['forn-nome','forn-cnpj','forn-email','forn-telefone','forn-contato','forn-obs',
      'forn-palavra-chave','forn-cat-dfc-busca','forn-cat-dre-busca',
@@ -2495,7 +2499,6 @@ function toggleFormFornecedor() {
     document.getElementById('forn-codigo').value = '';
     document.getElementById('forn-tipo-pessoa').value = 'Fornecedor';
     f.scrollIntoView({behavior:'smooth'});
-    carregarCatsFornecedor();
   }
 }
 
@@ -2509,19 +2512,21 @@ function buscarCatForn(tipo, texto) {
   const dd = document.getElementById(`forn-cat-${tipo}-dd`);
   if (!dd) return;
   const termo = texto.toLowerCase().trim();
-  // Filtra por demonstrativo
+  const demo = tipo.toUpperCase(); // 'DFC' ou 'DRE'
+
   const cats = _categorias.filter(c =>
-    c.demonstrativo === tipo.toUpperCase() &&
-    (!termo || c.nome.toLowerCase().includes(termo))
+    (c.demonstrativo === demo || c.demonstrativo === 'AMBOS') &&
+    (!termo || c.nome.toLowerCase().includes(termo) || (c.codigo||'').includes(termo))
   );
+
   if (!cats.length) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
-  dd.innerHTML = cats.slice(0,12).map(c =>
-    `<div onmousedown="selecionarCatForn('${tipo}','${c.nome}','${c.codigo}')"
+  dd.innerHTML = cats.map(c =>
+    `<div onmousedown="selecionarCatForn('${tipo}','${c.nome}','${c.codigo||''}')"
       style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
       onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-      <span style="font-family:monospace;font-size:11px;color:var(--accent)">${c.codigo}</span>
-      &nbsp;<strong>${c.nome}</strong>
+      <span style="font-family:monospace;font-size:11px;color:var(--accent);margin-right:6px">${c.codigo||''}</span>
+      <strong>${c.nome}</strong>
     </div>`
   ).join('');
 }
