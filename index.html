@@ -3928,13 +3928,23 @@ function toggleParcelamento() {
 async function salvarConta() {
   const nome = document.getElementById('ct-nome').value.trim();
   const valor = parseFloat(document.getElementById('ct-valor').value) || 0;
-  const venc = document.getElementById('ct-vencimento').value;
-  if (!nome || !valor || !venc) { showToast('Preencha nome, valor e vencimento','error'); return; }
+  const recorrente = document.getElementById('ct-recorrente').value;
+  const diaVenc = parseInt(document.getElementById('ct-dia-venc').value) || null;
+  let venc = document.getElementById('ct-vencimento').value;
+
+  // Se recorrente e tem dia mas não tem data, gera data do mês atual
+  if (!venc && recorrente === 'sim' && diaVenc) {
+    const hoje = new Date();
+    const mes = String(hoje.getMonth() + 1).padStart(2,'0');
+    venc = `${hoje.getFullYear()}-${mes}-${String(diaVenc).padStart(2,'0')}`;
+  }
+
+  if (!nome) { showToast('Preencha o nome','error'); return; }
+  if (!valor) { showToast('Preencha o valor','error'); return; }
+  if (!venc) { showToast('Preencha o vencimento ou o dia','error'); return; }
 
   const tipo = document.getElementById('ct-tipo').value;
-  const recorrente = document.getElementById('ct-recorrente').value;
   const parcelas = parseInt(document.getElementById('ct-parcelas').value) || 1;
-  const diaVenc = parseInt(document.getElementById('ct-dia-venc').value) || null;
   const pix = document.getElementById('ct-pix').value.trim();
   const obs = document.getElementById('ct-obs').value.trim();
   const cnpj = document.getElementById('ct-cnpj').value.trim();
@@ -3948,7 +3958,7 @@ async function salvarConta() {
   if (fileInput?.files[0]) {
     const file = fileInput.files[0];
     const path = `${_tipoContaModal}/${Date.now()}_${file.name.replace(/\s/g,'_')}`;
-    const { data: up, error: upErr } = await sb.storage.from('documentos').upload(path, file);
+    const { error: upErr } = await sb.storage.from('documentos').upload(path, file);
     if (upErr) { showToast('Erro no upload: '+upErr.message,'error'); return; }
     const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
     arquivoUrl = urlData?.publicUrl || '';
@@ -3957,23 +3967,23 @@ async function salvarConta() {
   const [anoBase, mesBase, diaBase] = venc.split('-').map(Number);
   const dia = diaVenc || diaBase;
 
-  // Quantos meses gerar
+  // Monta lista de meses a criar
   let meses = [];
   if (recorrente === 'parcelado') {
-    // Parcelado: X meses a partir do vencimento
     for (let i = 0; i < parcelas; i++) {
       const d = new Date(anoBase, mesBase - 1 + i, dia);
-      meses.push({ data: d.toISOString().substring(0,10), parcela: i+1, total: parcelas });
+      meses.push({ data: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`, parcela: i+1, total: parcelas });
     }
   } else if (recorrente === 'sim') {
-    // Recorrente: gera do mês do vencimento até dezembro do mesmo ano
+    // Cria do mês atual até dezembro
     const mesInicio = mesBase - 1;
     for (let i = 0; i <= 11 - mesInicio; i++) {
-      const d = new Date(anoBase, mesInicio + i, dia);
-      meses.push({ data: d.toISOString().substring(0,10), parcela: null, total: null });
+      const anoAtual = anoBase + Math.floor((mesInicio + i) / 12);
+      const mesAtual = (mesInicio + i) % 12;
+      const dataStr = `${anoAtual}-${String(mesAtual+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+      meses.push({ data: dataStr, parcela: null, total: null });
     }
   } else {
-    // Único
     meses.push({ data: venc, parcela: null, total: null });
   }
 
