@@ -3940,57 +3940,75 @@ async function salvarConta() {
   const cnpj = document.getElementById('ct-cnpj').value.trim();
   const categoria = document.getElementById('ct-categoria').value;
   const editId = document.getElementById('modal-conta').dataset.editId;
-
-  // Upload do arquivo se houver
-  let arquivoUrl = '';
-  const fileInput = document.getElementById('ct-arquivo');
-  if (fileInput.files[0]) {
-    const file = fileInput.files[0];
-    const path = `${_tipoContaModal}/${Date.now()}_${file.name}`;
-    const { data: up } = await sb.storage.from('documentos').upload(path, file);
-    if (up) {
-      const { data: url } = sb.storage.from('documentos').getPublicUrl(path);
-      arquivoUrl = url.publicUrl;
-    }
-  }
-
   const tabela = _tipoContaModal === 'pagar' ? 'contas_pagar' : 'contas_receber';
 
-  // Gera lançamentos: 1 agora + parcelas futuras se parcelado
-  const quantos = recorrente === 'parcelado' ? parcelas : 1;
+  // Upload arquivo
+  let arquivoUrl = '';
+  const fileInput = document.getElementById('ct-arquivo');
+  if (fileInput?.files[0]) {
+    const file = fileInput.files[0];
+    const path = `${_tipoContaModal}/${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+    const { data: up, error: upErr } = await sb.storage.from('documentos').upload(path, file);
+    if (upErr) { showToast('Erro no upload: '+upErr.message,'error'); return; }
+    const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+    arquivoUrl = urlData?.publicUrl || '';
+  }
+
   const [anoBase, mesBase, diaBase] = venc.split('-').map(Number);
+  const dia = diaVenc || diaBase;
 
-  let erro = false;
-  for (let i = 0; i < quantos; i++) {
-    const dataVenc = new Date(anoBase, mesBase - 1 + i, diaVenc || diaBase);
-    const dataStr = dataVenc.toISOString().substring(0,10);
-    const descricao = quantos > 1 ? `${nome} (${i+1}/${quantos})` : nome;
+  // Quantos meses gerar
+  let meses = [];
+  if (recorrente === 'parcelado') {
+    // Parcelado: X meses a partir do vencimento
+    for (let i = 0; i < parcelas; i++) {
+      const d = new Date(anoBase, mesBase - 1 + i, dia);
+      meses.push({ data: d.toISOString().substring(0,10), parcela: i+1, total: parcelas });
+    }
+  } else if (recorrente === 'sim') {
+    // Recorrente: gera do mês do vencimento até dezembro do mesmo ano
+    const mesInicio = mesBase - 1;
+    for (let i = 0; i <= 11 - mesInicio; i++) {
+      const d = new Date(anoBase, mesInicio + i, dia);
+      meses.push({ data: d.toISOString().substring(0,10), parcela: null, total: null });
+    }
+  } else {
+    // Único
+    meses.push({ data: venc, parcela: null, total: null });
+  }
 
+  let salvos = 0;
+  for (let i = 0; i < meses.length; i++) {
+    const m = meses[i];
+    const descricao = m.total ? `${nome} (${m.parcela}/${m.total})` : nome;
     const payload = {
       descricao, valor, cnpj, categoria, tipo,
-      data_vencimento: dataStr,
+      data_vencimento: m.data,
       recorrente: recorrente === 'sim',
-      dia_vencimento: diaVenc,
-      parcela_atual: quantos > 1 ? i+1 : null,
-      total_parcelas: quantos > 1 ? quantos : null,
-      chave_pix: pix,
+      dia_vencimento: dia,
+      parcela_atual: m.parcela,
+      total_parcelas: m.total,
+      chave_pix: pix || null,
       arquivo_url: arquivoUrl || null,
-      observacao: obs,
+      observacao: obs || null,
       status: 'pendente',
     };
 
-    const { error } = editId && i === 0
+    const { error } = (editId && i === 0)
       ? await sb.from(tabela).update(payload).eq('id', editId)
       : await sb.from(tabela).insert(payload);
-    if (error) { erro = true; showToast('Erro: '+error.message,'error'); break; }
+
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+    salvos++;
   }
 
-  if (!erro) {
-    showToast(quantos > 1 ? `${quantos} parcelas criadas!` : 'Conta salva!','success');
-    closeModal('modal-conta');
-    if (_tipoContaModal === 'pagar') loadContasPagar();
-    else loadContasReceber();
-  }
+  const msg = recorrente === 'parcelado' ? `${salvos} parcelas criadas!`
+    : recorrente === 'sim' ? `Conta recorrente criada para ${salvos} meses!`
+    : 'Conta salva!';
+  showToast(msg, 'success');
+  closeModal('modal-conta');
+  if (_tipoContaModal === 'pagar') loadContasPagar();
+  else loadContasReceber();
 }
 
 async function loadContasPagar() {
