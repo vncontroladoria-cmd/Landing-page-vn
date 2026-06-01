@@ -2692,9 +2692,7 @@ async function saveFornecedor() {
   const { error } = isNovo
     ? await sb.from('fornecedores').insert(payload)
     : await sb.from('fornecedores').update(payload).eq('id', id);
-  if (error) { showToast('Erro ao salvar','error'); return; }
-  showToast('Fornecedor salvo!','success');
-  toggleFormFornecedor();
+  if (error) { showToast('Erro: ' + error.message,'error'); return; }
   document.getElementById('forn-codigo').value = '';
   loadFornecedores();
 }
