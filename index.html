@@ -1578,7 +1578,11 @@ async function loadLancamentos() {
 
   let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: true});
   if (tipo) q = q.eq('tipo', tipo);
-  if (bancoFilter) q = q.eq('banco_id', bancoFilter);
+  if (bancoFilter) {
+    // Busca pelo banco_id OU pelo banco_nome para pegar todos os lançamentos do banco
+    const bancoNomeFiltro = _bancos.find(b => b.id === bancoFilter)?.nome || '';
+    q = q.or(`banco_id.eq.${bancoFilter},banco_nome.eq.${bancoNomeFiltro}`);
+  }
 
   const { data } = await q;
   const lancs = data || [];
