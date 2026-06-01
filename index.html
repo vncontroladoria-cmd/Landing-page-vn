@@ -1383,17 +1383,17 @@ async function showApp() {
   document.getElementById('user-initials').textContent = initials;
   document.getElementById('user-name').textContent = email;
 
-  // Busca perfil e permissões do usuário logado
+  // Busca perfil do usuário
   const { data: perfil } = await sb.from('perfis_usuarios').select('*').eq('id', currentUser.id).single();
-  if (perfil) {
-    const perms = perfil.perfil === 'admin'
-      ? _todasPaginas.map(p => p.id)
-      : (perfil.permissoes || _permissoesPadrao[perfil.perfil] || []);
 
-    // Esconde itens do menu que o usuário não tem acesso
+  // Se admin OU se não encontrou perfil — mostra tudo
+  if (!perfil || perfil.perfil === 'admin') {
+    document.querySelectorAll('.nav-item[data-page]').forEach(item => item.style.display = '');
+  } else {
+    const perms = perfil.permissoes || _permissoesPadrao[perfil.perfil] || [];
     document.querySelectorAll('.nav-item[data-page]').forEach(item => {
       const page = item.dataset.page;
-      item.style.display = (!page || perms.includes(page)) ? '' : 'none';
+      item.style.display = perms.includes(page) ? '' : 'none';
     });
   }
 
