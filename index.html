@@ -612,14 +612,22 @@ tbody tr:hover { background: var(--bg3); }
           </div>
 
           <!-- CARDS DE SALDO POR BANCO -->
-          <div id="lanc-saldo-bancos" style="display:flex;gap:10px;margin-bottom:1rem;flex-wrap:wrap"></div>
+          <div id="lanc-saldo-bancos" style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap"></div>
 
-          <!-- RESUMO DO MÊS -->
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem">
-            <div class="metric-card"><div class="metric-label">Entradas</div><div class="metric-val green" id="lanc-total-entrada">—</div></div>
-            <div class="metric-card"><div class="metric-label">Saídas</div><div class="metric-val red" id="lanc-total-saida">—</div></div>
-            <div class="metric-card"><div class="metric-label">Saldo do mês</div><div class="metric-val" id="lanc-saldo-mes">—</div></div>
-            <div class="metric-card"><div class="metric-label">Lançamentos</div><div class="metric-val" id="lanc-count">—</div></div>
+          <!-- RESUMO LINHA ÚNICA -->
+          <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+            <div class="metric-card" style="flex:1;min-width:120px;padding:10px 14px">
+              <div class="metric-label" style="font-size:10px">Entradas</div>
+              <div id="lanc-total-entrada" style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;min-width:120px;padding:10px 14px">
+              <div class="metric-label" style="font-size:10px">Saídas</div>
+              <div id="lanc-total-saida" style="font-size:14px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;min-width:120px;padding:10px 14px">
+              <div class="metric-label" style="font-size:10px">Saldo do Mês</div>
+              <div id="lanc-saldo-mes" style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace">—</div>
+            </div>
           </div>
 
           <!-- BARRA DE SELEÇÃO -->
@@ -1588,14 +1596,14 @@ async function loadLancamentos() {
       const saldoB = lancsB.reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
       saldoTotal += saldoB;
       const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
-      cardsHtml += `<div class="metric-card" style="min-width:140px;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
-        <div class="metric-label" style="display:flex;align-items:center;gap:4px">${b.nome} <span style="font-size:9px;color:var(--text3)">(clique p/ filtrar)</span></div>
-        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
+      cardsHtml += `<div class="metric-card" style="flex:1;min-width:120px;padding:10px 14px;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
+        <div class="metric-label" style="font-size:10px">${b.nome}</div>
+        <div style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
       </div>`;
     });
-    cardsHtml += `<div class="metric-card" style="min-width:140px;border:2px solid var(--accent)">
-      <div class="metric-label">💰 Saldo Total</div>
-      <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:${saldoTotal>=0?'var(--green)':'var(--red)'}">${fmtBRL(saldoTotal)}</div>
+    cardsHtml += `<div class="metric-card" style="flex:1;min-width:120px;padding:10px 14px;border:2px solid var(--accent)">
+      <div class="metric-label" style="font-size:10px">💰 Saldo Total</div>
+      <div style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace;color:${saldoTotal>=0?'var(--green)':'var(--red)'}">${fmtBRL(saldoTotal)}</div>
     </div>`;
     saldoDiv.innerHTML = cardsHtml;
   }
