@@ -601,7 +601,7 @@ tbody tr:hover { background: var(--bg3); }
               <select class="filter-select" id="lanc-banco-filter" onchange="loadLancamentos()">
                 <option value="">Todos os bancos</option>
               </select>
-              <button class="btn" onclick="loadLancamentos()">↻ Atualizar</button>
+              <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn" onclick="toggleFormLanc()">+ Novo lançamento</button>
@@ -801,7 +801,7 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
             <div style="display:flex;gap:8px">
-              <button class="btn" onclick="loadFornecedores()">↻ Atualizar</button>
+              <button class="btn" onclick="atualizarFornecedores()">↻ Atualizar</button>
               <button class="btn btn-primary" onclick="toggleFormFornecedor()">+ Novo fornecedor</button>
             </div>
           </div>
@@ -898,7 +898,7 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Grupos e categorias do DRE e DFC</div>
             <div style="display:flex;gap:8px">
-              <button class="btn" onclick="loadPlanoContas()">↻ Atualizar</button>
+              <button class="btn" onclick="atualizarPlanoContas()">↻ Atualizar</button>
               <button class="btn btn-primary" onclick="openModal('modal-grupo')">+ Novo grupo</button>
             </div>
           </div>
@@ -919,7 +919,7 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Contas bancárias e caixas</div>
             <div style="display:flex;gap:8px">
-              <button class="btn" onclick="loadBancos()">↻ Atualizar</button>
+              <button class="btn" onclick="atualizarBancos()">↻ Atualizar</button>
               <button class="btn btn-primary" onclick="openModal('modal-banco')">+ Novo banco</button>
             </div>
           </div>
@@ -931,7 +931,7 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Usuários com acesso ao sistema</div>
             <div style="display:flex;gap:8px">
-              <button class="btn" onclick="loadUsuarios()">↻ Atualizar</button>
+              <button class="btn" onclick="atualizarUsuarios()">↻ Atualizar</button>
               <button class="btn btn-primary" onclick="openModal('modal-usuario')">+ Novo usuário</button>
             </div>
           </div>
@@ -3643,6 +3643,40 @@ function aplicarIgual(idx) {
     }
   });
   showToast(`Aplicado em mais ${count} iguais!`, 'success');
+}
+
+// ─── ATUALIZAR PÁGINAS ───────────────────────────────────
+async function atualizarLancamentos() {
+  // Rebusca bancos, categorias, fornecedores e lançamentos
+  _bancos = [];
+  _categorias = [];
+  _fornecedores = [];
+  await loadLancamentos();
+}
+
+async function atualizarFornecedores() {
+  await carregarCatsFornecedor(); // rebusca categorias
+  const { data } = await sb.from('fornecedores').select('*');
+  _fornecedores = data || [];
+  await loadFornecedores();
+}
+
+async function atualizarPlanoContas() {
+  const { data } = await sb.from('plano_contas').select('*').order('codigo');
+  _categorias = data || [];
+  const { data: grupos } = await sb.from('grupos_plano').select('*').order('ordem');
+  _grupos = grupos || [];
+  await loadPlanoContas();
+}
+
+async function atualizarBancos() {
+  const { data } = await sb.from('bancos_cadastrados').select('*');
+  _bancos = data || [];
+  await loadBancos();
+}
+
+async function atualizarUsuarios() {
+  await loadUsuarios();
 }
 
 // ─── INIT ────────────────────────────────────────────
