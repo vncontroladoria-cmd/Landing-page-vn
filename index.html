@@ -1503,22 +1503,29 @@ async function loadDashboard() {
 }
 
 // ─── LANÇAMENTOS ────────────────────────────────────────
+async function carregarBancos() {
+  const { data } = await sb.from('bancos_cadastrados').select('*').order('nome');
+  _bancos = data || [];
+  const opts = _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
+
+  // Atualiza todos os selects de banco em qualquer lugar da tela
+  const selNl = document.getElementById('nl-banco');
+  const selFilter = document.getElementById('lanc-banco-filter');
+  const selConc = document.getElementById('conc-banco-sel');
+
+  if (selNl) selNl.innerHTML = '<option value="">Selecione...</option>' + opts;
+  if (selFilter) selFilter.innerHTML = '<option value="">Todos os bancos</option>' + opts;
+  if (selConc) selConc.innerHTML = '<option value="">Selecione o banco...</option>' + opts;
+}
+
 // ─── LANÇAMENTOS ─────────────────────────────────────────
 let _bancos = [];
 let _categorias = [];
 let _fornecedores = [];
 
 async function initLancamentos() {
-  // Carrega bancos para o select
-  const { data: bancos } = await sb.from('bancos_cadastrados').select('*').order('nome');
-  _bancos = bancos || [];
-
-  const selBanco = document.getElementById('nl-banco');
-  const selBancoFilter = document.getElementById('lanc-banco-filter');
-  if (selBanco) selBanco.innerHTML = _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
-  if (selBancoFilter) {
-    selBancoFilter.innerHTML = '<option value="">Todos os bancos</option>' + _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
-  }
+  // Sempre busca bancos frescos
+  await carregarBancos();
 
   // Sempre busca categorias frescas do banco
   const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
@@ -1559,16 +1566,8 @@ async function loadLancamentos() {
   const el = document.getElementById('lanc-tbody');
   if (!el) return;
 
-  // Carrega bancos se ainda não carregou
-  if (!_bancos.length) {
-    try { await initLancamentos(); } catch(e) { console.warn('init:', e); }
-  } else {
-    // Só atualiza o filtro de bancos se já carregado
-    const selBancoFilter = document.getElementById('lanc-banco-filter');
-    if (selBancoFilter && selBancoFilter.options.length <= 1) {
-      selBancoFilter.innerHTML = '<option value="">Todos os bancos</option>' + _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
-    }
-  }
+  // Sempre rebusca bancos do banco de dados
+  await carregarBancos();
 
   const tipo = document.getElementById('lanc-tipo')?.value;
   const mes = document.getElementById('lanc-mes')?.value || '2026-05';
@@ -3458,8 +3457,7 @@ let _concBancoId = '';
 let _concBancoNome = '';
 
 async function abrirModalConciliacao() {
-  // Carrega bancos no select
-  if (!_bancos.length) await initLancamentos();
+  if (!_bancos.length) await carregarBancos();
   const sel = document.getElementById('conc-banco-sel');
   sel.innerHTML = '<option value="">Selecione o banco...</option>' +
     _bancos.map(b => `<option value="${b.id}" data-nome="${b.nome}">${b.nome}</option>`).join('');
