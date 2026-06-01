@@ -2467,25 +2467,6 @@ function showCfgPage(tab, el) {
 }
 
 // ─── USUÁRIOS ─────────────────────────────────────────
-async function loadUsuarios() {
-  const { data } = await sb.from('perfis_usuarios').select('*').order('created_at', {ascending:false});
-  if (!data?.length) { document.getElementById('usuarios-table').innerHTML = '<div class="empty">Nenhum usuário cadastrado</div>'; return; }
-  let html = `<div class="table-wrap"><table><thead><tr>
-    <th>Nome</th><th>E-mail</th><th>Perfil</th><th>Cadastrado em</th>
-  </tr></thead><tbody>`;
-  data.forEach(u => {
-    const perfil = u.perfil || 'cliente';
-    html += `<tr>
-      <td style="font-weight:500">${u.nome||'—'}</td>
-      <td style="font-size:12px;color:var(--text2)">${u.email||'—'}</td>
-      <td><span class="badge ${perfil==='admin'?'badge-green':perfil==='operador'?'badge-blue':'badge-gray'}">${perfil}</span></td>
-      <td style="font-size:12px;color:var(--text2)">${fmtDate(u.created_at?.substring(0,10))}</td>
-    </tr>`;
-  });
-  html += '</tbody></table></div>';
-  document.getElementById('usuarios-table').innerHTML = html;
-}
-
 function showCfgTab(tab, el) {
   document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'));
