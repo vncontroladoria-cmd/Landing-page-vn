@@ -469,6 +469,9 @@ tbody tr:hover { background: var(--bg3); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
         <span class="nav-label">Contas a Pagar</span>
       </div>
+      <div class="nav-item" data-page="contas-receber" onclick="showPage('contas-receber',this)">
+        <span class="nav-icon">💰</span><span class="nav-label">Contas a Receber</span>
+      </div>
 
       <div class="sidebar-section">Relatórios</div>
       <div class="nav-item" data-page="dfc" onclick="showPage('dfc',this)">
@@ -675,31 +678,103 @@ tbody tr:hover { background: var(--bg3); }
 
         <!-- CONTAS A PAGAR -->
         <div class="page" id="page-contas-pagar">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-            <div class="filters">
+          <!-- FILTROS -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+            <div class="filters" style="margin-bottom:0">
+              <select class="filter-select" id="cp-mes" onchange="loadContasPagar()">
+                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                <option value="03">Março</option><option value="04">Abril</option>
+                <option value="05" selected>Maio</option><option value="06">Junho</option>
+                <option value="07">Julho</option><option value="08">Agosto</option>
+                <option value="09">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+              <select class="filter-select" id="cp-ano" onchange="loadContasPagar()">
+                <option value="2026">2026</option><option value="2025">2025</option>
+              </select>
               <select class="filter-select" id="cp-status" onchange="loadContasPagar()">
                 <option value="">Todos</option>
-                <option value="Não pago">A pagar</option>
-                <option value="Pago">Pagos</option>
+                <option value="pendente">Pendentes</option>
+                <option value="pago">Pagos</option>
+                <option value="atrasado">Atrasados</option>
               </select>
-              <select class="filter-select" id="cp-mes" onchange="loadContasPagar()">
-                <option value="MAIO">Maio</option>
-                <option value="ABRIL">Abril</option>
-                <option value="MARÇO">Março</option>
-              </select>
+              <input type="text" id="cp-busca" placeholder="🔍 Buscar..." oninput="filtrarTabela('cp-tbody',this.value)"
+                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:160px">
+              <button class="btn" onclick="loadContasPagar()">↻ Atualizar</button>
             </div>
-            <div style="display:flex;gap:8px">
-              <button class="btn" onclick="openImportCP()">↑ Importar planilha</button>
-              <button class="btn btn-primary" onclick="openModalCP()">+ Nova conta</button>
+            <button class="btn btn-primary" onclick="abrirModalConta('pagar')">+ Nova conta a pagar</button>
+          </div>
+
+          <!-- MÉTRICAS -->
+          <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">A Pagar</div><div id="cp-total" style="font-size:14px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div></div>
+            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Pago</div><div id="cp-pago" style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div></div>
+            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Atrasado</div><div id="cp-atrasado" style="font-size:14px;font-weight:700;color:#f59e0b;font-family:'DM Mono',monospace">—</div></div>
+            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Total do mês</div><div id="cp-total-mes" style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace">—</div></div>
+          </div>
+
+          <!-- TABELAS LADO A LADO -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+                <span>📌 Contas Fixas</span>
+                <span id="cp-fixas-total" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)"></span>
+              </div>
+              <div id="cp-fixas-table"><div class="loading"><div class="spin"></div></div></div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+                <span>📊 Contas Variáveis</span>
+                <span id="cp-variaveis-total" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)"></span>
+              </div>
+              <div id="cp-variaveis-table"><div class="loading"><div class="spin"></div></div></div>
             </div>
           </div>
-          <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
-            <div class="metric-card"><div class="metric-label">Total a pagar</div><div class="metric-val red" id="cp-total">—</div></div>
-            <div class="metric-card"><div class="metric-label">Já pago</div><div class="metric-val green" id="cp-pago">—</div></div>
-            <div class="metric-card"><div class="metric-label">Em atraso</div><div class="metric-val amber" id="cp-atrasado">—</div></div>
+        </div>
+
+        <!-- CONTAS A RECEBER -->
+        <div class="page" id="page-contas-receber">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+            <div class="filters" style="margin-bottom:0">
+              <select class="filter-select" id="cr-mes" onchange="loadContasReceber()">
+                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                <option value="03">Março</option><option value="04">Abril</option>
+                <option value="05" selected>Maio</option><option value="06">Junho</option>
+                <option value="07">Julho</option><option value="08">Agosto</option>
+                <option value="09">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+              <select class="filter-select" id="cr-ano" onchange="loadContasReceber()">
+                <option value="2026">2026</option><option value="2025">2025</option>
+              </select>
+              <select class="filter-select" id="cr-status" onchange="loadContasReceber()">
+                <option value="">Todos</option>
+                <option value="pendente">Pendentes</option>
+                <option value="recebido">Recebidos</option>
+                <option value="atrasado">Atrasados</option>
+              </select>
+              <input type="text" placeholder="🔍 Buscar..." oninput="filtrarTabela('cr-tbody',this.value)"
+                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:160px">
+              <button class="btn" onclick="loadContasReceber()">↻ Atualizar</button>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalConta('receber')">+ Nova conta a receber</button>
           </div>
-          <div class="card">
-            <div id="cp-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+
+          <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">A Receber</div><div id="cr-total" style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div></div>
+            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Recebido</div><div id="cr-recebido" style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div></div>
+            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Atrasado</div><div id="cr-atrasado" style="font-size:14px;font-weight:700;color:#f59e0b;font-family:'DM Mono',monospace">—</div></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">📌 Recebimentos Fixos</div>
+              <div id="cr-fixas-table"><div class="loading"><div class="spin"></div></div></div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">📊 Recebimentos Variáveis</div>
+              <div id="cr-variaveis-table"><div class="loading"><div class="spin"></div></div></div>
+            </div>
           </div>
         </div>
 
@@ -1039,6 +1114,106 @@ tbody tr:hover { background: var(--bg3); }
       <button onclick="closeModal('modal-auditoria')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
     </div>
     <div id="auditoria-content"></div>
+  </div>
+</div>
+
+<!-- MODAL NOVA CONTA -->
+<div class="modal-overlay" id="modal-conta">
+  <div class="modal" style="max-width:620px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <div class="modal-title" style="margin:0" id="modal-conta-title">Nova conta a pagar</div>
+      <button onclick="closeModal('modal-conta')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nome / Razão Social <span style="color:var(--red)">*</span></label>
+        <input type="text" id="ct-nome" placeholder="Ex: Aluguel, Fornecedor X">
+      </div>
+      <div class="form-group">
+        <label>CNPJ / CPF</label>
+        <input type="text" id="ct-cnpj" placeholder="00.000.000/0001-00">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <div style="position:relative">
+          <input type="text" id="ct-cat-busca" placeholder="Buscar categoria..." autocomplete="off"
+            oninput="buscarCatForn('dfc',this.value)" onfocus="buscarCatForn('dfc',this.value)"
+            onblur="setTimeout(()=>document.getElementById('forn-cat-dfc-dd').style.display='none',200)">
+          <input type="hidden" id="ct-categoria">
+          <div id="forn-cat-dfc-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group">
+        <label>Valor <span style="color:var(--red)">*</span></label>
+        <input type="number" id="ct-valor" placeholder="0,00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Vencimento <span style="color:var(--red)">*</span></label>
+        <input type="date" id="ct-vencimento">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="ct-tipo">
+          <option value="fixa">Fixa</option>
+          <option value="variavel">Variável</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group">
+        <label>Recorrente?</label>
+        <select id="ct-recorrente" onchange="toggleParcelamento()">
+          <option value="nao">Não</option>
+          <option value="sim">Sim (mensal)</option>
+          <option value="parcelado">Parcelado</option>
+        </select>
+      </div>
+      <div class="form-group" id="ct-dia-venc-group">
+        <label>Dia do vencimento</label>
+        <input type="number" id="ct-dia-venc" placeholder="Ex: 10" min="1" max="31">
+      </div>
+      <div class="form-group" id="ct-parcelas-group" style="display:none">
+        <label>Nº de parcelas</label>
+        <input type="number" id="ct-parcelas" placeholder="Ex: 6" min="2" max="60">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group">
+        <label>Chave PIX / Dados pagamento</label>
+        <input type="text" id="ct-pix" placeholder="CPF, CNPJ, email ou chave">
+      </div>
+      <div class="form-group">
+        <label>Anexar documento</label>
+        <input type="file" id="ct-arquivo" accept=".pdf,.jpg,.jpeg,.png" style="padding:6px">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>Observação</label>
+      <textarea id="ct-obs" rows="2" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical" placeholder="Observações..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-conta')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarConta()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZAR DOCUMENTO -->
+<div class="modal-overlay" id="modal-doc">
+  <div class="modal" style="max-width:800px;max-height:90vh">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:15px;font-weight:600" id="modal-doc-title">Documento</div>
+      <button onclick="closeModal('modal-doc')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div id="modal-doc-content" style="text-align:center;max-height:70vh;overflow:auto"></div>
   </div>
 </div>
 
@@ -1470,6 +1645,7 @@ function showPage(id, el) {
   if (id === 'dre') loadDRE();
   if (id === 'lancamentos') loadLancamentos();
   if (id === 'contas-pagar') loadContasPagar();
+  if (id === 'contas-receber') loadContasReceber();
   if (id === 'servicos') loadServicos();
   if (id === 'clientes') loadClientes();
   if (id === 'produtos') loadProdutos();
@@ -3681,6 +3857,273 @@ async function loadDRE() {
   </tr>`;
   html += '</tbody></table></div>';
   el.innerHTML = html;
+}
+
+// ─── CONTAS A PAGAR / RECEBER ────────────────────────────
+let _tipoContaModal = 'pagar';
+
+function abrirModalConta(tipo) {
+  _tipoContaModal = tipo;
+  document.getElementById('modal-conta-title').textContent = tipo === 'pagar' ? 'Nova conta a pagar' : 'Nova conta a receber';
+  document.getElementById('ct-nome').value = '';
+  document.getElementById('ct-cnpj').value = '';
+  document.getElementById('ct-valor').value = '';
+  document.getElementById('ct-vencimento').value = '';
+  document.getElementById('ct-tipo').value = 'fixa';
+  document.getElementById('ct-recorrente').value = 'nao';
+  document.getElementById('ct-dia-venc').value = '';
+  document.getElementById('ct-parcelas').value = '';
+  document.getElementById('ct-pix').value = '';
+  document.getElementById('ct-obs').value = '';
+  document.getElementById('ct-cat-busca').value = '';
+  document.getElementById('ct-categoria').value = '';
+  document.getElementById('ct-parcelas-group').style.display = 'none';
+  document.getElementById('modal-conta').dataset.editId = '';
+  document.getElementById('modal-conta').classList.add('open');
+  if (!_categorias.length) {
+    sb.from('plano_contas').select('*').order('codigo').then(({data}) => { _categorias = data || []; });
+  }
+}
+
+function toggleParcelamento() {
+  const rec = document.getElementById('ct-recorrente').value;
+  document.getElementById('ct-parcelas-group').style.display = rec === 'parcelado' ? '' : 'none';
+}
+
+async function salvarConta() {
+  const nome = document.getElementById('ct-nome').value.trim();
+  const valor = parseFloat(document.getElementById('ct-valor').value) || 0;
+  const venc = document.getElementById('ct-vencimento').value;
+  if (!nome || !valor || !venc) { showToast('Preencha nome, valor e vencimento','error'); return; }
+
+  const tipo = document.getElementById('ct-tipo').value;
+  const recorrente = document.getElementById('ct-recorrente').value;
+  const parcelas = parseInt(document.getElementById('ct-parcelas').value) || 1;
+  const diaVenc = parseInt(document.getElementById('ct-dia-venc').value) || null;
+  const pix = document.getElementById('ct-pix').value.trim();
+  const obs = document.getElementById('ct-obs').value.trim();
+  const cnpj = document.getElementById('ct-cnpj').value.trim();
+  const categoria = document.getElementById('ct-categoria').value;
+  const editId = document.getElementById('modal-conta').dataset.editId;
+
+  // Upload do arquivo se houver
+  let arquivoUrl = '';
+  const fileInput = document.getElementById('ct-arquivo');
+  if (fileInput.files[0]) {
+    const file = fileInput.files[0];
+    const path = `${_tipoContaModal}/${Date.now()}_${file.name}`;
+    const { data: up } = await sb.storage.from('documentos').upload(path, file);
+    if (up) {
+      const { data: url } = sb.storage.from('documentos').getPublicUrl(path);
+      arquivoUrl = url.publicUrl;
+    }
+  }
+
+  const tabela = _tipoContaModal === 'pagar' ? 'contas_pagar' : 'contas_receber';
+
+  // Gera lançamentos: 1 agora + parcelas futuras se parcelado
+  const quantos = recorrente === 'parcelado' ? parcelas : 1;
+  const [anoBase, mesBase, diaBase] = venc.split('-').map(Number);
+
+  let erro = false;
+  for (let i = 0; i < quantos; i++) {
+    const dataVenc = new Date(anoBase, mesBase - 1 + i, diaVenc || diaBase);
+    const dataStr = dataVenc.toISOString().substring(0,10);
+    const descricao = quantos > 1 ? `${nome} (${i+1}/${quantos})` : nome;
+
+    const payload = {
+      descricao, valor, cnpj, categoria, tipo,
+      data_vencimento: dataStr,
+      recorrente: recorrente === 'sim',
+      dia_vencimento: diaVenc,
+      parcela_atual: quantos > 1 ? i+1 : null,
+      total_parcelas: quantos > 1 ? quantos : null,
+      chave_pix: pix,
+      arquivo_url: arquivoUrl || null,
+      observacao: obs,
+      status: 'pendente',
+    };
+
+    const { error } = editId && i === 0
+      ? await sb.from(tabela).update(payload).eq('id', editId)
+      : await sb.from(tabela).insert(payload);
+    if (error) { erro = true; showToast('Erro: '+error.message,'error'); break; }
+  }
+
+  if (!erro) {
+    showToast(quantos > 1 ? `${quantos} parcelas criadas!` : 'Conta salva!','success');
+    closeModal('modal-conta');
+    if (_tipoContaModal === 'pagar') loadContasPagar();
+    else loadContasReceber();
+  }
+}
+
+async function loadContasPagar() {
+  const mes = document.getElementById('cp-mes')?.value || '05';
+  const ano = document.getElementById('cp-ano')?.value || '2026';
+  const status = document.getElementById('cp-status')?.value || '';
+  const hoje = new Date().toISOString().substring(0,10);
+  const ini = `${ano}-${mes}-01`;
+  const fim = `${ano}-${mes}-31`;
+
+  let q = sb.from('contas_pagar').select('*').gte('data_vencimento',ini).lte('data_vencimento',fim).order('data_vencimento');
+  const { data: all } = await q;
+  const contas = all || [];
+
+  // Métricas
+  const pendentes = contas.filter(c => c.status === 'pendente');
+  const pagos = contas.filter(c => c.status === 'pago');
+  const atrasados = contas.filter(c => c.status === 'pendente' && c.data_vencimento < hoje);
+
+  const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
+  if (document.getElementById('cp-total')) {
+    document.getElementById('cp-total').textContent = fmtBRL(soma(pendentes));
+    document.getElementById('cp-pago').textContent = fmtBRL(soma(pagos));
+    document.getElementById('cp-atrasado').textContent = fmtBRL(soma(atrasados));
+    document.getElementById('cp-total-mes').textContent = fmtBRL(soma(contas));
+  }
+
+  const fixas = contas.filter(c => c.tipo === 'fixa');
+  const variaveis = contas.filter(c => c.tipo !== 'fixa');
+
+  if (document.getElementById('cp-fixas-total')) {
+    document.getElementById('cp-fixas-total').textContent = fmtBRL(soma(fixas));
+    document.getElementById('cp-variaveis-total').textContent = fmtBRL(soma(variaveis));
+  }
+
+  renderTabelaConta('cp-fixas-table', fixas, 'pagar', hoje);
+  renderTabelaConta('cp-variaveis-table', variaveis, 'pagar', hoje);
+}
+
+async function loadContasReceber() {
+  const mes = document.getElementById('cr-mes')?.value || '05';
+  const ano = document.getElementById('cr-ano')?.value || '2026';
+  const hoje = new Date().toISOString().substring(0,10);
+  const ini = `${ano}-${mes}-01`;
+  const fim = `${ano}-${mes}-31`;
+
+  const { data: all } = await sb.from('contas_receber').select('*').gte('data_vencimento',ini).lte('data_vencimento',fim).order('data_vencimento');
+  const contas = all || [];
+
+  const pendentes = contas.filter(c => c.status === 'pendente');
+  const recebidos = contas.filter(c => c.status === 'recebido');
+  const atrasados = contas.filter(c => c.status === 'pendente' && c.data_vencimento < hoje);
+  const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
+
+  if (document.getElementById('cr-total')) {
+    document.getElementById('cr-total').textContent = fmtBRL(soma(pendentes));
+    document.getElementById('cr-recebido').textContent = fmtBRL(soma(recebidos));
+    document.getElementById('cr-atrasado').textContent = fmtBRL(soma(atrasados));
+  }
+
+  const fixas = contas.filter(c => c.tipo === 'fixa');
+  const variaveis = contas.filter(c => c.tipo !== 'fixa');
+  renderTabelaConta('cr-fixas-table', fixas, 'receber', hoje);
+  renderTabelaConta('cr-variaveis-table', variaveis, 'receber', hoje);
+}
+
+function renderTabelaConta(targetId, contas, tipo, hoje) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  if (!contas.length) { el.innerHTML = '<div class="empty" style="padding:1rem">Nenhuma conta</div>'; return; }
+
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:var(--bg3)">
+      <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">NOME</th>
+      <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">VALOR</th>
+      <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">VENC</th>
+      <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">STATUS</th>
+      <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">AÇÕES</th>
+    </tr></thead>
+    <tbody id="${targetId}-tbody">`;
+
+  contas.forEach((c, i) => {
+    const atrasado = c.status === 'pendente' && c.data_vencimento < hoje;
+    const statusColor = c.status === 'pago' || c.status === 'recebido' ? 'var(--green)' : atrasado ? '#f59e0b' : 'var(--text2)';
+    const statusLabel = c.status === 'pago' ? 'Pago' : c.status === 'recebido' ? 'Recebido' : atrasado ? 'Atrasado' : 'Pendente';
+    const bg = i%2===0 ? '' : 'background:var(--bg3)';
+    const parcInfo = c.total_parcelas ? ` (${c.parcela_atual}/${c.total_parcelas})` : '';
+
+    html += `<tr style="border-bottom:1px solid var(--border);${bg}">
+      <td style="padding:9px 12px">
+        <div style="font-weight:500">${c.descricao||'—'}${parcInfo}</div>
+        ${c.chave_pix ? `<div style="font-size:10px;color:var(--text3)">PIX: ${c.chave_pix}</div>` : ''}
+        ${c.observacao ? `<div style="font-size:10px;color:var(--text3)">${c.observacao}</div>` : ''}
+      </td>
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${tipo==='pagar'?'var(--red)':'var(--green)'}">${fmtBRL(c.valor)}</td>
+      <td style="padding:9px 12px;text-align:center;font-size:11px;color:${atrasado?'#f59e0b':'var(--text2)'}">${fmtDate(c.data_vencimento)}</td>
+      <td style="padding:9px 12px;text-align:center"><span style="font-size:11px;font-weight:600;color:${statusColor}">${statusLabel}</span></td>
+      <td style="padding:9px 12px;text-align:center;white-space:nowrap">
+        <div style="display:flex;gap:4px;justify-content:center">
+          ${c.arquivo_url ? `<button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="verDocumento('${c.arquivo_url}','${c.descricao||''}')">📎</button>` : ''}
+          ${c.status !== 'pago' && c.status !== 'recebido' ? `<button class="btn btn-sm" style="padding:3px 7px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="darBaixa('${c.id}','${tipo}')">✓ Baixar</button>` : ''}
+          <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="editarConta('${c.id}','${tipo}')">✏️</button>
+          <button class="btn btn-sm" style="padding:3px 7px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="excluirConta('${c.id}','${tipo}')">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function darBaixa(id, tipo) {
+  const hoje = new Date().toISOString().substring(0,10);
+  const tabela = tipo === 'pagar' ? 'contas_pagar' : 'contas_receber';
+  const novoStatus = tipo === 'pagar' ? 'pago' : 'recebido';
+  await sb.from(tabela).update({ status: novoStatus, data_pagamento: hoje }).eq('id', id);
+  showToast('Baixa realizada!','success');
+  if (tipo === 'pagar') loadContasPagar(); else loadContasReceber();
+}
+
+async function excluirConta(id, tipo) {
+  if (!confirm('Excluir esta conta?')) return;
+  const tabela = tipo === 'pagar' ? 'contas_pagar' : 'contas_receber';
+  await sb.from(tabela).delete().eq('id', id);
+  showToast('Excluído!','success');
+  if (tipo === 'pagar') loadContasPagar(); else loadContasReceber();
+}
+
+async function editarConta(id, tipo) {
+  const tabela = tipo === 'pagar' ? 'contas_pagar' : 'contas_receber';
+  const { data: c } = await sb.from(tabela).select('*').eq('id', id).single();
+  if (!c) return;
+  _tipoContaModal = tipo;
+  document.getElementById('modal-conta-title').textContent = `Editar conta a ${tipo}`;
+  document.getElementById('ct-nome').value = c.descricao || '';
+  document.getElementById('ct-cnpj').value = c.cnpj || '';
+  document.getElementById('ct-valor').value = c.valor || '';
+  document.getElementById('ct-vencimento').value = c.data_vencimento || '';
+  document.getElementById('ct-tipo').value = c.tipo || 'fixa';
+  document.getElementById('ct-recorrente').value = c.recorrente ? 'sim' : 'nao';
+  document.getElementById('ct-dia-venc').value = c.dia_vencimento || '';
+  document.getElementById('ct-pix').value = c.chave_pix || '';
+  document.getElementById('ct-obs').value = c.observacao || '';
+  document.getElementById('ct-cat-busca').value = c.categoria || '';
+  document.getElementById('ct-categoria').value = c.categoria || '';
+  document.getElementById('modal-conta').dataset.editId = id;
+  document.getElementById('modal-conta').classList.add('open');
+}
+
+function verDocumento(url, nome) {
+  document.getElementById('modal-doc-title').textContent = nome || 'Documento';
+  const ext = url.split('.').pop().toLowerCase();
+  const content = document.getElementById('modal-doc-content');
+  if (ext === 'pdf') {
+    content.innerHTML = `<iframe src="${url}" style="width:100%;height:65vh;border:none;border-radius:8px"></iframe>`;
+  } else {
+    content.innerHTML = `<img src="${url}" style="max-width:100%;max-height:65vh;border-radius:8px">`;
+  }
+  document.getElementById('modal-doc').classList.add('open');
+}
+
+function filtrarTabela(tbodyId, termo) {
+  const t = (termo||'').toLowerCase().trim();
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.querySelectorAll('tr').forEach(row => {
+    row.style.display = !t || row.textContent.toLowerCase().includes(t) ? '' : 'none';
+  });
 }
 
 // ─── CONCILIAÇÃO ─────────────────────────────────────────
