@@ -682,9 +682,10 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div class="filters" style="margin-bottom:0">
               <select class="filter-select" id="cp-mes" onchange="loadContasPagar()">
+                <option value="">Todos os meses</option>
                 <option value="01">Janeiro</option><option value="02">Fevereiro</option>
                 <option value="03">Março</option><option value="04">Abril</option>
-                <option value="05" selected>Maio</option><option value="06">Junho</option>
+                <option value="05">Maio</option><option value="06">Junho</option>
                 <option value="07">Julho</option><option value="08">Agosto</option>
                 <option value="09">Setembro</option><option value="10">Outubro</option>
                 <option value="11">Novembro</option><option value="12">Dezembro</option>
@@ -1138,10 +1139,10 @@ tbody tr:hover { background: var(--bg3); }
         <label>Categoria</label>
         <div style="position:relative">
           <input type="text" id="ct-cat-busca" placeholder="Buscar categoria..." autocomplete="off"
-            oninput="buscarCatForn('dfc',this.value)" onfocus="buscarCatForn('dfc',this.value)"
-            onblur="setTimeout(()=>document.getElementById('forn-cat-dfc-dd').style.display='none',200)">
+            oninput="buscarCatConta(this.value)" onfocus="buscarCatConta(this.value)"
+            onblur="setTimeout(()=>{const d=document.getElementById('ct-cat-dd');if(d)d.style.display='none'},200)">
           <input type="hidden" id="ct-categoria">
-          <div id="forn-cat-dfc-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+          <div id="ct-cat-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:500;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
         </div>
       </div>
     </div>
@@ -2750,6 +2751,40 @@ async function carregarCatsFornecedor() {
   _categorias = data || [];
 }
 
+function buscarCatConta(texto) {
+  const dd = document.getElementById('ct-cat-dd');
+  if (!dd) return;
+  const termo = (texto||'').toLowerCase().trim();
+  if (!_categorias.length) {
+    sb.from('plano_contas').select('*').order('codigo').then(({data}) => {
+      _categorias = data || [];
+      buscarCatConta(texto);
+    });
+    return;
+  }
+  const map = {};
+  _categorias.forEach(c => {
+    if (!map[c.nome]) map[c.nome] = {nome:c.nome, codigo:c.codigo};
+  });
+  const res = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  if (!res.length) { dd.style.display='none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = res.slice(0,12).map(c =>
+    `<div onmousedown="selecionarCatConta('${c.nome}')"
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <span style="font-family:monospace;font-size:11px;color:var(--accent);margin-right:6px">${c.codigo||''}</span>
+      <strong>${c.nome}</strong>
+    </div>`
+  ).join('');
+}
+
+function selecionarCatConta(nome) {
+  document.getElementById('ct-cat-busca').value = nome;
+  document.getElementById('ct-categoria').value = nome;
+  document.getElementById('ct-cat-dd').style.display = 'none';
+}
+
 function buscarCatForn(tipo, texto) {
   const dd = document.getElementById(`forn-cat-${tipo}-dd`);
   if (!dd) return;
@@ -3959,23 +3994,33 @@ async function salvarConta() {
 }
 
 async function loadContasPagar() {
-  const mes = document.getElementById('cp-mes')?.value || '05';
+  const mes = document.getElementById('cp-mes')?.value || '';
   const ano = document.getElementById('cp-ano')?.value || '2026';
-  const status = document.getElementById('cp-status')?.value || '';
+  const statusFiltro = document.getElementById('cp-status')?.value || '';
   const hoje = new Date().toISOString().substring(0,10);
-  const ini = `${ano}-${mes}-01`;
-  const fim = `${ano}-${mes}-31`;
 
-  let q = sb.from('contas_pagar').select('*').gte('data_vencimento',ini).lte('data_vencimento',fim).order('data_vencimento');
+  let q = sb.from('contas_pagar').select('*').order('data_vencimento');
+  if (mes) {
+    q = q.gte('data_vencimento',`${ano}-${mes}-01`).lte('data_vencimento',`${ano}-${mes}-31`);
+  } else {
+    q = q.gte('data_vencimento',`${ano}-01-01`).lte('data_vencimento',`${ano}-12-31`);
+  }
+
   const { data: all } = await q;
-  const contas = all || [];
+  let contas = all || [];
 
-  // Métricas
+  // Filtra status no JS (atrasado é calculado)
+  if (statusFiltro === 'atrasado') {
+    contas = contas.filter(c => c.status === 'pendente' && c.data_vencimento < hoje);
+  } else if (statusFiltro) {
+    contas = contas.filter(c => c.status === statusFiltro);
+  }
+
+  const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
   const pendentes = contas.filter(c => c.status === 'pendente');
   const pagos = contas.filter(c => c.status === 'pago');
   const atrasados = contas.filter(c => c.status === 'pendente' && c.data_vencimento < hoje);
 
-  const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
   if (document.getElementById('cp-total')) {
     document.getElementById('cp-total').textContent = fmtBRL(soma(pendentes));
     document.getElementById('cp-pago').textContent = fmtBRL(soma(pagos));
@@ -4055,8 +4100,8 @@ function renderTabelaConta(targetId, contas, tipo, hoje) {
       <td style="padding:9px 12px;text-align:center"><span style="font-size:11px;font-weight:600;color:${statusColor}">${statusLabel}</span></td>
       <td style="padding:9px 12px;text-align:center;white-space:nowrap">
         <div style="display:flex;gap:4px;justify-content:center">
-          ${c.arquivo_url ? `<button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="verDocumento('${c.arquivo_url}','${c.descricao||''}')">📎</button>` : ''}
-          ${c.status !== 'pago' && c.status !== 'recebido' ? `<button class="btn btn-sm" style="padding:3px 7px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="darBaixa('${c.id}','${tipo}')">✓ Baixar</button>` : ''}
+          ${c.arquivo_url ? `<button class="btn btn-sm" style="padding:3px 7px;font-size:11px;background:var(--accent);color:#fff;border-color:var(--accent)" title="Ver documento" onclick="verDocumento('${c.arquivo_url}','${(c.descricao||'').replace(/'/g,'')}')">📎 Doc</button>` : ''}
+          ${c.status !== 'pago' && c.status !== 'recebido' ? `<button class="btn btn-sm" style="padding:3px 7px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="darBaixa('${c.id}','${tipo}')">✓</button>` : ''}
           <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="editarConta('${c.id}','${tipo}')">✏️</button>
           <button class="btn btn-sm" style="padding:3px 7px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="excluirConta('${c.id}','${tipo}')">🗑️</button>
         </div>
