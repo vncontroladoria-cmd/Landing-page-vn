@@ -3262,209 +3262,196 @@ function renderConciliacao() {
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const mesNome = meses[parseInt(m)-1]?.toUpperCase() || '';
 
-  // Detecta repetidos — agrupa por extrato
+  // Conta repetidos
   const contagem = {};
   _concRows.forEach(r => { contagem[r.extrato] = (contagem[r.extrato]||0) + 1; });
 
+  // Monta sugestões por extrato (memória)
+  const sugestoes = {};
+  _categorias.forEach(c => { /* usa fornecedores para sugestão */ });
+
+  let pendentes = _concRows.filter(r => !r._concluido).length;
+
   let html = `
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-    <div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding:12px 16px;background:var(--bg3);border-radius:10px">
+    <div style="font-size:13px">
       <strong>${_concRows.length}</strong> lançamentos de <strong>${_concBancoNome}</strong>
-      <span style="font-size:12px;color:var(--text2);margin-left:8px">${_concFile?.name}</span>
+      &nbsp;·&nbsp; <span id="conc-pendentes-count" style="color:var(--amber)">${pendentes} pendentes</span>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="conciliarRepetidos()" style="border-color:var(--accent);color:var(--accent)">⚡ Conciliar repetidos</button>
-      <button class="btn btn-primary" onclick="concluirConciliacao()">✓ Concluir e salvar todos</button>
+      <button class="btn" onclick="aprovarTodos()" style="border-color:var(--accent);color:var(--accent)">⚡ Aprovar todos reconhecidos</button>
+      <button class="btn btn-primary" onclick="concluirTodos()">✓ Concluir todos e salvar</button>
     </div>
-  </div>`;
+  </div>
+  <div id="conc-lista">`;
 
   _concRows.forEach((r, idx) => {
-    // Reconhece fornecedor
+    // Reconhece por fornecedor cadastrado
     const match = _fornecedores.find(f =>
       (f.palavra_chave && r.extrato.toLowerCase().includes(f.palavra_chave.toLowerCase())) ||
-      (f.nome && r.extrato.toLowerCase().includes(f.nome.toLowerCase().substring(0, 5)))
+      (f.nome && r.extrato.toLowerCase().includes(f.nome.toLowerCase().substring(0,5)))
     );
     const catDfc = match?.categoria_dfc || '';
     const catDre = match?.categoria_dre || '';
     const catNome = catDfc || catDre || '';
-    const reconhecido = !!match;
-    const qtdRepetidos = contagem[r.extrato] || 1;
+    const temSugestao = !!match;
     const tipo = r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
+    const qtdRep = contagem[r.extrato] || 1;
 
-    // Guarda dados no objeto para concluir depois
     r._catDfc = catDfc; r._catDre = catDre; r._catNome = catNome;
     r._mes = mesNome; r._tipo = tipo; r._concluido = false;
 
-    html += `<div class="card" id="conc-card-${idx}" style="margin-bottom:10px;border-left:4px solid ${tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
-      <div style="display:flex;gap:16px;align-items:flex-start">
-        <!-- LADO ESQUERDO: dados do extrato -->
-        <div style="min-width:200px">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:2px">${fmtDate(r.data)}</div>
-          <div style="font-size:13px;font-weight:600;margin-bottom:4px">${r.extrato}</div>
-          <div style="font-size:15px;font-weight:700;color:${tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
-            ${tipo==='ENTRADA'?'+':'-'} ${fmtBRL(r.entrada||r.saida)}
+    html += `
+    <div class="card" id="conc-card-${idx}" style="margin-bottom:8px;border-left:4px solid ${tipo==='ENTRADA'?'var(--green)':'var(--red)'};padding:12px 16px">
+      <div style="display:flex;gap:12px;align-items:center">
+
+        <!-- DATA E VALOR -->
+        <div style="min-width:110px">
+          <div style="font-size:11px;color:var(--text2)">${fmtDate(r.data)}</div>
+          <div style="font-size:16px;font-weight:700;color:${tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
+            ${tipo==='ENTRADA'?'+':'-'}${fmtBRL(r.entrada||r.saida)}
           </div>
-          ${qtdRepetidos > 1 ? `<div style="margin-top:6px"><span style="background:#fef3c7;color:#92400e;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600">⚠ ${qtdRepetidos}x repetido</span></div>` : ''}
         </div>
 
-        <!-- LADO DIREITO: classificação -->
-        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-          <div class="form-group" style="margin:0">
-            <label style="font-size:10px">Categoria</label>
-            <input type="text" value="${catNome}" id="conc-cat-${idx}"
-              placeholder="Buscar categoria..."
-              oninput="buscaCatConc(this.value, ${idx})"
-              style="font-size:12px;${reconhecido?'border-color:var(--green)':''}">
-            <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
-            <input type="hidden" id="conc-cat-dre-${idx}" value="${catDre}">
-            <div id="conc-cat-dd-${idx}" style="display:none;position:absolute;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:200;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
-          </div>
-          <div class="form-group" style="margin:0">
-            <label style="font-size:10px">Descrição (opcional)</label>
-            <input type="text" id="conc-desc-${idx}" placeholder="Sua anotação" style="font-size:12px">
-          </div>
-          <div style="display:flex;align-items:flex-end;gap:6px">
-            ${reconhecido ? `<span style="font-size:11px;color:var(--green);background:#f0fdf4;padding:4px 8px;border-radius:6px">✓ ${match.nome}</span>` : ''}
-            ${qtdRepetidos > 1 ? `<button class="btn btn-sm" style="font-size:11px;color:var(--accent);border-color:var(--accent)" onclick="aplicarIgual(${idx})">Aplicar a todos iguais</button>` : ''}
-          </div>
+        <!-- EXTRATO -->
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.extrato}</div>
+          ${qtdRep > 1 ? `<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:10px">⚠ ${qtdRep}x repetido</span>` : ''}
         </div>
+
+        <!-- CATEGORIA COM BUSCA -->
+        <div style="min-width:220px;position:relative">
+          ${temSugestao ? `
+          <div id="sug-${idx}" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;background:#f0fdf4;border:1px solid var(--green);border-radius:6px;padding:5px 10px;cursor:pointer" onclick="aprovarSugestao(${idx})">
+            <span style="font-size:14px">💡</span>
+            <span style="font-size:11px;color:var(--green);font-weight:600">${catNome}</span>
+            <span style="font-size:10px;color:var(--text2)">via ${match.nome}</span>
+            <span style="margin-left:auto;font-size:10px;background:var(--green);color:#fff;padding:2px 6px;border-radius:10px">Aprovar</span>
+          </div>` : ''}
+          <input type="text" id="conc-cat-${idx}" placeholder="Buscar categoria..."
+            value="${catNome}"
+            oninput="buscaCatConc(this.value,${idx})"
+            style="width:100%;font-size:12px;${temSugestao?'border-color:var(--green)':''}">
+          <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
+          <input type="hidden" id="conc-cat-dre-${idx}" value="${catDre}">
+          <div id="conc-cat-dd-${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+        </div>
+
+        <!-- DESCRIÇÃO -->
+        <div style="min-width:140px">
+          <input type="text" id="conc-desc-${idx}" placeholder="Anotação (opcional)" style="width:100%;font-size:12px">
+        </div>
+
+        <!-- AÇÕES -->
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:100px">
+          <button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green);font-size:11px;font-weight:600" onclick="conciliarLinha(${idx})">
+            ✓ Conciliar
+          </button>
+          ${qtdRep > 1 ? `<button class="btn btn-sm" style="font-size:10px;color:var(--accent);border-color:var(--accent)" onclick="aplicarIgual(${idx})">Replicar</button>` : ''}
+        </div>
+
       </div>
     </div>`;
   });
 
-  html += `<div style="display:flex;justify-content:flex-end;margin-top:1rem">
-    <button class="btn btn-primary" style="padding:12px 24px;font-size:14px" onclick="concluirConciliacao()">✓ Concluir e salvar todos</button>
-  </div>`;
-
+  html += `</div>`;
   container.innerHTML = html;
 }
 
-function buscaCatConc(texto, idx) {
-  const dd = document.getElementById(`conc-cat-dd-${idx}`);
-  if (!dd) return;
-  const termo = texto.toLowerCase();
-  const resultados = Object.values((() => {
-    const map = {};
-    _categorias.forEach(c => {
-      if (!map[c.nome]) map[c.nome] = {nome:c.nome, dfc:null, dre:null};
-      if (c.demonstrativo==='DFC') map[c.nome].dfc = c.codigo;
-      if (c.demonstrativo==='DRE') map[c.nome].dre = c.codigo;
-    });
-    return map;
-  })()).filter(c => !termo || c.nome.toLowerCase().includes(termo));
-
-  if (!resultados.length || !texto) { dd.style.display='none'; return; }
-  dd.style.display = 'block';
-  dd.style.position = 'absolute';
-  dd.innerHTML = resultados.map(c => {
-    const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
-    return `<div onclick="selecionarCatConc('${c.nome}','${c.dfc||''}','${c.dre||''}',${idx})"
-      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
-      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-      <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:11px">${refs}</span>
-    </div>`;
-  }).join('');
+function aprovarSugestao(idx) {
+  // Sugestão já está preenchida — só esconde o card de sugestão e marca como aprovado
+  const sug = document.getElementById(`sug-${idx}`);
+  if (sug) {
+    sug.style.background = '#dcfce7';
+    sug.innerHTML = '<span style="font-size:11px;color:var(--green)">✓ Sugestão aprovada</span>';
+  }
 }
 
-function selecionarCatConc(nome, dfc, dre, idx) {
-  document.getElementById(`conc-cat-${idx}`).value = nome;
-  document.getElementById(`conc-cat-dfc-${idx}`).value = dfc;
-  document.getElementById(`conc-cat-dre-${idx}`).value = dre;
-  document.getElementById(`conc-cat-dd-${idx}`).style.display = 'none';
-  _concRows[idx]._catNome = nome;
-  _concRows[idx]._catDfc = dfc;
-  _concRows[idx]._catDre = dre;
-}
-
-function aplicarIgual(idx) {
-  const extrato = _concRows[idx].extrato;
-  const catNome = document.getElementById(`conc-cat-${idx}`).value;
-  const catDfc = document.getElementById(`conc-cat-dfc-${idx}`).value;
-  const catDre = document.getElementById(`conc-cat-dre-${idx}`).value;
-  const desc = document.getElementById(`conc-desc-${idx}`).value;
+function aprovarTodos() {
   let count = 0;
-  _concRows.forEach((r, i) => {
-    if (r.extrato === extrato && i !== idx) {
-      document.getElementById(`conc-cat-${i}`).value = catNome;
-      document.getElementById(`conc-cat-dfc-${i}`).value = catDfc;
-      document.getElementById(`conc-cat-dre-${i}`).value = catDre;
-      if (desc) document.getElementById(`conc-desc-${i}`).value = desc;
-      r._catNome = catNome; r._catDfc = catDfc; r._catDre = catDre;
+  _concRows.forEach((r, idx) => {
+    if (r._catNome && !r._concluido) {
+      aprovarSugestao(idx);
       count++;
     }
   });
-  showToast(`Aplicado em mais ${count} lançamentos iguais!`, 'success');
+  showToast(`${count} sugestões aprovadas!`, 'success');
 }
 
-function conciliarRepetidos() {
-  // Pega o primeiro de cada grupo e aplica a todos os iguais
-  const vistos = new Set();
-  _concRows.forEach((r, idx) => {
-    if (!vistos.has(r.extrato) && r._catNome) {
-      vistos.add(r.extrato);
-      aplicarIgual(idx);
-    }
-  });
-  showToast('Repetidos conciliados!', 'success');
-}
+async function conciliarLinha(idx) {
+  const r = _concRows[idx];
+  if (r._concluido) return;
 
-async function concluirConciliacao() {
+  const catNome = document.getElementById(`conc-cat-${idx}`)?.value || '';
+  const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
+  const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
+  const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
+  const tipo = r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
   const mes = document.getElementById('lanc-mes')?.value || new Date().toISOString().substring(0,7);
   const [ano, m] = mes.split('-');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const mesNome = meses[parseInt(m)-1]?.toUpperCase() || '';
   const agora = new Date().toISOString();
   const usuario = (await sb.auth.getUser())?.data?.user?.email || 'sistema';
 
-  const container = document.getElementById('conc-container');
-  container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text2)">
-    <div class="spin" style="margin:0 auto 12px"></div>
-    Salvando ${_concRows.length} lançamentos...
-  </div>`;
+  // Conta quantos já foram salvos para gerar código sequencial
+  const { count: total } = await sb.from('lancamentos').select('*', {count:'exact',head:true});
+  const codigo = `${ano}${m.padStart(2,'0')}${String((total||0)+1).padStart(4,'0')}`;
 
-  let count = 0, erros = 0;
-  for (let idx = 0; idx < _concRows.length; idx++) {
-    const r = _concRows[idx];
-    const catNome = document.getElementById(`conc-cat-${idx}`)?.value || r._catNome || '';
-    const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || r._catDfc || '';
-    const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || r._catDre || '';
-    const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
-    const tipo = r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
+  const { error } = await sb.from('lancamentos').insert({
+    codigo,
+    data_lancamento: r.data,
+    extrato: r.extrato,
+    descricao: desc,
+    entrada: r.entrada || null,
+    saida: r.saida || null,
+    valor: r.entrada || r.saida,
+    tipo,
+    categoria: catNome,
+    categoria_dfc: catDfc,
+    categoria_dre: catDre,
+    banco_id: _concBancoId || null,
+    banco_nome: _concBancoNome,
+    mes: meses[parseInt(m)-1]?.toUpperCase(),
+    status: 'pago',
+    conciliado: true,
+    origem: 'importacao',
+    origem_arquivo: _concFile?.name || '',
+    criado_por: usuario,
+    criado_em: agora,
+  });
 
-    // Gera código automático: ANO-MES-SEQUENCIA
-    const codigo = `${ano}${m.padStart(2,'0')}${String(idx+1).padStart(4,'0')}`;
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
 
-    const { error } = await sb.from('lancamentos').insert({
-      codigo,
-      data_lancamento: r.data,
-      extrato: r.extrato,
-      descricao: desc,
-      entrada: r.entrada || null,
-      saida: r.saida || null,
-      valor: r.entrada || r.saida,
-      tipo,
-      categoria: catNome,
-      categoria_dfc: catDfc,
-      categoria_dre: catDre,
-      banco_id: _concBancoId || null,
-      banco_nome: _concBancoNome,
-      mes: mesNome,
-      status: 'pago',
-      conciliado: true,
-      origem: 'importacao',
-      origem_arquivo: _concFile?.name || '',
-      criado_por: usuario,
-      criado_em: agora,
-    });
-    if (error) erros++; else count++;
+  // Marca linha como conciliada visualmente
+  r._concluido = true;
+  const card = document.getElementById(`conc-card-${idx}`);
+  if (card) {
+    card.style.opacity = '0.5';
+    card.style.borderLeftColor = '#94a3b8';
+    card.querySelector('button').textContent = '✓ Conciliado';
+    card.querySelector('button').disabled = true;
+    card.querySelector('button').style.background = '#94a3b8';
+    card.querySelector('button').style.borderColor = '#94a3b8';
   }
 
-  showToast(`✓ ${count} lançamentos salvos${erros ? ` (${erros} erros)` : ''}!`, 'success');
-  _concRows = [];
+  // Atualiza contador
+  const pendentes = _concRows.filter(r => !r._concluido).length;
+  const el = document.getElementById('conc-pendentes-count');
+  if (el) el.textContent = `${pendentes} pendentes`;
+
+  showToast('✓ Lançamento conciliado!', 'success');
+}
+
+async function concluirTodos() {
+  // Concilia todos os pendentes de uma vez
+  for (let i = 0; i < _concRows.length; i++) {
+    if (!_concRows[i]._concluido) await conciliarLinha(i);
+  }
+  const container = document.getElementById('conc-container');
   container.innerHTML = `<div class="card" style="text-align:center;padding:2rem">
     <div style="font-size:32px;margin-bottom:8px">✅</div>
-    <div style="font-size:16px;font-weight:600;margin-bottom:4px">${count} lançamentos conciliados!</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem">Importado de: ${_concFile?.name}</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:4px">Todos os lançamentos conciliados!</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem">${_concFile?.name}</div>
     <button class="btn btn-primary" onclick="abrirModalConciliacao()">Importar outro extrato</button>
     <button class="btn" onclick="showPage('lancamentos')" style="margin-left:8px">Ver lançamentos</button>
   </div>`;
