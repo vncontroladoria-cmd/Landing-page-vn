@@ -1713,13 +1713,16 @@ async function loadLancamentos() {
           ${!l.categoria && !l.categoria_dfc && !l.categoria_dre ? '—' : ''}
         </span>
         <div class="cell-edit" style="display:none;position:relative">
-          <input type="text" id="lcat-${l.id}" value="${l.categoria||''}" placeholder="Buscar categoria..."
-            oninput="buscaCatInline(this.value,'${l.id}')" onfocus="buscaCatInline(this.value,'${l.id}')"
+          <input type="text" id="lcat-${l.id}" value="${l.categoria||''}" placeholder="Digite ou clique para buscar..."
+            oninput="buscaCatInline(this.value,'${l.id}')"
+            onfocus="buscaCatInline(this.value,'${l.id}')"
+            onclick="buscaCatInline(this.value,'${l.id}')"
             onblur="setTimeout(()=>{const d=document.getElementById('lcat-dd-${l.id}');if(d)d.style.display='none'},200)"
-            style="width:180px;font-size:11px">
+            style="width:200px;font-size:11px;border:1.5px solid ${!l.categoria?'var(--red)':'var(--border)'}"
+            autocomplete="off">
           <input type="hidden" id="lcat-dfc-${l.id}" value="${l.categoria_dfc||''}">
           <input type="hidden" id="lcat-dre-${l.id}" value="${l.categoria_dre||''}">
-          <div id="lcat-dd-${l.id}" style="display:none;position:absolute;top:100%;left:0;width:220px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:160px;overflow-y:auto;z-index:400;box-shadow:0 4px 12px rgba(0,0,0,0.15)"></div>
+          <div id="lcat-dd-${l.id}" style="display:none;position:absolute;top:100%;left:0;width:240px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,0.15)"></div>
         </div>
       </td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2)">
@@ -3429,13 +3432,20 @@ function toggleInline(rowId) {
   views.forEach(v => v.style.display = editing ? '' : 'none');
   edits.forEach(e => {
     e.style.display = editing ? 'none' : (e.tagName === 'DIV' ? 'block' : '');
-    // Foca no input dentro do div de categoria
-    if (!editing && e.tagName === 'DIV') {
-      const inp = e.querySelector('input[type="text"]');
-      if (inp) setTimeout(() => inp.focus(), 50);
-    }
   });
   if (btnSave) btnSave.style.display = editing ? 'none' : '';
+
+  // Ao abrir edição: se categoria vazia, foca e abre dropdown automaticamente
+  if (!editing) {
+    const lancId = rowId.replace('lr-', '');
+    const catInput = document.getElementById(`lcat-${lancId}`);
+    if (catInput) {
+      setTimeout(() => {
+        catInput.focus();
+        buscaCatInline(catInput.value, lancId);
+      }, 80);
+    }
+  }
 }
 
 
@@ -3979,21 +3989,25 @@ function buscaCatInline(texto, lancId) {
   const dd = document.getElementById(`lcat-dd-${lancId}`);
   if (!dd) return;
   const termo = (texto||'').toLowerCase().trim();
+
   const map = {};
   _categorias.forEach(c => {
     if (!map[c.nome]) map[c.nome] = {nome:c.nome,dfc:null,dre:null};
     if (c.demonstrativo==='DFC') map[c.nome].dfc = c.codigo;
     if (c.demonstrativo==='DRE') map[c.nome].dre = c.codigo;
   });
+
+  // Mostra todas se vazio, ou filtra pelo termo
   const res = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
   if (!res.length) { dd.style.display='none'; return; }
+
   dd.style.display = 'block';
-  dd.innerHTML = res.slice(0,10).map(c => {
+  dd.innerHTML = res.slice(0, 15).map(c => {
     const refs = [c.dfc?`DFC:${c.dfc}`:null,c.dre?`DRE:${c.dre}`:null].filter(Boolean).join('/');
     return `<div onmousedown="selecionarCatInline('${lancId}','${c.nome}','${c.dfc||''}','${c.dre||''}')"
-      style="padding:7px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)"
+      style="padding:8px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)"
       onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-      <strong>${c.nome}</strong> <span style="color:var(--text3)">${refs}</span>
+      <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:10px">${refs}</span>
     </div>`;
   }).join('');
 }
