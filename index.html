@@ -3655,10 +3655,33 @@ async function atualizarLancamentos() {
 }
 
 async function atualizarFornecedores() {
-  await carregarCatsFornecedor(); // rebusca categorias
-  const { data } = await sb.from('fornecedores').select('*');
-  _fornecedores = data || [];
-  await loadFornecedores();
+  const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
+  _categorias = cats || [];
+  const { data: forns } = await sb.from('fornecedores').select('*').order('nome');
+  _fornecedores = forns || [];
+  const el = document.getElementById('forn-table');
+  if (!el) { showToast('Página não encontrada','error'); return; }
+  if (!forns?.length) { el.innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
+  let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody>';
+  forns.forEach(r => {
+    html += `<tr id="forn-row-${r.id}">
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
+      <td style="font-weight:500">${r.nome||''}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
+      <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${r.categoria_dfc||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.categoria_dre||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.palavra_chave||'—'}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="editarFornecedorForm('${r.id}')">✏️ Editar</button>
+        <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirFornecedor('${r.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+  aplicarSort(el);
+  showToast('Atualizado!','success');
 }
 
 async function atualizarPlanoContas() {
