@@ -1470,7 +1470,7 @@ async function initLancamentos() {
     selBancoFilter.innerHTML = '<option value="">Todos os bancos</option>' + _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
   }
 
-  // Carrega categorias agrupando DFC+DRE pelo nome
+  // Sempre busca categorias frescas do banco
   const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
   _categorias = cats || [];
 
@@ -2500,10 +2500,9 @@ function toggleFormFornecedor() {
 }
 
 async function carregarCatsFornecedor() {
-  if (!_categorias.length) {
-    const { data } = await sb.from('plano_contas').select('*').order('codigo');
-    _categorias = data || [];
-  }
+  // Sempre busca do banco — nunca usa cache
+  const { data } = await sb.from('plano_contas').select('*').order('codigo');
+  _categorias = data || [];
 }
 
 function buscarCatForn(tipo, texto) {
