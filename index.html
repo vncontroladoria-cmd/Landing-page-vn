@@ -3428,14 +3428,21 @@ function toggleInline(rowId) {
   const views = row.querySelectorAll('.cell-view');
   const edits = row.querySelectorAll('.cell-edit');
   const btnSave = row.querySelector('.btn-save-inline');
-  const editing = edits[0] && edits[0].style.display !== 'none';
+  
+  // Verifica estado atual pelo primeiro elemento
+  const editing = [...edits].some(e => e.style.display !== 'none' && e.style.display !== '');
+  
   views.forEach(v => v.style.display = editing ? '' : 'none');
   edits.forEach(e => {
-    e.style.display = editing ? 'none' : (e.tagName === 'DIV' ? 'block' : '');
+    if (editing) {
+      e.style.display = 'none';
+    } else {
+      // div usa block, outros usam inline-block/vazio
+      e.style.display = e.tagName === 'DIV' ? 'block' : '';
+    }
   });
   if (btnSave) btnSave.style.display = editing ? 'none' : '';
 
-  // Ao abrir edição: se categoria vazia, foca e abre dropdown automaticamente
   if (!editing) {
     const lancId = rowId.replace('lr-', '');
     const catInput = document.getElementById(`lcat-${lancId}`);
@@ -3443,7 +3450,7 @@ function toggleInline(rowId) {
       setTimeout(() => {
         catInput.focus();
         buscaCatInline(catInput.value, lancId);
-      }, 80);
+      }, 100);
     }
   }
 }
