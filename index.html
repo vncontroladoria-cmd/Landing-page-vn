@@ -618,12 +618,22 @@ tbody tr:hover { background: var(--bg3); }
             <div class="metric-card"><div class="metric-label">Lançamentos</div><div class="metric-val" id="lanc-count">—</div></div>
           </div>
 
+          <!-- BARRA DE SELEÇÃO -->
+          <div id="lanc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin-bottom:10px;display:none;align-items:center;gap:12px">
+            <span id="lanc-sel-count" style="font-size:13px;font-weight:600;color:#92400e">0 selecionados</span>
+            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionados()">🗑️ Excluir selecionados</button>
+            <button class="btn btn-sm" onclick="limparSelecao()">✕ Cancelar</button>
+          </div>
+
           <!-- TABELA DE LANÇAMENTOS -->
           <div class="card" style="padding:0;overflow:hidden">
             <div style="overflow-x:auto">
               <table id="lanc-main-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:1100px">
                 <thead>
                   <tr style="background:var(--bg3)">
+                    <th style="padding:10px 12px;border-bottom:1.5px solid var(--border);width:36px">
+                      <input type="checkbox" id="lanc-check-all" onchange="selecionarTodosLanc(this.checked)" style="cursor:pointer;width:15px;height:15px">
+                    </th>
                     <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DATA</th>
                     <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">EXTRATO</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--green);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">ENTRADA</th>
@@ -637,7 +647,7 @@ tbody tr:hover { background: var(--bg3); }
                   </tr>
                 </thead>
                 <tbody id="lanc-tbody">
-                  <tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>
+                  <tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -1569,6 +1579,9 @@ async function loadLancamentos() {
     const mesNome = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(l.data_lancamento?.substring(5,7))-1] || '';
     const bancoNome = _bancos.find(b=>b.id===l.banco_id)?.nome || l.banco_nome || '—';
     html += `<tr id="lr-${l.id}" style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px">
+        <input type="checkbox" class="lanc-check" data-id="${l.id}" onchange="atualizarSelecao()" style="cursor:pointer;width:15px;height:15px">
+      </td>
       <td style="padding:9px 12px;white-space:nowrap;color:var(--text2);font-size:12px">
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">${l.codigo||''}</div>
         <span class="cell-view">${fmtDate(l.data_lancamento)}</span>
@@ -3464,15 +3477,17 @@ function aprovarSugestao(idx) {
   }
 }
 
-function aprovarTodos() {
-  let count = 0;
-  _concRows.forEach((r, idx) => {
-    if (r._catNome && !r._concluido) {
-      aprovarSugestao(idx);
-      count++;
-    }
-  });
-  showToast(`${count} sugestões aprovadas!`, 'success');
+async function aprovarTodos() {
+  const total = _concRows.length;
+  if (!total) return;
+
+  const container = document.getElementById('conc-container');
+  container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text2)">
+    <div class="spin" style="margin:0 auto 12px"></div>
+    Salvando ${total} lançamentos...
+  </div>`;
+
+  await concluirTodos();
 }
 
 async function conciliarLinha(idx) {
@@ -3540,18 +3555,14 @@ async function conciliarLinha(idx) {
 }
 
 async function concluirTodos() {
-  // Concilia todos os pendentes de uma vez
   for (let i = 0; i < _concRows.length; i++) {
     if (!_concRows[i]._concluido) await conciliarLinha(i);
   }
-  const container = document.getElementById('conc-container');
-  container.innerHTML = `<div class="card" style="text-align:center;padding:2rem">
-    <div style="font-size:32px;margin-bottom:8px">✅</div>
-    <div style="font-size:16px;font-weight:600;margin-bottom:4px">Todos os lançamentos conciliados!</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:1rem">${_concFile?.name}</div>
-    <button class="btn btn-primary" onclick="abrirModalConciliacao()">Importar outro extrato</button>
-    <button class="btn" onclick="showPage('lancamentos')" style="margin-left:8px">Ver lançamentos</button>
-  </div>`;
+  showToast(`✓ ${_concRows.filter(r=>r._concluido).length} lançamentos salvos!`, 'success');
+  _concRows = [];
+  // Vai direto para lançamentos
+  const navLanc = document.querySelector('[onclick*="lancamentos"]');
+  showPage('lancamentos', navLanc);
 }
 
 // Auditoria — mostra de onde veio o lançamento
@@ -3652,6 +3663,42 @@ function aplicarIgual(idx) {
     }
   });
   showToast(`Aplicado em mais ${count} iguais!`, 'success');
+}
+
+function selecionarTodosLanc(checked) {
+  document.querySelectorAll('.lanc-check').forEach(cb => cb.checked = checked);
+  atualizarSelecao();
+}
+
+function atualizarSelecao() {
+  const selecionados = document.querySelectorAll('.lanc-check:checked');
+  const bar = document.getElementById('lanc-selecao-bar');
+  const count = document.getElementById('lanc-sel-count');
+  if (selecionados.length > 0) {
+    bar.style.display = 'flex';
+    count.textContent = `${selecionados.length} selecionado${selecionados.length > 1 ? 's' : ''}`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function limparSelecao() {
+  document.querySelectorAll('.lanc-check').forEach(cb => cb.checked = false);
+  const all = document.getElementById('lanc-check-all');
+  if (all) all.checked = false;
+  document.getElementById('lanc-selecao-bar').style.display = 'none';
+}
+
+async function excluirSelecionados() {
+  const selecionados = Array.from(document.querySelectorAll('.lanc-check:checked')).map(cb => cb.dataset.id);
+  if (!selecionados.length) return;
+  if (!confirm(`Excluir ${selecionados.length} lançamento${selecionados.length > 1 ? 's' : ''}?`)) return;
+  for (const id of selecionados) {
+    await sb.from('lancamentos').delete().eq('id', id);
+  }
+  showToast(`${selecionados.length} lançamentos excluídos!`, 'success');
+  limparSelecao();
+  loadLancamentos();
 }
 
 // ─── ATUALIZAR PÁGINAS ───────────────────────────────────
