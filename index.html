@@ -842,16 +842,22 @@ tbody tr:hover { background: var(--bg3); }
             <div style="border-top:1.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
               <div style="font-size:13px;font-weight:600;margin-bottom:0.75rem;color:var(--accent)">🔗 Reconhecimento automático</div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-                <div class="form-group"><label>Palavra-chave no extrato</label><input type="text" id="forn-palavra-chave" placeholder="Ex: SABESP, CEMIG, ALUGUEL"></div>
-                <div class="form-group"><label>Categoria DFC</label>
-                  <select id="forn-cat-dfc">
-                    <option value="">Selecione...</option>
-                  </select>
+                <div class="form-group"><label>Palavra-chave no extrato</label><input type="text" id="forn-palavra-chave" placeholder="Ex: CEMIG, ALUGUEL, PIX"></div>
+                
+                <div class="form-group" style="position:relative">
+                  <label>Categoria DFC</label>
+                  <input type="text" id="forn-cat-dfc-busca" placeholder="Digite para buscar..." autocomplete="off"
+                    oninput="buscarCatForn('dfc',this.value)" onfocus="buscarCatForn('dfc',this.value)">
+                  <input type="hidden" id="forn-cat-dfc">
+                  <div id="forn-cat-dfc-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
                 </div>
-                <div class="form-group"><label>Categoria DRE</label>
-                  <select id="forn-cat-dre">
-                    <option value="">Selecione...</option>
-                  </select>
+
+                <div class="form-group" style="position:relative">
+                  <label>Categoria DRE</label>
+                  <input type="text" id="forn-cat-dre-busca" placeholder="Digite para buscar..." autocomplete="off"
+                    oninput="buscarCatForn('dre',this.value)" onfocus="buscarCatForn('dre',this.value)">
+                  <input type="hidden" id="forn-cat-dre">
+                  <div id="forn-cat-dre-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
                 </div>
               </div>
             </div>
@@ -2484,12 +2490,59 @@ function toggleFormFornecedor() {
 }
 
 async function carregarCatsFornecedor() {
-  const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
-  const opts = '<option value="">Selecione...</option>' + (cats||[]).map(c => `<option value="${c.nome}">${c.codigo} — ${c.nome} (${c.demonstrativo})</option>`).join('');
-  const dfc = document.getElementById('forn-cat-dfc');
-  const dre = document.getElementById('forn-cat-dre');
-  if (dfc) dfc.innerHTML = opts;
-  if (dre) dre.innerHTML = opts;
+  if (!_categorias.length) {
+    const { data } = await sb.from('plano_contas').select('*').order('codigo');
+    _categorias = data || [];
+  }
+}
+
+function buscarCatForn(tipo, texto) {
+  const dd = document.getElementById(`forn-cat-${tipo}-dd`);
+  if (!dd) return;
+  const termo = texto.toLowerCase().trim();
+  // Filtra por demonstrativo
+  const cats = _categorias.filter(c =>
+    c.demonstrativo === tipo.toUpperCase() &&
+    (!termo || c.nome.toLowerCase().includes(termo))
+  );
+  if (!cats.length) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = cats.slice(0,12).map(c =>
+    `<div onmousedown="selecionarCatForn('${tipo}','${c.nome}','${c.codigo}')"
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <span style="font-family:monospace;font-size:11px;color:var(--accent)">${c.codigo}</span>
+      &nbsp;<strong>${c.nome}</strong>
+    </div>`
+  ).join('');
+}
+
+function selecionarCatForn(tipo, nome, codigo) {
+  document.getElementById(`forn-cat-${tipo}-busca`).value = `${codigo} — ${nome}`;
+  document.getElementById(`forn-cat-${tipo}`).value = nome;
+  document.getElementById(`forn-cat-${tipo}-dd`).style.display = 'none';
+}
+
+async function editarFornecedorForm(id) {
+  const { data: f } = await sb.from('fornecedores').select('*').eq('id', id).single();
+  if (!f) return;
+  await carregarCatsFornecedor();
+  document.getElementById('forn-nome').value = f.nome || '';
+  document.getElementById('forn-cnpj').value = f.cnpj || '';
+  document.getElementById('forn-tipo-pessoa').value = f.tipo || 'Fornecedor';
+  document.getElementById('forn-email').value = f.email || '';
+  document.getElementById('forn-telefone').value = f.telefone || '';
+  document.getElementById('forn-contato').value = f.contato || '';
+  document.getElementById('forn-obs').value = f.observacao || '';
+  document.getElementById('forn-palavra-chave').value = f.palavra_chave || '';
+  document.getElementById('forn-cat-dfc-busca').value = f.categoria_dfc || '';
+  document.getElementById('forn-cat-dfc').value = f.categoria_dfc || '';
+  document.getElementById('forn-cat-dre-busca').value = f.categoria_dre || '';
+  document.getElementById('forn-cat-dre').value = f.categoria_dre || '';
+  document.getElementById('forn-codigo').value = id;
+  const el = document.getElementById('form-fornecedor');
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth' });
 }
 
 // ─── FORNECEDORES ─────────────────────────────────────
@@ -2498,23 +2551,18 @@ async function loadFornecedores() {
   if (!el) return;
   const { data } = await sb.from('fornecedores').select('*').order('nome');
   if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
-  let html = '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>E-mail</th><th>Contato</th><th>Ações</th></tr></thead><tbody>';
+  let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(r => {
     html += `<tr id="forn-row-${r.id}">
-      <td><span class="cell-view" style="font-weight:500">${r.nome||''}</span><input class="cell-edit" style="display:none;width:100%" value="${r.nome||''}"></td>
-      <td><span class="cell-view" style="font-size:12px">${r.cnpj||'—'}</span><input class="cell-edit" style="display:none;width:100%" value="${r.cnpj||''}"></td>
-      <td><span class="cell-view"><span class="badge badge-blue">${r.tipo||'—'}</span></span>
-        <select class="cell-edit" style="display:none">
-          <option ${r.tipo==='Fornecedor'?'selected':''}>Fornecedor</option>
-          <option ${r.tipo==='Cliente'?'selected':''}>Cliente</option>
-          <option ${r.tipo==='Cliente e Fornecedor'?'selected':''}>Cliente e Fornecedor</option>
-        </select>
-      </td>
-      <td><span class="cell-view" style="font-size:12px">${r.email||'—'}</span><input class="cell-edit" style="display:none;width:100%" value="${r.email||''}"></td>
-      <td><span class="cell-view" style="font-size:12px">${r.contato||'—'}</span><input class="cell-edit" style="display:none;width:100%" value="${r.contato||''}"></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
+      <td style="font-weight:500">${r.nome||''}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
+      <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${r.categoria_dfc||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.categoria_dre||'—'}</td>
+      <td style="font-size:12px;color:var(--text2)">${r.palavra_chave||'—'}</td>
       <td style="display:flex;gap:6px">
-        <button class="btn btn-sm" onclick="toggleInline('forn-row-${r.id}')">✏️ Editar</button>
-        <button class="btn btn-sm btn-save-inline" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarFornecedorInline('${r.id}','forn-row-${r.id}')">💾 Salvar</button>
+        <button class="btn btn-sm" onclick="editarFornecedorForm('${r.id}')">✏️ Editar</button>
         <button class="btn btn-sm" style="color:var(--red);border-color:var(--red)" onclick="excluirFornecedor('${r.id}')">🗑️</button>
       </td>
     </tr>`;
@@ -2619,6 +2667,15 @@ async function saveFornecedor() {
       return;
     }
   }
+  const isNovo = !id || id.includes('Auto') || id === '';
+
+  // Gera código automático para novo fornecedor
+  let codigo = undefined;
+  if (isNovo) {
+    const { count } = await sb.from('fornecedores').select('*', {count:'exact',head:true});
+    codigo = `F${String((count||0)+1).padStart(4,'0')}`;
+  }
+
   const payload = {
     nome,
     cnpj: document.getElementById('forn-cnpj').value,
@@ -2630,9 +2687,11 @@ async function saveFornecedor() {
     categoria_dfc: document.getElementById('forn-cat-dfc')?.value || '',
     categoria_dre: document.getElementById('forn-cat-dre')?.value || '',
   };
-  const { error } = id && !id.includes('Auto')
-    ? await sb.from('fornecedores').update(payload).eq('id', id)
-    : await sb.from('fornecedores').insert(payload);
+  if (codigo) payload.codigo = codigo;
+
+  const { error } = isNovo
+    ? await sb.from('fornecedores').insert(payload)
+    : await sb.from('fornecedores').update(payload).eq('id', id);
   if (error) { showToast('Erro ao salvar','error'); return; }
   showToast('Fornecedor salvo!','success');
   toggleFormFornecedor();
