@@ -1819,8 +1819,9 @@ function reconhecerFornecedor(texto) {
   const el = document.getElementById('nl-reconhecido');
   if (!texto || texto.length < 3) { if(el) el.textContent = ''; return; }
   const match = _fornecedores.find(f =>
-    f.palavra_chave && texto.toLowerCase().includes(f.palavra_chave.toLowerCase()) ||
-    f.nome && texto.toLowerCase().includes(f.nome.toLowerCase().substring(0,5))
+    (f.palavra_chave && texto.toLowerCase().includes(f.palavra_chave.toLowerCase().trim())) ||
+    (f.nome && texto.toLowerCase().includes(f.nome.toLowerCase().trim())) ||
+    (f.nome && f.nome.toLowerCase().split(/\s+/).filter(p=>p.length>=4).some(p=>texto.toLowerCase().includes(p)))
   );
   if (match && el) {
     el.textContent = `✓ Reconhecido: ${match.nome}`;
@@ -1932,8 +1933,9 @@ async function importarExtrato(input) {
     // Reconhece fornecedor pela descrição
     const desc = r.extrato || '';
     const match = _fornecedores.find(f =>
-      (f.palavra_chave && desc.toLowerCase().includes(f.palavra_chave.toLowerCase())) ||
-      (f.nome && desc.toLowerCase().includes(f.nome.toLowerCase().substring(0, 5)))
+      (f.palavra_chave && desc.toLowerCase().includes(f.palavra_chave.toLowerCase().trim())) ||
+      (f.nome && desc.toLowerCase().includes(f.nome.toLowerCase().trim())) ||
+      (f.nome && f.nome.toLowerCase().split(/\s+/).filter(p=>p.length>=4).some(p=>desc.toLowerCase().includes(p)))
     );
     const catDfc = match?.categoria_dfc || '';
     const catDre = match?.categoria_dre || '';
@@ -3478,6 +3480,16 @@ async function iniciarConciliacao() {
     return;
   }
 
+  // Garante que fornecedores e categorias estão carregados
+  if (!_fornecedores.length) {
+    const { data: forns } = await sb.from('fornecedores').select('*');
+    _fornecedores = forns || [];
+  }
+  if (!_categorias.length) {
+    const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
+    _categorias = cats || [];
+  }
+
   renderConciliacao();
 }
 
@@ -3512,11 +3524,20 @@ function renderConciliacao() {
   <div id="conc-lista">`;
 
   _concRows.forEach((r, idx) => {
-    // Reconhece por fornecedor cadastrado
-    const match = _fornecedores.find(f =>
-      (f.palavra_chave && r.extrato.toLowerCase().includes(f.palavra_chave.toLowerCase())) ||
-      (f.nome && r.extrato.toLowerCase().includes(f.nome.toLowerCase().substring(0,5)))
-    );
+    // Reconhece por palavra-chave ou nome do fornecedor
+    const extratoLower = r.extrato.toLowerCase();
+    const match = _fornecedores.find(f => {
+      // 1. Palavra-chave exata (prioridade máxima)
+      if (f.palavra_chave && extratoLower.includes(f.palavra_chave.toLowerCase().trim())) return true;
+      // 2. Nome completo do fornecedor
+      if (f.nome && extratoLower.includes(f.nome.toLowerCase().trim())) return true;
+      // 3. Palavras individuais do nome (mínimo 4 letras)
+      if (f.nome) {
+        const palavras = f.nome.toLowerCase().split(/\s+/).filter(p => p.length >= 4);
+        return palavras.some(p => extratoLower.includes(p));
+      }
+      return false;
+    });
     const catDfc = match?.categoria_dfc || '';
     const catDre = match?.categoria_dre || '';
     const catNome = catDfc || catDre || '';
@@ -3557,6 +3578,8 @@ function renderConciliacao() {
           <input type="text" id="conc-cat-${idx}" placeholder="Buscar categoria..."
             value="${catNome}"
             oninput="buscaCatConc(this.value,${idx})"
+            onfocus="buscaCatConc(this.value,${idx})"
+            onblur="setTimeout(()=>{const d=document.getElementById('conc-cat-dd-${idx}');if(d)d.style.display='none'},200)"
             style="width:100%;font-size:12px;${temSugestao?'border-color:var(--green)':''}">
           <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
           <input type="hidden" id="conc-cat-dre-${idx}" value="${catDre}">
