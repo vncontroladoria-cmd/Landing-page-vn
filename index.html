@@ -921,7 +921,10 @@ tbody tr:hover { background: var(--bg3); }
         <div class="page" id="page-conciliacao">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Importe o extrato do banco e concilie os lançamentos</div>
-            <button class="btn btn-primary" onclick="abrirModalConciliacao()">↑ Importar extrato</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="abrirModalImportarExcel()">📊 Importar Excel</button>
+              <button class="btn btn-primary" onclick="abrirModalConciliacao()">↑ Importar extrato</button>
+            </div>
           </div>
           <div id="conc-container"><div class="empty">Clique em "Importar extrato" para começar</div></div>
         </div>
@@ -1114,6 +1117,78 @@ tbody tr:hover { background: var(--bg3); }
           <div class="card"><div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div></div>
         </div>
 
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAR EXCEL -->
+<div class="modal-overlay" id="modal-importar-excel">
+  <div class="modal" style="max-width:660px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <div style="font-size:16px;font-weight:700">📊 Importar Excel</div>
+      <button onclick="closeModal('modal-importar-excel')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+
+    <!-- PASSO 1: Banco e arquivo -->
+    <div id="excel-passo1">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+        <div class="form-group">
+          <label>Banco <span style="color:var(--red)">*</span></label>
+          <select id="excel-banco-sel" style="width:100%">
+            <option value="">Selecione o banco...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Arquivo Excel <span style="color:var(--red)">*</span></label>
+          <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv" onchange="excel_fileSelected(this)" style="padding:6px">
+        </div>
+      </div>
+      <div id="excel-file-info" style="display:none;padding:10px;background:var(--bg3);border-radius:8px;font-size:12px;margin-bottom:1rem"></div>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" onclick="lerColunaExcel()">Ler arquivo →</button>
+      </div>
+    </div>
+
+    <!-- PASSO 2: Mapear colunas -->
+    <div id="excel-passo2" style="display:none">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent)">Mapeie as colunas do arquivo</div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px;font-size:11px;color:var(--text2)">
+        📋 Colunas encontradas: <span id="excel-colunas-lista" style="font-weight:600;color:var(--text)"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+        <div class="form-group">
+          <label>Coluna DATA <span style="color:var(--red)">*</span></label>
+          <select id="excel-col-data" style="width:100%"></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna DESCRIÇÃO <span style="color:var(--red)">*</span></label>
+          <select id="excel-col-desc" style="width:100%"></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna VALOR (único)</label>
+          <select id="excel-col-valor" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna ENTRADA (separado)</label>
+          <select id="excel-col-entrada" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna SAÍDA (separado)</label>
+          <select id="excel-col-saida" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna CATEGORIA (opcional)</label>
+          <select id="excel-col-cat" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:1rem">
+        Linhas de cabeçalho a ignorar:
+        <input type="number" id="excel-skip" value="0" min="0" max="20" style="width:60px;padding:4px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);margin-left:6px">
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <button class="btn" onclick="document.getElementById('excel-passo2').style.display='none';document.getElementById('excel-passo1').style.display='block'">← Voltar</button>
+        <button class="btn btn-primary" onclick="processarExcelMapeado()">🔍 Buscar conciliação →</button>
       </div>
     </div>
   </div>
@@ -4342,6 +4417,156 @@ function filtrarTabela(tbodyId, termo) {
   tbody.querySelectorAll('tr').forEach(row => {
     row.style.display = !t || row.textContent.toLowerCase().includes(t) ? '' : 'none';
   });
+}
+
+// ─── IMPORTAR EXCEL ──────────────────────────────────────
+let _excelData = []; // dados brutos do excel
+let _excelColunas = [];
+let _excelFile = null;
+
+async function abrirModalImportarExcel() {
+  await carregarBancos();
+  const sel = document.getElementById('excel-banco-sel');
+  sel.innerHTML = '<option value="">Selecione o banco...</option>' +
+    _bancos.map(b => `<option value="${b.id}" data-nome="${b.nome}">${b.nome}</option>`).join('');
+  document.getElementById('excel-passo1').style.display = 'block';
+  document.getElementById('excel-passo2').style.display = 'none';
+  document.getElementById('excel-file-info').style.display = 'none';
+  document.getElementById('excel-file-input').value = '';
+  _excelData = []; _excelColunas = []; _excelFile = null;
+  document.getElementById('modal-importar-excel').classList.add('open');
+}
+
+function excel_fileSelected(input) {
+  _excelFile = input.files[0];
+  if (_excelFile) {
+    const info = document.getElementById('excel-file-info');
+    info.style.display = 'block';
+    info.innerHTML = `✓ <strong>${_excelFile.name}</strong> — ${(_excelFile.size/1024).toFixed(1)} KB`;
+  }
+}
+
+async function lerColunaExcel() {
+  const bancoSel = document.getElementById('excel-banco-sel');
+  if (!bancoSel.value) { showToast('Selecione o banco','error'); return; }
+  if (!_excelFile) { showToast('Selecione o arquivo','error'); return; }
+
+  const XLSX = await loadXLSX();
+  const buf = await _excelFile.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array', raw: true });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  _excelData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+  if (!_excelData.length) { showToast('Arquivo vazio','error'); return; }
+
+  // Tenta detectar linha de cabeçalho (primeira linha não vazia)
+  let headerRow = 0;
+  for (let i = 0; i < Math.min(10, _excelData.length); i++) {
+    if (_excelData[i].some(c => c !== '')) { headerRow = i; break; }
+  }
+  document.getElementById('excel-skip').value = headerRow;
+
+  _excelColunas = (_excelData[headerRow] || []).map((c, i) => ({
+    idx: i, nome: String(c || `Coluna ${i+1}`).trim()
+  })).filter(c => c.nome);
+
+  document.getElementById('excel-colunas-lista').textContent = _excelColunas.map(c => c.nome).join(', ');
+
+  // Preenche selects de mapeamento
+  const optsVazio = '<option value="">— não usar —</option>';
+  const opts = optsVazio + _excelColunas.map(c => `<option value="${c.idx}">${c.nome}</option>`).join('');
+  const optsObrig = _excelColunas.map(c => `<option value="${c.idx}">${c.nome}</option>`).join('');
+
+  document.getElementById('excel-col-data').innerHTML = optsObrig;
+  document.getElementById('excel-col-desc').innerHTML = optsObrig;
+  document.getElementById('excel-col-valor').innerHTML = opts;
+  document.getElementById('excel-col-entrada').innerHTML = opts;
+  document.getElementById('excel-col-saida').innerHTML = opts;
+  document.getElementById('excel-col-cat').innerHTML = opts;
+
+  // Auto-detecta colunas comuns
+  _excelColunas.forEach(c => {
+    const n = c.nome.toLowerCase();
+    if (/data|date/.test(n)) document.getElementById('excel-col-data').value = c.idx;
+    if (/descri|hist|memo|lanc/.test(n)) document.getElementById('excel-col-desc').value = c.idx;
+    if (/^valor$|amount|total/.test(n)) document.getElementById('excel-col-valor').value = c.idx;
+    if (/entrada|credit|crédito|receita/.test(n)) document.getElementById('excel-col-entrada').value = c.idx;
+    if (/saida|saída|debit|débito|despesa/.test(n)) document.getElementById('excel-col-saida').value = c.idx;
+    if (/categ/.test(n)) document.getElementById('excel-col-cat').value = c.idx;
+  });
+
+  document.getElementById('excel-passo1').style.display = 'none';
+  document.getElementById('excel-passo2').style.display = 'block';
+}
+
+async function processarExcelMapeado() {
+  const bancoSel = document.getElementById('excel-banco-sel');
+  const bancoId = bancoSel.value;
+  const bancoNome = bancoSel.options[bancoSel.selectedIndex]?.dataset.nome || '';
+  const skip = parseInt(document.getElementById('excel-skip').value) || 0;
+  const colData = document.getElementById('excel-col-data').value;
+  const colDesc = document.getElementById('excel-col-desc').value;
+  const colValor = document.getElementById('excel-col-valor').value;
+  const colEntrada = document.getElementById('excel-col-entrada').value;
+  const colSaida = document.getElementById('excel-col-saida').value;
+  const colCat = document.getElementById('excel-col-cat').value;
+
+  if (!colData || !colDesc) { showToast('Mapeie data e descrição','error'); return; }
+
+  closeModal('modal-importar-excel');
+
+  // Garante fornecedores e categorias
+  if (!_fornecedores.length) {
+    const { data } = await sb.from('fornecedores').select('*');
+    _fornecedores = data || [];
+  }
+  if (!_categorias.length) {
+    const { data } = await sb.from('plano_contas').select('*').order('codigo');
+    _categorias = data || [];
+  }
+
+  const rows = _excelData.slice(skip + 1); // pula cabeçalho
+  _concRows = [];
+  _concBancoId = bancoId;
+  _concBancoNome = bancoNome;
+  _concFile = { name: _excelFile.name };
+
+  for (const row of rows) {
+    const dataRaw = row[parseInt(colData)];
+    const desc = String(row[parseInt(colDesc)] || '').trim();
+    if (!desc && !dataRaw) continue;
+
+    const data = parseDateBR(String(dataRaw || '').substring(0,10).trim()) || parseDateExcel(dataRaw);
+    if (!data) continue;
+
+    let entrada = 0, saida = 0;
+    if (colValor !== '') {
+      const v = parseValor(row[parseInt(colValor)]);
+      if (v > 0) entrada = v; else if (v < 0) saida = Math.abs(v);
+    }
+    if (colEntrada !== '') entrada = Math.abs(parseValor(row[parseInt(colEntrada)])) || entrada;
+    if (colSaida !== '') saida = Math.abs(parseValor(row[parseInt(colSaida)])) || saida;
+    const catExcel = colCat !== '' ? String(row[parseInt(colCat)] || '').trim() : '';
+
+    _concRows.push({ data, extrato: desc, entrada, saida, _catExcel: catExcel });
+  }
+
+  if (!_concRows.length) {
+    document.getElementById('conc-container').innerHTML = '<div class="empty">Nenhuma linha válida encontrada</div>';
+    return;
+  }
+
+  renderConciliacao();
+}
+
+function parseDateExcel(val) {
+  if (!val) return null;
+  // Excel guarda datas como número serial
+  if (typeof val === 'number') {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    return d.toISOString().substring(0,10);
+  }
+  return parseDateBR(String(val).trim());
 }
 
 // ─── CONCILIAÇÃO ─────────────────────────────────────────
