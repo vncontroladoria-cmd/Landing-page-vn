@@ -595,12 +595,13 @@ tbody tr:hover { background: var(--bg3); }
                 <option value="SAIDA">Saídas</option>
               </select>
               <select class="filter-select" id="lanc-mes" onchange="loadLancamentos()">
+                <option value="">Todos os meses</option>
                 <option value="2026-01">Janeiro 2026</option>
                 <option value="2026-02">Fevereiro 2026</option>
                 <option value="2026-03">Março 2026</option>
                 <option value="2026-04">Abril 2026</option>
-                <option value="2026-05" selected>Maio 2026</option>
-                <option value="2026-06">Junho 2026</option>
+                <option value="2026-05">Maio 2026</option>
+                <option value="2026-06" selected>Junho 2026</option>
                 <option value="2026-07">Julho 2026</option>
                 <option value="2026-08">Agosto 2026</option>
                 <option value="2026-09">Setembro 2026</option>
@@ -1915,11 +1916,19 @@ async function loadLancamentos() {
   await carregarBancos();
 
   const tipo = document.getElementById('lanc-tipo')?.value;
-  const mes = document.getElementById('lanc-mes')?.value || '2026-05';
+  const mes = document.getElementById('lanc-mes')?.value || '';
   const bancoFilter = document.getElementById('lanc-banco-filter')?.value;
-  const [ano, m] = mes.split('-');
-  const ini = `${ano}-${m}-01`;
-  const fim = `${ano}-${m}-31`;
+
+  let ini, fim;
+  if (mes) {
+    const [ano, m] = mes.split('-');
+    const ultimoDia = new Date(parseInt(ano), parseInt(m), 0).getDate();
+    ini = `${ano}-${m}-01`;
+    fim = `${ano}-${m}-${ultimoDia}`;
+  } else {
+    ini = '2020-01-01';
+    fim = '2099-12-31';
+  }
 
   // Cards de saldo por banco
   const saldoDiv = document.getElementById('lanc-saldo-bancos');
