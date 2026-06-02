@@ -708,10 +708,30 @@ tbody tr:hover { background: var(--bg3); }
 
           <!-- MÉTRICAS -->
           <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">A Pagar</div><div id="cp-total" style="font-size:14px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div></div>
-            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Pago</div><div id="cp-pago" style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div></div>
-            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Atrasado</div><div id="cp-atrasado" style="font-size:14px;font-weight:700;color:#f59e0b;font-family:'DM Mono',monospace">—</div></div>
-            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Total do mês</div><div id="cp-total-mes" style="font-size:14px;font-weight:700;font-family:'DM Mono',monospace">—</div></div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">A Pagar</div>
+              <div id="cp-total" style="font-size:13px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:#3b82f6;text-transform:uppercase">Enviado</div>
+              <div id="cp-enviado" style="font-size:13px;font-weight:700;color:#3b82f6;font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">Pago</div>
+              <div id="cp-pago" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Não Pago</div>
+              <div id="cp-naopago" style="font-size:13px;font-weight:700;color:var(--text2);font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:#ef4444;text-transform:uppercase">Atrasado</div>
+              <div id="cp-atrasado" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px;border:2px solid var(--accent)">
+              <div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase">Total Mês</div>
+              <div id="cp-total-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
+            </div>
           </div>
 
           <!-- TABELAS LADO A LADO -->
@@ -763,9 +783,30 @@ tbody tr:hover { background: var(--bg3); }
           </div>
 
           <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">A Receber</div><div id="cr-total" style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div></div>
-            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Recebido</div><div id="cr-recebido" style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div></div>
-            <div class="metric-card" style="flex:1;padding:10px 14px"><div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Atrasado</div><div id="cr-atrasado" style="font-size:14px;font-weight:700;color:#f59e0b;font-family:'DM Mono',monospace">—</div></div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">A Receber</div>
+              <div id="cr-total" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:#3b82f6;text-transform:uppercase">Enviado</div>
+              <div id="cr-enviado" style="font-size:13px;font-weight:700;color:#3b82f6;font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">Recebido</div>
+              <div id="cr-recebido" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Não Recebido</div>
+              <div id="cr-naorecebido" style="font-size:13px;font-weight:700;color:var(--text2);font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
+              <div style="font-size:10px;font-weight:600;color:#ef4444;text-transform:uppercase">Atrasado</div>
+              <div id="cr-atrasado" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'DM Mono',monospace">—</div>
+            </div>
+            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px;border:2px solid var(--accent)">
+              <div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase">Total Mês</div>
+              <div id="cr-total-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
+            </div>
           </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -4058,13 +4099,18 @@ async function loadContasPagar() {
   }
 
   const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
-  const pendentes = contas.filter(c => c.status === 'pendente');
+
+  const aPagar = contas.filter(c => c.status === 'a pagar' || c.status === 'pendente');
+  const enviados = contas.filter(c => c.status === 'enviado');
   const pagos = contas.filter(c => c.status === 'pago');
-  const atrasados = contas.filter(c => c.status === 'pendente' && c.data_vencimento < hoje);
+  const naoPago = contas.filter(c => c.status === 'não pago');
+  const atrasados = contas.filter(c => c.status === 'atrasado' || (c.status === 'pendente' && c.data_vencimento < hoje));
 
   if (document.getElementById('cp-total')) {
-    document.getElementById('cp-total').textContent = fmtBRL(soma(pendentes));
+    document.getElementById('cp-total').textContent = fmtBRL(soma(aPagar));
+    document.getElementById('cp-enviado').textContent = fmtBRL(soma(enviados));
     document.getElementById('cp-pago').textContent = fmtBRL(soma(pagos));
+    document.getElementById('cp-naopago').textContent = fmtBRL(soma(naoPago));
     document.getElementById('cp-atrasado').textContent = fmtBRL(soma(atrasados));
     document.getElementById('cp-total-mes').textContent = fmtBRL(soma(contas));
   }
@@ -4100,15 +4146,20 @@ async function loadContasReceber() {
   const { data: all } = await qR;
   const contas = all || [];
 
-  const pendentes = contas.filter(c => c.status === 'pendente');
-  const recebidos = contas.filter(c => c.status === 'recebido');
-  const atrasados = contas.filter(c => c.status === 'pendente' && c.data_vencimento < hoje);
   const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
+  const aReceber = contas.filter(c => c.status === 'a receber' || c.status === 'pendente');
+  const enviadosR = contas.filter(c => c.status === 'enviado');
+  const recebidos = contas.filter(c => c.status === 'recebido');
+  const naoRecebidos = contas.filter(c => c.status === 'não recebido');
+  const atrasadosR = contas.filter(c => c.status === 'atrasado' || (c.status === 'pendente' && c.data_vencimento < hoje));
 
   if (document.getElementById('cr-total')) {
-    document.getElementById('cr-total').textContent = fmtBRL(soma(pendentes));
+    document.getElementById('cr-total').textContent = fmtBRL(soma(aReceber));
+    document.getElementById('cr-enviado').textContent = fmtBRL(soma(enviadosR));
     document.getElementById('cr-recebido').textContent = fmtBRL(soma(recebidos));
-    document.getElementById('cr-atrasado').textContent = fmtBRL(soma(atrasados));
+    document.getElementById('cr-naorecebido').textContent = fmtBRL(soma(naoRecebidos));
+    document.getElementById('cr-atrasado').textContent = fmtBRL(soma(atrasadosR));
+    document.getElementById('cr-total-mes').textContent = fmtBRL(soma(contas));
   }
 
   const fixas = contas.filter(c => c.tipo === 'fixa');
