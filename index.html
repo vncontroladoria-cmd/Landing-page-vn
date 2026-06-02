@@ -3797,18 +3797,14 @@ function toggleInline(rowId) {
   const views = row.querySelectorAll('.cell-view');
   const edits = row.querySelectorAll('.cell-edit');
   const btnSave = row.querySelector('.btn-save-inline');
-  
-  // Verifica estado atual pelo primeiro elemento
-  const editing = [...edits].some(e => e.style.display !== 'none' && e.style.display !== '');
-  
+
+  // Usa data-editing como flag de estado confiável
+  const editing = row.dataset.editing === 'true';
+  row.dataset.editing = editing ? 'false' : 'true';
+
   views.forEach(v => v.style.display = editing ? '' : 'none');
   edits.forEach(e => {
-    if (editing) {
-      e.style.display = 'none';
-    } else {
-      // div usa block, outros usam inline-block/vazio
-      e.style.display = e.tagName === 'DIV' ? 'block' : '';
-    }
+    e.style.display = editing ? 'none' : (e.tagName === 'DIV' ? 'block' : '');
   });
   if (btnSave) btnSave.style.display = editing ? 'none' : '';
 
@@ -3816,7 +3812,6 @@ function toggleInline(rowId) {
     const lancId = rowId.replace('lr-', '');
     const catInput = document.getElementById(`lcat-${lancId}`);
     if (catInput) {
-      // Garante categorias carregadas antes de abrir dropdown
       const abrirDropdown = () => {
         catInput.focus();
         buscaCatInline(catInput.value, lancId);
