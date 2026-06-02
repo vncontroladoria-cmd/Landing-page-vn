@@ -1947,7 +1947,10 @@ async function loadLancamentos() {
     saldoDiv.innerHTML = cardsHtml;
   }
 
-  let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: true});
+  let q = sb.from('lancamentos').select('*').order('data_lancamento', {ascending: true});
+  if (mes) {
+    q = q.gte('data_lancamento', ini).lte('data_lancamento', fim);
+  }
   if (tipo) q = q.eq('tipo', tipo);
   if (bancoFilter) {
     const bancoNomeFiltro = _bancos.find(b => b.id === bancoFilter)?.nome || '';
