@@ -451,6 +451,10 @@ tbody tr:hover { background: var(--bg3); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span class="nav-label">Performance</span>
       </div>
+      <div class="nav-item" data-page="metricas" onclick="showPage('metricas',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+        <span class="nav-label">Métricas</span>
+      </div>
 
       <div class="sidebar-section">Sistema</div>
       <div class="nav-item" data-page="fornecedores" onclick="showPage('fornecedores',this)">
@@ -931,6 +935,81 @@ tbody tr:hover { background: var(--bg3); }
         </div>
 
         <!-- FORNECEDORES -->
+        <div class="page" id="page-metricas">
+
+          <!-- FILTRO MÊS/ANO -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px">
+            <div class="filters" style="margin-bottom:0">
+              <select class="filter-select" id="met-mes" onchange="loadMetricas()">
+                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                <option value="03">Março</option><option value="04">Abril</option>
+                <option value="05">Maio</option><option value="06" selected>Junho</option>
+                <option value="07">Julho</option><option value="08">Agosto</option>
+                <option value="09">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+              <select class="filter-select" id="met-ano" onchange="loadMetricas()">
+                <option value="2026" selected>2026</option><option value="2025">2025</option>
+              </select>
+              <button class="btn" onclick="loadMetricas()">↻ Atualizar</button>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="abrirModalProfissional()">+ Profissional</button>
+              <button class="btn btn-primary" onclick="abrirModalMetaFinanceira()">💰 Meta de faturamento</button>
+            </div>
+          </div>
+
+          <!-- CARDS META FINANCEIRA -->
+          <div id="met-cards-financeiro" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem">
+            <div class="metric-card" style="padding:1.25rem">
+              <div class="metric-label">Meta do Mês</div>
+              <div id="met-meta-mes" class="metric-val">—</div>
+            </div>
+            <div class="metric-card" style="padding:1.25rem">
+              <div class="metric-label">Realizado</div>
+              <div id="met-realizado" class="metric-val green">—</div>
+            </div>
+            <div class="metric-card" style="padding:1.25rem">
+              <div class="metric-label">Meta Diária Necessária</div>
+              <div id="met-meta-dia" class="metric-val amber">—</div>
+              <div id="met-meta-dia-sub" style="font-size:10px;color:var(--text3);margin-top:4px"></div>
+            </div>
+            <div class="metric-card" style="padding:1.25rem">
+              <div class="metric-label">% Atingido</div>
+              <div id="met-pct" class="metric-val">—</div>
+              <div style="margin-top:8px;height:4px;background:var(--bg4);border-radius:4px;overflow:hidden">
+                <div id="met-barra" style="height:100%;background:var(--green);border-radius:4px;width:0%;transition:width 0.5s"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DUAS COLUNAS: PROFISSIONAIS | META DIÁRIA -->
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+
+            <!-- TABELA DE PROFISSIONAIS -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+                <span>👥 Metas por Profissional</span>
+                <span style="font-size:11px;color:var(--text2);font-weight:400">Previsto × Realizado</span>
+              </div>
+              <div id="met-profissionais-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+            </div>
+
+            <!-- CALENDÁRIO META DIÁRIA -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
+                📅 Meta Diária
+              </div>
+              <div style="padding:16px">
+                <div id="met-dias-uteis" style="font-size:12px;color:var(--text2);margin-bottom:12px"></div>
+                <div id="met-tabela-dias" style="font-size:12px"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- FORNECEDORES -->
         <div class="page" id="page-fornecedores">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
@@ -1072,6 +1151,57 @@ tbody tr:hover { background: var(--bg3); }
         </div>
 
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROFISSIONAL -->
+<div class="modal-overlay" id="modal-profissional">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <div class="modal-title" style="margin:0" id="modal-prof-titulo">Cadastrar Profissional</div>
+      <button onclick="closeModal('modal-profissional')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <input type="hidden" id="prof-id">
+    <div class="form-grid" style="margin-bottom:1rem">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nome completo <span style="color:var(--red)">*</span></label>
+        <input type="text" id="prof-nome" placeholder="Nome do profissional">
+      </div>
+      <div class="form-group">
+        <label>Cargo / Função</label>
+        <input type="text" id="prof-cargo" placeholder="Ex: Cabeleireiro, Manicure">
+      </div>
+      <div class="form-group">
+        <label>Comissão (%)</label>
+        <input type="number" id="prof-comissao" placeholder="0" min="0" max="100" step="0.1">
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Metas Mensais (R$)</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem" id="prof-metas-grid">
+      <!-- Preenchido por JS -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-profissional')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarProfissional()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL META FINANCEIRA -->
+<div class="modal-overlay" id="modal-meta-financeira">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+      <div class="modal-title" style="margin:0">💰 Meta de Faturamento</div>
+      <button onclick="closeModal('modal-meta-financeira')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:1.25rem">Defina a meta de faturamento mensal. O sistema calcula automaticamente quanto precisa ser faturado por dia.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem" id="meta-fin-grid">
+      <!-- Preenchido por JS -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-meta-financeira')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarMetasFinanceiras()">Salvar todas</button>
     </div>
   </div>
 </div>
@@ -1738,6 +1868,7 @@ function showPage(id, el) {
   if (id === 'lancamentos') loadLancamentos();
   if (id === 'contas-pagar') loadContasPagar();
   if (id === 'contas-receber') loadContasReceber();
+  if (id === 'metricas') loadMetricas();
   if (id === 'servicos') loadServicos();
   if (id === 'clientes') loadClientes();
   if (id === 'produtos') loadProdutos();
@@ -4322,6 +4453,260 @@ function filtrarTabela(tbodyId, termo) {
   tbody.querySelectorAll('tr').forEach(row => {
     row.style.display = !t || row.textContent.toLowerCase().includes(t) ? '' : 'none';
   });
+}
+
+// ─── MÉTRICAS ────────────────────────────────────────────
+const MESES_NOMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+async function loadMetricas() {
+  const mes = document.getElementById('met-mes')?.value || '06';
+  const ano = document.getElementById('met-ano')?.value || '2026';
+  const mesIdx = parseInt(mes) - 1;
+  const mesNome = MESES_NOMES[mesIdx];
+
+  // Busca meta financeira do mês
+  const { data: metaFin } = await sb.from('metas_financeiras').select('*').eq('ano', ano).eq('mes', mes).single();
+  const metaMes = Number(metaFin?.meta || 0);
+
+  // Calcula realizado: soma entradas do mês nos lançamentos
+  const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+  const ini = `${ano}-${mes}-01`;
+  const fim = `${ano}-${mes}-${String(ultimoDia).padStart(2,'0')}`;
+  const { data: lancsM } = await sb.from('lancamentos').select('entrada').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
+  const realizado = (lancsM||[]).reduce((s,l)=>s+Number(l.entrada||0),0);
+
+  // Dias úteis restantes no mês
+  const hoje = new Date();
+  const ehMesAtual = hoje.getFullYear() === parseInt(ano) && (hoje.getMonth()+1) === parseInt(mes);
+  const diaHoje = ehMesAtual ? hoje.getDate() : ultimoDia;
+  let diasUteis = 0, diasRestantes = 0;
+  for (let d = 1; d <= ultimoDia; d++) {
+    const dSem = new Date(parseInt(ano), mesIdx, d).getDay();
+    if (dSem !== 0) { // não domingo
+      diasUteis++;
+      if (d >= diaHoje) diasRestantes++;
+    }
+  }
+
+  const faltaMeta = Math.max(0, metaMes - realizado);
+  const metaDia = diasRestantes > 0 ? faltaMeta / diasRestantes : 0;
+  const pct = metaMes > 0 ? Math.min(100, (realizado / metaMes) * 100) : 0;
+
+  // Atualiza cards
+  if (document.getElementById('met-meta-mes')) {
+    document.getElementById('met-meta-mes').textContent = metaMes > 0 ? fmtBRL(metaMes) : 'Não definida';
+    document.getElementById('met-realizado').textContent = fmtBRL(realizado);
+    document.getElementById('met-meta-dia').textContent = metaDia > 0 ? fmtBRL(metaDia) : '—';
+    document.getElementById('met-meta-dia-sub').textContent = diasRestantes > 0 ? `${diasRestantes} dias úteis restantes` : 'Mês encerrado';
+    document.getElementById('met-pct').textContent = `${pct.toFixed(1)}%`;
+    document.getElementById('met-pct').className = 'metric-val ' + (pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red');
+    document.getElementById('met-barra').style.width = pct + '%';
+    document.getElementById('met-barra').style.background = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red)';
+  }
+
+  // Tabela de dias úteis
+  const elDias = document.getElementById('met-dias-uteis');
+  const elTabDias = document.getElementById('met-tabela-dias');
+  if (elDias) elDias.innerHTML = `<strong>${diasUteis}</strong> dias úteis em ${mesNome} · Meta/dia: <strong style="color:var(--amber)">${metaMes > 0 ? fmtBRL(metaMes/diasUteis) : '—'}</strong>`;
+  if (elTabDias && metaMes > 0) {
+    let rowsD = '';
+    let acum = 0;
+    for (let d = 1; d <= ultimoDia; d++) {
+      const dSem = new Date(parseInt(ano), mesIdx, d).getDay();
+      if (dSem === 0) continue;
+      acum++;
+      const metaAcum = (metaMes / diasUteis) * acum;
+      const isDia = d === diaHoje && ehMesAtual;
+      rowsD += `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);${isDia?'font-weight:700;color:var(--accent)':''}">
+        <span>Dia ${String(d).padStart(2,'0')}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:11px">${fmtBRL(metaAcum)}</span>
+      </div>`;
+    }
+    elTabDias.innerHTML = `<div style="max-height:320px;overflow-y:auto">${rowsD}</div>`;
+  }
+
+  // Profissionais
+  await loadProfissionaisMetricas(mes, ano, ini, fim);
+}
+
+async function loadProfissionaisMetricas(mes, ano, ini, fim) {
+  const { data: profs } = await sb.from('profissionais').select('*').order('nome');
+  const el = document.getElementById('met-profissionais-table');
+  if (!profs?.length) {
+    el.innerHTML = '<div class="empty">Nenhum profissional cadastrado.<br>Clique em "+ Profissional" para adicionar.</div>';
+    return;
+  }
+
+  // Busca metas e realizados
+  const { data: metas } = await sb.from('metas_profissionais').select('*').eq('ano', ano).eq('mes', mes);
+  const { data: lancsProf } = await sb.from('lancamentos').select('entrada,descricao,extrato').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
+
+  const metaMap = {};
+  (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
+
+  let html = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:var(--bg3)">
+      <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">PROFISSIONAL</th>
+      <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">META</th>
+      <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">REALIZADO</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">%</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">STATUS</th>
+      <th style="padding:10px 12px;border-bottom:1px solid var(--border)"></th>
+    </tr></thead><tbody>`;
+
+  profs.forEach(p => {
+    const meta = metaMap[p.id] || 0;
+    // Realizado: soma entradas onde descricao ou extrato contém nome do profissional
+    const nomeNorm = normText(p.nome);
+    const real = (lancsProf||[]).filter(l => normText(l.descricao||'').includes(nomeNorm) || normText(l.extrato||'').includes(nomeNorm))
+                                .reduce((s,l)=>s+Number(l.entrada||0),0);
+    const pct = meta > 0 ? Math.min(100,(real/meta)*100) : 0;
+    const cor = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : pct > 0 ? 'var(--red)' : 'var(--text3)';
+    const badge = pct >= 100 ? '✅ Atingiu' : pct >= 70 ? '⚡ Perto' : meta > 0 ? '⚠️ Abaixo' : '—';
+    const badgeCor = pct >= 100 ? 'badge-green' : pct >= 70 ? 'badge-amber' : meta > 0 ? 'badge-red' : 'badge-gray';
+
+    html += `<tr>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border)">
+        <div style="font-weight:600;font-size:13px">${p.nome}</div>
+        <div style="font-size:10px;color:var(--text3)">${p.cargo||''}</div>
+      </td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right">
+        <input type="text" value="${meta > 0 ? meta : ''}" placeholder="Definir meta"
+          onblur="salvarMetaProfissional('${p.id}', this.value, '${mes}', '${ano}')"
+          style="width:100px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+      </td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${fmtBRL(real)}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+        <div style="font-weight:700;font-size:13px;color:${cor}">${meta > 0 ? pct.toFixed(0)+'%' : '—'}</div>
+        <div style="margin-top:4px;height:3px;background:var(--bg4);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:${cor};width:${pct}%;transition:width 0.4s"></div>
+        </div>
+      </td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+        <span class="badge ${badgeCor}">${badge}</span>
+      </td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
+        <button class="btn btn-sm" onclick="editarProfissional('${p.id}')" title="Editar">✏️</button>
+        <button class="btn btn-sm" onclick="excluirProfissional('${p.id}')" title="Excluir" style="color:var(--red)">🗑</button>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function salvarMetaProfissional(profId, valor, mes, ano) {
+  const meta = parseValor(valor);
+  if (!meta) return;
+  await sb.from('metas_profissionais').upsert({ profissional_id: profId, mes, ano, meta }, { onConflict: 'profissional_id,mes,ano' });
+  showToast('Meta salva!', 'success');
+  loadMetricas();
+}
+
+function abrirModalProfissional(prof = null) {
+  document.getElementById('prof-id').value = prof?.id || '';
+  document.getElementById('prof-nome').value = prof?.nome || '';
+  document.getElementById('prof-cargo').value = prof?.cargo || '';
+  document.getElementById('prof-comissao').value = prof?.comissao || '';
+  document.getElementById('modal-prof-titulo').textContent = prof ? 'Editar Profissional' : 'Cadastrar Profissional';
+  // Grade de metas mensais
+  let grid = '';
+  MESES_NOMES.forEach((m, i) => {
+    const mesNum = String(i+1).padStart(2,'0');
+    grid += `<div class="form-group">
+      <label>${m}</label>
+      <input type="number" id="prof-meta-${mesNum}" placeholder="0" min="0" style="font-size:12px;padding:6px 8px">
+    </div>`;
+  });
+  document.getElementById('prof-metas-grid').innerHTML = grid;
+  // Se editando, busca metas
+  if (prof?.id) {
+    const ano = document.getElementById('met-ano')?.value || '2026';
+    sb.from('metas_profissionais').select('*').eq('profissional_id', prof.id).eq('ano', ano).then(({data}) => {
+      (data||[]).forEach(m => {
+        const inp = document.getElementById(`prof-meta-${m.mes}`);
+        if (inp) inp.value = m.meta;
+      });
+    });
+  }
+  document.getElementById('modal-profissional').classList.add('open');
+}
+
+async function editarProfissional(id) {
+  const { data } = await sb.from('profissionais').select('*').eq('id', id).single();
+  if (data) abrirModalProfissional(data);
+}
+
+async function salvarProfissional() {
+  const nome = document.getElementById('prof-nome').value.trim();
+  if (!nome) { showToast('Informe o nome', 'error'); return; }
+  const id = document.getElementById('prof-id').value;
+  const cargo = document.getElementById('prof-cargo').value.trim();
+  const comissao = parseFloat(document.getElementById('prof-comissao').value) || 0;
+  const ano = document.getElementById('met-ano')?.value || '2026';
+
+  let profId = id;
+  if (id) {
+    await sb.from('profissionais').update({ nome, cargo, comissao }).eq('id', id);
+  } else {
+    const { data } = await sb.from('profissionais').insert({ nome, cargo, comissao }).select().single();
+    profId = data?.id;
+  }
+
+  // Salva metas mensais
+  const upserts = [];
+  MESES_NOMES.forEach((m, i) => {
+    const mesNum = String(i+1).padStart(2,'0');
+    const val = parseValor(document.getElementById(`prof-meta-${mesNum}`)?.value || '0');
+    if (val > 0) upserts.push({ profissional_id: profId, mes: mesNum, ano, meta: val });
+  });
+  if (upserts.length) await sb.from('metas_profissionais').upsert(upserts, { onConflict: 'profissional_id,mes,ano' });
+
+  showToast(id ? 'Profissional atualizado!' : 'Profissional cadastrado!', 'success');
+  closeModal('modal-profissional');
+  loadMetricas();
+}
+
+async function excluirProfissional(id) {
+  if (!confirm('Excluir este profissional e suas metas?')) return;
+  await sb.from('metas_profissionais').delete().eq('profissional_id', id);
+  await sb.from('profissionais').delete().eq('id', id);
+  showToast('Excluído!', 'success');
+  loadMetricas();
+}
+
+async function abrirModalMetaFinanceira() {
+  const ano = document.getElementById('met-ano')?.value || '2026';
+  const { data: metas } = await sb.from('metas_financeiras').select('*').eq('ano', ano);
+  const metaMap = {};
+  (metas||[]).forEach(m => metaMap[m.mes] = m.meta);
+  let grid = '';
+  MESES_NOMES.forEach((m, i) => {
+    const mesNum = String(i+1).padStart(2,'0');
+    grid += `<div class="form-group">
+      <label>${m}</label>
+      <input type="number" id="metafin-${mesNum}" placeholder="0" value="${metaMap[mesNum]||''}" min="0" style="font-size:12px;padding:6px 8px">
+    </div>`;
+  });
+  document.getElementById('meta-fin-grid').innerHTML = grid;
+  document.getElementById('modal-meta-financeira').classList.add('open');
+}
+
+async function salvarMetasFinanceiras() {
+  const ano = document.getElementById('met-ano')?.value || '2026';
+  const upserts = [];
+  MESES_NOMES.forEach((m, i) => {
+    const mesNum = String(i+1).padStart(2,'0');
+    const val = parseValor(document.getElementById(`metafin-${mesNum}`)?.value || '0');
+    if (val > 0) upserts.push({ ano, mes: mesNum, meta: val });
+  });
+  if (upserts.length) {
+    await sb.from('metas_financeiras').upsert(upserts, { onConflict: 'ano,mes' });
+    showToast('Metas salvas!', 'success');
+  }
+  closeModal('modal-meta-financeira');
+  loadMetricas();
 }
 
 // ─── IMPORTAR EXCEL ──────────────────────────────────────
