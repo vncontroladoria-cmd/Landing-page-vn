@@ -685,7 +685,7 @@ tbody tr:hover { background: var(--bg3); }
                 <option value="">Todos os meses</option>
                 <option value="01">Janeiro</option><option value="02">Fevereiro</option>
                 <option value="03">Março</option><option value="04">Abril</option>
-                <option value="05">Maio</option><option value="06">Junho</option>
+                <option value="05">Maio</option><option value="06" selected>Junho</option>
                 <option value="07">Julho</option><option value="08">Agosto</option>
                 <option value="09">Setembro</option><option value="10">Outubro</option>
                 <option value="11">Novembro</option><option value="12">Dezembro</option>
@@ -738,9 +738,10 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div class="filters" style="margin-bottom:0">
               <select class="filter-select" id="cr-mes" onchange="loadContasReceber()">
+                <option value="">Todos os meses</option>
                 <option value="01">Janeiro</option><option value="02">Fevereiro</option>
                 <option value="03">Março</option><option value="04">Abril</option>
-                <option value="05" selected>Maio</option><option value="06">Junho</option>
+                <option value="05">Maio</option><option value="06" selected>Junho</option>
                 <option value="07">Julho</option><option value="08">Agosto</option>
                 <option value="09">Setembro</option><option value="10">Outubro</option>
                 <option value="11">Novembro</option><option value="12">Dezembro</option>
@@ -4029,9 +4030,11 @@ async function loadContasPagar() {
 
   let q = sb.from('contas_pagar').select('*').order('data_vencimento');
   if (mes) {
-    q = q.gte('data_vencimento',`${ano}-${mes}-01`).lte('data_vencimento',`${ano}-${mes}-31`);
+    const ini = `${ano}-${mes}-01`;
+    const fim = `${ano}-${mes}-31`;
+    q = q.gte('data_vencimento', ini).lte('data_vencimento', fim);
   } else {
-    q = q.gte('data_vencimento',`${ano}-01-01`).lte('data_vencimento',`${ano}-12-31`);
+    q = q.gte('data_vencimento', `${ano}-01-01`).lte('data_vencimento', `${ano}-12-31`);
   }
 
   const { data: all } = await q;
