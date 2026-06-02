@@ -2454,35 +2454,51 @@ function renderLancTable(data, targetId, mini) {
 
 // ─── CONTAS A PAGAR ────────────────────────────────────────
 async function loadContasPagar() {
-  const status = document.getElementById('cp-status')?.value;
-  const mes = document.getElementById('cp-mes')?.value || 'MAIO';
-  let q = sb.from('contas_pagar').select('*').eq('mes', mes).order('data_vencimento');
-  if (status) q = q.eq('status', status);
-  const { data } = await q;
-  const rows = data||[];
-  const totalAP = rows.filter(r=>r.status!=='Pago').reduce((s,r)=>s+Number(r.valor||0),0);
-  const totalPago = rows.filter(r=>r.status==='Pago').reduce((s,r)=>s+Number(r.valor||0),0);
-  const atrasado = rows.filter(r=>r.status!=='Pago' && new Date(r.data_vencimento) < new Date()).reduce((s,r)=>s+Number(r.valor||0),0);
-  document.getElementById('cp-total').textContent = fmtBRL(totalAP);
-  document.getElementById('cp-pago').textContent = fmtBRL(totalPago);
-  document.getElementById('cp-atrasado').textContent = fmtBRL(atrasado);
+  const mes = document.getElementById('cp-mes')?.value || '';
+  const ano = document.getElementById('cp-ano')?.value || '2026';
+  const status = document.getElementById('cp-status')?.value || '';
+  const hoje = new Date().toISOString().substring(0,10);
 
-  if (!rows.length) { document.getElementById('cp-table').innerHTML = '<div class="empty">Nenhuma conta encontrada. Importe sua planilha ou cadastre manualmente.</div>'; return; }
-  let html = '<div class="table-wrap"><table><thead><tr><th>Vencimento</th><th>Descrição</th><th>Valor</th><th>Tipo</th><th>Status</th><th>Ação</th></tr></thead><tbody>';
-  rows.forEach(r => {
-    const venc = new Date(r.data_vencimento);
-    const atras = r.status !== 'Pago' && venc < new Date();
-    html += `<tr>
-      <td style="color:${atras?'var(--red)':'var(--text2)'};font-size:12px">${fmtDate(r.data_vencimento)}</td>
-      <td>${r.descricao||'—'}</td>
-      <td style="font-family:'DM Mono',monospace">${fmtBRL(r.valor)}</td>
-      <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
-      <td><span class="badge ${r.status==='Pago'?'badge-green':'badge-amber'}">${r.status||'—'}</span></td>
-      <td>${r.status!=='Pago'?`<button class="btn btn-sm" onclick="darBaixaCP('${r.id}')">Dar baixa</button>`:''}</td>
-    </tr>`;
-  });
-  html += '</tbody></table></div>';
-  document.getElementById('cp-table').innerHTML = html;
+  const anoNum = parseInt(ano);
+  const mesNum = mes ? parseInt(mes) : null;
+  let q = sb.from('contas_pagar').select('*').order('data_vencimento');
+  if (mesNum) {
+    const ultimoDia = new Date(anoNum, mesNum, 0).getDate();
+    const ini = `${ano}-${mes.padStart(2,'0')}-01`;
+    const fim = `${ano}-${mes.padStart(2,'0')}-${ultimoDia}`;
+    q = q.gte('data_vencimento', ini).lte('data_vencimento', fim);
+  } else {
+    q = q.gte('data_vencimento', `${ano}-01-01`).lte('data_vencimento', `${ano}-12-31`);
+  }
+  if (status) q = q.eq('status', status);
+
+  const { data } = await q;
+  const contas = data || [];
+
+  const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
+  const aPagar    = contas.filter(c => c.status === 'a pagar' || c.status === 'pendente');
+  const enviados  = contas.filter(c => c.status === 'enviado');
+  const pagos     = contas.filter(c => c.status === 'pago');
+  const naoPago   = contas.filter(c => c.status === 'não pago');
+  const atrasados = contas.filter(c => c.status === 'atrasado' || ((c.status === 'pendente' || c.status === 'a pagar') && c.data_vencimento < hoje));
+
+  if (document.getElementById('cp-total')) {
+    document.getElementById('cp-total').textContent    = fmtBRL(soma(aPagar));
+    document.getElementById('cp-enviado').textContent  = fmtBRL(soma(enviados));
+    document.getElementById('cp-pago').textContent     = fmtBRL(soma(pagos));
+    document.getElementById('cp-naopago').textContent  = fmtBRL(soma(naoPago));
+    document.getElementById('cp-atrasado').textContent = fmtBRL(soma(atrasados));
+    document.getElementById('cp-total-mes').textContent= fmtBRL(soma(contas));
+  }
+
+  const fixas = contas.filter(c => c.tipo === 'fixa' || c.recorrente);
+  const variaveis = contas.filter(c => c.tipo !== 'fixa' && !c.recorrente);
+
+  if (document.getElementById('cp-fixas-total')) document.getElementById('cp-fixas-total').textContent = fmtBRL(soma(fixas));
+  if (document.getElementById('cp-variaveis-total')) document.getElementById('cp-variaveis-total').textContent = fmtBRL(soma(variaveis));
+
+  renderTabelaConta('cp-fixas-table', fixas, 'pagar', hoje);
+  renderTabelaConta('cp-variaveis-table', variaveis, 'pagar', hoje);
 }
 
 async function darBaixaCP(id) {
@@ -3734,10 +3750,10 @@ function toggleInline(rowId) {
       if (!_categorias.length) {
         sb.from('plano_contas').select('*').order('codigo').then(({data}) => {
           _categorias = data || [];
-          setTimeout(abrirDropdown, 100);
+          setTimeout(abrirDropdown, 150);
         });
       } else {
-        setTimeout(abrirDropdown, 100);
+        setTimeout(abrirDropdown, 150);
       }
     }
   }
