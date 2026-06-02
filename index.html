@@ -29,14 +29,13 @@
   --blue-dim: #1d4ed818;
   --silver: #8a9bb0;
   --accent: #2a9d5c;
-  --sidebar-w: 48px;
-  --sidebar-expanded: 220px;
+  --sidebar-w: 230px;
   --radius: 10px;
   --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
 /* LOGIN */
 #login-screen {
@@ -55,7 +54,11 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   width: 44px; height: 44px; border-radius: 12px;
   background: var(--green); display: flex; align-items: center; justify-content: center;
 }
-.login-logo { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+.login-logo {
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px; font-weight: 700; color: var(--text);
+  letter-spacing: -0.5px;
+}
 .login-logo span { color: var(--accent); }
 .login-sub { font-size: 13px; color: var(--text2); margin-bottom: 2rem; margin-top: 4px; }
 .form-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: block; letter-spacing: 0.02em; }
@@ -63,175 +66,274 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   width: 100%; padding: 11px 14px; font-size: 14px;
   background: var(--bg3); border: 1.5px solid var(--border);
   border-radius: var(--radius); color: var(--text);
-  font-family: 'Outfit', sans-serif; margin-bottom: 1rem; transition: border 0.2s;
+  font-family: 'Outfit', sans-serif;
+  margin-bottom: 1rem; transition: border 0.2s;
 }
 .form-input:focus { outline: none; border-color: var(--accent); background: #fff; }
 .btn-login {
   width: 100%; padding: 12px; font-size: 14px; font-weight: 600;
   background: var(--accent); color: #fff; border: none;
   border-radius: var(--radius); cursor: pointer;
-  font-family: 'Outfit', sans-serif; transition: all 0.2s; letter-spacing: 0.02em;
+  font-family: 'Outfit', sans-serif; transition: all 0.2s;
+  letter-spacing: 0.02em;
 }
 .btn-login:hover { background: #1e7a45; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(42,157,92,0.3); }
 .login-err { font-size: 12px; color: var(--red); margin-top: 0.75rem; text-align: center; }
-.login-forgot { font-size: 12px; color: var(--text2); text-align: right; margin-bottom: 1rem; cursor: pointer; }
-.login-forgot:hover { color: var(--accent); }
 
 /* APP */
 #app { display: none; }
 .layout { display: flex; height: 100vh; overflow: hidden; }
 
 /* SIDEBAR */
-.sidebar { width: var(--sidebar-w); background: #111; display: flex; flex-direction: column; overflow: hidden; transition: width 0.3s cubic-bezier(0.4,0,0.2,1); position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; }
-.sidebar:hover { width: var(--sidebar-expanded); }
-.main { display: flex; flex-direction: column; height: 100vh; overflow: hidden; margin-left: var(--sidebar-w); width: calc(100% - var(--sidebar-w)); }
-.sidebar-logo { padding: 1.5rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; overflow: hidden; min-height: 68px; display: flex; align-items: center; gap: 12px; }
-.sidebar-logo-icon { width: 30px; height: 30px; flex-shrink: 0; background: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: #111; letter-spacing: 0.05em; }
-.logo-mark { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 400; color: #fff; letter-spacing: 0.2em; white-space: nowrap; opacity: 0; transition: opacity 0.2s 0.06s; }
-.logo-mark span { font-style: italic; color: rgba(255,255,255,0.5); }
-.sidebar:hover .logo-mark { opacity: 1; }
-.sidebar-section { padding: 1.5rem 1rem 0.5rem; font-size: 8px; color: rgba(255,255,255,0.2); letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600; white-space: nowrap; overflow: hidden; opacity: 0; transition: opacity 0.15s; }
-.sidebar:hover .sidebar-section { opacity: 1; }
-.nav-item { display: flex; align-items: center; gap: 14px; padding: 11px 1rem; font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.35); cursor: pointer; margin: 0 0.5rem; transition: all 0.15s; white-space: nowrap; overflow: hidden; min-height: 42px; letter-spacing: 0.1em; text-transform: uppercase; }
-.nav-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.04); }
+.sidebar {
+  width: var(--sidebar-w); background: #1a2332;
+  display: flex; flex-direction: column;
+  flex-shrink: 0; overflow-y: auto;
+}
+.sidebar-logo {
+  padding: 1.5rem 1.25rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.logo-mark {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px; font-weight: 700; color: #fff;
+  letter-spacing: -0.5px;
+}
+.logo-mark span { color: var(--green); }
+.logo-name { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
+.sidebar-section { padding: 1.25rem 1rem 0.35rem; font-size: 9px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 1rem; font-size: 13px; color: rgba(255,255,255,0.55);
+  cursor: pointer; border-radius: 8px; margin: 1px 0.5rem;
+  transition: all 0.15s; font-weight: 400;
+}
+.nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.9); }
 .nav-item.active { background: rgba(42,157,92,0.2); color: #4ade80; }
-.nav-item .nav-icon { width: 16px; flex-shrink: 0; text-align: center; font-size: 14px; opacity: 0.7; }
-.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.7; }
-.nav-label { opacity: 0; transition: opacity 0.15s 0.06s; white-space: nowrap; }
-.sidebar:hover .nav-label { opacity: 1; }
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+.nav-item .nav-icon { width: 15px; flex-shrink: 0; text-align: center; }
+.nav-label { white-space: nowrap; }
 .submenu { display: none; flex-direction: column; }
 .submenu.open { display: flex; }
-.submenu-item { display: flex; align-items: center; gap: 10px; padding: 8px 1rem 8px 3rem; font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.25); cursor: pointer; transition: all 0.15s; white-space: nowrap; letter-spacing: 0.1em; text-transform: uppercase; }
-.submenu-item:hover { color: rgba(255,255,255,0.75); }
-.submenu-item.active { color: rgba(255,255,255,0.9); }
-.submenu-label { opacity: 0; transition: opacity 0.15s 0.06s; }
-.sidebar:hover .submenu-label { opacity: 1; }
-.sidebar-footer { margin-top: auto; padding: 1rem; border-top: 1px solid rgba(255,255,255,0.06); white-space: nowrap; overflow: hidden; }
-.user-badge { display: flex; align-items: center; gap: 10px; }
-.user-avatar { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; letter-spacing: 0.05em; }
-.user-info { opacity: 0; transition: opacity 0.15s 0.06s; }
-.sidebar:hover .user-info { opacity: 1; }
-.user-name { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.7); max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
-.user-role { font-size: 9px; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; }
-.btn-logout { margin-top: 10px; width: 100%; padding: 8px; font-size: 9px; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); cursor: pointer; font-family: 'Outfit', sans-serif; transition: all 0.15s; display: none; letter-spacing: 0.15em; text-transform: uppercase; border-radius: 0; }
-.sidebar:hover .btn-logout { display: block; }
-.btn-logout:hover { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.7); }
+.submenu-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 1rem 7px 2.5rem;
+  font-size: 12px; color: rgba(255,255,255,0.4);
+  cursor: pointer; border-radius: 6px; margin: 1px 0.5rem;
+  transition: all 0.15s;
+}
+.submenu-item:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.05); }
+.submenu-item.active { color: #4ade80; }
+.sidebar-footer {
+  margin-top: auto; padding: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 12px;
+}
+.user-badge { display: flex; align-items: center; gap: 8px; }
+.user-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(42,157,92,0.3); color: #4ade80;
+  font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-logout {
+  margin-top: 8px; width: 100%; padding: 7px;
+  font-size: 12px; background: transparent;
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+  color: rgba(255,255,255,0.4); cursor: pointer; font-family: 'Outfit', sans-serif;
+  transition: all 0.15s;
+}
+.btn-logout:hover { border-color: var(--red); color: #f87171; }
 
-/* TOPBAR */
-.topbar { padding: 0 2rem; height: 60px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-.topbar-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 400; color: var(--text); letter-spacing: 0.05em; }
-.topbar-right { display: flex; align-items: center; gap: 12px; }
-.empresa-tag { font-size: 11px; padding: 4px 12px; font-weight: 600; background: var(--green-light); color: var(--green); border-radius: 20px; border: 1px solid rgba(42,157,92,0.2); }
-.content { flex: 1; overflow-y: auto; padding: 2rem; }
+/* MAIN */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  padding: 0 1.5rem; height: 56px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0; box-shadow: var(--shadow);
+}
+.topbar-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.empresa-tag {
+  font-size: 11px; padding: 4px 12px; font-weight: 600;
+  background: var(--green-light); color: var(--green);
+  border-radius: 20px; border: 1px solid rgba(42,157,92,0.2);
+}
+.content { flex: 1; overflow-y: auto; padding: 1.5rem; }
 .page { display: none; }
 .page.active { display: block; }
 
-/* MÉTRICAS */
-.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-bottom: 2rem; border: 1px solid var(--border); background: var(--border); }
-.metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.125rem 1.25rem; box-shadow: var(--shadow); position: relative; overflow: hidden; }
-.metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), transparent); }
-.metric-label { font-size: 9px; color: var(--text3); margin-bottom: 12px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
-.metric-val { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 300; letter-spacing: -0.02em; color: var(--text); }
+/* CARDS MÉTRICAS */
+.metrics-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 1.25rem;
+}
+.metric-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.125rem 1.25rem;
+  box-shadow: var(--shadow); position: relative; overflow: hidden;
+}
+.metric-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+.metric-label { font-size: 11px; color: var(--text2); margin-bottom: 8px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; }
+.metric-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; }
 .metric-val.green { color: var(--green); }
 .metric-val.red { color: var(--red); }
 .metric-val.amber { color: var(--amber); }
-.metric-delta { font-size: 10px; margin-top: 6px; font-weight: 500; }
+.metric-delta { font-size: 11px; margin-top: 4px; font-weight: 500; }
 .metric-delta.up { color: var(--green); }
 .metric-delta.down { color: var(--red); }
 .metric-delta.neutral { color: var(--text3); }
 
-/* CARDS */
-.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 12px; box-shadow: var(--shadow); }
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
-.card-title { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 400; color: var(--text); letter-spacing: 0.03em; }
-.card-sub { font-size: 10px; color: var(--text3); margin-top: 3px; letter-spacing: 0.08em; text-transform: uppercase; }
-.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 1px; margin-bottom: 1px; }
+/* CARDS GERAIS */
+.card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1.25rem;
+  margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.card-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px; }
 
 /* TABELAS */
-.lanc-sticky { position: sticky; top: 0; z-index: 50; background: var(--bg); padding-bottom: 12px; }
+.lanc-sticky { position: sticky; top: 0; z-index: 50; background: var(--bg2); padding-bottom: 8px; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-thead th { text-align: left; padding: 12px 16px; font-size: 9px; font-weight: 600; color: var(--text3); border-bottom: 1px solid var(--border); white-space: nowrap; letter-spacing: 0.18em; text-transform: uppercase; background: var(--bg3); cursor: pointer; user-select: none; }
-thead th:hover { color: var(--text); }
-thead th.sort-asc::after { content: ' ↑'; color: var(--text); }
-thead th.sort-desc::after { content: ' ↓'; color: var(--text); }
+thead th {
+  text-align: left; padding: 8px 12px;
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  border-bottom: 1.5px solid var(--border); white-space: nowrap;
+  letter-spacing: 0.03em; text-transform: uppercase; background: var(--bg3);
+  cursor: pointer; user-select: none; transition: color 0.15s;
+}
+thead th:hover { color: var(--accent); }
+thead th.sort-asc::after { content: ' ↑'; color: var(--accent); }
+thead th.sort-desc::after { content: ' ↓'; color: var(--accent); }
 thead th.no-sort { cursor: default; }
-thead th.no-sort:hover { color: var(--text3); }
-tbody td { padding: 13px 16px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+thead th.no-sort:hover { color: var(--text2); }
+tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: var(--bg3); }
 
 /* BADGES */
-.badge { display: inline-block; font-size: 9px; font-weight: 600; padding: 3px 10px; letter-spacing: 0.12em; text-transform: uppercase; }
-.badge-green { background: var(--green-dim); color: var(--green); }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.02em; }
+.badge-green { background: var(--green-light); color: var(--green); }
 .badge-red { background: var(--red-dim); color: var(--red); }
 .badge-amber { background: var(--amber-dim); color: var(--amber); }
 .badge-blue { background: var(--blue-dim); color: var(--blue); }
 .badge-gray { background: var(--bg4); color: var(--text2); }
 
 /* BOTÕES */
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; font-size: 10px; font-weight: 600; cursor: pointer; border: 1px solid var(--border2); background: var(--bg2); color: var(--text); font-family: 'Outfit', sans-serif; transition: all 0.2s; letter-spacing: 0.12em; text-transform: uppercase; border-radius: 0; }
-.btn:hover { background: var(--bg3); }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; font-size: 13px; font-weight: 500;
+  border-radius: 8px; cursor: pointer; border: 1.5px solid var(--border2);
+  background: var(--bg2); color: var(--text);
+  font-family: 'Outfit', sans-serif; transition: all 0.15s;
+}
+.btn:hover { background: var(--bg3); border-color: var(--border2); }
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-primary:hover { background: #1e7a45; border-color: #1e7a45; box-shadow: 0 4px 10px rgba(42,157,92,0.25); }
-.btn-sm { padding: 6px 12px; font-size: 9px; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
 
 /* FILTROS */
-.filters { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
-.filter-select { padding: 9px 14px; font-size: 11px; font-weight: 500; background: var(--bg2); border: 1px solid var(--border); color: var(--text); font-family: 'Outfit', sans-serif; cursor: pointer; letter-spacing: 0.05em; border-radius: 0; }
-.filter-select:focus { outline: none; border-color: var(--text); }
+.filters { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+.filter-select {
+  padding: 7px 12px; font-size: 12px; font-weight: 500;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: 'Outfit', sans-serif; cursor: pointer;
+}
 
-/* FORMS */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 9px; color: var(--text3); font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; }
-.form-group input, .form-group select, .form-group textarea { padding: 11px 14px; font-size: 13px; font-weight: 300; background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-family: 'Outfit', sans-serif; transition: all 0.2s; border-radius: 0; }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--text); background: var(--bg2); }
-.form-group input::placeholder { color: var(--text3); }
-.tipo-toggle { display: flex; gap: 1px; margin-bottom: 1.5rem; }
-.tipo-btn { flex: 1; padding: 12px; text-align: center; font-size: 10px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); transition: all 0.15s; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 0; }
-.tipo-btn.entrada-sel { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+/* IMPORT AREA */
+.import-zone {
+  border: 1.5px dashed var(--border2); border-radius: var(--radius);
+  padding: 2rem; text-align: center; color: var(--text2);
+  font-size: 13px; cursor: pointer; transition: all 0.2s;
+  margin-bottom: 1rem; background: var(--bg3);
+}
+.import-zone:hover { border-color: var(--accent); color: var(--accent); background: var(--green-light); }
+.import-zone input { display: none; }
+.import-icon { font-size: 28px; margin-bottom: 8px; }
+
+/* FORMULÁRIOS */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; color: var(--text2); font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea {
+  padding: 9px 12px; font-size: 13px;
+  background: var(--bg3); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: 'Outfit', sans-serif;
+}
+.form-group input:focus, .form-group select:focus {
+  outline: none; border-color: var(--accent); background: #fff;
+}
+.tipo-toggle { display: flex; gap: 8px; margin-bottom: 1rem; }
+.tipo-btn {
+  flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 500;
+  border-radius: 8px; cursor: pointer; border: 1.5px solid var(--border);
+  background: var(--bg3); color: var(--text2); transition: all 0.15s;
+}
+.tipo-btn.entrada-sel { background: var(--green-light); border-color: var(--green); color: var(--green); }
 .tipo-btn.saida-sel { background: var(--red-dim); border-color: var(--red); color: var(--red); }
 
 /* LOADING */
-.loading { display: flex; align-items: center; justify-content: center; padding: 4rem; color: var(--text3); font-size: 12px; gap: 12px; letter-spacing: 0.1em; }
-.spin { width: 18px; height: 18px; border: 1px solid var(--border2); border-top-color: var(--text); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+.loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: var(--text3); font-size: 13px; gap: 8px; }
+.spin { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.empty { text-align: center; padding: 4rem; color: var(--text3); font-size: 12px; background: var(--bg3); letter-spacing: 0.1em; }
+.empty { text-align: center; padding: 3rem; color: var(--text3); font-size: 13px; background: var(--bg3); border-radius: 8px; }
 
 /* MODAL */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-.modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
-@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; margin: 1rem; box-shadow: var(--shadow-md); animation: slideUp 0.25s ease; }
-@keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-.modal-title { font-family: 'Outfit', sans-serif; font-size: 22px; font-weight: 400; margin-bottom: 1.75rem; color: var(--text); letter-spacing: 0.03em; }
-.modal-footer { display: flex; gap: 8px; margin-top: 1.75rem; justify-content: flex-end; }
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4); z-index: 1000;
+  align-items: center; justify-content: center; backdrop-filter: blur(2px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.75rem; width: 100%; max-width: 520px;
+  max-height: 90vh; overflow-y: auto; margin: 1rem;
+  box-shadow: var(--shadow-md);
+}
+.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 1.25rem; color: var(--text); }
+.modal-footer { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
 
-/* TOAST */
-.toast { position: fixed; bottom: 2rem; right: 2rem; padding: 14px 22px; font-size: 11px; font-weight: 600; background: var(--text); color: #fff; z-index: 9999; transform: translateY(60px); opacity: 0; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); box-shadow: var(--shadow-md); max-width: 320px; letter-spacing: 0.08em; border-radius: 0; }
+/* NOTIFICAÇÃO */
+.toast {
+  position: fixed; bottom: 1.5rem; right: 1.5rem;
+  padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 500;
+  background: var(--text); color: #fff; z-index: 9999;
+  transform: translateY(100px); opacity: 0; transition: all 0.3s;
+  box-shadow: var(--shadow-md);
+}
 .toast.show { transform: translateY(0); opacity: 1; }
 .toast.success { background: var(--green); }
 .toast.error { background: var(--red); }
 
-/* TABS */
-.cfg-tab { padding: 10px 20px; font-size: 10px; font-weight: 600; background: none; border: none; border-bottom: 1px solid transparent; cursor: pointer; color: var(--text3); font-family: 'Outfit', sans-serif; margin-bottom: -1px; transition: all 0.15s; letter-spacing: 0.15em; text-transform: uppercase; }
+/* ABAS CONFIGURAÇÕES */
+.cfg-tab {
+  padding: 8px 16px; font-size: 13px; font-weight: 500;
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; color: var(--text2); font-family: 'Outfit', sans-serif;
+  margin-bottom: -1.5px; transition: all 0.15s;
+}
 .cfg-tab:hover { color: var(--text); }
-.cfg-tab.active { color: var(--text); border-bottom-color: var(--text); }
+.cfg-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 .cfg-panel { display: none; }
 .cfg-panel.active { display: block; }
 
 /* SCROLLBAR */
-::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
-/* IMPORT */
-.import-zone { border: 1px dashed var(--border2); padding: 3rem; text-align: center; color: var(--text2); font-size: 12px; cursor: pointer; transition: all 0.2s; margin-bottom: 1rem; background: var(--bg3); letter-spacing: 0.08em; }
-.import-zone:hover { border-color: var(--text); color: var(--text); background: var(--bg4); }
-.import-icon { font-size: 28px; margin-bottom: 12px; }
-.lanc-sticky { background: var(--bg) !important; }
-
+/* RESPONSIVE */
 @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } .charts-row { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .sidebar { display: none; } .main { margin-left: 0; width: 100%; } .metrics-grid { grid-template-columns: 1fr 1fr; } }
 </style>
@@ -261,7 +363,9 @@ tbody tr:hover { background: var(--bg3); }
       </button>
     </div>
 
-    <div class="login-forgot" onclick="esqueceuSenha()" style="text-align:right;margin-bottom:1rem">Esqueci minha senha</div>
+    <div style="text-align:right;margin-bottom:1.25rem">
+      <a href="#" onclick="esqueceuSenha()" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:500">Esqueci minha senha</a>
+    </div>
 
     <button class="btn-login" onclick="doLogin()">Entrar no sistema</button>
     <div id="login-err" class="login-err"></div>
@@ -443,7 +547,7 @@ tbody tr:hover { background: var(--bg3); }
               </select>
               <input type="text" id="lanc-busca" placeholder="🔍 Buscar..."
                 oninput="filtrarLancamentos(this.value)"
-                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;width:180px">
+                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
             </div>
             <div style="display:flex;gap:8px">
@@ -452,19 +556,19 @@ tbody tr:hover { background: var(--bg3); }
           </div>
 
           <!-- CARDS UMA LINHA: saldo bancos + entradas + saídas + saldo mês + saldo total -->
-          <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:nowrap;overflow-x:auto">
-            <div id="lanc-saldo-bancos" style="display:contents"></div>
+          <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:nowrap;overflow-x:auto;align-items:stretch">
+            <div id="lanc-saldo-bancos" style="display:flex;gap:8px;"></div>
             <div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Entradas</div>
-              <div id="lanc-total-entrada" style="font-size:13px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace">—</div>
+              <div id="lanc-total-entrada" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Saídas</div>
-              <div id="lanc-total-saida" style="font-size:13px;font-weight:700;color:var(--red);font-family:'JetBrains Mono',monospace">—</div>
+              <div id="lanc-total-saida" style="font-size:13px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;border:2px solid var(--accent)">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Saldo Total</div>
-              <div id="lanc-saldo-mes" style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace">—</div>
+              <div id="lanc-saldo-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
             </div>
           </div>
 
@@ -530,7 +634,7 @@ tbody tr:hover { background: var(--bg3); }
                 <option value="atrasado">Atrasados</option>
               </select>
               <input type="text" id="cp-busca" placeholder="🔍 Buscar..." oninput="filtrarTabela('cp-tbody',this.value)"
-                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;width:160px">
+                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:160px">
               <button class="btn" onclick="loadContasPagar()">↻ Atualizar</button>
             </div>
             <button class="btn btn-primary" onclick="abrirModalConta('pagar')">+ Nova conta a pagar</button>
@@ -540,27 +644,27 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">A Pagar</div>
-              <div id="cp-total" style="font-size:13px;font-weight:700;color:var(--red);font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cp-total" style="font-size:13px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:#3b82f6;text-transform:uppercase">Enviado</div>
-              <div id="cp-enviado" style="font-size:13px;font-weight:700;color:#3b82f6;font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cp-enviado" style="font-size:13px;font-weight:700;color:#3b82f6;font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">Pago</div>
-              <div id="cp-pago" style="font-size:13px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cp-pago" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Não Pago</div>
-              <div id="cp-naopago" style="font-size:13px;font-weight:700;color:var(--text2);font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cp-naopago" style="font-size:13px;font-weight:700;color:var(--text2);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:#ef4444;text-transform:uppercase">Atrasado</div>
-              <div id="cp-atrasado" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cp-atrasado" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px;border:2px solid var(--accent)">
               <div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase">Total Mês</div>
-              <div id="cp-total-mes" style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cp-total-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
             </div>
           </div>
 
@@ -569,14 +673,14 @@ tbody tr:hover { background: var(--bg3); }
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
                 <span>📌 Contas Fixas</span>
-                <span id="cp-fixas-total" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--red)"></span>
+                <span id="cp-fixas-total" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)"></span>
               </div>
               <div id="cp-fixas-table"><div class="loading"><div class="spin"></div></div></div>
             </div>
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
                 <span>📊 Contas Variáveis</span>
-                <span id="cp-variaveis-total" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--red)"></span>
+                <span id="cp-variaveis-total" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)"></span>
               </div>
               <div id="cp-variaveis-table"><div class="loading"><div class="spin"></div></div></div>
             </div>
@@ -606,7 +710,7 @@ tbody tr:hover { background: var(--bg3); }
                 <option value="atrasado">Atrasados</option>
               </select>
               <input type="text" placeholder="🔍 Buscar..." oninput="filtrarTabela('cr-tbody',this.value)"
-                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;width:160px">
+                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:160px">
               <button class="btn" onclick="loadContasReceber()">↻ Atualizar</button>
             </div>
             <button class="btn btn-primary" onclick="abrirModalConta('receber')">+ Nova conta a receber</button>
@@ -615,27 +719,27 @@ tbody tr:hover { background: var(--bg3); }
           <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">A Receber</div>
-              <div id="cr-total" style="font-size:13px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cr-total" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:#3b82f6;text-transform:uppercase">Enviado</div>
-              <div id="cr-enviado" style="font-size:13px;font-weight:700;color:#3b82f6;font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cr-enviado" style="font-size:13px;font-weight:700;color:#3b82f6;font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">Recebido</div>
-              <div id="cr-recebido" style="font-size:13px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cr-recebido" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Não Recebido</div>
-              <div id="cr-naorecebido" style="font-size:13px;font-weight:700;color:var(--text2);font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cr-naorecebido" style="font-size:13px;font-weight:700;color:var(--text2);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
               <div style="font-size:10px;font-weight:600;color:#ef4444;text-transform:uppercase">Atrasado</div>
-              <div id="cr-atrasado" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cr-atrasado" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px;border:2px solid var(--accent)">
               <div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase">Total Mês</div>
-              <div id="cr-total-mes" style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace">—</div>
+              <div id="cr-total-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
             </div>
           </div>
 
@@ -845,7 +949,7 @@ tbody tr:hover { background: var(--bg3); }
             </div>
 
             <div style="margin-bottom:12px">
-              <div class="form-group"><label>Observação</label><textarea id="forn-obs" rows="3" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;resize:vertical" placeholder="Anotações sobre o fornecedor"></textarea></div>
+              <div class="form-group"><label>Observação</label><textarea id="forn-obs" rows="3" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical" placeholder="Anotações sobre o fornecedor"></textarea></div>
             </div>
 
             <div style="border-top:1.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
@@ -1148,7 +1252,7 @@ tbody tr:hover { background: var(--bg3); }
 
     <div class="form-group" style="margin-bottom:1rem">
       <label>Observação</label>
-      <textarea id="ct-obs" rows="2" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;resize:vertical" placeholder="Observações..."></textarea>
+      <textarea id="ct-obs" rows="2" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical" placeholder="Observações..."></textarea>
     </div>
 
     <div class="modal-footer">
@@ -1180,11 +1284,11 @@ tbody tr:hover { background: var(--bg3); }
     <!-- ENTRADA / SAÍDA -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem">
       <button id="btn-tipo-entrada" onclick="selecionarTipoLanc('ENTRADA')"
-        style="padding:12px;font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;border:2px solid var(--green);background:var(--green);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.15s">
+        style="padding:12px;font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;border:2px solid var(--green);background:var(--green);color:#fff;font-family:'Outfit',sans-serif;transition:all 0.15s">
         ↓ ENTRADA
       </button>
       <button id="btn-tipo-saida" onclick="selecionarTipoLanc('SAIDA')"
-        style="padding:12px;font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:'Plus Jakarta Sans',sans-serif;transition:all 0.15s">
+        style="padding:12px;font-size:14px;font-weight:700;border-radius:10px;cursor:pointer;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:'Outfit',sans-serif;transition:all 0.15s">
         ↑ SAÍDA
       </button>
     </div>
@@ -1309,7 +1413,7 @@ tbody tr:hover { background: var(--bg3); }
     </div>
 
     <div class="form-grid" style="grid-template-columns:1fr;gap:12px;margin-bottom:1rem">
-      <div class="form-group"><label>Observação</label><textarea id="forn-obs" rows="3" style="padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;resize:vertical;width:100%" placeholder="Anotações sobre o fornecedor"></textarea></div>
+      <div class="form-group"><label>Observação</label><textarea id="forn-obs" rows="3" style="padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical;width:100%" placeholder="Anotações sobre o fornecedor"></textarea></div>
     </div>
 
     <div style="border-top:1.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
@@ -1379,7 +1483,7 @@ tbody tr:hover { background: var(--bg3); }
       </div>
       <div class="form-group" style="grid-column:1/-1">
         <label>Código <span style="font-size:11px;color:var(--text3)">(gerado automaticamente — você pode editar)</span></label>
-        <input type="text" id="cat-codigo-input" placeholder="Ex: 1.1" style="font-family:'JetBrains Mono',monospace;font-weight:600">
+        <input type="text" id="cat-codigo-input" placeholder="Ex: 1.1" style="font-family:'DM Mono',monospace;font-weight:600">
       </div>
     </div>
     <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);margin-top:4px">
@@ -1783,7 +1887,7 @@ async function loadLancamentos() {
       const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
       cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
         <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
-        <div style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
+        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
       </div>`;
     });
     saldoDiv.innerHTML = cardsHtml;
@@ -1822,7 +1926,7 @@ async function loadLancamentos() {
         <input type="checkbox" class="lanc-check" data-id="${l.id}" onchange="atualizarSelecao()" style="cursor:pointer;width:15px;height:15px">
       </td>
       <td style="padding:9px 12px;white-space:nowrap;color:var(--text2);font-size:12px">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3)">${l.codigo||''}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">${l.codigo||''}</div>
         <span class="cell-view">${fmtDate(l.data_lancamento)}</span>
         <input class="cell-edit" type="date" style="display:none;width:120px" value="${l.data_lancamento||''}">
       </td>
@@ -1830,11 +1934,11 @@ async function loadLancamentos() {
         <span class="cell-view" style="font-size:12px;color:var(--text2)">${l.extrato||l.descricao||'—'}</span>
         <input class="cell-edit" style="display:none;width:100%;font-size:12px" value="${l.extrato||l.descricao||''}">
       </td>
-      <td style="padding:9px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--green);font-size:12px">
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;color:var(--green);font-size:12px">
         <span class="cell-view">${entrada > 0 ? fmtBRL(entrada) : ''}</span>
         <input class="cell-edit" type="number" style="display:none;width:90px;text-align:right" value="${entrada||''}">
       </td>
-      <td style="padding:9px 12px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--red);font-size:12px">
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;color:var(--red);font-size:12px">
         <span class="cell-view">${saida > 0 ? fmtBRL(saida) : ''}</span>
         <input class="cell-edit" type="number" style="display:none;width:90px;text-align:right" value="${saida||''}">
       </td>
@@ -1869,7 +1973,7 @@ async function loadLancamentos() {
         </select>
       </td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2);white-space:nowrap">${mesNome} ${ano}</td>
-      <td style="padding:9px 12px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--green)':'var(--red)'}">
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--green)':'var(--red)'}">
         ${fmtBRL(saldoAcum)}
       </td>
       <td style="padding:9px 12px;white-space:nowrap;display:flex;gap:4px">
@@ -2301,7 +2405,7 @@ function renderLancTable(data, targetId, mini) {
       <td style="font-size:12px">${l.descricao||l.extrato||'—'}</td>
       <td><span class="badge badge-blue" style="font-size:10px">${l.categoria||'—'}</span></td>
       <td><span class="badge badge-${cor}" style="font-size:10px">${l.tipo}</span></td>
-      <td style="color:var(--${cor});font-family:'JetBrains Mono',monospace;font-size:12px">${fmtBRL(val)}</td>
+      <td style="color:var(--${cor});font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(val)}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
@@ -2331,7 +2435,7 @@ async function loadContasPagar() {
     html += `<tr>
       <td style="color:${atras?'var(--red)':'var(--text2)'};font-size:12px">${fmtDate(r.data_vencimento)}</td>
       <td>${r.descricao||'—'}</td>
-      <td style="font-family:'JetBrains Mono',monospace">${fmtBRL(r.valor)}</td>
+      <td style="font-family:'DM Mono',monospace">${fmtBRL(r.valor)}</td>
       <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
       <td><span class="badge ${r.status==='Pago'?'badge-green':'badge-amber'}">${r.status||'—'}</span></td>
       <td>${r.status!=='Pago'?`<button class="btn btn-sm" onclick="darBaixaCP('${r.id}')">Dar baixa</button>`:''}</td>
@@ -2364,7 +2468,7 @@ async function loadServicos() {
   const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,15);
   let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Serviço</th><th>Total</th></tr></thead><tbody>';
   sorted.forEach(([srv,val],i) => {
-    html += `<tr><td style="color:var(--text3)">${i+1}</td><td>${srv}</td><td style="color:var(--green);font-family:'JetBrains Mono',monospace">${fmtBRL(val)}</td></tr>`;
+    html += `<tr><td style="color:var(--text3)">${i+1}</td><td>${srv}</td><td style="color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(val)}</td></tr>`;
   });
   html += '</tbody></table></div>';
   document.getElementById('srv-table').innerHTML = html;
@@ -2384,7 +2488,7 @@ async function loadClientes() {
 
   let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Cliente</th><th>Última visita</th><th>Visitas</th><th>Total consumido</th></tr></thead><tbody>';
   data.slice(0,20).forEach((r,i) => {
-    html += `<tr><td style="color:var(--text3)">${i+1}</td><td>${r.cliente||'—'}</td><td style="font-size:12px;color:var(--text2)">${fmtDate(r.ultima_visita)}</td><td>${r.numero_visitas||0}</td><td style="color:var(--green);font-family:'JetBrains Mono',monospace">${fmtBRL(r.total_consumido)}</td></tr>`;
+    html += `<tr><td style="color:var(--text3)">${i+1}</td><td>${r.cliente||'—'}</td><td style="font-size:12px;color:var(--text2)">${fmtDate(r.ultima_visita)}</td><td>${r.numero_visitas||0}</td><td style="color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(r.total_consumido)}</td></tr>`;
   });
   html += '</tbody></table></div>';
   document.getElementById('cli-table').innerHTML = html;
@@ -2406,7 +2510,7 @@ async function loadProdutos() {
   const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,15);
   let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Produto</th><th>Total vendido</th></tr></thead><tbody>';
   sorted.forEach(([prod,val],i) => {
-    html += `<tr><td style="color:var(--text3)">${i+1}</td><td>${prod}</td><td style="color:var(--green);font-family:'JetBrains Mono',monospace">${fmtBRL(val)}</td></tr>`;
+    html += `<tr><td style="color:var(--text3)">${i+1}</td><td>${prod}</td><td style="color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(val)}</td></tr>`;
   });
   html += '</tbody></table></div>';
   document.getElementById('prod-table').innerHTML = html;
@@ -2428,7 +2532,7 @@ async function loadPerformance() {
   let html = '<div class="table-wrap"><table><thead><tr><th>Profissional</th><th>Atendimentos</th><th>Faturamento</th><th>Lucro</th><th>Margem</th></tr></thead><tbody>';
   sorted.forEach(([prof, d]) => {
     const margem = d.fat > 0 ? ((d.lucro/d.fat)*100).toFixed(1) : 0;
-    html += `<tr><td>${prof}</td><td>${d.qtd}</td><td style="color:var(--green);font-family:'JetBrains Mono',monospace">${fmtBRL(d.fat)}</td><td style="font-family:'JetBrains Mono',monospace">${fmtBRL(d.lucro)}</td><td><span class="badge ${Number(margem)>40?'badge-green':'badge-amber'}">${margem}%</span></td></tr>`;
+    html += `<tr><td>${prof}</td><td>${d.qtd}</td><td style="color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(d.fat)}</td><td style="font-family:'DM Mono',monospace">${fmtBRL(d.lucro)}</td><td><span class="badge ${Number(margem)>40?'badge-green':'badge-amber'}">${margem}%</span></td></tr>`;
   });
   html += '</tbody></table></div>';
   document.getElementById('perf-table').innerHTML = html;
@@ -2824,7 +2928,7 @@ async function loadFornecedores() {
   let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(r => {
     html += `<tr id="forn-row-${r.id}">
-      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
       <td style="font-weight:500">${r.nome||''}</td>
       <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
       <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
@@ -2997,7 +3101,7 @@ async function loadPlanoContas() {
       html += `<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
           <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--accent);border-left:3px solid ${g.cor||'#6b7280'};padding-left:8px">${g.ordem}.</span>
+            <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:13px;color:var(--accent);border-left:3px solid ${g.cor||'#6b7280'};padding-left:8px">${g.ordem}.</span>
             <span style="font-weight:600;font-size:13px">${g.nome}</span>
             <span class="badge ${g.tipo==='ENTRADA'?'badge-green':'badge-red'}" style="font-size:10px">${g.tipo==='ENTRADA'?'(+)':'(-)'}</span>
           </div>
@@ -3011,7 +3115,7 @@ async function loadPlanoContas() {
       // Linha para nova categoria (oculta)
       html += `<div id="nova-cat-${g.id}" style="display:none;padding:10px 14px;background:#f0fdf4;border-bottom:1px solid var(--border)">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" id="nova-cat-nome-${g.id}" placeholder="Nome da categoria" style="flex:1;padding:7px 10px;font-size:13px;border:1.5px solid var(--accent);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif">
+          <input type="text" id="nova-cat-nome-${g.id}" placeholder="Nome da categoria" style="flex:1;padding:7px 10px;font-size:13px;border:1.5px solid var(--accent);border-radius:8px;font-family:'Outfit',sans-serif">
           <span style="font-size:12px;color:var(--text2);white-space:nowrap">Código: <strong id="nova-cat-cod-${g.id}" style="color:var(--accent)">${g.ordem}.${gCats.length+1}</strong></span>
           <button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarNovaCategoria('${g.id}','${g.nome}','${g.demonstrativo}',${g.ordem},${gCats.length})">💾 Salvar</button>
           <button class="btn btn-sm" onclick="document.getElementById('nova-cat-${g.id}').style.display='none'">✕</button>
@@ -3023,7 +3127,7 @@ async function loadPlanoContas() {
         html += `<div style="padding:0">`;
         gCats.forEach((c, idx) => {
           html += `<div id="cat-row-${c.id}" style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);${idx%2===1?'background:var(--bg3)':''}">
-            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);min-width:32px" class="cell-view">${c.codigo||''}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:32px" class="cell-view">${c.codigo||''}</span>
             <input class="cell-edit" style="display:none;width:50px;font-family:monospace;font-size:12px" value="${c.codigo||''}">
             <span style="font-size:13px;flex:1" class="cell-view">${c.nome}</span>
             <input class="cell-edit" style="display:none;flex:1;font-size:13px" value="${c.nome||''}">
@@ -3192,30 +3296,7 @@ async function carregarGruposSelect(demo) {
   ).join('');
 }
 
-async function filtrarGruposPorDemo() {
-  const demo = document.getElementById('cat-demo').value;
-  await carregarGruposSelect(demo);
-  await previewCodigo();
-}
 
-async function previewCodigo() {
-  const sel = document.getElementById('cat-grupo');
-  const opt = sel.options[sel.selectedIndex];
-  if (!opt) return;
-  const grupoNome = opt.dataset.nome;
-  const grupoOrdem = opt.dataset.ordem;
-  const demo = document.getElementById('cat-demo').value;
-
-  // Conta categorias existentes nesse grupo
-  const { data } = await sb.from('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo === 'AMBOS' ? opt.text.includes('DFC') ? 'DFC' : 'DRE' : demo);
-  const editId = document.getElementById('modal-categoria').dataset.editId || '';
-  const total = (data?.length || 0) + (editId ? 0 : 1);
-  const codigo = `${grupoOrdem}.${total}`;
-
-  const inputCod = document.getElementById('cat-codigo-input');
-  inputCod.value = codigo;
-  inputCod.dataset.auto = codigo;
-}
 
 // Salva categoria (novo ou edição)
 async function saveCategoria() {
@@ -3280,35 +3361,8 @@ async function excluirCategoria(id) {
   loadPlanoContas();
 }
 
-async function loadGruposSelect(selectId, demo) {
-  await carregarGruposSelect(demo);
-}
 
 // Abre modal novo — reseta campos
-async function openModal(id) {
-  if (id === 'modal-categoria') {
-    document.getElementById('cat-nome').value = '';
-    document.getElementById('cat-tipo').value = 'ENTRADA';
-    document.getElementById('cat-demo').value = 'DFC';
-    document.getElementById('modal-categoria').dataset.editId = '';
-    document.getElementById('modal-categoria').dataset.codigoOriginal = '';
-    document.getElementById('modal-categoria').querySelector('.modal-title').textContent = 'Nova categoria';
-    document.getElementById('cat-codigo-input').value = '';
-    document.getElementById('cat-codigo-input').placeholder = 'Gerado automaticamente';
-    await carregarGruposSelect('DFC');
-  }
-  if (id === 'modal-grupo') {
-    document.getElementById('grp-nome').value = '';
-    document.getElementById('grp-tipo').value = 'ENTRADA';
-    document.getElementById('grp-demo').value = 'DFC';
-    document.getElementById('grp-ordem').value = '';
-    document.getElementById('grp-cor').value = '#6b7280';
-    document.getElementById('modal-grupo').dataset.editId = '';
-    document.getElementById('modal-grupo').querySelector('.modal-title').textContent = 'Novo grupo';
-  }
-  if (id === 'modal-fornecedor') await loadGruposSelect('forn-grupo');
-  document.getElementById(id).classList.add('open');
-}
 
 // ─── BANCOS ─────────────────────────────────────────────
 async function loadBancos() {
@@ -3745,9 +3799,9 @@ async function loadDFC() {
   // Saldo inicial
   html += `<tr style="background:#f0fdf4">
     <td style="padding:9px 12px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:5">Saldo Inicial</td>
-    ${MESES.map(() => `<td style="padding:9px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green)">${fmtBRL(saldoInicial)}</td>`).join('')}
-    <td style="padding:9px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;background:#e8f0fe">${fmtBRL(saldoInicial)}</td>
-    <td style="padding:9px 8px;text-align:right;font-family:'JetBrains Mono',monospace;background:#fef9f0">${fmtBRL(saldoInicial)}</td>
+    ${MESES.map(() => `<td style="padding:9px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--green)">${fmtBRL(saldoInicial)}</td>`).join('')}
+    <td style="padding:9px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe">${fmtBRL(saldoInicial)}</td>
+    <td style="padding:9px 8px;text-align:right;font-family:'DM Mono',monospace;background:#fef9f0">${fmtBRL(saldoInicial)}</td>
   </tr>`;
 
   let rowIdx = 0;
@@ -3761,9 +3815,9 @@ async function loadDFC() {
       <td style="padding:10px 12px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgGrupo};z-index:5">
         ${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:11px;color:var(--text2)">${g.sinal}</span>
       </td>
-      ${g.totalGrupo.map(v => `<td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
-      <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtBRL(Math.abs(totalG)):''}</td>
-      <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtBRL(Math.abs(mediaG)):''}</td>
+      ${g.totalGrupo.map(v => `<td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
+      <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtBRL(Math.abs(totalG)):''}</td>
+      <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtBRL(Math.abs(mediaG)):''}</td>
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
@@ -3773,9 +3827,9 @@ async function loadDFC() {
       const bgCat = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr style="border-bottom:1px solid var(--border);background:${bgCat}">
         <td style="padding:7px 12px 7px 28px;color:var(--text2);font-size:11px;position:sticky;left:0;background:${bgCat};z-index:5">${c.codigo} — ${c.nome}</td>
-        ${vals.map(v => `<td style="padding:7px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
-        <td style="padding:7px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtBRL(Math.abs(total)):''}</td>
-        <td style="padding:7px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${media!==0?fmtBRL(Math.abs(media)):''}</td>
+        ${vals.map(v => `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
+        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtBRL(Math.abs(total)):''}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${media!==0?fmtBRL(Math.abs(media)):''}</td>
       </tr>`;
     });
   });
@@ -3783,9 +3837,9 @@ async function loadDFC() {
   // Saldo final — sempre aparece mesmo sem lançamentos
   html += `<tr style="background:#111;color:#fff;border-top:3px solid var(--accent)">
     <td style="padding:11px 12px;font-weight:700;position:sticky;left:0;background:#111;z-index:5">SALDO FINAL</td>
-    ${saldoFinalMes.map(v => `<td style="padding:11px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtBRL(v)}</td>`).join('')}
-    <td style="padding:11px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes.reduce((s,v)=>s+v,0)/12>=0?'#4ade80':'#f87171'}">${fmtBRL(saldoFinalMes[saldoFinalMes.length-1])}</td>
-    <td style="padding:11px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;background:#0d0d1a;color:#94a3b8">${fmtBRL(saldoFinalMes.reduce((s,v)=>s+v,0)/12)}</td>
+    ${saldoFinalMes.map(v => `<td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtBRL(v)}</td>`).join('')}
+    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes.reduce((s,v)=>s+v,0)/12>=0?'#4ade80':'#f87171'}">${fmtBRL(saldoFinalMes[saldoFinalMes.length-1])}</td>
+    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#0d0d1a;color:#94a3b8">${fmtBRL(saldoFinalMes.reduce((s,v)=>s+v,0)/12)}</td>
   </tr>`;
 
   html += '</tbody></table></div>';
@@ -3835,9 +3889,9 @@ async function loadDRE() {
     html += `<tr style="background:${bgGrupo};border-top:2px solid var(--border)">
       <td style="padding:10px 12px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgGrupo};z-index:5">
         ${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:11px;color:var(--text2)">${g.sinal}</span></td>
-      ${g.totalGrupo.map(v => `<td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
-      <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtBRL(Math.abs(totalG)):''}</td>
-      <td style="padding:10px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtBRL(Math.abs(mediaG)):''}</td>
+      ${g.totalGrupo.map(v => `<td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
+      <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtBRL(Math.abs(totalG)):''}</td>
+      <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtBRL(Math.abs(mediaG)):''}</td>
       <td style="padding:10px 8px;text-align:right;font-size:11px;background:#f0fdf4;font-weight:600;color:var(--text2)">${pctG?pctG+'%':''}</td>
     </tr>`;
     g.gCats.forEach((c, ci) => {
@@ -3848,9 +3902,9 @@ async function loadDRE() {
       const bgCat = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr style="border-bottom:1px solid var(--border);background:${bgCat}">
         <td style="padding:7px 12px 7px 28px;color:var(--text2);font-size:11px;position:sticky;left:0;background:${bgCat};z-index:5">${c.codigo} — ${c.nome}</td>
-        ${vals.map(v => `<td style="padding:7px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
-        <td style="padding:7px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtBRL(Math.abs(total)):''}</td>
-        <td style="padding:7px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${media!==0?fmtBRL(Math.abs(media)):''}</td>
+        ${vals.map(v => `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
+        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtBRL(Math.abs(total)):''}</td>
+        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${media!==0?fmtBRL(Math.abs(media)):''}</td>
         <td style="padding:7px 8px;text-align:right;font-size:11px;background:#f0fdf4;color:var(--text2)">${pct?pct+'%':''}</td>
       </tr>`;
     });
@@ -3859,9 +3913,9 @@ async function loadDRE() {
   const mediaResultado = totalResultado / 12;
   html += `<tr style="background:#111;color:#fff;border-top:3px solid var(--accent)">
     <td style="padding:11px 12px;font-weight:700;position:sticky;left:0;background:#111;z-index:5">RESULTADO LÍQUIDO</td>
-    ${resultadoMes.map(v => `<td style="padding:11px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtBRL(v)}</td>`).join('')}
-    <td style="padding:11px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;background:#0d0d1a;color:${totalResultado>=0?'#4ade80':'#f87171'}">${fmtBRL(totalResultado)}</td>
-    <td style="padding:11px 8px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;background:#0d0d1a;color:#94a3b8">${fmtBRL(mediaResultado)}</td>
+    ${resultadoMes.map(v => `<td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtBRL(v)}</td>`).join('')}
+    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${totalResultado>=0?'#4ade80':'#f87171'}">${fmtBRL(totalResultado)}</td>
+    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#0d0d1a;color:#94a3b8">${fmtBRL(mediaResultado)}</td>
     <td style="padding:11px 8px;text-align:right;background:#0d0d1a;color:#94a3b8;font-size:11px">100%</td>
   </tr>`;
   html += '</tbody></table></div>';
@@ -3998,62 +4052,6 @@ async function salvarConta() {
   else loadContasReceber();
 }
 
-async function loadContasPagar() {
-  const mes = document.getElementById('cp-mes')?.value || '';
-  const ano = document.getElementById('cp-ano')?.value || '2026';
-  const statusFiltro = document.getElementById('cp-status')?.value || '';
-  const hoje = new Date().toISOString().substring(0,10);
-
-  let q = sb.from('contas_pagar').select('*').order('data_vencimento');
-  const anoNum = parseInt(ano);
-  const mesNum = mes ? parseInt(mes) : null;
-  if (mesNum) {
-    const ini = `${ano}-${mes.padStart(2,'0')}-01`;
-    const ultimoDia = new Date(anoNum, mesNum, 0).getDate(); // último dia do mês
-    const fim = `${ano}-${mes.padStart(2,'0')}-${ultimoDia}`;
-    q = q.gte('data_vencimento', ini).lte('data_vencimento', fim);
-  } else {
-    q = q.gte('data_vencimento', `${ano}-01-01`).lte('data_vencimento', `${ano}-12-31`);
-  }
-
-  const { data: all } = await q;
-  let contas = all || [];
-
-  // Filtra status no JS (atrasado é calculado)
-  if (statusFiltro === 'atrasado') {
-    contas = contas.filter(c => c.status === 'pendente' && c.data_vencimento < hoje);
-  } else if (statusFiltro) {
-    contas = contas.filter(c => c.status === statusFiltro);
-  }
-
-  const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
-
-  const aPagar = contas.filter(c => c.status === 'a pagar' || c.status === 'pendente');
-  const enviados = contas.filter(c => c.status === 'enviado');
-  const pagos = contas.filter(c => c.status === 'pago');
-  const naoPago = contas.filter(c => c.status === 'não pago');
-  const atrasados = contas.filter(c => c.status === 'atrasado' || (c.status === 'pendente' && c.data_vencimento < hoje));
-
-  if (document.getElementById('cp-total')) {
-    document.getElementById('cp-total').textContent = fmtBRL(soma(aPagar));
-    document.getElementById('cp-enviado').textContent = fmtBRL(soma(enviados));
-    document.getElementById('cp-pago').textContent = fmtBRL(soma(pagos));
-    document.getElementById('cp-naopago').textContent = fmtBRL(soma(naoPago));
-    document.getElementById('cp-atrasado').textContent = fmtBRL(soma(atrasados));
-    document.getElementById('cp-total-mes').textContent = fmtBRL(soma(contas));
-  }
-
-  const fixas = contas.filter(c => c.tipo === 'fixa');
-  const variaveis = contas.filter(c => c.tipo !== 'fixa');
-
-  if (document.getElementById('cp-fixas-total')) {
-    document.getElementById('cp-fixas-total').textContent = fmtBRL(soma(fixas));
-    document.getElementById('cp-variaveis-total').textContent = fmtBRL(soma(variaveis));
-  }
-
-  renderTabelaConta('cp-fixas-table', fixas, 'pagar', hoje);
-  renderTabelaConta('cp-variaveis-table', variaveis, 'pagar', hoje);
-}
 
 async function loadContasReceber() {
   const mes = document.getElementById('cr-mes')?.value || '';
@@ -4138,11 +4136,11 @@ function renderTabelaConta(targetId, contas, tipo, hoje) {
         ${c.palavra_chave ? `<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>` : ''}
         ${c.observacao ? `<div style="font-size:10px;color:var(--text3)">${c.observacao}</div>` : ''}
       </td>
-      <td style="padding:9px 12px;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:600;color:${tipo==='pagar'?'var(--red)':'var(--green)'}">${fmtBRL(c.valor)}</td>
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${tipo==='pagar'?'var(--red)':'var(--green)'}">${fmtBRL(c.valor)}</td>
       <td style="padding:9px 12px;text-align:center;font-size:11px;color:${vencido&&statusAtual!=='pago'&&statusAtual!=='recebido'?'#ef4444':'var(--text2)'};font-weight:${vencido&&statusAtual!=='pago'&&statusAtual!=='recebido'?'700':'400'}">${fmtDate(c.data_vencimento)}</td>
       <td style="padding:9px 12px;text-align:center">
         <select onchange="atualizarStatusConta('${c.id}','${tipo}',this.value,this)"
-          style="padding:4px 8px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid ${cor};color:${cor};background:transparent;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;outline:none">
+          style="padding:4px 8px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid ${cor};color:${cor};background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;outline:none">
           ${statusOpcoes.map(s => `<option value="${s}" ${statusAtual===s||((statusAtual==='pendente')&&s==='a pagar')||((statusAtual==='pendente')&&s==='a receber')?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
         </select>
       </td>
@@ -4717,7 +4715,7 @@ async function verAuditoria(id) {
     <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="color:var(--text2)">Código</span>
-        <strong style="font-family:'JetBrains Mono',monospace">${l.codigo || '—'}</strong>
+        <strong style="font-family:'DM Mono',monospace">${l.codigo || '—'}</strong>
       </div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="color:var(--text2)">Origem</span>
@@ -4919,7 +4917,7 @@ async function atualizarFornecedores() {
   let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody>';
   forns.forEach(r => {
     html += `<tr id="forn-row-${r.id}">
-      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
       <td style="font-weight:500">${r.nome||''}</td>
       <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
       <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
