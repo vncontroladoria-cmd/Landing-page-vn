@@ -106,7 +106,8 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 }
 .sidebar.open .logo-mark { opacity: 1; }
 .logo-mark span { color: var(--green); }
-.logo-name { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
+.sidebar:not(.open) { cursor: pointer; }
+
 .sidebar-section {
   padding: 1.25rem 1rem 0.35rem; font-size: 9px; color: rgba(255,255,255,0.3);
   letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600;
@@ -398,7 +399,9 @@ tbody tr:hover { background: var(--bg3); }
         <div class="sidebar-logo-icon" style="flex-shrink:0">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
-        <div class="logo-mark">Visão do <span>Negócio</span></div>
+        <div class="logo-mark">Visão do <span>Negócio</span>
+          <span onclick="event.stopPropagation();toggleSidebar()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);opacity:0.4;font-size:16px;cursor:pointer;line-height:1" title="Fechar menu">‹</span>
+        </div>
       </div>
 
       <div class="sidebar-section">Principal</div>
@@ -1698,6 +1701,18 @@ async function showApp() {
 function toggleSidebar() {
   document.querySelector('.sidebar')?.classList.toggle('open');
 }
+
+// Abre sidebar ao clicar em qualquer lugar dela quando fechada
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  sidebar.addEventListener('click', (e) => {
+    if (!sidebar.classList.contains('open')) {
+      e.stopPropagation();
+      sidebar.classList.add('open');
+    }
+  });
+});
 
 const pageTitles = {
   dashboard:'Dashboard', lancamentos:'Lançamentos',
