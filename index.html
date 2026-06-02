@@ -4029,9 +4029,12 @@ async function loadContasPagar() {
   const hoje = new Date().toISOString().substring(0,10);
 
   let q = sb.from('contas_pagar').select('*').order('data_vencimento');
-  if (mes) {
-    const ini = `${ano}-${mes}-01`;
-    const fim = `${ano}-${mes}-31`;
+  const anoNum = parseInt(ano);
+  const mesNum = mes ? parseInt(mes) : null;
+  if (mesNum) {
+    const ini = `${ano}-${mes.padStart(2,'0')}-01`;
+    const ultimoDia = new Date(anoNum, mesNum, 0).getDate(); // último dia do mês
+    const fim = `${ano}-${mes.padStart(2,'0')}-${ultimoDia}`;
     q = q.gte('data_vencimento', ini).lte('data_vencimento', fim);
   } else {
     q = q.gte('data_vencimento', `${ano}-01-01`).lte('data_vencimento', `${ano}-12-31`);
@@ -4072,13 +4075,22 @@ async function loadContasPagar() {
 }
 
 async function loadContasReceber() {
-  const mes = document.getElementById('cr-mes')?.value || '05';
+  const mes = document.getElementById('cr-mes')?.value || '';
   const ano = document.getElementById('cr-ano')?.value || '2026';
   const hoje = new Date().toISOString().substring(0,10);
-  const ini = `${ano}-${mes}-01`;
-  const fim = `${ano}-${mes}-31`;
 
-  const { data: all } = await sb.from('contas_receber').select('*').gte('data_vencimento',ini).lte('data_vencimento',fim).order('data_vencimento');
+  const anoNumR = parseInt(ano);
+  const mesNumR = mes ? parseInt(mes) : null;
+  let qR = sb.from('contas_receber').select('*').order('data_vencimento');
+  if (mesNumR) {
+    const ini = `${ano}-${mes.padStart(2,'0')}-01`;
+    const ultimoDia = new Date(anoNumR, mesNumR, 0).getDate();
+    const fim = `${ano}-${mes.padStart(2,'0')}-${ultimoDia}`;
+    qR = qR.gte('data_vencimento', ini).lte('data_vencimento', fim);
+  } else {
+    qR = qR.gte('data_vencimento', `${ano}-01-01`).lte('data_vencimento', `${ano}-12-31`);
+  }
+  const { data: all } = await qR;
   const contas = all || [];
 
   const pendentes = contas.filter(c => c.status === 'pendente');
