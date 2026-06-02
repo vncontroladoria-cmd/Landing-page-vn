@@ -2414,13 +2414,19 @@ function splitCSVLine(line, sep) {
 
 function parseDateBR(str) {
   if (!str) return null;
-  // DD/MM/YYYY ou YYYY-MM-DD
-  const partes = str.includes('/') ? str.split('/') : null;
-  if (partes && partes.length === 3) {
-    const [d, mo, y] = partes;
-    return `${y.substring(0,4)}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  str = String(str).trim().substring(0, 10);
+  // DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    const [d, mo, y] = str.split('/');
+    return `${y}-${mo}-${d}`;
   }
-  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0,10);
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // DD-MM-YYYY
+  if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
+    const [d, mo, y] = str.split('-');
+    return `${y}-${mo}-${d}`;
+  }
   return null;
 }
 
@@ -2443,8 +2449,21 @@ function parseOFX(text) {
 }
 
 function parseValor(v) {
-  if (!v && v !== 0) return 0;
-  return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.-]/g,'')) || 0;
+  if (v === null || v === undefined || v === '') return 0;
+  const str = String(v);
+  // Remove R$, espaços
+  let limpo = str.replace(/R\$\s*/gi, '').replace(/\s/g, '');
+  // Detecta negativo por parênteses ex: (1.594,00)
+  const negativo = limpo.startsWith('(') || limpo.startsWith('-');
+  // Remove parênteses, sinal
+  limpo = limpo.replace(/[()+-]/g, '');
+  // Remove pontos de milhar e troca vírgula por ponto decimal
+  // Ex: 1.594,00 → 1594.00
+  if (limpo.includes(',')) {
+    limpo = limpo.replace(/\./g, '').replace(',', '.');
+  }
+  const num = parseFloat(limpo) || 0;
+  return negativo ? -num : num;
 }
 
 // Mantém compatibilidade com dashboard
