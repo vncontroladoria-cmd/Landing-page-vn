@@ -1935,25 +1935,9 @@ async function loadLancamentos() {
     fim = `${ano}-12-31`;
   }
 
-  // Cards de saldo por banco
-  const saldoDiv = document.getElementById('lanc-saldo-bancos');
-  if (saldoDiv && _bancos.length) {
-    const { data: todoLanc } = await sb.from('lancamentos').select('entrada,saida,banco_id,banco_nome');
-    let cardsHtml = '';
-    _bancos.forEach(b => {
-      const lancsB = (todoLanc||[]).filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
-      const saldoB = lancsB.reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
-      const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
-      cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
-        <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
-        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
-      </div>`;
-    });
-    saldoDiv.innerHTML = cardsHtml;
-  }
-
   el.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
 
+  // 1 query só — busca todos os lançamentos do ano para cards e tabela
   let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: false}).limit(500);
   if (tipo) q = q.eq('tipo', tipo);
   if (bancoFilter) {
@@ -1965,13 +1949,26 @@ async function loadLancamentos() {
   const { data } = await q;
   const lancs = data || [];
 
-  // Calcula saldo acumulado
+  // Cards de saldo por banco — calcula do resultado já buscado
+  const saldoDiv = document.getElementById('lanc-saldo-bancos');
+  if (saldoDiv && _bancos.length) {
+    let cardsHtml = '';
+    _bancos.forEach(b => {
+      const lancsB = lancs.filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
+      const saldoB = lancsB.reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
+      const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
+      cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
+        <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
+        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
+      </div>`;
+    });
+    saldoDiv.innerHTML = cardsHtml;
+  }
+
+  // Métricas do período
   const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
   const totalSaida = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
-
-  // Saldo total = soma de todos os lançamentos do banco
-  const { data: todoLancSaldo } = await sb.from('lancamentos').select('entrada,saida');
-  const saldoTotal = (todoLancSaldo||[]).reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
+  const saldoTotal = totalEntrada - totalSaida;
 
   if (document.getElementById('lanc-total-entrada')) {
     document.getElementById('lanc-total-entrada').textContent = fmtBRL(totalEntrada);
@@ -4681,18 +4678,17 @@ async function iniciarConciliacao() {
 
 function renderConciliacao() {
   const container = document.getElementById('conc-container');
-  const mes = document.getElementById('lanc-mes')?.value || new Date().toISOString().substring(0,7);
-  const [ano, m] = mes.split('-');
+  if (!container) return;
+
+  // Pega mês/ano da primeira linha ou do filtro
+  const primeiraData = _concRows[0]?.data || new Date().toISOString().substring(0,10);
+  const ano = primeiraData.substring(0,4);
+  const m = primeiraData.substring(5,7);
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const mesNome = meses[parseInt(m)-1]?.toUpperCase() || '';
 
-  // Conta repetidos
   const contagem = {};
   _concRows.forEach(r => { contagem[r.extrato] = (contagem[r.extrato]||0) + 1; });
-
-  // Monta sugestões por extrato (memória)
-  const sugestoes = {};
-  _categorias.forEach(c => { /* usa fornecedores para sugestão */ });
 
   let pendentes = _concRows.filter(r => !r._concluido).length;
 
@@ -4812,8 +4808,9 @@ async function conciliarLinha(idx) {
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
   const tipo = r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
-  const mes = document.getElementById('lanc-mes')?.value || new Date().toISOString().substring(0,7);
-  const [ano, m] = mes.split('-');
+  // Usa a data do próprio lançamento para determinar mês/ano
+  const ano = (r.data || '').substring(0,4) || new Date().getFullYear().toString();
+  const m = (r.data || '').substring(5,7) || String(new Date().getMonth()+1).padStart(2,'0');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const agora = new Date().toISOString();
   const usuario = (await sb.auth.getUser())?.data?.user?.email || 'sistema';
