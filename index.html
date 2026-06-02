@@ -596,6 +596,18 @@ tbody tr:hover { background: var(--bg3); }
               </select>
               <select class="filter-select" id="lanc-mes" onchange="loadLancamentos()">
                 <option value="">Todos os meses</option>
+                <option value="2025-01">Janeiro 2025</option>
+                <option value="2025-02">Fevereiro 2025</option>
+                <option value="2025-03">Março 2025</option>
+                <option value="2025-04">Abril 2025</option>
+                <option value="2025-05">Maio 2025</option>
+                <option value="2025-06">Junho 2025</option>
+                <option value="2025-07">Julho 2025</option>
+                <option value="2025-08">Agosto 2025</option>
+                <option value="2025-09">Setembro 2025</option>
+                <option value="2025-10">Outubro 2025</option>
+                <option value="2025-11">Novembro 2025</option>
+                <option value="2025-12">Dezembro 2025</option>
                 <option value="2026-01">Janeiro 2026</option>
                 <option value="2026-02">Fevereiro 2026</option>
                 <option value="2026-03">Março 2026</option>
@@ -1947,15 +1959,17 @@ async function loadLancamentos() {
     saldoDiv.innerHTML = cardsHtml;
   }
 
-  let q = sb.from('lancamentos').select('*').order('data_lancamento', {ascending: true});
+  el.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
+
+  let q = sb.from('lancamentos').select('*').order('data_lancamento', {ascending: false}).limit(500);
   if (mes) {
     q = q.gte('data_lancamento', ini).lte('data_lancamento', fim);
   }
   if (tipo) q = q.eq('tipo', tipo);
   if (bancoFilter) {
     const bancoNomeFiltro = _bancos.find(b => b.id === bancoFilter)?.nome || '';
-    // Busca por banco_id ou banco_nome (case insensitive)
-    q = q.or(`banco_id.eq.${bancoFilter},banco_nome.ilike.${bancoNomeFiltro}`);
+    if (bancoNomeFiltro) q = q.or(`banco_id.eq.${bancoFilter},banco_nome.ilike.${bancoNomeFiltro}`);
+    else q = q.eq('banco_id', bancoFilter);
   }
 
   const { data } = await q;
