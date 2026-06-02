@@ -633,7 +633,7 @@ tbody tr:hover { background: var(--bg3); }
               <div id="lanc-total-saida" style="font-size:13px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div>
             </div>
             <div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;border:2px solid var(--accent)">
-              <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Saldo do Mês</div>
+              <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Saldo Total</div>
               <div id="lanc-saldo-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
             </div>
           </div>
@@ -1877,14 +1877,16 @@ async function loadLancamentos() {
   // Calcula saldo acumulado
   const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
   const totalSaida = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
-  const saldoMes = totalEntrada - totalSaida;
 
-  // Atualiza resumo
+  // Saldo total = soma de todos os lançamentos do banco
+  const { data: todoLancSaldo } = await sb.from('lancamentos').select('entrada,saida');
+  const saldoTotal = (todoLancSaldo||[]).reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
+
   if (document.getElementById('lanc-total-entrada')) {
     document.getElementById('lanc-total-entrada').textContent = fmtBRL(totalEntrada);
     document.getElementById('lanc-total-saida').textContent = fmtBRL(totalSaida);
-    document.getElementById('lanc-saldo-mes').textContent = fmtBRL(saldoMes);
-    document.getElementById('lanc-saldo-mes').style.color = saldoMes >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('lanc-saldo-mes').textContent = fmtBRL(saldoTotal);
+    document.getElementById('lanc-saldo-mes').style.color = saldoTotal >= 0 ? 'var(--green)' : 'var(--red)';
   }
 
   // Saldo inicial vem dos lançamentos, não duplica aqui
