@@ -662,7 +662,7 @@ tbody tr:hover { background: var(--bg3); }
                     <th style="padding:10px 12px;border-bottom:1.5px solid var(--border);width:36px">
                       <input type="checkbox" id="lanc-check-all" onchange="selecionarTodosLanc(this.checked)" style="cursor:pointer;width:15px;height:15px">
                     </th>
-                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DATA</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap">DATA ↓</th>
                     <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">EXTRATO</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--green);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">ENTRADA</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--red);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SAÍDA</th>
@@ -1938,7 +1938,7 @@ async function loadLancamentos() {
   el.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
 
   // 1 query só — busca todos os lançamentos do ano para cards e tabela
-  let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: false}).limit(500);
+  let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: false}).order('created_at', {ascending: false}).limit(500);
   if (tipo) q = q.eq('tipo', tipo);
   if (bancoFilter) {
     const bancoNomeFiltro = _bancos.find(b => b.id === bancoFilter)?.nome || '';
