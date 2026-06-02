@@ -4778,11 +4778,20 @@ function renderConciliacao() {
 }
 
 function aprovarSugestao(idx) {
-  // Sugestão já está preenchida — só esconde o card de sugestão e marca como aprovado
+  const r = _concRows[idx];
+  if (!r) return;
+  // Garante que os campos hidden estão preenchidos
+  const catInput = document.getElementById(`conc-cat-${idx}`);
+  const hDfc = document.getElementById(`conc-cat-dfc-${idx}`);
+  const hDre = document.getElementById(`conc-cat-dre-${idx}`);
+  if (catInput && !catInput.value) catInput.value = r._catNome || '';
+  if (hDfc && !hDfc.value) hDfc.value = r._catDfc || '';
+  if (hDre && !hDre.value) hDre.value = r._catDre || '';
+  // Visual
   const sug = document.getElementById(`sug-${idx}`);
   if (sug) {
     sug.style.background = '#dcfce7';
-    sug.innerHTML = '<span style="font-size:11px;color:var(--green)">✓ Sugestão aprovada</span>';
+    sug.innerHTML = `<span style="font-size:11px;color:var(--green)">✓ ${r._catNome} aprovado</span>`;
   }
 }
 
@@ -4803,7 +4812,7 @@ async function conciliarLinha(idx) {
   const r = _concRows[idx];
   if (r._concluido) return;
 
-  const catNome = document.getElementById(`conc-cat-${idx}`)?.value || '';
+  const catNome = document.getElementById(`conc-cat-${idx}`)?.value || r._catNome || '';
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
