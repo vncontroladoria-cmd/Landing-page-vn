@@ -4122,6 +4122,19 @@ function renderTabelaConta(targetId, contas, tipo, hoje) {
   if (!el) return;
   if (!contas.length) { el.innerHTML = '<div class="empty" style="padding:1rem">Nenhuma conta</div>'; return; }
 
+  const statusOpcoes = tipo === 'pagar'
+    ? ['a pagar','enviado','pago','não pago','atrasado']
+    : ['a receber','enviado','recebido','não recebido','atrasado'];
+
+  const statusCor = {
+    'pago': 'var(--green)', 'recebido': 'var(--green)',
+    'enviado': '#3b82f6',
+    'atrasado': '#ef4444',
+    'não pago': 'var(--text2)', 'não recebido': 'var(--text2)',
+    'a pagar': 'var(--text2)', 'a receber': 'var(--text2)',
+    'pendente': 'var(--text2)',
+  };
+
   let html = `<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead><tr style="background:var(--bg3)">
       <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">NOME</th>
@@ -4133,36 +4146,30 @@ function renderTabelaConta(targetId, contas, tipo, hoje) {
     <tbody id="${targetId}-tbody">`;
 
   contas.forEach((c, i) => {
-    const vencido = c.status === 'pendente' && c.data_vencimento < hoje;
-    const pago = c.status === 'pago' || c.status === 'recebido';
-    const enviado = c.enviado || false;
-
-    const statusColor = pago ? 'var(--green)' : vencido ? '#ef4444' : 'var(--text2)';
-    const statusLabel = pago ? (tipo==='pagar'?'Pago':'Recebido') : vencido ? '⚠ Vencido' : 'Pendente';
-    const bg = i%2===0 ? '' : 'background:var(--bg3)';
+    const vencido = c.data_vencimento < hoje;
+    const statusAtual = c.status || 'pendente';
+    const cor = statusCor[statusAtual] || 'var(--text2)';
+    const rowBg = statusAtual === 'atrasado' || (statusAtual === 'pendente' && vencido) ? 'background:#fff5f5' : i%2===0 ? '' : 'background:var(--bg3)';
     const parcInfo = c.total_parcelas ? ` (${c.parcela_atual}/${c.total_parcelas})` : '';
-    const rowBg = vencido && !pago ? 'background:#fff5f5' : i%2===0 ? '' : 'background:var(--bg3)';
 
-    html += `<tr style="border-bottom:1px solid var(--border);${rowBg}">
+    html += `<tr id="conta-row-${c.id}" style="border-bottom:1px solid var(--border);${rowBg}">
       <td style="padding:9px 12px">
-        <div style="font-weight:500${vencido&&!pago?';color:#ef4444':''}">${c.descricao||'—'}${parcInfo}</div>
+        <div style="font-weight:500">${c.descricao||'—'}${parcInfo}</div>
         ${c.chave_pix ? `<div style="font-size:10px;color:var(--text3)">PIX: ${c.chave_pix}</div>` : ''}
         ${c.palavra_chave ? `<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>` : ''}
         ${c.observacao ? `<div style="font-size:10px;color:var(--text3)">${c.observacao}</div>` : ''}
       </td>
       <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${tipo==='pagar'?'var(--red)':'var(--green)'}">${fmtBRL(c.valor)}</td>
-      <td style="padding:9px 12px;text-align:center;font-size:11px;color:${vencido&&!pago?'#ef4444':'var(--text2)'};font-weight:${vencido&&!pago?'700':'400'}">${fmtDate(c.data_vencimento)}</td>
-      <td style="padding:9px 12px;text-align:center"><span style="font-size:11px;font-weight:600;color:${statusColor}">${statusLabel}</span></td>
+      <td style="padding:9px 12px;text-align:center;font-size:11px;color:${vencido&&statusAtual!=='pago'&&statusAtual!=='recebido'?'#ef4444':'var(--text2)'};font-weight:${vencido&&statusAtual!=='pago'&&statusAtual!=='recebido'?'700':'400'}">${fmtDate(c.data_vencimento)}</td>
+      <td style="padding:9px 12px;text-align:center">
+        <select onchange="atualizarStatusConta('${c.id}','${tipo}',this.value,this)"
+          style="padding:4px 8px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid ${cor};color:${cor};background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;outline:none">
+          ${statusOpcoes.map(s => `<option value="${s}" ${statusAtual===s||((statusAtual==='pendente')&&s==='a pagar')||((statusAtual==='pendente')&&s==='a receber')?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+        </select>
+      </td>
       <td style="padding:9px 12px">
-        <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
-          ${!pago ? `
-          <button id="btn-env-${c.id}" onclick="toggleEnviado('${c.id}','${tipo}')"
-            style="padding:3px 7px;font-size:10px;border-radius:6px;border:1.5px solid ${enviado?'var(--green)':'var(--border)'};background:${enviado?'var(--green)':'transparent'};color:${enviado?'#fff':'var(--text2)'};cursor:pointer;font-family:'Outfit',sans-serif"
-            title="${enviado?'Enviado':'Marcar como enviado'}">
-            ${enviado?'✓ Enviado':'Enviado'}
-          </button>` : ''}
+        <div style="display:flex;gap:4px;justify-content:center">
           ${c.arquivo_url ? `<button class="btn btn-sm" style="padding:3px 7px;font-size:11px;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="verDocumento('${c.arquivo_url}','${(c.descricao||'').replace(/'/g,'')}')">📎</button>` : ''}
-          ${!pago ? `<button class="btn btn-sm" style="padding:3px 7px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="darBaixa('${c.id}','${tipo}')">✓ Pagar</button>` : ''}
           <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="editarConta('${c.id}','${tipo}')">✏️</button>
           <button class="btn btn-sm" style="padding:3px 7px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="excluirConta('${c.id}','${tipo}')">🗑️</button>
         </div>
@@ -4222,6 +4229,42 @@ function verDocumento(url, nome) {
     content.innerHTML = `<img src="${url}" style="max-width:100%;max-height:65vh;border-radius:8px">`;
   }
   document.getElementById('modal-doc').classList.add('open');
+}
+
+async function atualizarStatusConta(id, tipo, novoStatus, selectEl) {
+  const tabela = tipo === 'pagar' ? 'contas_pagar' : 'contas_receber';
+  const hoje = new Date().toISOString().substring(0,10);
+
+  const payload = { status: novoStatus };
+  if (novoStatus === 'pago' || novoStatus === 'recebido') {
+    payload.data_pagamento = hoje;
+  }
+
+  const { error } = await sb.from(tabela).update(payload).eq('id', id);
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+
+  // Atualiza cor do select na hora
+  const cores = {
+    'pago': 'var(--green)', 'recebido': 'var(--green)',
+    'enviado': '#3b82f6', 'atrasado': '#ef4444',
+    'não pago': 'var(--text2)', 'não recebido': 'var(--text2)',
+    'a pagar': 'var(--text2)', 'a receber': 'var(--text2)',
+  };
+  const cor = cores[novoStatus] || 'var(--text2)';
+  if (selectEl) {
+    selectEl.style.borderColor = cor;
+    selectEl.style.color = cor;
+  }
+
+  // Atualiza fundo da linha se atrasado
+  const row = document.getElementById(`conta-row-${id}`);
+  if (row) {
+    if (novoStatus === 'atrasado') row.style.background = '#fff5f5';
+    else if (novoStatus === 'pago' || novoStatus === 'recebido') row.style.background = '#f0fdf4';
+    else row.style.background = '';
+  }
+
+  showToast('Status atualizado!', 'success');
 }
 
 async function toggleEnviado(id, tipo) {
