@@ -969,11 +969,7 @@ tbody tr:hover { background: var(--bg3); }
               <div class="metric-label">Realizado</div>
               <div id="met-realizado" class="metric-val green">—</div>
             </div>
-            <div class="metric-card" style="padding:1.25rem">
-              <div class="metric-label">Meta Diária Necessária</div>
-              <div id="met-meta-dia" class="metric-val amber">—</div>
-              <div id="met-meta-dia-sub" style="font-size:10px;color:var(--text3);margin-top:4px"></div>
-            </div>
+
             <div class="metric-card" style="padding:1.25rem">
               <div class="metric-label">% Atingido</div>
               <div id="met-pct" class="metric-val">—</div>
@@ -983,29 +979,15 @@ tbody tr:hover { background: var(--bg3); }
             </div>
           </div>
 
-          <!-- DUAS COLUNAS: PROFISSIONAIS | META DIÁRIA -->
-          <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
-
-            <!-- TABELA DE PROFISSIONAIS -->
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
-                <span>👥 Metas por Profissional</span>
-                <span style="font-size:11px;color:var(--text2);font-weight:400">Previsto × Realizado</span>
-              </div>
-              <div id="met-profissionais-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+          <!-- TABELA DE PROFISSIONAIS -->
+          <div id="met-dias-uteis" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
+          <div id="met-tabela-dias"></div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+              <span>👥 Metas por Profissional</span>
+              <span style="font-size:11px;color:var(--text2);font-weight:400">Previsto × Realizado</span>
             </div>
-
-            <!-- CALENDÁRIO META DIÁRIA -->
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
-                📅 Meta Diária
-              </div>
-              <div style="padding:16px">
-                <div id="met-dias-uteis" style="font-size:12px;color:var(--text2);margin-bottom:12px"></div>
-                <div id="met-tabela-dias" style="font-size:12px"></div>
-              </div>
-            </div>
-
+            <div id="met-profissionais-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
           </div>
         </div>
 
