@@ -2318,10 +2318,10 @@ function processarTextoPDF() {
   let responsavel = '';
   let dataCaixa = new Date().toISOString().substring(0,10);
   // Tenta extrair responsável e data do texto
-  const respMatch = text.match(/Respons[áa]vel[:\s]+([^
-]+)/i);
+  const respMatch = text.match(/Responsavel[: ]+([^\n]+)/i);
+
   if (respMatch) responsavel = respMatch[1].trim();
-  const dataMatch = text.match(/Abertura[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+  const dataMatch = text.match(/Abertura[: ]+(\d{2}\/\d{2}\/\d{4})/i);
   if (dataMatch) {
     const [d,m,a] = dataMatch[1].split('/');
     dataCaixa = `${a}-${m}-${d}`;
@@ -2331,8 +2331,7 @@ function processarTextoPDF() {
 
 function parsePDVTexto(text) {
   const itens = [];
-  const linhas = text.split('
-').map(l => l.trim()).filter(Boolean);
+  const linhas = text.split('\n').map(l => l.trim()).filter(Boolean);
   linhas.forEach(linha => {
     // Padrão: "Forma Pagamento Comanda Nº... - Nome Valor"
     const match = linha.match(/^(Cart[ãa]o\s+(?:Cr[ée]dito|D[ée]bito)|Pix|Dinheiro|Transfer[eê]ncia|Boleto|Voucher|Cheque|Cr[ée]dito\s+Cliente)\s+(.*?)\s+(\d+(?:[.,]\d+)?)$/i);
@@ -2351,8 +2350,7 @@ function parsePDVTexto(text) {
 }
 
 function parsePDVCSV(text) {
-  const linhas = text.split('
-').map(l => l.trim()).filter(Boolean);
+  const linhas = text.split('\n').map(l => l.trim()).filter(Boolean);
   const itens = [];
   linhas.forEach((linha, i) => {
     if (i === 0) return; // header
