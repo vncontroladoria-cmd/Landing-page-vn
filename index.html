@@ -2564,6 +2564,10 @@ function mostrarPreviewPDV(itens, dataCaixa, responsavel) {
   const totalS = itens.filter(i=>i.tipo==='SAIDA').reduce((s,i)=>s+i.valor,0);
 
   preview.innerHTML = `
+    <div style="margin-bottom:8px;padding:8px 12px;background:var(--bg3);border-radius:8px;font-size:12px;display:flex;gap:16px;flex-wrap:wrap">
+      <span>📅 <strong>Data:</strong> ${dataCaixa||'não encontrada'}</span>
+      <span>👤 <strong>Resp:</strong> ${responsavel||'não encontrado'}</span>
+    </div>
     <div style="margin-bottom:12px;padding:10px 12px;background:var(--green-light);border-radius:8px;font-size:12px;display:flex;gap:16px">
       <span>✅ <strong>${itens.length}</strong> itens identificados</span>
       <span style="color:var(--green)">Entradas: <strong>${fmtBRL(totalE)}</strong></span>
@@ -2632,21 +2636,30 @@ async function confirmarImportePDV() {
   const total_entradas = itens.filter(i=>i.tipo==='ENTRADA').reduce((s,i)=>s+i.valor,0);
   const total_saidas   = itens.filter(i=>i.tipo==='SAIDA').reduce((s,i)=>s+i.valor,0);
 
+  // Garante data válida
+  const dataFinal = dataCaixa || new Date().toISOString().substring(0,10);
+  console.log('Salvando caixa:', { dataFinal, responsavel, total_entradas, total_saidas });
+
   const { data: novo, error } = await sb.from('pdv_caixas').insert({
-    data_caixa: dataCaixa, responsavel, status: 'fechado',
-    total_entradas, total_saidas, created_by: usuario,
+    data_caixa: dataFinal,
+    responsavel: responsavel || '',
+    status: 'fechado',
+    total_entradas: Number(total_entradas)||0,
+    total_saidas: Number(total_saidas)||0,
+    created_by: usuario,
     origem_arquivo: 'importado'
-  }).select().single();
+  }).select('id').single();
 
   if (error) { 
-    showToast('Erro ao salvar caixa: ' + error.message, 'error'); 
-    console.error('pdv_caixas error:', error);
+    showToast('Erro: ' + error.message, 'error'); 
+    console.error('pdv_caixas error:', JSON.stringify(error));
     return; 
   }
   if (!novo?.id) {
     showToast('Erro: caixa não retornou ID', 'error');
     return;
   }
+  console.log('Caixa salvo com ID:', novo.id);
 
   // Limpa campos desnecessários antes de inserir
   const payload = itens.map(i => ({ 
