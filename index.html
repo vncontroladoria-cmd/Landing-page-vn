@@ -2044,7 +2044,7 @@ async function loadLancamentos() {
   el.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
 
   // 1 query só — busca todos os lançamentos do ano para cards e tabela
-  let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: false}).order('created_at', {ascending: false}).limit(500);
+  let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: true}).order('created_at', {ascending: true}).limit(500);
   if (tipo) q = q.eq('tipo', tipo);
   if (bancoFilter) {
     const bancoNomeFiltro = _bancos.find(b => b.id === bancoFilter)?.nome || '';
@@ -2107,20 +2107,20 @@ async function loadLancamentos() {
     document.getElementById('lanc-saldo-mes').style.color     = saldoTotal >= 0 ? 'var(--green)' : 'var(--red)';
   }
 
-  // Saldo inicial vem dos lançamentos, não duplica aqui
-  let saldoInicial = 0;
-
   if (!lancs.length) {
     el.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
     return;
   }
 
-  let saldoAcum = 0;
+  // Saldo acumulado começa do saldo_inicial dos bancos relevantes
+  const bancosIds = bancoFilter ? [bancoFilter] : _bancos.map(b=>b.id);
+  const saldoInicialAcum = _bancos.filter(b=>bancosIds.includes(b.id)).reduce((s,b)=>s+Number(b.saldo_inicial||0),0);
+  let saldoAcum = saldoInicialAcum;
   let html = '';
   lancs.forEach(l => {
     const entrada = Number(l.entrada || (l.tipo==='ENTRADA'? l.valor : 0) || 0);
     const saida = Number(l.saida || (l.tipo==='SAIDA'? l.valor : 0) || 0);
-    saldoAcum += entrada - saida;
+    if (!isSaldoInicial(l)) saldoAcum += entrada - saida;
     const mesNome = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(l.data_lancamento?.substring(5,7))-1] || '';
     const bancoNome = _bancos.find(b=>b.id===l.banco_id)?.nome || l.banco_nome || '—';
     html += `<tr id="lr-${l.id}" style="border-bottom:1px solid var(--border)">
