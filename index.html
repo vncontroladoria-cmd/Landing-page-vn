@@ -960,16 +960,23 @@ tbody tr:hover { background: var(--bg3); }
               <div style="margin-bottom:1rem;padding:12px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--text2)">
                 Formatos aceitos: PDF do sistema de caixa, Excel (.xlsx) ou CSV. O sistema identifica automaticamente data, responsável, forma de pagamento e valores.
               </div>
+              <!-- OPÇÃO 1: Colar texto -->
+              <div style="margin-bottom:12px">
+                <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px">📋 Cole o texto do relatório de caixa</label>
+                <textarea id="pdv-texto-colado" rows="8" placeholder="Copie o relatório do seu sistema e cole aqui..." 
+                  style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px;font-family:monospace;resize:vertical"></textarea>
+                <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="processarTextoCola()">🔍 Processar Texto</button>
+              </div>
+              <div style="text-align:center;color:var(--text3);font-size:12px;margin:12px 0">— ou importe um arquivo —</div>
+              <!-- OPÇÃO 2: Arquivo -->
               <input type="file" id="pdv-file-input" accept=".pdf,.xlsx,.xls,.csv" style="display:none" onchange="processarArquivoPDV(this)">
               <div onclick="document.getElementById('pdv-file-input').click()" 
-                style="border:2px dashed var(--border);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;background:var(--bg3)">
-                <div style="font-size:2rem;margin-bottom:8px">📄</div>
-                <div style="font-size:13px;font-weight:600">Clique para selecionar o arquivo</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF, Excel ou CSV</div>
+                style="border:2px dashed var(--border);border-radius:10px;padding:1rem;text-align:center;cursor:pointer;background:var(--bg3)">
+                <div style="font-size:13px;font-weight:600">📄 Clique para selecionar arquivo (Excel, CSV)</div>
               </div>
               <div id="pdv-import-preview" style="margin-top:1rem"></div>
               <div id="pdv-import-loading" style="display:none;text-align:center;padding:1rem;color:var(--text2)">
-                <div class="spin" style="display:inline-block;margin-right:8px"></div> Lendo arquivo...
+                <div class="spin" style="display:inline-block;margin-right:8px"></div> Processando...
               </div>
             </div>
           </div>
@@ -2427,39 +2434,61 @@ function normStr(s) {
   return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 }
 
+function processarTextoCola() {
+  const texto = document.getElementById('pdv-texto-colado')?.value || '';
+  if (!texto.trim()) { showToast('Cole o texto primeiro', 'error'); return; }
+  
+  let responsavel = '', dataCaixa = new Date().toISOString().substring(0,10);
+  
+  // Extrai responsável e data
+  const mResp = texto.match(/Respons[aá]vel:\s*(.+)/i);
+  if (mResp) responsavel = mResp[1].trim();
+  const mData = texto.match(/Abertura:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  if (mData) dataCaixa = `${mData[3]}-${mData[2]}-${mData[1]}`;
+  
+  const itens = parsePDVTexto(texto);
+  mostrarPreviewPDV(itens, dataCaixa, responsavel);
+}
+
 function parsePDVTexto(text) {
   const itens = [];
-  const textNorm = text.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-
+  
+  // Divide em linhas (tab-separated ou newline)
+  const linhas = text.split('\n').map(l => l.trim()).filter(Boolean);
+  
   _pdvCategorias.forEach(cat => {
     const catNorm = normStr(cat.nome);
-    const idx = textNorm.toLowerCase().indexOf(catNorm);
-    if (idx === -1) return;
-
-    // Pega até 60 chars após o nome da categoria
-    const apos = text.substring(idx + cat.nome.length, idx + cat.nome.length + 60);
     
-    // Procura todos os valores no trecho
-    const matches = [...apos.matchAll(/(-?\d{1,3}(?:\.\d{3})*,\d{2})/g)];
-    
-    // Pega o PRIMEIRO valor não-zero
-    // Se vier dois valores seguidos (ex: "8.120,00 0,00"), pega o primeiro
-    let valor = 0;
-    for (const m of matches) {
-      const v = Math.abs(parseFloat(m[1].replace(/\./g,'').replace(',','.')));
-      if (v > 0) { valor = v; break; }
+    // Procura linha que começa com o nome da categoria (com ou sem tab)
+    for (const linha of linhas) {
+      const linhaNorm = normStr(linha);
+      
+      // Linha começa com nome da categoria?
+      if (!linhaNorm.startsWith(catNorm)) continue;
+      
+      // Extrai o valor: pode estar separado por tab ou colado no nome
+      // Ex: "Cartão Crédito\t8.120,00\t0,00" ou "Serviços14.265,00"
+      const resto = linha.substring(cat.nome.length);
+      const matches = [...linha.matchAll(/(-?\d{1,3}(?:\.\d{3})*,\d{2})/g)];
+      
+      let valor = 0;
+      for (const m of matches) {
+        const v = Math.abs(parseFloat(m[1].replace(/\./g,'').replace(',','.')));
+        if (v > 0) { valor = v; break; }
+      }
+      
+      if (valor <= 0) break; // linha encontrada mas valor zero — para aqui
+      
+      const tipo = cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA';
+      itens.push({
+        forma_pagamento: cat.nome,
+        descricao: cat.nome,
+        valor,
+        tipo,
+        categoria: cat.nome
+      });
+      break; // pega só a primeira linha que bater
     }
-    
-    if (valor <= 0) return;
-
-    const tipo = cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA';
-    itens.push({
-      forma_pagamento: cat.nome,
-      descricao: cat.nome,
-      valor,
-      tipo,
-      categoria: cat.nome
-    });
   });
 
   return itens;
