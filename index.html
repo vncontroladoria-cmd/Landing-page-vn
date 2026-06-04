@@ -4507,14 +4507,14 @@ async function loadMetricas() {
   // Busca meta financeira do mês
   const { data: metaFin } = await sb.from('metas_financeiras').select('*').eq('ano', ano).eq('mes', mes).single();
   const metaMes = Number(metaFin?.meta || 0);
+  const diasAbertos = Number(metaFin?.dias_abertos || 0);
 
   // Calcula realizado: soma entradas do mês nos lançamentos
   const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate();
   const ini = `${ano}-${mes}-01`;
   const fim = `${ano}-${mes}-${String(ultimoDia).padStart(2,'0')}`;
-  const { data: lancsM } = await sb.from('lancamentos').select('entrada,data_lancamento').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
+  const { data: lancsM } = await sb.from('lancamentos').select('entrada').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
   const realizado = (lancsM||[]).reduce((s,l)=>s+Number(l.entrada||0),0);
-  const diasAbertos = new Set((lancsM||[]).map(l=>l.data_lancamento?.substring(0,10))).size || 1;
 
   // Dias restantes baseado nos dias que o salão abre
   const hoje = new Date();
@@ -4718,18 +4718,8 @@ async function excluirProfissional(id) {
 async function abrirModalMetaFinanceira() {
   const ano = document.getElementById('met-ano')?.value || '2026';
   const { data: metas } = await sb.from('metas_financeiras').select('*').eq('ano', ano);
-  // Calcula dias distintos com lançamentos por mês
-  const { data: lancsAno } = await sb.from('lancamentos').select('data_lancamento').eq('tipo','ENTRADA').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
-  const diasPorMes = {};
-  (lancsAno||[]).forEach(l => {
-    const d = l.data_lancamento?.substring(0,10);
-    if (!d) return;
-    const m = d.substring(5,7);
-    if (!diasPorMes[m]) diasPorMes[m] = new Set();
-    diasPorMes[m].add(d);
-  });
   const metaMap = {};
-  (metas||[]).forEach(m => { metaMap[m.mes] = { meta: m.meta, dias: diasPorMes[m.mes]?.size || 0 }; });
+  (metas||[]).forEach(m => { metaMap[m.mes] = { meta: m.meta, dias: m.dias_abertos || 0 }; });
 
   let grid = '';
   MESES_NOMES.forEach((m, i) => {
@@ -4743,7 +4733,9 @@ async function abrirModalMetaFinanceira() {
         oninput="calcMetaDia('${mesNum}')"
         style="font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:11px;color:var(--text2)">${diasVal ? diasVal + ' dias' : '—'}</span>
+        <input type="number" id="metafin-dias-${mesNum}" placeholder="dias/sem" value="${diasVal}" min="1" max="7"
+          oninput="calcMetaDia('${mesNum}')"
+          style="width:65px;font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);text-align:center">
         <span id="metafin-dia-${mesNum}" style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;white-space:nowrap">${metaDia}</span>
       </div>
     </div>`;
@@ -4754,9 +4746,9 @@ async function abrirModalMetaFinanceira() {
 
 function calcMetaDia(mesNum) {
   const meta = parseValor(document.getElementById(`metafin-meta-${mesNum}`)?.value || '0');
-  const dias = parseInt(document.getElementById(`metafin-dias-${mesNum}`)?.value || '0');
+  const diasSem = parseInt(document.getElementById(`metafin-dias-${mesNum}`)?.value || '0');
   const el = document.getElementById(`metafin-dia-${mesNum}`);
-  if (el) el.textContent = meta > 0 && dias > 0 ? fmtBRL(meta / dias) + '/dia' : '—';
+  if (el) el.textContent = meta > 0 && diasSem > 0 ? fmtBRL(meta / diasSem) + '/dia' : '—';
 }
 
 async function salvarMetasFinanceiras() {
@@ -4766,7 +4758,7 @@ async function salvarMetasFinanceiras() {
     const mesNum = String(i+1).padStart(2,'0');
     const meta = parseValor(document.getElementById(`metafin-meta-${mesNum}`)?.value || '0');
     const dias = parseInt(document.getElementById(`metafin-dias-${mesNum}`)?.value || '0');
-    if (meta > 0) upserts.push({ ano, mes: mesNum, meta });
+    if (meta > 0) upserts.push({ ano, mes: mesNum, meta, dias_abertos: dias || null });
   });
   if (upserts.length) {
     const { error } = await sb.from('metas_financeiras').upsert(upserts, { onConflict: 'ano,mes' });
