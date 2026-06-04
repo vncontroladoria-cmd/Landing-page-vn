@@ -977,6 +977,10 @@ tbody tr:hover { background: var(--bg3); }
                 <div id="met-barra" style="height:100%;background:var(--green);border-radius:4px;width:0%;transition:width 0.5s"></div>
               </div>
             </div>
+            <div class="metric-card" style="padding:1.25rem">
+              <div class="metric-label">Meta/dia</div>
+              <div id="met-meta-dia-card" class="metric-val amber">—</div>
+            </div>
           </div>
 
           <!-- TABELA DE PROFISSIONAIS -->
@@ -4515,6 +4519,8 @@ async function loadMetricas() {
   if (document.getElementById('met-meta-mes')) {
     document.getElementById('met-meta-mes').textContent = metaMes > 0 ? fmtBRL(metaMes) : 'Não definida';
     document.getElementById('met-realizado').textContent = fmtBRL(realizado);
+    const elMetaDiaCard = document.getElementById('met-meta-dia-card');
+    if (elMetaDiaCard) elMetaDiaCard.textContent = metaDia > 0 ? fmtBRL(metaDia) : '—';
     document.getElementById('met-pct').textContent = `${pct.toFixed(1)}%`;
     document.getElementById('met-pct').className = 'metric-val ' + (pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red');
     document.getElementById('met-barra').style.width = pct + '%';
