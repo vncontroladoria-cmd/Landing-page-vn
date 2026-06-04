@@ -2105,7 +2105,10 @@ async function loadPDV() {
       const f = normForma(i.forma_pagamento);
       grupos[f] = (grupos[f]||0) + Number(i.valor||0);
     });
-    const totalGeral = Object.values(grupos).reduce((s,v)=>s+v,0);
+    const formasTotal = ['Comanda', 'Cartão Crédito', 'Cartão Débito', 'Pix'];
+    const totalGeral = Object.entries(grupos)
+      .filter(([f]) => formasTotal.includes(f))
+      .reduce((s,[,v]) => s+v, 0);
     let html = `<div class="metric-card" style="padding:10px 14px;min-width:120px">
       <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Total Período</div>
       <div style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(totalGeral)}</div>
