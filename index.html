@@ -2383,6 +2383,12 @@ async function processarArquivoPDV(input) {
         if (dataMatch) dataCaixa = `${dataMatch[3]}-${dataMatch[2]}-${dataMatch[1]}`;
       }
       itens = parsePDVTexto(text);
+      // Mostra texto bruto temporariamente para debug
+      document.getElementById('pdv-import-preview').innerHTML = 
+        '<pre style="font-size:10px;max-height:300px;overflow:auto;background:#111;color:#0f0;padding:8px;border-radius:4px">' + 
+        text.substring(0,3000).replace(/</g,'&lt;') + '</pre>';
+      setTimeout(() => mostrarPreviewPDV(itens, dataCaixa, responsavel), 100);
+      return;
     }
     if (loading) loading.style.display = 'none';
     mostrarPreviewPDV(itens, dataCaixa, responsavel);
