@@ -2428,40 +2428,33 @@ function normStr(s) {
 
 function parsePDVTexto(text) {
   const itens = [];
+  // Normaliza texto removendo acentos para comparação
+  const textNorm = text.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
-  // O PDF.js retorna texto corrido com espaços
-  // Estratégia: para cada categoria cadastrada, procura o nome dela seguido de um valor numérico
   _pdvCategorias.forEach(cat => {
     const catNorm = normStr(cat.nome);
-    // Divide em palavras significativas (>2 chars)
-    const palavras = catNorm.split(/\s+/).filter(p => p.length > 2);
-    if (!palavras.length) return;
+    // Índice onde o nome da categoria aparece no texto
+    const idx = textNorm.toLowerCase().indexOf(catNorm);
+    if (idx === -1) return;
 
-    // Monta regex que permite variações entre as palavras (até 30 chars de distância)
-    // e captura o primeiro valor numérico logo após
-    const rePartes = palavras.map(p =>
-      p.replace(/[aá]/g,'[aá]').replace(/[eé]/g,'[eé]').replace(/[ií]/g,'[ií]')
-       .replace(/[oó]/g,'[oó]').replace(/[uú]/g,'[uú]').replace(/[cç]/g,'[cç]')
-       .replace(/[^\[\]a-z0-9áéíóúãõâêîôûàèìòùç]/gi, '.')
-    ).join('[\\s\\S]{0,25}');
+    // Pega os 80 caracteres após o nome para encontrar o valor
+    const trecho = text.substring(idx + cat.nome.length, idx + cat.nome.length + 80);
 
-    const reCompleta = new RegExp(rePartes + '[\\s\\S]{0,40}?(-?[\\d]{1,3}(?:\\.[\\d]{3})*,[\\d]{2})', 'i');
+    // Procura valor no formato "1.234,56" ou "1234,56" ou "1234"
+    const mValor = trecho.match(/(-?\d{1,3}(?:\.\d{3})*,\d{2})/);
+    if (!mValor) return;
 
-    try {
-      const m = text.match(reCompleta);
-      if (!m) return;
-      const valorStr = m[1].replace(/\./g,'').replace(',','.');
-      const valor = Math.abs(parseFloat(valorStr));
-      if (valor <= 0 || valor > 500000) return;
-      const tipo = cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA';
-      itens.push({
-        forma_pagamento: cat.nome,
-        descricao: cat.nome,
-        valor,
-        tipo,
-        categoria: cat.nome
-      });
-    } catch(e) {}
+    const valor = Math.abs(parseFloat(mValor[1].replace(/\./g,'').replace(',','.')));
+    if (valor <= 0 || valor > 500000) return;
+
+    const tipo = cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA';
+    itens.push({
+      forma_pagamento: cat.nome,
+      descricao: cat.nome,
+      valor,
+      tipo,
+      categoria: cat.nome
+    });
   });
 
   return itens;
