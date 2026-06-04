@@ -6,6 +6,7 @@
 <title>VN — Controladoria Financeira</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -965,6 +966,9 @@ tbody tr:hover { background: var(--bg3); }
                 <div style="font-size:11px;color:var(--text3);margin-top:4px">PDF, Excel ou CSV</div>
               </div>
               <div id="pdv-import-preview" style="margin-top:1rem"></div>
+              <div id="pdv-import-loading" style="display:none;text-align:center;padding:1rem;color:var(--text2)">
+                <div class="spin" style="display:inline-block;margin-right:8px"></div> Lendo arquivo...
+              </div>
             </div>
           </div>
         </div>
@@ -2287,7 +2291,9 @@ async function processarArquivoPDV(input) {
   const file = input.files[0];
   if (!file) return;
   const preview = document.getElementById('pdv-import-preview');
-  preview.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text2)">Processando...</div>';
+  const loading = document.getElementById('pdv-import-loading');
+  preview.innerHTML = '';
+  if (loading) loading.style.display = 'block';
 
   const ext = file.name.split('.').pop().toLowerCase();
   let itens = [];
@@ -2301,15 +2307,38 @@ async function processarArquivoPDV(input) {
     } else if (ext === 'xlsx' || ext === 'xls') {
       itens = await parsePDVExcel(file);
     } else if (ext === 'pdf') {
-      preview.innerHTML = '<div style="padding:1rem;color:var(--amber)">⚠️ Para PDF: copie o texto do PDF e cole abaixo.</div>' +
-        '<textarea id="pdv-pdf-text" style="width:100%;height:200px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);font-size:12px;font-family:monospace" placeholder="Cole o texto do PDF aqui..."></textarea>' +
-        '<button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="processarTextoPDF()">Processar Texto</button>';
-      return;
+      const result = await lerPDFcomPDFJS(file);
+      const text = result.text;
+      // Extrai responsável e data
+      const respMatch = text.match(/Responsavel[: ]+([^\n]+)/i);
+      if (respMatch) responsavel = respMatch[1].trim();
+      const dataMatch = text.match(/Abertura[: ]+(\d{2}\/\d{2}\/\d{4})/i);
+      if (dataMatch) {
+        const [d,m,a] = dataMatch[1].split('/');
+        dataCaixa = `${a}-${m}-${d}`;
+      }
+      itens = parsePDVTexto(text);
     }
+    if (loading) loading.style.display = 'none';
     mostrarPreviewPDV(itens, dataCaixa, responsavel);
   } catch(e) {
+    if (loading) loading.style.display = 'none';
     preview.innerHTML = `<div style="color:var(--red);padding:1rem">Erro ao processar: ${e.message}</div>`;
   }
+}
+
+async function lerPDFcomPDFJS(file) {
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    fullText += tc.items.map(it => it.str).join(' ') + '\n';
+  }
+  return { text: fullText };
 }
 
 function processarTextoPDF() {
