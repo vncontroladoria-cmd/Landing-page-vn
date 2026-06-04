@@ -2086,12 +2086,9 @@ async function loadPDV() {
     todosItens = itens || [];
   }
 
-  // Colunas dinâmicas = formas de pagamento únicas encontradas nos itens
-  // Normaliza: "Cartão Crédito MASTER CARD" -> "Cartão Crédito"
+  // Colunas = TODAS as categorias cadastradas (fixas), não só as que têm dados
   const normForma = f => (f||'Outros').replace(/\s+(MASTER CARD|VISA|ELO|AMEX|HIPERCARD|HIPER)\b.*/i,'').trim();
-  const formasSet = new Set();
-  todosItens.filter(i => i.tipo === 'ENTRADA').forEach(i => formasSet.add(normForma(i.forma_pagamento)));
-  const formas = Array.from(formasSet).sort();
+  const formas = _pdvCategorias.filter(c => c.tipo !== 'SAIDA').map(c => c.nome);
 
   // Cards resumo
   const cardsDiv = document.getElementById('pdv-cards-resumo');
@@ -2379,7 +2376,7 @@ async function processarArquivoPDV(input) {
       const result = await lerPDFcomPDFJS(file);
       const text = result.text;
       // Extrai responsável e data
-      const respMatch = text.match(/Respons.vel[:\s: ]+([^\n\r]+)/i);
+      const respMatch = text.match(/Respons[aá]vel:\s*([A-ZÀ-Ú][^\n\r0-9]{2,50})/i);
       if (respMatch) responsavel = respMatch[1].trim();
       const dataMatch = text.match(/Abertura[: ]+(\d{2})[\/ ](\d{2})[\/ ](\d{4})/i);
       if (dataMatch) {
@@ -2415,7 +2412,7 @@ function processarTextoPDF() {
   let responsavel = '';
   let dataCaixa = new Date().toISOString().substring(0,10);
   // Tenta extrair responsável e data do texto
-      const respMatch = text.match(/Respons.vel[:\s: ]+([^\n\r]+)/i);
+      const respMatch = text.match(/Respons[aá]vel:\s*([A-ZÀ-Ú][^\n\r0-9]{2,50})/i);
 
   if (respMatch) responsavel = respMatch[1].trim();
       const dataMatch = text.match(/Abertura[: ]+(\d{2})[\/ ](\d{2})[\/ ](\d{4})/i);
@@ -2427,65 +2424,47 @@ function processarTextoPDF() {
 
 function parsePDVTexto(text) {
   const itens = [];
-  const encontrados = new Set();
 
-  // Para cada categoria cadastrada, procura no texto do PDF
-  _pdvCategorias.forEach(cat => {
-    // Normaliza o nome para busca (remove acentos, lowercase)
-    const nomeBusca = cat.nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    const nomeOriginal = cat.nome;
+  // Normaliza texto: remove quebras múltiplas, padroniza espaços
+  const txt = text.replace(/\r/g,'').replace(/[ \t]+/g,' ');
 
-    // Monta regex flexível: "Cartao Credito" bate em "Cartão Crédito 8.120,00 0,00"
-    const palavras = nomeBusca.split(' ').filter(p=>p.length>2);
-    if (!palavras.length) return;
+  // Padrões fixos do PDF de caixa — busca "NomeDaForma VALOR DIFERENCA" no bloco de resumo
+  // Ex: "Cartão Crédito 8.120,00 0,00" ou "Dinheiro 100,00 0,00"
+  const padroesPDF = [
+    { re: /Dinheiro\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,            nome: 'Dinheiro',         tipo: 'ENTRADA' },
+    { re: /Cart[aã]o\s+Cr[eé]dito\s+([\d.]+,[\d]{2})\s+[\d.,]+/i, nome: 'Cartão Crédito',  tipo: 'ENTRADA' },
+    { re: /Cart[aã]o\s+D[eé]bito\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,  nome: 'Cartão Débito',   tipo: 'ENTRADA' },
+    { re: /Cheque\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,               nome: 'Cheque',           tipo: 'ENTRADA' },
+    { re: /Boleto\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,               nome: 'Boleto',           tipo: 'ENTRADA' },
+    { re: /Voucher\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,              nome: 'Voucher',          tipo: 'ENTRADA' },
+    { re: /Transfer[eê]ncia\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,     nome: 'Transferência',    tipo: 'ENTRADA' },
+    { re: /Pix\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,                  nome: 'Pix',              tipo: 'ENTRADA' },
+    { re: /Dep[oó]sito\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,          nome: 'Depósito',         tipo: 'ENTRADA' },
+    { re: /Permuta\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,              nome: 'Permuta',          tipo: 'ENTRADA' },
+    { re: /Cr[eé]dito\s+(?:Utilizado|Cliente)\s+([\d.]+,[\d]{2})/i, nome: 'Crédito Cliente', tipo: 'ENTRADA' },
+    { re: /Cortesia\s+([\d.]+,[\d]{2})/i,                         nome: 'Cortesia',         tipo: 'SAIDA'   },
+    { re: /D[íi]vidas\s+(-?[\d.,]+)/i,                            nome: 'Dívidas',          tipo: 'SAIDA'   },
+  ];
 
-    // Busca o nome da categoria seguido de um valor no texto
-    const reStr = palavras.map(p => {
-      // Permite variações de acentos
-      return p.replace(/a/g,'[aáã]').replace(/e/g,'[eéê]').replace(/i/g,'[ií]').replace(/o/g,'[oóô]').replace(/u/g,'[uú]').replace(/c/g,'[cç]');
-    }).join('[\\s\\S]{0,20}');
-
-    try {
-      const re = new RegExp(reStr + '[\\s\\S]{0,30}?([\\d]+(?:[.,][\\d]{1,2})?)(?=\\s|$)', 'i');
-      const m = text.match(re);
-      if (m) {
-        const chave = nomeOriginal.toLowerCase();
-        if (encontrados.has(chave)) return;
-        encontrados.add(chave);
-        const valorStr = m[1].replace(/\./g,'').replace(',','.');
-        const valor = parseFloat(valorStr);
-        if (valor > 0 && valor < 200000) {
-          itens.push({
-            forma_pagamento: nomeOriginal,
-            descricao: nomeOriginal,
-            valor,
-            tipo: cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA',
-            categoria: nomeOriginal
-          });
-        }
-      }
-    } catch(e) {}
+  padroesPDF.forEach(p => {
+    const m = txt.match(p.re);
+    if (!m) return;
+    const valor = Math.abs(parseFloat(m[1].replace(/\./g,'').replace(',','.')));
+    if (valor <= 0) return;
+    // Cruza com categoria cadastrada
+    const cat = _pdvCategorias.find(c => {
+      const cn = c.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const pn = p.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return cn === pn || cn.includes(pn.split(' ')[0]) || pn.includes(cn.split(' ')[0]);
+    });
+    itens.push({
+      forma_pagamento: p.nome,
+      descricao: p.nome,
+      valor,
+      tipo: p.tipo,
+      categoria: cat ? cat.nome : p.nome
+    });
   });
-
-  // Se não encontrou nada pelas categorias, fallback para formas padrão
-  if (!itens.length) {
-    const reFormaTotal = /(Cart[aã]o\s+Cr[eé]dito|Cart[aã]o\s+D[eé]bito|Pix|Dinheiro|Transfer[eê]ncia|Boleto|Voucher|Cheque|Permuta|Cr[eé]dito\s+Cliente)\s+([\d.]+,[\d]+)/gi;
-    let m;
-    while ((m = reFormaTotal.exec(text)) !== null) {
-      const forma = m[1].trim();
-      const chave = forma.toLowerCase();
-      if (encontrados.has(chave)) continue;
-      encontrados.add(chave);
-      const valor = parseFloat(m[2].replace(/\./g,'').replace(',','.'));
-      if (valor > 0) itens.push({ forma_pagamento: forma, descricao: forma, valor, tipo: 'ENTRADA', categoria: detectarCategoriaPDVTexto(forma) });
-    }
-    // Dívidas
-    const mDiv = text.match(/D[íi]vidas\s+(-?[\d.,]+)/i);
-    if (mDiv) {
-      const valor = Math.abs(parseFloat(mDiv[1].replace(/\./g,'').replace(',','.')));
-      if (valor > 0) itens.push({ forma_pagamento: 'Dívidas', descricao: 'Dívidas', valor, tipo: 'SAIDA', categoria: 'Dívidas' });
-    }
-  }
 
   return itens;
 }
