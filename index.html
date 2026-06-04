@@ -1190,13 +1190,18 @@ tbody tr:hover { background: var(--bg3); }
 
 <!-- MODAL META FINANCEIRA -->
 <div class="modal-overlay" id="modal-meta-financeira">
-  <div class="modal" style="max-width:480px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+  <div class="modal" style="max-width:560px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
       <div class="modal-title" style="margin:0">💰 Meta de Faturamento</div>
       <button onclick="closeModal('modal-meta-financeira')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
     </div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:1.25rem">Defina a meta de faturamento mensal. O sistema calcula automaticamente quanto precisa ser faturado por dia.</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem" id="meta-fin-grid">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:1.25rem">Informe a meta mensal e os dias que o salão vai abrir. A meta diária é calculada automaticamente.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:4px;padding:0 4px">
+      <div style="font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Mês</div>
+      <div style="font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Meta do Mês (R$)</div>
+      <div style="font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em">Dias abertos → Meta/dia</div>
+    </div>
+    <div id="meta-fin-grid" style="max-height:380px;overflow-y:auto">
       <!-- Preenchido por JS -->
     </div>
     <div class="modal-footer">
@@ -4473,6 +4478,7 @@ async function loadMetricas() {
   // Busca meta financeira do mês
   const { data: metaFin } = await sb.from('metas_financeiras').select('*').eq('ano', ano).eq('mes', mes).single();
   const metaMes = Number(metaFin?.meta || 0);
+  const diasAbertos = Number(metaFin?.dias_abertos || 0);
 
   // Calcula realizado: soma entradas do mês nos lançamentos
   const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate();
@@ -4481,54 +4487,52 @@ async function loadMetricas() {
   const { data: lancsM } = await sb.from('lancamentos').select('entrada').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
   const realizado = (lancsM||[]).reduce((s,l)=>s+Number(l.entrada||0),0);
 
-  // Dias úteis restantes no mês
+  // Dias restantes baseado nos dias que o salão abre
   const hoje = new Date();
   const ehMesAtual = hoje.getFullYear() === parseInt(ano) && (hoje.getMonth()+1) === parseInt(mes);
   const diaHoje = ehMesAtual ? hoje.getDate() : ultimoDia;
-  let diasUteis = 0, diasRestantes = 0;
-  for (let d = 1; d <= ultimoDia; d++) {
-    const dSem = new Date(parseInt(ano), mesIdx, d).getDay();
-    if (dSem !== 0) { // não domingo
-      diasUteis++;
-      if (d >= diaHoje) diasRestantes++;
-    }
-  }
+  const propPassada = diasAbertos > 0 ? diaHoje / ultimoDia : 0;
+  const diasPassados = Math.round(propPassada * diasAbertos);
+  const diasRestantes = Math.max(0, diasAbertos - diasPassados);
 
+  const metaDia = diasAbertos > 0 ? metaMes / diasAbertos : 0;
   const faltaMeta = Math.max(0, metaMes - realizado);
-  const metaDia = diasRestantes > 0 ? faltaMeta / diasRestantes : 0;
+  const metaDiaRestante = diasRestantes > 0 ? faltaMeta / diasRestantes : 0;
   const pct = metaMes > 0 ? Math.min(100, (realizado / metaMes) * 100) : 0;
 
   // Atualiza cards
   if (document.getElementById('met-meta-mes')) {
     document.getElementById('met-meta-mes').textContent = metaMes > 0 ? fmtBRL(metaMes) : 'Não definida';
     document.getElementById('met-realizado').textContent = fmtBRL(realizado);
-    document.getElementById('met-meta-dia').textContent = metaDia > 0 ? fmtBRL(metaDia) : '—';
-    document.getElementById('met-meta-dia-sub').textContent = diasRestantes > 0 ? `${diasRestantes} dias úteis restantes` : 'Mês encerrado';
+    document.getElementById('met-meta-dia').textContent = metaDiaRestante > 0 ? fmtBRL(metaDiaRestante) : metaDia > 0 ? fmtBRL(metaDia) : '—';
+    document.getElementById('met-meta-dia-sub').textContent = diasAbertos > 0
+      ? `${diasRestantes} dias restantes de ${diasAbertos} dias`
+      : 'Defina os dias de funcionamento';
     document.getElementById('met-pct').textContent = `${pct.toFixed(1)}%`;
     document.getElementById('met-pct').className = 'metric-val ' + (pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red');
     document.getElementById('met-barra').style.width = pct + '%';
     document.getElementById('met-barra').style.background = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red)';
   }
 
-  // Tabela de dias úteis
+  // Tabela de dias
   const elDias = document.getElementById('met-dias-uteis');
   const elTabDias = document.getElementById('met-tabela-dias');
-  if (elDias) elDias.innerHTML = `<strong>${diasUteis}</strong> dias úteis em ${mesNome} · Meta/dia: <strong style="color:var(--amber)">${metaMes > 0 ? fmtBRL(metaMes/diasUteis) : '—'}</strong>`;
-  if (elTabDias && metaMes > 0) {
+  if (elDias) elDias.innerHTML = diasAbertos > 0
+    ? `<strong>${diasAbertos}</strong> dias de funcionamento · Meta/dia: <strong style="color:var(--amber)">${fmtBRL(metaDia)}</strong>`
+    : `<span style="color:var(--text3)">Configure os dias de funcionamento em "Meta de faturamento"</span>`;
+  if (elTabDias && metaMes > 0 && diasAbertos > 0) {
     let rowsD = '';
-    let acum = 0;
-    for (let d = 1; d <= ultimoDia; d++) {
-      const dSem = new Date(parseInt(ano), mesIdx, d).getDay();
-      if (dSem === 0) continue;
-      acum++;
-      const metaAcum = (metaMes / diasUteis) * acum;
-      const isDia = d === diaHoje && ehMesAtual;
-      rowsD += `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);${isDia?'font-weight:700;color:var(--accent)':''}">
-        <span>Dia ${String(d).padStart(2,'0')}</span>
+    for (let d = 1; d <= diasAbertos; d++) {
+      const metaAcum = metaDia * d;
+      const isDia = d === diasPassados && ehMesAtual;
+      rowsD += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);${isDia?'font-weight:700;color:var(--accent)':''}">
+        <span>Dia ${String(d).padStart(2,'0')}${isDia?' ← hoje':''}</span>
         <span style="font-family:'DM Mono',monospace;font-size:11px">${fmtBRL(metaAcum)}</span>
       </div>`;
     }
     elTabDias.innerHTML = `<div style="max-height:320px;overflow-y:auto">${rowsD}</div>`;
+  } else if (elTabDias) {
+    elTabDias.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:1rem">Defina a meta e os dias de funcionamento</div>';
   }
 
   // Profissionais
@@ -4686,17 +4690,36 @@ async function abrirModalMetaFinanceira() {
   const ano = document.getElementById('met-ano')?.value || '2026';
   const { data: metas } = await sb.from('metas_financeiras').select('*').eq('ano', ano);
   const metaMap = {};
-  (metas||[]).forEach(m => metaMap[m.mes] = m.meta);
+  (metas||[]).forEach(m => { metaMap[m.mes] = { meta: m.meta, dias: m.dias_abertos || 0 }; });
+
   let grid = '';
   MESES_NOMES.forEach((m, i) => {
     const mesNum = String(i+1).padStart(2,'0');
-    grid += `<div class="form-group">
-      <label>${m}</label>
-      <input type="number" id="metafin-${mesNum}" placeholder="0" value="${metaMap[mesNum]||''}" min="0" style="font-size:12px;padding:6px 8px">
+    const metaVal = metaMap[mesNum]?.meta || '';
+    const diasVal = metaMap[mesNum]?.dias || '';
+    const metaDia = metaVal && diasVal ? fmtBRL(Number(metaVal) / Number(diasVal)) : '—';
+    grid += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:500">${m}</div>
+      <input type="number" id="metafin-meta-${mesNum}" placeholder="0" value="${metaVal}" min="0"
+        oninput="calcMetaDia('${mesNum}')"
+        style="font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="metafin-dias-${mesNum}" placeholder="dias" value="${diasVal}" min="1" max="31"
+          oninput="calcMetaDia('${mesNum}')"
+          style="width:52px;font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);text-align:center">
+        <span id="metafin-dia-${mesNum}" style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;white-space:nowrap">${metaDia}</span>
+      </div>
     </div>`;
   });
   document.getElementById('meta-fin-grid').innerHTML = grid;
   document.getElementById('modal-meta-financeira').classList.add('open');
+}
+
+function calcMetaDia(mesNum) {
+  const meta = parseValor(document.getElementById(`metafin-meta-${mesNum}`)?.value || '0');
+  const dias = parseInt(document.getElementById(`metafin-dias-${mesNum}`)?.value || '0');
+  const el = document.getElementById(`metafin-dia-${mesNum}`);
+  if (el) el.textContent = meta > 0 && dias > 0 ? fmtBRL(meta / dias) + '/dia' : '—';
 }
 
 async function salvarMetasFinanceiras() {
@@ -4704,11 +4727,13 @@ async function salvarMetasFinanceiras() {
   const upserts = [];
   MESES_NOMES.forEach((m, i) => {
     const mesNum = String(i+1).padStart(2,'0');
-    const val = parseValor(document.getElementById(`metafin-${mesNum}`)?.value || '0');
-    if (val > 0) upserts.push({ ano, mes: mesNum, meta: val });
+    const meta = parseValor(document.getElementById(`metafin-meta-${mesNum}`)?.value || '0');
+    const dias = parseInt(document.getElementById(`metafin-dias-${mesNum}`)?.value || '0');
+    if (meta > 0) upserts.push({ ano, mes: mesNum, meta, dias_abertos: dias || null });
   });
   if (upserts.length) {
-    await sb.from('metas_financeiras').upsert(upserts, { onConflict: 'ano,mes' });
+    const { error } = await sb.from('metas_financeiras').upsert(upserts, { onConflict: 'ano,mes' });
+    if (error) { showToast('Erro ao salvar: ' + error.message, 'error'); return; }
     showToast('Metas salvas!', 'success');
   }
   closeModal('modal-meta-financeira');
