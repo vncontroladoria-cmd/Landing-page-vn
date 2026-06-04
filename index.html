@@ -2422,48 +2422,46 @@ function processarTextoPDF() {
   mostrarPreviewPDV(itens, dataCaixa, responsavel);
 }
 
+function normStr(s) {
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+}
+
 function parsePDVTexto(text) {
   const itens = [];
 
-  // Normaliza texto: remove quebras múltiplas, padroniza espaços
-  const txt = text.replace(/\r/g,'').replace(/[ \t]+/g,' ');
+  // O PDF.js retorna texto corrido com espaços
+  // Estratégia: para cada categoria cadastrada, procura o nome dela seguido de um valor numérico
+  _pdvCategorias.forEach(cat => {
+    const catNorm = normStr(cat.nome);
+    // Divide em palavras significativas (>2 chars)
+    const palavras = catNorm.split(/\s+/).filter(p => p.length > 2);
+    if (!palavras.length) return;
 
-  // Padrões fixos do PDF de caixa — busca "NomeDaForma VALOR DIFERENCA" no bloco de resumo
-  // Ex: "Cartão Crédito 8.120,00 0,00" ou "Dinheiro 100,00 0,00"
-  const padroesPDF = [
-    { re: /Dinheiro\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,            nome: 'Dinheiro',         tipo: 'ENTRADA' },
-    { re: /Cart[aã]o\s+Cr[eé]dito\s+([\d.]+,[\d]{2})\s+[\d.,]+/i, nome: 'Cartão Crédito',  tipo: 'ENTRADA' },
-    { re: /Cart[aã]o\s+D[eé]bito\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,  nome: 'Cartão Débito',   tipo: 'ENTRADA' },
-    { re: /Cheque\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,               nome: 'Cheque',           tipo: 'ENTRADA' },
-    { re: /Boleto\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,               nome: 'Boleto',           tipo: 'ENTRADA' },
-    { re: /Voucher\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,              nome: 'Voucher',          tipo: 'ENTRADA' },
-    { re: /Transfer[eê]ncia\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,     nome: 'Transferência',    tipo: 'ENTRADA' },
-    { re: /Pix\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,                  nome: 'Pix',              tipo: 'ENTRADA' },
-    { re: /Dep[oó]sito\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,          nome: 'Depósito',         tipo: 'ENTRADA' },
-    { re: /Permuta\s+([\d.]+,[\d]{2})\s+[\d.,]+/i,              nome: 'Permuta',          tipo: 'ENTRADA' },
-    { re: /Cr[eé]dito\s+(?:Utilizado|Cliente)\s+([\d.]+,[\d]{2})/i, nome: 'Crédito Cliente', tipo: 'ENTRADA' },
-    { re: /Cortesia\s+([\d.]+,[\d]{2})/i,                         nome: 'Cortesia',         tipo: 'SAIDA'   },
-    { re: /D[íi]vidas\s+(-?[\d.,]+)/i,                            nome: 'Dívidas',          tipo: 'SAIDA'   },
-  ];
+    // Monta regex que permite variações entre as palavras (até 30 chars de distância)
+    // e captura o primeiro valor numérico logo após
+    const rePartes = palavras.map(p =>
+      p.replace(/[aá]/g,'[aá]').replace(/[eé]/g,'[eé]').replace(/[ií]/g,'[ií]')
+       .replace(/[oó]/g,'[oó]').replace(/[uú]/g,'[uú]').replace(/[cç]/g,'[cç]')
+       .replace(/[^\[\]a-z0-9áéíóúãõâêîôûàèìòùç]/gi, '.')
+    ).join('[\\s\\S]{0,25}');
 
-  padroesPDF.forEach(p => {
-    const m = txt.match(p.re);
-    if (!m) return;
-    const valor = Math.abs(parseFloat(m[1].replace(/\./g,'').replace(',','.')));
-    if (valor <= 0) return;
-    // Cruza com categoria cadastrada
-    const cat = _pdvCategorias.find(c => {
-      const cn = c.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      const pn = p.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      return cn === pn || cn.includes(pn.split(' ')[0]) || pn.includes(cn.split(' ')[0]);
-    });
-    itens.push({
-      forma_pagamento: p.nome,
-      descricao: p.nome,
-      valor,
-      tipo: p.tipo,
-      categoria: cat ? cat.nome : p.nome
-    });
+    const reCompleta = new RegExp(rePartes + '[\\s\\S]{0,40}?(-?[\\d]{1,3}(?:\\.[\\d]{3})*,[\\d]{2})', 'i');
+
+    try {
+      const m = text.match(reCompleta);
+      if (!m) return;
+      const valorStr = m[1].replace(/\./g,'').replace(',','.');
+      const valor = Math.abs(parseFloat(valorStr));
+      if (valor <= 0 || valor > 500000) return;
+      const tipo = cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA';
+      itens.push({
+        forma_pagamento: cat.nome,
+        descricao: cat.nome,
+        valor,
+        tipo,
+        categoria: cat.nome
+      });
+    } catch(e) {}
   });
 
   return itens;
