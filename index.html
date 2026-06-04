@@ -2067,7 +2067,9 @@ async function loadPDV() {
   const mes = document.getElementById('pdv-filtro-mes')?.value || '';
   let q = sb.from('pdv_caixas').select('*').order('data_caixa', {ascending: true});
   if (mes) {
-    q = q.gte('data_caixa', `${ano}-${mes}-01`).lte('data_caixa', `${ano}-${mes}-31`);
+    const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+    const fimMes = String(ultimoDia).padStart(2,'0');
+    q = q.gte('data_caixa', `${ano}-${mes}-01`).lte('data_caixa', `${ano}-${mes}-${fimMes}`);
   } else {
     q = q.gte('data_caixa', `${ano}-01-01`).lte('data_caixa', `${ano}-12-31`);
   }
@@ -2138,7 +2140,7 @@ async function loadPDV() {
       return `<td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${v > 0 ? fmtBRL(v) : '<span style="color:var(--text3)">—</span>'}</td>`;
     }).join('');
     return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:10px 12px;font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${fmtData(c.data_caixa)}</td>
+      <td style="padding:10px 12px;font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${fmtDate(c.data_caixa)}</td>
       <td style="padding:10px 12px;font-size:13px">${c.responsavel||'—'}</td>
       ${colsForma}
       <td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(totalDia)}</td>
@@ -2323,7 +2325,7 @@ async function verAuditoriaPDV(id) {
   el.innerHTML = `
     <div style="display:grid;gap:8px;font-size:13px">
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text2)">Data do caixa</span><strong>${fmtData(cx.data_caixa)}</strong>
+        <span style="color:var(--text2)">Data do caixa</span><strong>${fmtDate(cx.data_caixa)}</strong>
       </div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="color:var(--text2)">Responsável</span><strong>${cx.responsavel||'—'}</strong>
