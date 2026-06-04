@@ -4515,9 +4515,6 @@ async function loadMetricas() {
   if (document.getElementById('met-meta-mes')) {
     document.getElementById('met-meta-mes').textContent = metaMes > 0 ? fmtBRL(metaMes) : 'Não definida';
     document.getElementById('met-realizado').textContent = fmtBRL(realizado);
-
-      ? `${diasRestantes} dias restantes de ${diasAbertos} dias`
-      : 'Defina os dias de funcionamento';
     document.getElementById('met-pct').textContent = `${pct.toFixed(1)}%`;
     document.getElementById('met-pct').className = 'metric-val ' + (pct >= 100 ? 'green' : pct >= 70 ? 'amber' : 'red');
     document.getElementById('met-barra').style.width = pct + '%';
