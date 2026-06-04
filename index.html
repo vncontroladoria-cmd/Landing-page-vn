@@ -4515,8 +4515,7 @@ async function loadMetricas() {
   if (document.getElementById('met-meta-mes')) {
     document.getElementById('met-meta-mes').textContent = metaMes > 0 ? fmtBRL(metaMes) : 'Não definida';
     document.getElementById('met-realizado').textContent = fmtBRL(realizado);
-    document.getElementById('met-meta-dia').textContent = metaDiaRestante > 0 ? fmtBRL(metaDiaRestante) : metaDia > 0 ? fmtBRL(metaDia) : '—';
-    document.getElementById('met-meta-dia-sub').textContent = diasAbertos > 0
+
       ? `${diasRestantes} dias restantes de ${diasAbertos} dias`
       : 'Defina os dias de funcionamento';
     document.getElementById('met-pct').textContent = `${pct.toFixed(1)}%`;
