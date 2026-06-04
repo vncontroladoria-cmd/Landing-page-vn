@@ -2067,13 +2067,13 @@ async function loadLancamentos() {
     return l.tipo === 'ENTRADA' ? s + v : l.tipo === 'SAIDA' ? s - v : s;
   }, 0);
 
-  // Cards por banco: soma de entradas - saídas de TODOS os lançamentos daquele banco
+  // Cards por banco: saldo_inicial + movimentações reais (sem saldo inicial)
   const saldoDiv = document.getElementById('lanc-saldo-bancos');
   if (saldoDiv) {
     let cardsHtml = '';
     _bancos.forEach(b => {
-      const lancsB = todos.filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
-      const saldoB = calcSaldo(lancsB);
+      const lancsB = todos.filter(l => !isSaldoInicial(l) && (l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase()));
+      const saldoB = calcSaldo(lancsB) + Number(b.saldo_inicial||0);
       const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
       cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
         <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
@@ -2083,18 +2083,24 @@ async function loadLancamentos() {
     saldoDiv.innerHTML = cardsHtml;
   }
 
-  // Entradas e Saídas: do período filtrado
-  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
-  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+  // Saldo Inicial nunca é ENTRADA nem SAÍDA — exclui dos cards de movimento
+  const isSaldoInicial = l => (l.categoria||'').toLowerCase() === 'saldo inicial' || (l.categoria_dfc||'').toLowerCase() === 'saldo inicial';
 
-  // Saldo Total: soma de todos os lançamentos (ou do banco filtrado)
+  // Entradas e Saídas: do período filtrado, sem saldo inicial
+  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA' && !isSaldoInicial(l)).reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
+  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA'   && !isSaldoInicial(l)).reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+
+  // Saldo Total = saldo_inicial dos bancos + movimentações reais (sem saldo inicial)
+  const todosMovimento = todos.filter(l => !isSaldoInicial(l));
   let saldoTotal;
   if (bancoFilter) {
-    const bancoNomeFiltro = (_bancos.find(b=>b.id===bancoFilter)||{}).nome||'';
-    const todosDoB = todos.filter(l => l.banco_id===bancoFilter || (l.banco_nome||'').toLowerCase()===bancoNomeFiltro.toLowerCase());
-    saldoTotal = calcSaldo(todosDoB);
+    const bancoFiltrado = _bancos.find(b=>b.id===bancoFilter)||{};
+    const bancoNomeFiltro = bancoFiltrado.nome||'';
+    const todosDoB = todosMovimento.filter(l => l.banco_id===bancoFilter || (l.banco_nome||'').toLowerCase()===bancoNomeFiltro.toLowerCase());
+    saldoTotal = calcSaldo(todosDoB) + Number(bancoFiltrado.saldo_inicial||0);
   } else {
-    saldoTotal = calcSaldo(todos);
+    const saldoInicialTotal = _bancos.reduce((s,b) => s + Number(b.saldo_inicial||0), 0);
+    saldoTotal = calcSaldo(todosMovimento) + saldoInicialTotal;
   }
 
   if (document.getElementById('lanc-total-entrada')) {
