@@ -2205,7 +2205,11 @@ function selecionarTipoLanc(tipo) {
 
 function filtrarCategoriasPorTipo(tipo) {
   _catMapAtual = {};
-  _categorias.filter(c => c.tipo === tipo).forEach(c => {
+  // Filtra por tipo se o campo existir; caso contrário mostra todas
+  const lista = _categorias.some(c => c.tipo) 
+    ? _categorias.filter(c => c.tipo === tipo)
+    : _categorias;
+  lista.forEach(c => {
     if (!_catMapAtual[c.nome]) _catMapAtual[c.nome] = { nome: c.nome, dfc: null, dre: null };
     if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dfc = c.codigo;
     if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dre = c.codigo;
