@@ -2540,9 +2540,11 @@ function mostrarPreviewPDV(itens, dataCaixa, responsavel) {
         </tr>`).join('')}</tbody>
       </table>
     </div>
-    <button class="btn btn-primary" style="width:100%" onclick="confirmarImportePDV(${JSON.stringify(itens).replace(/"/g,'&quot;')}, '${dataCaixa}', '${responsavel}')">
+    <button class="btn btn-primary" style="width:100%" onclick="confirmarImportePDV()">
       💾 Importar ${itens.length} itens
     </button>`;
+  // Salva em variável global para não quebrar com JSON no onclick
+  window._pdvImportData = { itens, dataCaixa, responsavel };
 }
 
 function abrirDropPDVPreview(input) {
@@ -2566,7 +2568,9 @@ function selecionarCatPDVPreview(el, e) {
   el.closest('.pdv-cat-drop').style.display = 'none';
 }
 
-async function confirmarImportePDV(itens, dataCaixa, responsavel) {
+async function confirmarImportePDV() {
+  const { itens, dataCaixa, responsavel } = window._pdvImportData || {};
+  if (!itens?.length) { showToast('Nenhum item para importar', 'error'); return; }
   // Pega categorias editadas no preview
   const inputs = document.querySelectorAll('#pdv-import-preview input[data-idx]');
   inputs.forEach(inp => { const i = parseInt(inp.dataset.idx); if (itens[i]) itens[i].categoria = inp.value; });
