@@ -2379,12 +2379,11 @@ async function processarArquivoPDV(input) {
       const result = await lerPDFcomPDFJS(file);
       const text = result.text;
       // Extrai responsável e data
-      const respMatch = text.match(/Responsavel[: ]+([^\n]+)/i);
+      const respMatch = text.match(/Respons.vel[:\s: ]+([^\n\r]+)/i);
       if (respMatch) responsavel = respMatch[1].trim();
-      const dataMatch = text.match(/Abertura[: ]+(\d{2}\/\d{2}\/\d{4})/i);
+      const dataMatch = text.match(/Abertura[: ]+(\d{2})[\/ ](\d{2})[\/ ](\d{4})/i);
       if (dataMatch) {
-        const [d,m,a] = dataMatch[1].split('/');
-        dataCaixa = `${a}-${m}-${d}`;
+        if (dataMatch) dataCaixa = `${dataMatch[3]}-${dataMatch[2]}-${dataMatch[1]}`;
       }
       itens = parsePDVTexto(text);
     }
@@ -2416,80 +2415,75 @@ function processarTextoPDF() {
   let responsavel = '';
   let dataCaixa = new Date().toISOString().substring(0,10);
   // Tenta extrair responsável e data do texto
-  const respMatch = text.match(/Responsavel[: ]+([^\n]+)/i);
+      const respMatch = text.match(/Respons.vel[:\s: ]+([^\n\r]+)/i);
 
   if (respMatch) responsavel = respMatch[1].trim();
-  const dataMatch = text.match(/Abertura[: ]+(\d{2}\/\d{2}\/\d{4})/i);
+      const dataMatch = text.match(/Abertura[: ]+(\d{2})[\/ ](\d{2})[\/ ](\d{4})/i);
   if (dataMatch) {
-    const [d,m,a] = dataMatch[1].split('/');
-    dataCaixa = `${a}-${m}-${d}`;
+        if (dataMatch) dataCaixa = `${dataMatch[3]}-${dataMatch[2]}-${dataMatch[1]}`;
   }
   mostrarPreviewPDV(itens, dataCaixa, responsavel);
 }
 
 function parsePDVTexto(text) {
   const itens = [];
-
-  // ── ESTRATÉGIA 1: bloco de resumo do PDF ──────────────────
-  // Exemplo: "Cartão Crédito 8.120,00 0,00" ou "Dinheiro 100,00 0,00"
-  // Pega só a primeira ocorrência de cada forma (linha de resumo, não detalhe)
-  const linhasResumo = text.split(/\n|(?=Cart[aã]o|Dinheiro|Pix|Transfer|Boleto|Voucher|Cheque|Cr[eé]dito\s+(?:Utilizado|Cliente)|Permuta)/);
-  
-  // Padrão do bloco resumo: "NomeDaForma VALOR DIFERENCA"
-  // Ex: "Cartão Crédito 8.120,00 0,00" ou "Dinheiro 100,00 0,00"
-  const reResumo = /^(Cart[aã]o\s+(?:Cr[eé]dito|D[eé]bito)|Pix|Dinheiro|Transfer[eê]ncia|Boleto|Voucher|Cheque|Permuta)\s+([\d.,]+)\s+[\d.,]+/i;
-  
-  // Também pega TOTAL FATURADO, Dívidas
-  const totaisEspeciais = {
-    'TOTAL FATURADO': /TOTAL\s+FATURADO\s+([\d.,]+)/i,
-    'Dívidas': /D[íi]vidas\s+(-?[\d.,]+)/i,
-    'Cortesia': /Cortesia\s+([\d.,]+)/i,
-    'Crédito Utilizado': /Cr[eé]dito\s+Utilizado\s+([\d.,]+)/i,
-  };
-
   const encontrados = new Set();
 
-  // Busca pelo bloco de resumo — cada forma aparece com total e diferença
-  const reFormaTotal = /(Cart[aã]o\s+Cr[eé]dito|Cart[aã]o\s+D[eé]bito|Pix|Dinheiro|Transfer[eê]ncia|Boleto|Voucher|Cheque|Permuta)\s+([\d.]+,[\d]+)\s+[\d.,]+/gi;
-  let m;
-  while ((m = reFormaTotal.exec(text)) !== null) {
-    const forma = m[1].trim();
-    const chave = forma.toLowerCase();
-    if (encontrados.has(chave)) continue; // pega só primeira ocorrência (resumo)
-    encontrados.add(chave);
-    const valor = parseFloat(m[2].replace(/\./g,'').replace(',','.'));
-    if (valor > 0) {
-      const cat = detectarCategoriaPDVTexto(forma);
-      itens.push({ forma_pagamento: forma, descricao: forma, valor, tipo: 'ENTRADA', categoria: cat });
-    }
-  }
+  // Para cada categoria cadastrada, procura no texto do PDF
+  _pdvCategorias.forEach(cat => {
+    // Normaliza o nome para busca (remove acentos, lowercase)
+    const nomeBusca = cat.nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const nomeOriginal = cat.nome;
 
-  // Crédito Cliente — padrão diferente no PDF
-  const mCredCliente = text.match(/Cr[eé]dito\s+Cliente\s+([\d.]+,[\d]+)/i);
-  if (mCredCliente && !encontrados.has('crédito cliente')) {
-    const valor = parseFloat(mCredCliente[1].replace(/\./g,'').replace(',','.'));
-    if (valor > 0) {
-      itens.push({ forma_pagamento: 'Crédito Cliente', descricao: 'Crédito Cliente', valor, tipo: 'ENTRADA', categoria: detectarCategoriaPDVTexto('Crédito Cliente') });
-    }
-  }
+    // Monta regex flexível: "Cartao Credito" bate em "Cartão Crédito 8.120,00 0,00"
+    const palavras = nomeBusca.split(' ').filter(p=>p.length>2);
+    if (!palavras.length) return;
 
-  // Dívidas — saída
-  const mDiv = text.match(/D[íi]vidas\s+(-?[\d.,]+)/i);
-  if (mDiv) {
-    const valor = Math.abs(parseFloat(mDiv[1].replace(/\./g,'').replace(',','.')));
-    if (valor > 0) itens.push({ forma_pagamento: 'Dívidas', descricao: 'Dívidas', valor, tipo: 'SAIDA', categoria: detectarCategoriaPDVTexto('Dívidas') });
-  }
+    // Busca o nome da categoria seguido de um valor no texto
+    const reStr = palavras.map(p => {
+      // Permite variações de acentos
+      return p.replace(/a/g,'[aáã]').replace(/e/g,'[eéê]').replace(/i/g,'[ií]').replace(/o/g,'[oóô]').replace(/u/g,'[uú]').replace(/c/g,'[cç]');
+    }).join('[\\s\\S]{0,20}');
 
-  // Se não encontrou nada no resumo, tenta linha a linha (detalhes)
-  if (itens.filter(i=>i.tipo==='ENTRADA').length === 0) {
-    const reDetalhe = /(Cart[aã]o\s+(?:Cr[eé]dito|D[eé]bito)|Pix|Dinheiro|Transfer[eê]ncia|Boleto|Voucher|Cheque|Cr[eé]dito\s+Cliente)\s+(?:MASTER\s+CARD|VISA|ELO|AMEX|HIPERCARD)?\s*Comanda.*?([\d]+(?:,[\d]+)?)$/gim;
-    while ((m = reDetalhe.exec(text)) !== null) {
-      const forma = m[1].trim();
-      const valor = parseFloat(m[2].replace(',','.'));
-      if (valor > 0) {
-        const cat = detectarCategoriaPDVTexto(forma);
-        itens.push({ forma_pagamento: forma, descricao: m[0].trim(), valor, tipo: 'ENTRADA', categoria: cat });
+    try {
+      const re = new RegExp(reStr + '[\\s\\S]{0,30}?([\\d]+(?:[.,][\\d]{1,2})?)(?=\\s|$)', 'i');
+      const m = text.match(re);
+      if (m) {
+        const chave = nomeOriginal.toLowerCase();
+        if (encontrados.has(chave)) return;
+        encontrados.add(chave);
+        const valorStr = m[1].replace(/\./g,'').replace(',','.');
+        const valor = parseFloat(valorStr);
+        if (valor > 0 && valor < 200000) {
+          itens.push({
+            forma_pagamento: nomeOriginal,
+            descricao: nomeOriginal,
+            valor,
+            tipo: cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA',
+            categoria: nomeOriginal
+          });
+        }
       }
+    } catch(e) {}
+  });
+
+  // Se não encontrou nada pelas categorias, fallback para formas padrão
+  if (!itens.length) {
+    const reFormaTotal = /(Cart[aã]o\s+Cr[eé]dito|Cart[aã]o\s+D[eé]bito|Pix|Dinheiro|Transfer[eê]ncia|Boleto|Voucher|Cheque|Permuta|Cr[eé]dito\s+Cliente)\s+([\d.]+,[\d]+)/gi;
+    let m;
+    while ((m = reFormaTotal.exec(text)) !== null) {
+      const forma = m[1].trim();
+      const chave = forma.toLowerCase();
+      if (encontrados.has(chave)) continue;
+      encontrados.add(chave);
+      const valor = parseFloat(m[2].replace(/\./g,'').replace(',','.'));
+      if (valor > 0) itens.push({ forma_pagamento: forma, descricao: forma, valor, tipo: 'ENTRADA', categoria: detectarCategoriaPDVTexto(forma) });
+    }
+    // Dívidas
+    const mDiv = text.match(/D[íi]vidas\s+(-?[\d.,]+)/i);
+    if (mDiv) {
+      const valor = Math.abs(parseFloat(mDiv[1].replace(/\./g,'').replace(',','.')));
+      if (valor > 0) itens.push({ forma_pagamento: 'Dívidas', descricao: 'Dívidas', valor, tipo: 'SAIDA', categoria: 'Dívidas' });
     }
   }
 
