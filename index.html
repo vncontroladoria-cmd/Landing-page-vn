@@ -2585,12 +2585,30 @@ async function confirmarImportePDV() {
     origem_arquivo: 'importado'
   }).select().single();
 
-  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-  
-  const payload = itens.map(i => ({ ...i, caixa_id: novo.id, created_by: usuario }));
-  await sb.from('pdv_itens').insert(payload);
+  if (error) { 
+    showToast('Erro ao salvar caixa: ' + error.message, 'error'); 
+    console.error('pdv_caixas error:', error);
+    return; 
+  }
+  if (!novo?.id) {
+    showToast('Erro: caixa não retornou ID', 'error');
+    return;
+  }
 
-  showToast('Caixa importado!', 'success');
+  // Limpa campos desnecessários antes de inserir
+  const payload = itens.map(i => ({ 
+    caixa_id: novo.id, 
+    forma_pagamento: i.forma_pagamento||'', 
+    categoria: i.categoria||'', 
+    descricao: i.descricao||'', 
+    tipo: i.tipo||'ENTRADA', 
+    valor: Number(i.valor||0),
+    created_by: usuario 
+  }));
+  const { error: errItens } = await sb.from('pdv_itens').insert(payload);
+  if (errItens) { showToast('Erro ao salvar itens: ' + errItens.message, 'error'); return; }
+
+  showToast(`Caixa importado! ${payload.length} itens salvos.`, 'success');
   closeModal('modal-importar-pdv');
   loadPDV();
 }
