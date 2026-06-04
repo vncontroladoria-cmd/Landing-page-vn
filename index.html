@@ -2433,46 +2433,30 @@ function parsePDVTexto(text) {
 
   _pdvCategorias.forEach(cat => {
     const catNorm = normStr(cat.nome);
+    const idx = textNorm.toLowerCase().indexOf(catNorm);
+    if (idx === -1) return;
+
+    // Pega até 60 chars após o nome da categoria
+    const apos = text.substring(idx + cat.nome.length, idx + cat.nome.length + 60);
     
-    // Procura TODAS as ocorrências do nome no texto
-    let idx = -1;
-    let melhorValor = 0;
-    let melhorTrecho = '';
-    let pos = 0;
+    // Procura todos os valores no trecho
+    const matches = [...apos.matchAll(/(-?\d{1,3}(?:\.\d{3})*,\d{2})/g)];
     
-    while (true) {
-      const found = textNorm.toLowerCase().indexOf(catNorm, pos);
-      if (found === -1) break;
-      
-      // Trecho de 100 chars após o nome
-      const trecho = text.substring(found + cat.nome.length, found + cat.nome.length + 100);
-      
-      // Pega todos os valores numéricos no trecho
-      const matches = [...trecho.matchAll(/(-?\d{1,3}(?:\.\d{3})*,\d{2})/g)];
-      
-      // Pega o PRIMEIRO valor que não seja 0,00
-      for (const m of matches) {
-        const v = Math.abs(parseFloat(m[1].replace(/\./g,'').replace(',','.')));
-        if (v > 0 && v < 500000) {
-          // Prefere o maior valor encontrado entre todas as ocorrências
-          if (v > melhorValor) {
-            melhorValor = v;
-            melhorTrecho = m[1];
-          }
-          break;
-        }
-      }
-      
-      pos = found + 1;
+    // Pega o PRIMEIRO valor não-zero
+    // Se vier dois valores seguidos (ex: "8.120,00 0,00"), pega o primeiro
+    let valor = 0;
+    for (const m of matches) {
+      const v = Math.abs(parseFloat(m[1].replace(/\./g,'').replace(',','.')));
+      if (v > 0) { valor = v; break; }
     }
     
-    if (melhorValor <= 0) return;
-    
+    if (valor <= 0) return;
+
     const tipo = cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA';
     itens.push({
       forma_pagamento: cat.nome,
       descricao: cat.nome,
-      valor: melhorValor,
+      valor,
       tipo,
       categoria: cat.nome
     });
