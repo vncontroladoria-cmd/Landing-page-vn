@@ -855,8 +855,17 @@ tbody tr:hover { background: var(--bg3); }
           <!-- TOOLBAR -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input type="date" id="pdv-filtro-data" onchange="loadPDV()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
-              <button class="btn" onclick="document.getElementById('pdv-filtro-data').value='';loadPDV()">Todos</button>
+              <select id="pdv-filtro-ano" onchange="loadPDV()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+              </select>
+              <select id="pdv-filtro-mes" onchange="loadPDV()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="">Todos os meses</option>
+                <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+                <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+                <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+                <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn" onclick="abrirModalPdvCategorias()">⚙️ Categorias</button>
@@ -864,6 +873,9 @@ tbody tr:hover { background: var(--bg3); }
               <button class="btn btn-primary" onclick="abrirModalNovoCaixa()">+ Novo Caixa</button>
             </div>
           </div>
+
+          <!-- CARDS RESUMO -->
+          <div id="pdv-cards-resumo" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem"></div>
 
           <!-- TABELA CAIXAS -->
           <div class="card" style="padding:0;overflow:hidden">
@@ -2055,12 +2067,48 @@ async function carregarCategoriasPDV() {
 }
 
 async function loadPDV() {
-  const filtroData = document.getElementById('pdv-filtro-data')?.value;
+  const ano = document.getElementById('pdv-filtro-ano')?.value || '2026';
+  const mes = document.getElementById('pdv-filtro-mes')?.value || '';
   let q = sb.from('pdv_caixas').select('*').order('data_caixa', {ascending: false});
-  if (filtroData) q = q.eq('data_caixa', filtroData);
+  if (mes) {
+    q = q.gte('data_caixa', `${ano}-${mes}-01`).lte('data_caixa', `${ano}-${mes}-31`);
+  } else {
+    q = q.gte('data_caixa', `${ano}-01-01`).lte('data_caixa', `${ano}-12-31`);
+  }
   const { data: caixas } = await q;
   const tbody = document.getElementById('pdv-tbody');
   if (!tbody) return;
+
+  // Cards resumo por forma de pagamento
+  const ids = (caixas||[]).map(c => c.id);
+  let todosItens = [];
+  if (ids.length) {
+    const { data: itens } = await sb.from('pdv_itens').select('forma_pagamento,valor,tipo').in('caixa_id', ids);
+    todosItens = itens || [];
+  }
+  const cardsDiv = document.getElementById('pdv-cards-resumo');
+  if (cardsDiv) {
+    // Agrupa por forma de pagamento
+    const grupos = {};
+    todosItens.filter(i => i.tipo === 'ENTRADA').forEach(i => {
+      // Normaliza nome: "Cartão Crédito MASTER CARD" -> "Cartão Crédito"
+      const forma = (i.forma_pagamento||'Outros').replace(/\s+(MASTER|VISA|ELO|AMEX|HIPER).*$/i,'').trim();
+      grupos[forma] = (grupos[forma]||0) + Number(i.valor||0);
+    });
+    const totalGeral = Object.values(grupos).reduce((s,v)=>s+v,0);
+    let html = `<div class="metric-card" style="padding:10px 14px;min-width:120px">
+      <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Total Entradas</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(totalGeral)}</div>
+    </div>`;
+    Object.entries(grupos).sort((a,b)=>b[1]-a[1]).forEach(([forma, val]) => {
+      html += `<div class="metric-card" style="padding:10px 14px;min-width:120px">
+        <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;white-space:nowrap">${forma}</div>
+        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">${fmtBRL(val)}</div>
+      </div>`;
+    });
+    cardsDiv.innerHTML = html;
+  }
+
   if (!caixas?.length) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum caixa encontrado</td></tr>';
     return;
@@ -2360,21 +2408,24 @@ function processarTextoPDF() {
 
 function parsePDVTexto(text) {
   const itens = [];
-  const linhas = text.split('\n').map(l => l.trim()).filter(Boolean);
-  linhas.forEach(linha => {
-    // Padrão: "Forma Pagamento Comanda Nº... - Nome Valor"
-    const match = linha.match(/^(Cart[ãa]o\s+(?:Cr[ée]dito|D[ée]bito)|Pix|Dinheiro|Transfer[eê]ncia|Boleto|Voucher|Cheque|Cr[ée]dito\s+Cliente)\s+(.*?)\s+(\d+(?:[.,]\d+)?)$/i);
-    if (match) {
-      const forma = match[1].trim();
-      const desc = match[2].trim();
-      const valor = parseFloat(match[3].replace(',','.'));
-      if (valor > 0) {
-        // Detecta tipo pela categoria cadastrada ou pela forma
-        const cat = detectarCategoriaPDV(forma);
-        itens.push({ forma_pagamento: forma, descricao: desc, valor, tipo: 'ENTRADA', categoria: cat });
-      }
+  // PDF.js retorna texto com espaços — busca padrões de forma de pagamento seguidos de valor
+  // Padrão do PDF: "Cartão Crédito MASTER CARD Comanda Nº123 - Nome Cliente 400"
+  const formas = ['Cartao Credito','Cartão Crédito','Cartao Debito','Cartão Débito','Pix','Dinheiro','Transferencia','Transferência','Boleto','Voucher','Cheque','Credito Cliente','Crédito Cliente'];
+  
+  // Regex global que encontra cada item no texto corrido
+  const re = /(Cart[aã]o\s+(?:Cr[eé]dito|D[eé]bito)|Pix|Dinheiro|Transfer[eê]ncia|Boleto|Voucher|Cheque|Cr[eé]dito\s+Cliente)\s+(.*?)\s+(\d{1,6}(?:[.,]\d{1,2})?)(?=\s+(?:Cart[aã]o|Pix|Dinheiro|Transfer|Boleto|Voucher|Cheque|Cr[eé]dito)|$)/gi;
+  
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const forma = m[1].trim();
+    const desc = m[2].trim();
+    const valorStr = m[3].replace(',','.');
+    const valor = parseFloat(valorStr);
+    if (valor > 0 && valor < 100000) {
+      const cat = detectarCategoriaPDV(forma);
+      itens.push({ forma_pagamento: forma, descricao: desc, valor, tipo: 'ENTRADA', categoria: cat });
     }
-  });
+  }
   return itens;
 }
 
