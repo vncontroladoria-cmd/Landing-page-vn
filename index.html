@@ -2057,21 +2057,42 @@ async function loadLancamentos() {
 
   // Saldo dos bancos = TODOS os lançamentos (acumulado real)
   const saldoDiv = document.getElementById('lanc-saldo-bancos');
-  const { data: todosLancs } = await sb.from('lancamentos').select('entrada,saida,banco_id,banco_nome');
+  const { data: todosLancs } = await sb.from('lancamentos').select('entrada,saida,valor,tipo,banco_id,banco_nome');
   const todos = todosLancs || [];
-  const saldoGeral = todos.reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
 
-  if (saldoDiv && _bancos.length) {
+  // Saldo geral: usa entrada/saida quando disponível, senão usa valor + tipo
+  const saldoGeral = todos.reduce((s,l) => {
+    const ent = Number(l.entrada||0);
+    const sai = Number(l.saida||0);
+    if (ent > 0 || sai > 0) return s + ent - sai;
+    // fallback: usa campo valor + tipo
+    const v = Number(l.valor||0);
+    if (l.tipo === 'ENTRADA') return s + v;
+    if (l.tipo === 'SAIDA') return s - v;
+    return s;
+  }, 0);
+
+  if (saldoDiv) {
     let cardsHtml = '';
-    _bancos.forEach(b => {
-      const lancsB = todos.filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
-      const saldoB = lancsB.reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
-      const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
-      cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
-        <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
-        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
-      </div>`;
-    });
+    if (_bancos.length) {
+      _bancos.forEach(b => {
+        const lancsB = todos.filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
+        const saldoB = lancsB.reduce((s,l) => {
+          const ent = Number(l.entrada||0);
+          const sai = Number(l.saida||0);
+          if (ent > 0 || sai > 0) return s + ent - sai;
+          const v = Number(l.valor||0);
+          if (l.tipo === 'ENTRADA') return s + v;
+          if (l.tipo === 'SAIDA') return s - v;
+          return s;
+        }, 0);
+        const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
+        cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
+          <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
+          <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
+        </div>`;
+      });
+    }
     saldoDiv.innerHTML = cardsHtml;
   }
 
