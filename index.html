@@ -1462,7 +1462,7 @@ tbody tr:hover { background: var(--bg3); }
     <div class="form-group" style="margin-bottom:12px;position:relative">
       <label>Categoria <span style="color:var(--red)">*</span></label>
       <input type="text" id="nl-categoria-busca" placeholder="Digite para buscar a categoria..." autocomplete="off"
-        oninput="buscarCategoria(this.value)" onfocus="buscarCategoria(this.value)" onclick="buscarCategoria(this.value)" onblur="setTimeout(()=>{const d=document.getElementById('nl-cat-dropdown');if(d)d.style.display='none'},200)" style="width:100%">
+        oninput="buscarCategoria(this.value)" onfocus="abrirDropdownCategoria()" onclick="abrirDropdownCategoria()" onblur="setTimeout(()=>{const d=document.getElementById('nl-cat-dropdown');if(d)d.style.display='none'},200)" style="width:100%">
       <input type="hidden" id="nl-categoria">
       <div id="nl-cat-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,0.12)"></div>
     </div>
@@ -2205,7 +2205,6 @@ function selecionarTipoLanc(tipo) {
 
 function filtrarCategoriasPorTipo(tipo) {
   _catMapAtual = {};
-  // Filtra por tipo se o campo existir; caso contrário mostra todas
   const lista = _categorias.some(c => c.tipo) 
     ? _categorias.filter(c => c.tipo === tipo)
     : _categorias;
@@ -2214,9 +2213,18 @@ function filtrarCategoriasPorTipo(tipo) {
     if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dfc = c.codigo;
     if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dre = c.codigo;
   });
-  // Limpa seleção atual
   if(document.getElementById('nl-categoria-busca')) document.getElementById('nl-categoria-busca').value = '';
   if(document.getElementById('nl-categoria')) document.getElementById('nl-categoria').value = '';
+}
+
+async function abrirDropdownCategoria() {
+  // Se categorias ainda não carregaram, busca agora
+  if (!_categorias.length) {
+    const { data } = await sb.from('plano_contas').select('*').order('codigo');
+    _categorias = data || [];
+    filtrarCategoriasPorTipo(_tipoLanc);
+  }
+  buscarCategoria('');
 }
 
 function toggleFormLanc() {
