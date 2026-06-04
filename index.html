@@ -2057,6 +2057,12 @@ let _pdvCaixaId = null;
 let _pdvCategorias = [];
 
 async function initPDV() {
+  // Seta mês/ano atual como padrão
+  const hoje = new Date();
+  const anoEl = document.getElementById('pdv-filtro-ano');
+  const mesEl = document.getElementById('pdv-filtro-mes');
+  if (anoEl) anoEl.value = String(hoje.getFullYear());
+  if (mesEl) mesEl.value = String(hoje.getMonth()+1).padStart(2,'0');
   await carregarCategoriasPDV();
   await loadPDV();
 }
