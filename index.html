@@ -2055,57 +2055,55 @@ async function loadLancamentos() {
   const { data } = await q;
   const lancs = data || [];
 
-  // Saldo dos bancos = TODOS os lançamentos (acumulado real)
-  const saldoDiv = document.getElementById('lanc-saldo-bancos');
+  // ── SALDOS ──────────────────────────────────────────────
+  // Busca TODOS os lançamentos (sem filtro de período) para saldo acumulado real
   const { data: todosLancs } = await sb.from('lancamentos').select('entrada,saida,valor,tipo,banco_id,banco_nome');
   const todos = todosLancs || [];
 
-  // Saldo geral: usa entrada/saida quando disponível, senão usa valor + tipo
-  const saldoGeral = todos.reduce((s,l) => {
-    const ent = Number(l.entrada||0);
-    const sai = Number(l.saida||0);
-    if (ent > 0 || sai > 0) return s + ent - sai;
-    // fallback: usa campo valor + tipo
+  const calcSaldo = arr => arr.reduce((s,l) => {
+    const e = Number(l.entrada||0), sa = Number(l.saida||0);
+    if (e > 0 || sa > 0) return s + e - sa;
     const v = Number(l.valor||0);
-    if (l.tipo === 'ENTRADA') return s + v;
-    if (l.tipo === 'SAIDA') return s - v;
-    return s;
+    return l.tipo === 'ENTRADA' ? s + v : l.tipo === 'SAIDA' ? s - v : s;
   }, 0);
 
+  // Cards por banco: saldo acumulado de TODOS os períodos por banco
+  const saldoDiv = document.getElementById('lanc-saldo-bancos');
   if (saldoDiv) {
     let cardsHtml = '';
-    if (_bancos.length) {
-      _bancos.forEach(b => {
-        const lancsB = todos.filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
-        const saldoB = lancsB.reduce((s,l) => {
-          const ent = Number(l.entrada||0);
-          const sai = Number(l.saida||0);
-          if (ent > 0 || sai > 0) return s + ent - sai;
-          const v = Number(l.valor||0);
-          if (l.tipo === 'ENTRADA') return s + v;
-          if (l.tipo === 'SAIDA') return s - v;
-          return s;
-        }, 0);
-        const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
-        cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
-          <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
-          <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
-        </div>`;
-      });
-    }
+    _bancos.forEach(b => {
+      const lancsB = todos.filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
+      const saldoB = calcSaldo(lancsB);
+      const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
+      cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
+        <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
+        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
+      </div>`;
+    });
     saldoDiv.innerHTML = cardsHtml;
   }
 
-  // Métricas do período filtrado
+  // Entradas e Saídas: do período filtrado (lancs já tem o filtro aplicado)
   const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
-  const totalSaida = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+
+  // Saldo Total: soma de TODOS os lançamentos (ou só do banco filtrado se houver filtro)
+  let saldoTotal;
+  if (bancoFilter) {
+    // Com filtro de banco: saldo acumulado daquele banco
+    const bancoNomeFiltro = (_bancos.find(b=>b.id===bancoFilter)||{}).nome||'';
+    const todosDoB = todos.filter(l => l.banco_id===bancoFilter || (l.banco_nome||'').toLowerCase()===bancoNomeFiltro.toLowerCase());
+    saldoTotal = calcSaldo(todosDoB);
+  } else {
+    // Sem filtro: saldo acumulado total de todos os bancos
+    saldoTotal = calcSaldo(todos);
+  }
 
   if (document.getElementById('lanc-total-entrada')) {
     document.getElementById('lanc-total-entrada').textContent = fmtBRL(totalEntrada);
-    document.getElementById('lanc-total-saida').textContent = fmtBRL(totalSaida);
-    // Saldo total = acumulado real de todos os lançamentos
-    document.getElementById('lanc-saldo-mes').textContent = fmtBRL(saldoGeral);
-    document.getElementById('lanc-saldo-mes').style.color = saldoGeral >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('lanc-total-saida').textContent   = fmtBRL(totalSaida);
+    document.getElementById('lanc-saldo-mes').textContent     = fmtBRL(saldoTotal);
+    document.getElementById('lanc-saldo-mes').style.color     = saldoTotal >= 0 ? 'var(--green)' : 'var(--red)';
   }
 
   // Saldo inicial vem dos lançamentos, não duplica aqui
