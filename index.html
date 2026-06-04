@@ -1462,7 +1462,7 @@ tbody tr:hover { background: var(--bg3); }
     <div class="form-group" style="margin-bottom:12px;position:relative">
       <label>Categoria <span style="color:var(--red)">*</span></label>
       <input type="text" id="nl-categoria-busca" placeholder="Digite para buscar a categoria..." autocomplete="off"
-        oninput="buscarCategoria(this.value)" style="width:100%">
+        oninput="buscarCategoria(this.value)" onfocus="buscarCategoria(this.value)" onclick="buscarCategoria(this.value)" onblur="setTimeout(()=>{const d=document.getElementById('nl-cat-dropdown');if(d)d.style.display='none'},200)" style="width:100%">
       <input type="hidden" id="nl-categoria">
       <div id="nl-cat-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,0.12)"></div>
     </div>
@@ -2235,7 +2235,7 @@ function buscarCategoria(texto) {
   const resultados = Object.values(_catMapAtual).filter(c =>
     !termo || c.nome.toLowerCase().includes(termo)
   );
-  if (!resultados.length || !texto) { dropdown.style.display = 'none'; return; }
+  if (!resultados.length) { dropdown.style.display = 'none'; return; }
   dropdown.style.display = 'block';
   dropdown.innerHTML = resultados.map(c => {
     const refs = [c.dfc ? `DFC: ${c.dfc}` : null, c.dre ? `DRE: ${c.dre}` : null].filter(Boolean).join(' / ');
