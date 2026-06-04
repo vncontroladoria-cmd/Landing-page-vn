@@ -4543,26 +4543,13 @@ async function loadMetricas() {
     document.getElementById('met-barra').style.background = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red)';
   }
 
-  // Tabela de dias
+  // Resumo de dias
   const elDias = document.getElementById('met-dias-uteis');
-  const elTabDias = document.getElementById('met-tabela-dias');
   if (elDias) elDias.innerHTML = diasAbertos > 0
     ? `<strong>${diasAbertos}</strong> dias de funcionamento · Meta/dia: <strong style="color:var(--amber)">${fmtBRL(metaDia)}</strong>`
     : `<span style="color:var(--text3)">Configure os dias de funcionamento em "Meta de faturamento"</span>`;
-  if (elTabDias && metaMes > 0 && diasAbertos > 0) {
-    let rowsD = '';
-    for (let d = 1; d <= diasAbertos; d++) {
-      const metaAcum = metaDia * d;
-      const isDia = d === diasPassados && ehMesAtual;
-      rowsD += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);${isDia?'font-weight:700;color:var(--accent)':''}">
-        <span>Dia ${String(d).padStart(2,'0')}${isDia?' ← hoje':''}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:11px">${fmtBRL(metaAcum)}</span>
-      </div>`;
-    }
-    elTabDias.innerHTML = `<div style="max-height:320px;overflow-y:auto">${rowsD}</div>`;
-  } else if (elTabDias) {
-    elTabDias.innerHTML = '<div style="color:var(--text3);font-size:12px;text-align:center;padding:1rem">Defina a meta e os dias de funcionamento</div>';
-  }
+  const elTabDias = document.getElementById('met-tabela-dias');
+  if (elTabDias) elTabDias.innerHTML = '';
 
   // Profissionais
   await loadProfissionaisMetricas(mes, ano, ini, fim);
