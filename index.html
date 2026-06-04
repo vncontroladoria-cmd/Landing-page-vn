@@ -91,8 +91,26 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   display: flex; flex-direction: column;
   flex-shrink: 0; overflow-y: auto; overflow-x: hidden;
   transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
 }
 .sidebar.open { width: 230px; }
+.sidebar-toggle-btn {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 40px;
+  z-index: 200;
+  width: 22px; height: 22px;
+  background: var(--accent);
+  border: none; border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 12px;
+  transition: left 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.sidebar.open ~ * .sidebar-toggle-btn,
+.sidebar-toggle-btn.open { left: 218px; }
 .sidebar-logo {
   padding: 1rem 0.75rem;
   border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -395,8 +413,9 @@ tbody tr:hover { background: var(--bg3); }
 <div id="app">
   <div class="layout">
     <!-- SIDEBAR -->
-    <div class="sidebar">
-      <div class="sidebar-logo" onclick="toggleSidebar()">
+    <div class="sidebar" id="main-sidebar">
+      <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" onclick="toggleSidebar()" title="Abrir/Fechar menu">›</button>
+      <div class="sidebar-logo">
         <div class="sidebar-logo-icon" style="flex-shrink:0">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
@@ -1990,13 +2009,29 @@ async function showApp() {
 
 // ─── NAVEGAÇÃO ────────────────────────────────────────
 function toggleSidebar() {
-  document.querySelector('.sidebar')?.classList.toggle('open');
+  const sidebar = document.getElementById('main-sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  if (!sidebar) return;
+  sidebar.classList.toggle('open');
+  const isOpen = sidebar.classList.contains('open');
+  if (btn) {
+    btn.textContent = isOpen ? '‹' : '›';
+    btn.style.left = isOpen ? '218px' : '40px';
+  }
 }
 
-// Abre sidebar ao clicar em qualquer lugar dela quando fechada
+// Fecha sidebar ao clicar em nav-item
 document.addEventListener('DOMContentLoaded', () => {
-  const sidebar = document.querySelector('.sidebar');
+  const sidebar = document.getElementById('main-sidebar');
   if (!sidebar) return;
+  // Fecha ao clicar em item de menu
+  sidebar.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      const btn = document.getElementById('sidebar-toggle-btn');
+      if (btn) { btn.textContent = '›'; btn.style.left = '40px'; }
+    });
+  });
   sidebar.addEventListener('click', (e) => {
     if (!sidebar.classList.contains('open')) {
       e.stopPropagation();
