@@ -1296,8 +1296,8 @@ input:focus, select:focus {
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <select id="srv-ano" onchange="loadServicos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
-                <option value="">Todos os anos</option>
-                <option value="2026" selected>2026</option><option value="2025">2025</option>
+                <option value="" selected>Todos os anos</option>
+                <option value="2026">2026</option><option value="2025">2025</option>
               </select>
               <select id="srv-mes" onchange="loadServicos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
                 <option value="">Todos os meses</option>
@@ -5178,15 +5178,19 @@ async function loadServicos() {
   const cat = document.getElementById('srv-categoria')?.value || '';
 
   let q = sb.from('rel_servicos').select('*').order('data_comanda', {ascending: false});
-  if (ano) q = q.gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
-  if (mes && ano) {
+  
+  // Aplica filtro de data uma única vez
+  if (ano && mes) {
     const ult = new Date(parseInt(ano), parseInt(mes), 0).getDate();
     q = q.gte('data_comanda', `${ano}-${mes}-01`).lte('data_comanda', `${ano}-${mes}-${String(ult).padStart(2,'0')}`);
+  } else if (ano) {
+    q = q.gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
   }
   if (prof) q = q.eq('profissional', prof);
   if (cat) q = q.eq('categoria', cat);
 
-  const { data } = await q.limit(5000);
+  const { data, error } = await q.limit(5000);
+  if (error) { showToast('Erro ao carregar: ' + error.message, 'error'); return; }
   _srvData = data || [];
 
   if (!_srvData.length) {
