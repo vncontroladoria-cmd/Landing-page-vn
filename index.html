@@ -1254,6 +1254,11 @@ input:focus, select:focus {
 
         <!-- SERVIÇOS -->
         <div class="page" id="page-servicos">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+            <input type="file" id="imp-servicos" accept=".xlsx,.xls,.csv" style="display:none" onchange="importFile('servicos',this)">
+            <button class="btn btn-primary" onclick="triggerImport('servicos')">📥 Importar Relatório</button>
+          </div>
+          <div id="imp-servicos-status"></div>
           <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
             <div class="metric-card"><div class="metric-label">Total faturado</div><div class="metric-val green" id="srv-fat">—</div></div>
             <div class="metric-card"><div class="metric-label">Total de atendimentos</div><div class="metric-val" id="srv-qtd">—</div></div>
@@ -1267,6 +1272,11 @@ input:focus, select:focus {
 
         <!-- CLIENTES -->
         <div class="page" id="page-clientes">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+            <input type="file" id="imp-clientes" accept=".xlsx,.xls,.csv" style="display:none" onchange="importFile('clientes',this)">
+            <button class="btn btn-primary" onclick="triggerImport('clientes')">📥 Importar Relatório</button>
+          </div>
+          <div id="imp-clientes-status"></div>
           <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
             <div class="metric-card"><div class="metric-label">Total de clientes</div><div class="metric-val" id="cli-total">—</div></div>
             <div class="metric-card"><div class="metric-label">Ticket médio</div><div class="metric-val amber" id="cli-ticket">—</div></div>
@@ -1280,6 +1290,11 @@ input:focus, select:focus {
 
         <!-- PRODUTOS -->
         <div class="page" id="page-produtos">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+            <input type="file" id="imp-produtos" accept=".xlsx,.xls,.csv" style="display:none" onchange="importFile('produtos',this)">
+            <button class="btn btn-primary" onclick="triggerImport('produtos')">📥 Importar Relatório</button>
+          </div>
+          <div id="imp-produtos-status"></div>
           <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
             <div class="metric-card"><div class="metric-label">Total vendido</div><div class="metric-val green" id="prod-fat">—</div></div>
             <div class="metric-card"><div class="metric-label">Itens vendidos</div><div class="metric-val" id="prod-qtd">—</div></div>
@@ -1293,6 +1308,11 @@ input:focus, select:focus {
 
         <!-- PERFORMANCE -->
         <div class="page" id="page-performance">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+            <input type="file" id="imp-performance" accept=".xlsx,.xls,.csv" style="display:none" onchange="importFile('performance',this)">
+            <button class="btn btn-primary" onclick="triggerImport('performance')">📥 Importar Relatório</button>
+          </div>
+          <div id="imp-performance-status"></div>
           <div class="card">
             <div class="card-header"><div class="card-title">Performance por profissional</div></div>
             <div id="perf-table"><div class="empty">Importe os relatórios de serviços e lucratividade para ver os dados</div></div>
