@@ -1181,12 +1181,18 @@ input:focus, select:focus {
 
         <!-- DFC -->
         <div class="page" id="page-dfc">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div style="font-size:13px;color:var(--text2)">Demonstrativo de Fluxo de Caixa</div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <select id="dfc-ano" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
-                <option value="2026">2026</option>
-                <option value="2025">2025</option>
+                <option value="2026">2026</option><option value="2025">2025</option>
+              </select>
+              <select id="dfc-mes" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+                <option value="">Todos os meses</option>
+                <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
+                <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
+                <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
+                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
               </select>
               <button class="btn" onclick="loadDFC()">↻ Atualizar</button>
             </div>
@@ -1196,12 +1202,18 @@ input:focus, select:focus {
 
         <!-- DRE -->
         <div class="page" id="page-dre">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div style="font-size:13px;color:var(--text2)">Demonstrativo de Resultado do Exercício</div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <select id="dre-ano" onchange="loadDRE()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
-                <option value="2026">2026</option>
-                <option value="2025">2025</option>
+                <option value="2026">2026</option><option value="2025">2025</option>
+              </select>
+              <select id="dre-mes" onchange="loadDRE()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+                <option value="">Todos os meses</option>
+                <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
+                <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
+                <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
+                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
               </select>
               <button class="btn" onclick="loadDRE()">↻ Atualizar</button>
             </div>
@@ -3964,6 +3976,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 function fmtBRL(v) {
   return 'R$ ' + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
+function fmtNum(v) {
+  if (v === 0 || v === null || v === undefined) return '';
+  return Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtPct(v, total) {
+  if (!total || total === 0) return '';
+  return (Math.abs(v/total)*100).toFixed(1) + '%';
+}
 function fmtDate(d) {
   if (!d) return '—';
   const parts = d.substring(0,10).split('-');
@@ -4982,108 +5002,153 @@ async function loadDFC() {
   el.innerHTML = '<div class="loading"><div class="spin"></div> Calculando...</div>';
 
   const ano = document.getElementById('dfc-ano')?.value || '2026';
+  const mesFiltro = document.getElementById('dfc-mes')?.value || '';
 
-  // Busca grupos DFC ordenados
-  const { data: grupos } = await sb.from('grupos_plano')
-    .select('*').eq('demonstrativo','DFC').order('ordem');
-  // Busca categorias DFC
-  const { data: cats } = await sb.from('plano_contas')
-    .select('*').eq('demonstrativo','DFC').order('codigo');
-  // Busca todos os lançamentos do ano
-  const { data: lancs } = await sb.from('lancamentos')
-    .select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+  const { data: grupos } = await sb.from('grupos_plano').select('*').eq('demonstrativo','DFC').order('ordem');
+  const { data: cats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DFC').order('codigo');
+  const { data: lancs } = await sb.from('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
 
-  if (!lancs.length && !grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DFC no Plano de Contas</div>'; return; }
+  if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DFC no Plano de Contas</div>'; return; }
 
-  const mCols = MESES.map((_,i) => String(i+1).padStart(2,'0'));
+  // Filtro de mês ou todos
+  const mCols = mesFiltro ? [mesFiltro] : MESES.map((_,i) => String(i+1).padStart(2,'0'));
+  const mNomes = mesFiltro ? [MESES[parseInt(mesFiltro)-1]] : MESES;
 
-  function calcular(categoriaMatch, mes) {
-    return (lancs||[]).filter(l => {
-      const lMes = l.data_lancamento?.substring(5,7);
-      return lMes === mes && categoriaMatch(l);
-    }).reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
+  function calcular(fn, mes) {
+    return (lancs||[]).filter(l => l.data_lancamento?.substring(5,7) === mes && fn(l))
+      .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
   }
 
   const { data: bancos } = await sb.from('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
-  const saldoInicial = (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
+  const saldoInicialTotal = (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
 
-  // Calcula saldo acumulado mês a mês
-  let saldoFinalMes = Array(12).fill(0);
-
-  // Pré-calcula totais por grupo
-  const gruposData = (grupos||[]).map(g => {
+  // Pré-calcula por grupo
+  const gruposData = (grupos||[]).filter(g => g.nome !== 'Entre Contas').map(g => {
     const gCats = (cats||[]).filter(c => c.grupo === g.nome);
-    const totalGrupo = mCols.map(m => {
-      return gCats.reduce((s,c) => s + calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m), 0);
-    });
-    totalGrupo.forEach((v,i) => { saldoFinalMes[i] += v; });
+    const totalGrupo = mCols.map(m => gCats.reduce((s,c) => s + calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m), 0));
     return { ...g, gCats, totalGrupo };
   });
 
-  // Saldo final = saldo inicial + acumulado
-  saldoFinalMes = saldoFinalMes.map(v => v + saldoInicial);
+  // Saldo acumulado
+  let acum = saldoInicialTotal;
+  const saldoFinalMes = [];
+  const saldoInicialMes = [];
+  mCols.forEach((m, i) => {
+    saldoInicialMes.push(acum);
+    const movMes = gruposData.reduce((s,g) => s + g.totalGrupo[i], 0);
+    acum += movMes;
+    saldoFinalMes.push(acum);
+  });
 
-  const thStyle = `padding:9px 8px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;font-size:11px;font-weight:600;color:var(--text2)`;
+  // Resultado Operacional = Receita Operacional - Custo Variável - Marketing - Administrativa - Equipe - Impostos
+  const gruposRO = ['Receita Operacional','Custo Variável','Marketing','Administrativa','Equipe','Impostos'];
+  const resultadoOp = mCols.map((m,i) => {
+    return gruposData.filter(g => gruposRO.includes(g.nome)).reduce((s,g) => {
+      return s + (g.sinal === '(+)' ? g.totalGrupo[i] : -Math.abs(g.totalGrupo[i]));
+    }, 0);
+  });
 
-  let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px">
-    <thead>
-      <tr style="background:var(--bg3)">
-        <th style="padding:10px 12px;text-align:left;border-bottom:2px solid var(--border);min-width:220px;position:sticky;left:0;background:var(--bg3);z-index:10">DESCRIÇÃO</th>
-        ${MESES.map(m => `<th style="${thStyle}">${m}</th>`).join('')}
-        <th style="${thStyle};background:#e8f0fe;color:#1a56db">TOTAL</th>
-        <th style="${thStyle};background:#fef9f0;color:#b45309">MÉDIA</th>
+  // Resultado Líquido = RO - Despesas Financeiras - Atividades de Investimento - Atividades de Financiamento
+  const gruposRL = ['Despesas Financeiras','Atividades de Investimento','Atividades de Financiamento'];
+  const resultadoLiq = mCols.map((m,i) => {
+    const deducoes = gruposData.filter(g => gruposRL.includes(g.nome)).reduce((s,g) => s + Math.abs(g.totalGrupo[i]), 0);
+    return resultadoOp[i] - deducoes;
+  });
+
+  const thS = `padding:8px 6px;text-align:right;border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap`;
+  const totalCols = mCols.length;
+
+  let html = `<div style="overflow-x:auto;position:relative">
+  <table style="width:100%;border-collapse:collapse;font-size:11px" id="dfc-tbl">
+    <thead style="position:sticky;top:0;z-index:20;background:var(--bg3)">
+      <tr>
+        <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--border);position:sticky;left:0;background:var(--bg3);z-index:30;min-width:200px;font-size:10px">
+          DESCRIÇÃO
+          <button onclick="toggleAllDFC()" id="dfc-expand-btn" style="margin-left:8px;font-size:10px;padding:2px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer">Expandir</button>
+        </th>
+        ${mNomes.map(m => `<th style="${thS}">${m}</th>`).join('')}
+        ${mesFiltro ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th>`}
       </tr>
     </thead>
     <tbody>`;
 
-  // Saldo inicial
+  // Saldo Inicial
   html += `<tr style="background:#f0fdf4">
-    <td style="padding:9px 12px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:5">Saldo Inicial</td>
-    ${MESES.map(() => `<td style="padding:9px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--green)">${fmtBRL(saldoInicial)}</td>`).join('')}
-    <td style="padding:9px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe">${fmtBRL(saldoInicial)}</td>
-    <td style="padding:9px 8px;text-align:right;font-family:'DM Mono',monospace;background:#fef9f0">${fmtBRL(saldoInicial)}</td>
+    <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:10;font-size:11px">Saldo Inicial</td>
+    ${saldoInicialMes.map(v => `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--green)">${fmtNum(v)}</td>`).join('')}
+    ${mesFiltro ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>`}
   </tr>`;
 
-  let rowIdx = 0;
+  // Grupos
+  let dfcExpanded = {};
   gruposData.forEach((g, gi) => {
     const totalG = g.totalGrupo.reduce((s,v) => s+v, 0);
-    const mediaG = totalG / 12;
+    const mediaG = totalG / (mesFiltro ? 1 : 12);
     const corG = g.cor || '#6b7280';
-    const bgGrupo = gi%2===0 ? 'var(--bg3)' : '#f8fafc';
+    const bgG = gi%2===0 ? 'var(--bg3)' : '#f8fafc';
+    const gId = 'dfc-g-' + gi;
 
-    html += `<tr style="background:${bgGrupo};border-top:2px solid var(--border)">
-      <td style="padding:10px 12px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgGrupo};z-index:5">
-        ${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:11px;color:var(--text2)">${g.sinal}</span>
+    html += `<tr style="background:${bgG};border-top:2px solid var(--border);cursor:pointer" onclick="toggleDFCGrupo('${gId}')">
+      <td style="padding:9px 10px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgG};z-index:10;font-size:11px">
+        <span id="${gId}-arrow" style="margin-right:6px;font-size:10px">▶</span>${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:10px;color:var(--text2)">${g.sinal}</span>
       </td>
-      ${g.totalGrupo.map(v => `<td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
-      <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtBRL(Math.abs(totalG)):''}</td>
-      <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtBRL(Math.abs(mediaG)):''}</td>
+      ${g.totalGrupo.map(v => `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>`).join('')}
+      ${mesFiltro ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>`}
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
       const vals = mCols.map(m => calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m));
       const total = vals.reduce((s,v) => s+v, 0);
-      const media = total / 12;
-      const bgCat = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
-      html += `<tr style="border-bottom:1px solid var(--border);background:${bgCat}">
-        <td style="padding:7px 12px 7px 28px;color:var(--text2);font-size:11px;position:sticky;left:0;background:${bgCat};z-index:5">${c.codigo} — ${c.nome}</td>
-        ${vals.map(v => `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
-        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtBRL(Math.abs(total)):''}</td>
-        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${media!==0?fmtBRL(Math.abs(media)):''}</td>
+      const media = total / (mesFiltro ? 1 : 12);
+      const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
+      html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
+        <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
+        ${vals.map(v => `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>`).join('')}
+        ${mesFiltro ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
       </tr>`;
     });
   });
 
-  // Saldo final — sempre aparece mesmo sem lançamentos
+  // Resultado Operacional
+  const totalRO = resultadoOp.reduce((s,v)=>s+v,0);
+  html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
+    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">Resultado Operacional</td>
+    ${resultadoOp.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>`).join('')}
+    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/12)}</td>`}
+  </tr>`;
+
+  // Resultado Líquido
+  const totalRL = resultadoLiq.reduce((s,v)=>s+v,0);
+  html += `<tr style="background:#1e293b">
+    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#1e293b;z-index:10;color:#fff;font-size:11px">Resultado Líquido</td>
+    ${resultadoLiq.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>`).join('')}
+    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/12)}</td>`}
+  </tr>`;
+
+  // Saldo Acumulado
   html += `<tr style="background:#111;color:#fff;border-top:3px solid var(--accent)">
-    <td style="padding:11px 12px;font-weight:700;position:sticky;left:0;background:#111;z-index:5">SALDO FINAL</td>
-    ${saldoFinalMes.map(v => `<td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtBRL(v)}</td>`).join('')}
-    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes.reduce((s,v)=>s+v,0)/12>=0?'#4ade80':'#f87171'}">${fmtBRL(saldoFinalMes[saldoFinalMes.length-1])}</td>
-    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#0d0d1a;color:#94a3b8">${fmtBRL(saldoFinalMes.reduce((s,v)=>s+v,0)/12)}</td>
+    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#111;z-index:10;font-size:11px">Saldo Acumulado</td>
+    ${saldoFinalMes.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>`).join('')}
+    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a"></td>`}
   </tr>`;
 
   html += '</tbody></table></div>';
   el.innerHTML = html;
+}
+
+let _dfcAllExpanded = false;
+function toggleAllDFC() {
+  _dfcAllExpanded = !_dfcAllExpanded;
+  document.querySelectorAll('[class^="dfc-cat-"]').forEach(r => r.style.display = _dfcAllExpanded ? '' : 'none');
+  document.querySelectorAll('[id$="-arrow"]').forEach(a => a.textContent = _dfcAllExpanded ? '▼' : '▶');
+  document.getElementById('dfc-expand-btn').textContent = _dfcAllExpanded ? 'Encolher' : 'Expandir';
+}
+function toggleDFCGrupo(gId) {
+  const rows = document.querySelectorAll('.dfc-cat-' + gId);
+  const arrow = document.getElementById(gId + '-arrow');
+  const isOpen = rows[0]?.style.display !== 'none';
+  rows.forEach(r => r.style.display = isOpen ? 'none' : '');
+  if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
 }
 
 // ─── DRE ─────────────────────────────────────────────────
@@ -5092,74 +5157,156 @@ async function loadDRE() {
   if (!el) return;
   el.innerHTML = '<div class="loading"><div class="spin"></div> Calculando...</div>';
   const ano = document.getElementById('dre-ano')?.value || '2026';
+  const mesFiltro = document.getElementById('dre-mes')?.value || '';
+
   const { data: grupos } = await sb.from('grupos_plano').select('*').eq('demonstrativo','DRE').order('ordem');
   const { data: cats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
   const { data: lancs } = await sb.from('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
-  const mCols = MESES.map((_,i) => String(i+1).padStart(2,'0'));
-  function calcular(categoriaMatch, mes) {
-    return (lancs||[]).filter(l => { const lMes = l.data_lancamento?.substring(5,7); return lMes === mes && categoriaMatch(l); })
+
+  const mCols = mesFiltro ? [mesFiltro] : MESES.map((_,i) => String(i+1).padStart(2,'0'));
+  const mNomes = mesFiltro ? [MESES[parseInt(mesFiltro)-1]] : MESES;
+  const nMeses = mCols.length;
+
+  function calcular(fn, mes) {
+    return (lancs||[]).filter(l => l.data_lancamento?.substring(5,7) === mes && fn(l))
       .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
   }
-  let receitaBrutaAnual = 0;
+
+  let receitaBruta = Array(nMeses).fill(0);
   const gruposData = (grupos||[]).map(g => {
     const gCats = (cats||[]).filter(c => c.grupo === g.nome);
     const sinal = g.sinal === '(+)' ? 1 : -1;
-    const totalGrupo = mCols.map(m => gCats.reduce((s,c) => s + calcular(l => (l.categoria||l.categoria_dre||'') === c.nome, m), 0));
-    if (g.ordem === 1) receitaBrutaAnual = totalGrupo.reduce((s,v) => s+v, 0);
-    return { ...g, gCats, totalGrupo, sinal };
+    const realizado = mCols.map(m => gCats.reduce((s,c) => s + calcular(l => (l.categoria||l.categoria_dre||'') === c.nome, m), 0));
+    if (g.ordem === 1) receitaBruta = realizado.map(v => Math.abs(v));
+    return { ...g, gCats, realizado, sinal };
   });
-  let resultadoMes = Array(12).fill(0);
-  gruposData.forEach(g => g.totalGrupo.forEach((v,i) => { resultadoMes[i] += g.sinal * v; }));
-  const thStyle = `padding:9px 8px;text-align:right;border-bottom:2px solid var(--border);white-space:nowrap;font-size:11px;font-weight:600;color:var(--text2)`;
-  let html = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px">
-    <thead><tr style="background:var(--bg3)">
-      <th style="padding:10px 12px;text-align:left;border-bottom:2px solid var(--border);min-width:220px;position:sticky;left:0;background:var(--bg3);z-index:10">DESCRIÇÃO</th>
-      ${MESES.map(m => `<th style="${thStyle}">${m}</th>`).join('')}
-      <th style="${thStyle};background:#e8f0fe;color:#1a56db">TOTAL</th>
-      <th style="${thStyle};background:#fef9f0;color:#b45309">MÉDIA</th>
-      <th style="${thStyle};background:#f0fdf4;color:#166534">%</th>
-    </tr></thead><tbody>`;
+
+  // Resultado operacional e líquido
+  const gruposRO = ['Receita Operacional','Custo Variável','Marketing','Administrativa','Equipe','Impostos'];
+  const resultadoOp = mCols.map((m,i) => gruposData.filter(g => gruposRO.includes(g.nome))
+    .reduce((s,g) => s + (g.sinal === 1 ? g.realizado[i] : -Math.abs(g.realizado[i])), 0));
+  let resultadoMes = Array(nMeses).fill(0);
+  gruposData.forEach(g => g.realizado.forEach((v,i) => { resultadoMes[i] += g.sinal * v; }));
+
+  const thS = `padding:7px 6px;text-align:right;border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap`;
+
+  // Header: meses com Realizado + % por mês, depois Total, Média, %
+  let thMeses = mNomes.map(m => `
+    <th style="${thS}" colspan="2">${m}</th>`).join('');
+  let thSub = mNomes.map(() => `
+    <th style="${thS}">Real.</th>
+    <th style="${thS};color:#166534">%</th>`).join('');
+
+  let html = `<div style="overflow-x:auto;position:relative">
+  <table style="width:100%;border-collapse:collapse;font-size:11px" id="dre-tbl">
+    <thead style="position:sticky;top:0;z-index:20;background:var(--bg3)">
+      <tr>
+        <th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);position:sticky;left:0;background:var(--bg3);z-index:30;min-width:180px;font-size:10px" rowspan="2">
+          DESCRIÇÃO
+          <button onclick="toggleAllDRE()" id="dre-expand-btn" style="margin-left:6px;font-size:10px;padding:2px 6px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer">Expandir</button>
+        </th>
+        ${thMeses}
+        ${mesFiltro ? '' : `<th style="${thS}" colspan="2">TOTAL</th><th style="${thS}">MÉDIA</th>`}
+      </tr>
+      <tr style="background:var(--bg3)">
+        ${thSub}
+        ${mesFiltro ? '' : `<th style="${thS};color:#1a56db">Valor</th><th style="${thS};color:#166534">%</th><th style="${thS};color:#b45309">Valor</th>`}
+      </tr>
+    </thead>
+    <tbody>`;
+
   gruposData.forEach((g, gi) => {
-    const totalG = g.totalGrupo.reduce((s,v) => s+v, 0);
-    const mediaG = totalG / 12;
-    const pctG = receitaBrutaAnual !== 0 ? (Math.abs(totalG) / Math.abs(receitaBrutaAnual) * 100).toFixed(1) : '';
+    const totalR = g.realizado.reduce((s,v)=>s+v,0);
+    const totalRecBruta = receitaBruta.reduce((s,v)=>s+v,0);
+    const pctG = totalRecBruta ? (Math.abs(totalR)/totalRecBruta*100).toFixed(1)+'%' : '';
     const corG = g.cor || '#6b7280';
-    const bgGrupo = gi%2===0 ? 'var(--bg3)' : '#f8fafc';
-    html += `<tr style="background:${bgGrupo};border-top:2px solid var(--border)">
-      <td style="padding:10px 12px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgGrupo};z-index:5">
-        ${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:11px;color:var(--text2)">${g.sinal}</span></td>
-      ${g.totalGrupo.map(v => `<td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
-      <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtBRL(Math.abs(totalG)):''}</td>
-      <td style="padding:10px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtBRL(Math.abs(mediaG)):''}</td>
-      <td style="padding:10px 8px;text-align:right;font-size:11px;background:#f0fdf4;font-weight:600;color:var(--text2)">${pctG?pctG+'%':''}</td>
+    const bgG = gi%2===0 ? 'var(--bg3)' : '#f8fafc';
+    const gId = 'dre-g-' + gi;
+
+    let cellsMes = g.realizado.map((v,i) => {
+      const pct = receitaBruta[i] ? (Math.abs(v)/receitaBruta[i]*100).toFixed(1)+'%' : '';
+      return `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>
+              <td style="padding:8px 6px;text-align:right;font-size:10px;color:var(--text2)">${pct}</td>`;
+    }).join('');
+
+    html += `<tr style="background:${bgG};border-top:2px solid var(--border);cursor:pointer" onclick="toggleDREGrupo('${gId}')">
+      <td style="padding:9px 10px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgG};z-index:10;font-size:11px">
+        <span id="${gId}-arrow" style="margin-right:5px;font-size:10px">▶</span>${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:10px;color:var(--text2)">${g.sinal}</span>
+      </td>
+      ${cellsMes}
+      ${mesFiltro ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalR>0?'var(--green)':totalR<0?'var(--red)':'var(--text3)'}">${totalR!==0?fmtNum(Math.abs(totalR)):''}</td>
+        <td style="padding:8px 6px;text-align:right;font-size:10px;background:#e8f0fe;color:var(--text2)">${pctG}</td>
+        <td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${totalR!==0?fmtNum(Math.abs(totalR/nMeses)):''}</td>`}
     </tr>`;
+
     g.gCats.forEach((c, ci) => {
       const vals = mCols.map(m => calcular(l => (l.categoria||l.categoria_dre||'') === c.nome, m));
-      const total = vals.reduce((s,v) => s+v, 0);
-      const media = total / 12;
-      const pct = receitaBrutaAnual !== 0 ? (Math.abs(total) / Math.abs(receitaBrutaAnual) * 100).toFixed(1) : '';
-      const bgCat = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
-      html += `<tr style="border-bottom:1px solid var(--border);background:${bgCat}">
-        <td style="padding:7px 12px 7px 28px;color:var(--text2);font-size:11px;position:sticky;left:0;background:${bgCat};z-index:5">${c.codigo} — ${c.nome}</td>
-        ${vals.map(v => `<td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtBRL(Math.abs(v)):''}</td>`).join('')}
-        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtBRL(Math.abs(total)):''}</td>
-        <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#fef9f0;color:var(--text2)">${media!==0?fmtBRL(Math.abs(media)):''}</td>
-        <td style="padding:7px 8px;text-align:right;font-size:11px;background:#f0fdf4;color:var(--text2)">${pct?pct+'%':''}</td>
+      const total = vals.reduce((s,v)=>s+v,0);
+      const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
+      let catCells = vals.map((v,i) => {
+        const pct = receitaBruta[i] ? (Math.abs(v)/receitaBruta[i]*100).toFixed(1)+'%' : '';
+        return `<td style="padding:5px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>
+                <td style="padding:5px 6px;text-align:right;font-size:10px;color:var(--text3)">${pct}</td>`;
+      }).join('');
+      const totalRecBruta2 = receitaBruta.reduce((s,v)=>s+v,0);
+      const pctC = totalRecBruta2 ? (Math.abs(total)/totalRecBruta2*100).toFixed(1)+'%' : '';
+      html += `<tr class="dre-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
+        <td style="padding:5px 10px 5px 22px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
+        ${catCells}
+        ${mesFiltro ? '' : `<td style="padding:5px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
+          <td style="padding:5px 6px;text-align:right;font-size:10px;background:#e8f0fe;color:var(--text3)">${pctC}</td>
+          <td style="padding:5px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${total!==0?fmtNum(Math.abs(total/nMeses)):''}</td>`}
       </tr>`;
     });
   });
-  const totalResultado = resultadoMes.reduce((s,v) => s+v, 0);
-  const mediaResultado = totalResultado / 12;
-  html += `<tr style="background:#111;color:#fff;border-top:3px solid var(--accent)">
-    <td style="padding:11px 12px;font-weight:700;position:sticky;left:0;background:#111;z-index:5">RESULTADO LÍQUIDO</td>
-    ${resultadoMes.map(v => `<td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtBRL(v)}</td>`).join('')}
-    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${totalResultado>=0?'#4ade80':'#f87171'}">${fmtBRL(totalResultado)}</td>
-    <td style="padding:11px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;background:#0d0d1a;color:#94a3b8">${fmtBRL(mediaResultado)}</td>
-    <td style="padding:11px 8px;text-align:right;background:#0d0d1a;color:#94a3b8;font-size:11px">100%</td>
+
+  // Resultado Operacional
+  const totalRO = resultadoOp.reduce((s,v)=>s+v,0);
+  const totalRecBrutaTotal = receitaBruta.reduce((s,v)=>s+v,0);
+  html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
+    <td style="padding:9px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">Resultado Operacional</td>
+    ${resultadoOp.map((v,i) => {
+      const pct = receitaBruta[i] ? (v/receitaBruta[i]*100).toFixed(1)+'%' : '';
+      return `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>
+              <td style="padding:9px 6px;text-align:right;font-size:10px;color:var(--text2)">${pct}</td>`;
+    }).join('')}
+    ${mesFiltro ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td>
+      <td style="background:#e8f0fe"></td>
+      <td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/nMeses)}</td>`}
   </tr>`;
+
+  // Resultado Líquido
+  const totalRL = resultadoMes.reduce((s,v)=>s+v,0);
+  html += `<tr style="background:#1e293b;border-top:2px solid var(--accent)">
+    <td style="padding:9px 10px;font-weight:700;position:sticky;left:0;background:#1e293b;z-index:10;color:#fff;font-size:11px">Resultado Líquido</td>
+    ${resultadoMes.map((v,i) => {
+      const pct = receitaBruta[i] ? (v/receitaBruta[i]*100).toFixed(1)+'%' : '';
+      return `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>
+              <td style="padding:9px 6px;text-align:right;font-size:10px;color:#94a3b8">${pct}</td>`;
+    }).join('')}
+    ${mesFiltro ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td>
+      <td style="background:#0f172a"></td>
+      <td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/nMeses)}</td>`}
+  </tr>`;
+
   html += '</tbody></table></div>';
   el.innerHTML = html;
+}
+
+let _dreAllExpanded = false;
+function toggleAllDRE() {
+  _dreAllExpanded = !_dreAllExpanded;
+  document.querySelectorAll('[class^="dre-cat-"]').forEach(r => r.style.display = _dreAllExpanded ? '' : 'none');
+  document.querySelectorAll('#dre-tbl [id$="-arrow"]').forEach(a => a.textContent = _dreAllExpanded ? '▼' : '▶');
+  document.getElementById('dre-expand-btn').textContent = _dreAllExpanded ? 'Encolher' : 'Expandir';
+}
+function toggleDREGrupo(gId) {
+  const rows = document.querySelectorAll('.dre-cat-' + gId);
+  const arrow = document.getElementById(gId + '-arrow');
+  const isOpen = rows[0]?.style.display !== 'none';
+  rows.forEach(r => r.style.display = isOpen ? 'none' : '');
+  if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
 }
 
 // ─── CONTAS A PAGAR / RECEBER ────────────────────────────
