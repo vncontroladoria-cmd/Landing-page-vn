@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f0f2f5;
+  --bg: #f5f6f8;
   --bg2: #ffffff;
   --bg3: #f7f8fa;
   --bg4: #eef0f3;
@@ -34,11 +34,11 @@
   --teal-dim: #0891b218;
   --silver: #8a9bb0;
   --accent: #059669;
-  --sidebar-bg: #0f172a;
+  --sidebar-bg: #1e2d3d;
   --sidebar-w: 230px;
   --radius: 12px;
-  --shadow: 0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -177,7 +177,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .topbar {
   padding: 0 1.5rem; height: 58px;
-  background: #fff; border-bottom: 1px solid var(--border);
+  background: linear-gradient(to right,#ffffff,#f9fafb); border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
   flex-shrink: 0; box-shadow: 0 1px 0 var(--border);
 }
@@ -208,19 +208,31 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: linear-gradient(90deg, var(--accent), rgba(5,150,105,0.2));
 }
-/* Cards coloridos para dashboard */
-.metric-card.c-green { background: linear-gradient(135deg,#059669,#047857); border:none; color:#fff; }
-.metric-card.c-blue  { background: linear-gradient(135deg,#2563eb,#1d4ed8); border:none; color:#fff; }
-.metric-card.c-purple{ background: linear-gradient(135deg,#7c3aed,#6d28d9); border:none; color:#fff; }
-.metric-card.c-amber { background: linear-gradient(135deg,#d97706,#b45309); border:none; color:#fff; }
-.metric-card.c-teal  { background: linear-gradient(135deg,#0891b2,#0e7490); border:none; color:#fff; }
-.metric-card.c-red   { background: linear-gradient(135deg,#dc2626,#b91c1c); border:none; color:#fff; }
-.metric-card.c-green::before,.metric-card.c-blue::before,.metric-card.c-purple::before,
-.metric-card.c-amber::before,.metric-card.c-teal::before,.metric-card.c-red::before { display:none; }
-.metric-label { font-size: 10.5px; color: var(--text2); margin-bottom: 6px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
-.metric-card[class*="c-"] .metric-label { color: rgba(255,255,255,0.75); }
-.metric-card[class*="c-"] .metric-val { color: #fff; }
-.metric-card[class*="c-"] .metric-delta { color: rgba(255,255,255,0.8); }
+/* Cards coloridos — gradiente suave pastel */
+.metric-card.c-green { background: linear-gradient(135deg,#f0fdf8 0%,#dcfce7 100%); border:1px solid #bbf7d0; }
+.metric-card.c-blue  { background: linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%); border:1px solid #bfdbfe; }
+.metric-card.c-purple{ background: linear-gradient(135deg,#faf5ff 0%,#ede9fe 100%); border:1px solid #ddd6fe; }
+.metric-card.c-amber { background: linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%); border:1px solid #fde68a; }
+.metric-card.c-teal  { background: linear-gradient(135deg,#f0fdfa 0%,#ccfbf1 100%); border:1px solid #99f6e4; }
+.metric-card.c-red   { background: linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%); border:1px solid #fecdd3; }
+.metric-card.c-green::before { background: linear-gradient(90deg,#059669,transparent); }
+.metric-card.c-blue::before  { background: linear-gradient(90deg,#2563eb,transparent); }
+.metric-card.c-purple::before{ background: linear-gradient(90deg,#7c3aed,transparent); }
+.metric-card.c-amber::before { background: linear-gradient(90deg,#d97706,transparent); }
+.metric-card.c-teal::before  { background: linear-gradient(90deg,#0891b2,transparent); }
+.metric-card.c-red::before   { background: linear-gradient(90deg,#dc2626,transparent); }
+.metric-card.c-green .metric-label,.metric-card.c-green .metric-delta { color: #065f46; }
+.metric-card.c-green .metric-val   { color: #047857; }
+.metric-card.c-blue  .metric-label,.metric-card.c-blue  .metric-delta { color: #1e40af; }
+.metric-card.c-blue  .metric-val   { color: #1d4ed8; }
+.metric-card.c-purple .metric-label,.metric-card.c-purple .metric-delta{ color: #5b21b6; }
+.metric-card.c-purple .metric-val  { color: #6d28d9; }
+.metric-card.c-amber .metric-label,.metric-card.c-amber .metric-delta { color: #92400e; }
+.metric-card.c-amber .metric-val   { color: #b45309; }
+.metric-card.c-teal  .metric-label,.metric-card.c-teal  .metric-delta { color: #065a4d; }
+.metric-card.c-teal  .metric-val   { color: #0e7490; }
+.metric-card.c-red   .metric-label,.metric-card.c-red   .metric-delta { color: #9f1239; }
+.metric-card.c-red   .metric-val   { color: #dc2626; }
 .metric-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; line-height: 1.2; }
 .metric-val.green { color: var(--green); }
 .metric-val.red { color: var(--red); }
