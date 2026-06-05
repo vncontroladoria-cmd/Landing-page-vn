@@ -5550,129 +5550,178 @@ async function importarRelServicos(input) {
   try {
     const XLSX = await loadXLSX();
     const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { cellDates: true });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
 
-    if (!rows.length) { statusEl.innerHTML = '<div style="color:var(--red);padding:8px">Arquivo vazio</div>'; return; }
+    // Tenta com cellDates primeiro, depois raw
+    let rows = [];
+    try {
+      const wb = XLSX.read(buf, { cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'dd/mm/yyyy' });
+    } catch(e2) {
+      const wb = XLSX.read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    }
 
-    // Detecta colunas automaticamente pela primeira linha
-    const primeiraLinha = rows[0];
-    const colunas = Object.keys(primeiraLinha);
-    console.log('Colunas encontradas:', colunas);
-    console.log('Primeira linha:', primeiraLinha);
+    if (!rows.length) {
+      statusEl.innerHTML = '<div style="color:var(--red);padding:8px">⚠️ Arquivo vazio ou formato inválido.</div>';
+      return;
+    }
 
-    // Mapeia colunas flexível
-    const get = (r, ...nomes) => {
-      for (const n of nomes) {
-        const k = colunas.find(c => c.toLowerCase().replace(/[^a-z0-9]/g,'') === n.toLowerCase().replace(/[^a-z0-9]/g,''));
-        if (k && r[k] !== '' && r[k] !== null && r[k] !== undefined) return r[k];
+    const colunas = Object.keys(rows[0]);
+    console.log('[Import] Colunas:', colunas);
+    console.log('[Import] 1ª linha:', rows[0]);
+
+    // Busca coluna por palavras-chave (sem acentos, case insensitive)
+    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+    const findCol = (...termos) => {
+      for (const t of termos) {
+        const k = colunas.find(c => norm(c) === norm(t) || norm(c).includes(norm(t)));
+        if (k) return k;
       }
-      return '';
+      return null;
     };
 
+    const kProf  = findCol('Profissional','profissional');
+    const kData  = findCol('Data Comanda','DataComanda','Data','data');
+    const kDia   = findCol('Dia da Semana','DiaDaSemana','Dia');
+    const kCmd   = findCol('Numero Comanda','NumeroComanda','Comanda','numero');
+    const kServ  = findCol('Servico','Serviço','servico','servico');
+    const kCat   = findCol('Categoria','categoria');
+    const kCli   = findCol('Cliente','cliente');
+    const kCpf   = findCol('CPF','cpf');
+    const kCel   = findCol('Celular','celular','telefone');
+    const kQtd   = findCol('Qtd.','Qtd','qtd','quantidade');
+    const kValor = findCol('Valor','valor');
+    const kDesc  = findCol('Desconto','desconto');
+    const kTotal = findCol('Total','total');
+    const kPac   = findCol('Pacote','pacote');
+
+    console.log('[Import] Mapeamento:', { kData, kServ, kCat, kCli, kTotal });
+
     const payload = rows.map(r => {
-      const dataRaw = get(r, 'Data Comanda', 'DataComanda', 'Data', 'data');
-      const data_comanda = parseDataExcel(dataRaw);
+      const dataRaw = kData ? r[kData] : '';
+      const totalRaw = kTotal ? r[kTotal] : (kValor ? r[kValor] : '');
       return {
-        profissional: get(r, 'Profissional', 'profissional') || '',
-        data_comanda,
-        dia_semana: get(r, 'Dia da Semana', 'DiaDaSemana', 'dia') || '',
-        numero_comanda: parseInt(get(r, 'Número Comanda', 'NumeroComanda', 'Numero', 'numero') || 0) || null,
-        servico: get(r, 'Serviço', 'Servico', 'servico') || '',
-        categoria: get(r, 'Categoria', 'categoria') || '',
-        cliente: get(r, 'Cliente', 'cliente') || '',
-        cpf: get(r, 'CPF', 'cpf') || '',
-        celular: String(get(r, 'Celular', 'celular') || ''),
-        qtd: parseInt(get(r, 'Qtd.', 'Qtd', 'qtd', 'quantidade') || 1) || 1,
-        valor: parseNumBR(get(r, 'Valor', 'valor')),
-        desconto: parseNumBR(get(r, 'Desconto', 'desconto')),
-        total: parseNumBR(get(r, 'Total', 'total')),
-        pacote: get(r, 'Pacote', 'pacote') || ''
+        profissional: kProf ? String(r[kProf]||'').trim() : '',
+        data_comanda: parseDataExcelV2(dataRaw),
+        dia_semana:   kDia  ? String(r[kDia]||'').trim()  : '',
+        numero_comanda: kCmd ? (parseInt(r[kCmd])||null) : null,
+        servico:      kServ ? String(r[kServ]||'').trim() : '',
+        categoria:    kCat  ? String(r[kCat]||'').trim()  : '',
+        cliente:      kCli  ? String(r[kCli]||'').trim()  : '',
+        cpf:          kCpf  ? String(r[kCpf]||'').trim()  : '',
+        celular:      kCel  ? String(r[kCel]||'')         : '',
+        qtd:          kQtd  ? (parseInt(r[kQtd])||1)      : 1,
+        valor:        parseNumBR(kValor ? r[kValor] : ''),
+        desconto:     parseNumBR(kDesc  ? r[kDesc]  : ''),
+        total:        parseNumBR(totalRaw),
+        pacote:       kPac  ? String(r[kPac]||'').trim()  : ''
       };
     });
 
     const validos = payload.filter(r => r.servico || r.cliente);
-    
-    // Mostra preview antes de importar
-    mostrarPreviewServicos(validos, statusEl);
+    console.log('[Import] Válidos:', validos.length, '— Amostra:', validos[0]);
+
+    if (!validos.length) {
+      statusEl.innerHTML = `<div style="color:var(--amber);padding:8px">⚠️ Nenhum registro válido. Colunas encontradas: <strong>${colunas.join(', ')}</strong></div>`;
+      return;
+    }
+
+    statusEl.innerHTML = '';
+    abrirModalPreviewImport(validos);
 
   } catch(e) {
     statusEl.innerHTML = `<div style="color:var(--red);padding:8px">Erro ao ler arquivo: ${e.message}</div>`;
-    console.error(e);
+    console.error('[Import] Erro:', e);
   }
   input.value = '';
 }
 
 function parseNumBR(v) {
-  if (!v && v !== 0) return 0;
-  const s = String(v).replace(/[^0-9,.-]/g,'').replace(',','.');
+  if (v === null || v === undefined || v === '') return 0;
+  const s = String(v).replace(/[^0-9,.-]/g,'');
+  if (!s) return 0;
+  // Se tem vírgula e ponto: BR format (1.234,56)
+  if (s.includes(',') && s.includes('.')) return parseFloat(s.replace(/\./g,'').replace(',','.')) || 0;
+  // Só vírgula: decimal BR
+  if (s.includes(',')) return parseFloat(s.replace(',','.')) || 0;
   return parseFloat(s) || 0;
 }
 
-function parseDataExcel(val) {
-  if (!val) return null;
+function parseDataExcelV2(val) {
+  if (!val && val !== 0) return null;
   const s = String(val).trim();
-  // Já veio como YYYY-MM-DD (pelo dateNF)
+  if (!s || s === '0') return null;
+  // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
   // DD/MM/YYYY
-  const m1 = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-  if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
-  // MM/DD/YYYY
-  const m2 = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-  if (m2) return `${m2[3]}-${m2[1]}-${m2[2]}`;
+  const m1 = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+  // Excel serial (número inteiro > 40000)
+  const n = parseInt(s);
+  if (!isNaN(n) && n > 40000 && n < 60000) {
+    const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+    if (!isNaN(d)) return d.toISOString().substring(0,10);
+  }
+  // Tenta Date.parse (fallback)
+  const parsed = new Date(s);
+  if (!isNaN(parsed)) return parsed.toISOString().substring(0,10);
   return null;
 }
 
-function mostrarPreviewServicos(dados, statusEl) {
-  if (!dados.length) {
-    statusEl.innerHTML = '<div style="color:var(--amber);padding:8px">⚠️ Nenhum registro válido encontrado. Verifique o formato do arquivo.</div>';
-    return;
-  }
-  const total = dados.reduce((s,r)=>s+r.total,0);
-  const semData = dados.filter(r=>!r.data_comanda).length;
+function abrirModalPreviewImport(dados) {
+  const modal = document.getElementById('modal-import-preview');
+  if (!modal) return;
 
-  statusEl.innerHTML = `
-    <div class="card" style="margin-top:8px">
-      <div style="font-weight:600;margin-bottom:12px;font-size:13px">📋 Preview — ${dados.length} registros encontrados</div>
-      ${semData > 0 ? `<div style="color:var(--amber);font-size:12px;margin-bottom:8px">⚠️ ${semData} registros sem data válida</div>` : ''}
-      <div style="overflow-x:auto;max-height:250px;margin-bottom:12px">
-        <table style="width:100%;border-collapse:collapse;font-size:11px">
-          <thead><tr style="background:var(--bg3)">
-            <th style="padding:6px 8px;text-align:left">PROFISSIONAL</th>
-            <th style="padding:6px 8px;text-align:left">DATA</th>
-            <th style="padding:6px 8px;text-align:left">SERVIÇO</th>
-            <th style="padding:6px 8px;text-align:left">CATEGORIA</th>
-            <th style="padding:6px 8px;text-align:left">CLIENTE</th>
-            <th style="padding:6px 8px;text-align:right">TOTAL</th>
-          </tr></thead>
-          <tbody>
-            ${dados.slice(0,10).map(r=>`<tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:5px 8px">${r.profissional||'—'}</td>
-              <td style="padding:5px 8px;color:${r.data_comanda?'var(--text)':'var(--red)'}">${r.data_comanda||'INVÁLIDA'}</td>
-              <td style="padding:5px 8px">${r.servico||'—'}</td>
-              <td style="padding:5px 8px">${r.categoria||'—'}</td>
-              <td style="padding:5px 8px">${r.cliente||'—'}</td>
-              <td style="padding:5px 8px;text-align:right;color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(r.total)}</td>
-            </tr>`).join('')}
-            ${dados.length > 10 ? `<tr><td colspan="6" style="padding:6px 8px;text-align:center;color:var(--text3)">... e mais ${dados.length-10} registros</td></tr>` : ''}
-          </tbody>
-        </table>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:12px;color:var(--text2)">Total: <strong style="color:var(--green)">${fmtBRL(total)}</strong></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn" onclick="document.getElementById('imp-servicos-status').innerHTML=''">Cancelar</button>
-          <button class="btn btn-primary" onclick="confirmarImportServicos(window._srvImportData)">💾 Confirmar Importação</button>
-        </div>
-      </div>
-    </div>`;
+  const total = dados.reduce((s,r) => s + (r.total||0), 0);
+  const semData = dados.filter(r => !r.data_comanda).length;
+  const profissionais = [...new Set(dados.map(r=>r.profissional).filter(Boolean))];
+
+  // Sub-cabeçalho
+  document.getElementById('imp-preview-sub').textContent =
+    `${dados.length} registros · ${profissionais.length} profissional(is) · Faturamento: R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+
+  // Avisos
+  const avisos = document.getElementById('imp-preview-avisos');
+  avisos.innerHTML = '';
+  if (semData > 0) {
+    avisos.innerHTML = `<div style="padding:8px 0 4px;font-size:12px;color:#d97706">⚠️ ${semData} registros sem data reconhecida — aparecerão com data vazia.</div>`;
+  }
+
+  // Tabela com TODOS os registros
+  const tbody = document.getElementById('imp-preview-body');
+  tbody.innerHTML = dados.slice(0, 200).map((r,i) => `
+    <tr style="border-bottom:1px solid var(--border);${i%2===0?'':'background:var(--bg3)'}">
+      <td style="padding:6px 10px;font-weight:500;white-space:nowrap">${r.profissional||'—'}</td>
+      <td style="padding:6px 10px;white-space:nowrap;color:${r.data_comanda?'var(--text)':'var(--red);font-weight:600'}">${r.data_comanda||'❌ INVÁLIDA'}</td>
+      <td style="padding:6px 10px">${r.servico||'—'}</td>
+      <td style="padding:6px 10px;color:var(--text2)">${r.categoria||'—'}</td>
+      <td style="padding:6px 10px">${r.cliente||'—'}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--green)">${r.total>0?'R$ '+r.total.toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</td>
+    </tr>
+  `).join('') + (dados.length > 200 ? `<tr><td colspan="6" style="padding:8px;text-align:center;color:var(--text3);font-size:11px">... e mais ${dados.length-200} registros</td></tr>` : '');
+
+  // Total e botão
+  document.getElementById('imp-preview-total').innerHTML =
+    `<span>${dados.length} registros · Total: <strong style="color:var(--green)">R$ ${total.toLocaleString('pt-BR',{minimumFractionDigits:2})}</strong></span>`;
+
   window._srvImportData = dados;
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharPreviewImport() {
+  const modal = document.getElementById('modal-import-preview');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
 }
 
 async function confirmarImportServicos(dados) {
-  const statusEl = document.getElementById('imp-servicos-status');
-  statusEl.innerHTML = '<div class="loading"><div class="spin"></div> Salvando...</div>';
+  const btn = document.getElementById('imp-preview-btn-confirmar');
+  if (btn) { btn.textContent = '⏳ Salvando...'; btn.disabled = true; }
+
   try {
     const lote = 500;
     let inseridos = 0;
@@ -5681,12 +5730,15 @@ async function confirmarImportServicos(dados) {
       if (error) throw new Error(error.message);
       inseridos += Math.min(lote, dados.length-i);
     }
+
+    fecharPreviewImport();
     await preencherFiltrosServicos();
-    statusEl.innerHTML = `<div style="color:var(--green);padding:8px;font-size:12px">✅ ${inseridos} registros importados!</div>`;
-    setTimeout(() => { statusEl.innerHTML = ''; }, 4000);
+    showToast(`✅ ${inseridos} registros importados com sucesso!`, 'success');
     loadServicos();
   } catch(e) {
-    statusEl.innerHTML = `<div style="color:var(--red);padding:8px">Erro: ${e.message}</div>`;
+    if (btn) { btn.textContent = '💾 Confirmar Importação'; btn.disabled = false; }
+    showToast('Erro ao salvar: ' + e.message, 'error');
+    console.error('[Import] Erro ao salvar:', e);
   }
 }
 
@@ -7428,5 +7480,47 @@ function fornecedorBate(f, extrato) {
 checkSession();
 document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
 </script>
+
+<!-- MODAL PREVIEW IMPORTAÇÃO SERVIÇOS -->
+<div id="modal-import-preview" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--bg2);border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <!-- Header -->
+    <div style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#059669,#047857);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#fff">📋 Preview da Importação</div>
+        <div id="imp-preview-sub" style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:2px"></div>
+      </div>
+      <button onclick="fecharPreviewImport()" style="background:rgba(255,255,255,0.2);border:none;border-radius:8px;color:#fff;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <!-- Avisos -->
+    <div id="imp-preview-avisos" style="padding:0 1.5rem"></div>
+    <!-- Tabela -->
+    <div style="overflow-y:auto;flex:1;padding:0 1.5rem">
+      <table style="width:100%;border-collapse:collapse;font-size:12px" id="imp-preview-table">
+        <thead style="position:sticky;top:0;background:var(--bg3);z-index:5">
+          <tr>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">PROFISSIONAL</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">DATA</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">SERVIÇO</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">CATEGORIA</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">CLIENTE</th>
+            <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody id="imp-preview-body"></tbody>
+      </table>
+    </div>
+    <!-- Footer -->
+    <div style="padding:1rem 1.5rem;background:var(--bg3);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <div id="imp-preview-total" style="font-size:13px;color:var(--text2)"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="fecharPreviewImport()">Cancelar</button>
+        <button class="btn btn-primary" id="imp-preview-btn-confirmar" onclick="confirmarImportServicos(window._srvImportData)">
+          💾 Confirmar Importação
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
