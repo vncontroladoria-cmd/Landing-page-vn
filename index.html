@@ -5200,20 +5200,27 @@ async function loadServicos() {
   if (prof) q = q.eq('profissional', prof);
   if (cat) q = q.eq('categoria', cat);
 
-  const { data, error } = await q.limit(5000);
+  const { data, error } = await q.limit(10000);
   if (error) { showToast('Erro ao carregar: ' + error.message, 'error'); return; }
   _srvData = data || [];
 
+  console.log('[Serviços] Registros carregados:', _srvData.length);
+
   if (!_srvData.length) {
-    ['srv-ranking','srv-por-cat','srv-por-prof','srv-detalhe'].forEach(id => {
+    const msgVazio = ano || mes
+      ? `<div class="empty">Nenhum dado no período selecionado.<br><small style="color:var(--text3)">Tente "Todos os anos" para ver todos os registros.</small></div>`
+      : `<div class="empty">Nenhum dado. Importe o relatório usando o botão 📥 Importar Relatório.</div>`;
+    ['srv-ranking','srv-por-cat','srv-por-prof','srv-detalhe','srv-historico-cli'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = '<div class="empty">Nenhum dado encontrado</div>';
+      if (el) el.innerHTML = msgVazio;
     });
     ['srv-fat','srv-qtd','srv-ticket','srv-profs'].forEach(id => {
       const el = document.getElementById(id); if (el) el.textContent = '—';
     });
     return;
   }
+
+  showToast(`${_srvData.length} registros carregados`, 'success');
 
   renderServicos(_srvData);
 }
@@ -5733,6 +5740,11 @@ async function confirmarImportServicos(dados) {
 
     fecharPreviewImport();
     await preencherFiltrosServicos();
+    // Remove filtros de ano/mes para garantir que os dados apareçam
+    const anoEl = document.getElementById('srv-ano');
+    const mesEl = document.getElementById('srv-mes');
+    if (anoEl) anoEl.value = '';
+    if (mesEl) mesEl.value = '';
     showToast(`✅ ${inseridos} registros importados com sucesso!`, 'success');
     loadServicos();
   } catch(e) {
