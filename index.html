@@ -1292,19 +1292,110 @@ input:focus, select:focus {
 
         <!-- SERVIÇOS -->
         <div class="page" id="page-servicos">
-          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
-            <input type="file" id="imp-servicos" accept=".xlsx,.xls,.csv" style="display:none" onchange="importFile('servicos',this)">
-            <button class="btn btn-primary" onclick="triggerImport('servicos')">📥 Importar Relatório</button>
+          <!-- TOOLBAR -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <select id="srv-ano" onchange="loadServicos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="">Todos os anos</option>
+                <option value="2026" selected>2026</option><option value="2025">2025</option>
+              </select>
+              <select id="srv-mes" onchange="loadServicos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="">Todos os meses</option>
+                <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
+                <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
+                <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
+                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+              </select>
+              <select id="srv-profissional" onchange="loadServicos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="">Todos os profissionais</option>
+              </select>
+              <select id="srv-categoria" onchange="loadServicos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="">Todas as categorias</option>
+              </select>
+              <button class="btn" onclick="loadServicos()">↻ Atualizar</button>
+            </div>
+            <div style="display:flex;gap:8px">
+              <input type="file" id="imp-servicos" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRelServicos(this)">
+              <button class="btn btn-primary" onclick="document.getElementById('imp-servicos').click()">📥 Importar Relatório</button>
+            </div>
           </div>
-          <div id="imp-servicos-status"></div>
-          <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
-            <div class="metric-card"><div class="metric-label">Total faturado</div><div class="metric-val green" id="srv-fat">—</div></div>
-            <div class="metric-card"><div class="metric-label">Total de atendimentos</div><div class="metric-val" id="srv-qtd">—</div></div>
-            <div class="metric-card"><div class="metric-label">Ticket médio</div><div class="metric-val amber" id="srv-ticket">—</div></div>
+
+          <!-- CARDS -->
+          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
+            <div class="metric-card c-green">
+              <div class="metric-label">Faturamento Total</div>
+              <div class="metric-val" id="srv-fat">—</div>
+              <div class="metric-delta" id="srv-fat-d"></div>
+            </div>
+            <div class="metric-card c-blue">
+              <div class="metric-label">Atendimentos</div>
+              <div class="metric-val" id="srv-qtd">—</div>
+              <div class="metric-delta" id="srv-qtd-d"></div>
+            </div>
+            <div class="metric-card c-amber">
+              <div class="metric-label">Ticket Médio</div>
+              <div class="metric-val" id="srv-ticket">—</div>
+            </div>
+            <div class="metric-card c-purple">
+              <div class="metric-label">Profissionais Ativos</div>
+              <div class="metric-val" id="srv-profs">—</div>
+            </div>
           </div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Ranking de serviços</div></div>
-            <div id="srv-table"><div class="empty">Importe o relatório de serviços para ver os dados</div></div>
+
+          <!-- GRÁFICOS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="card" style="padding:1.25rem">
+              <div class="card-header"><div class="card-title">Faturamento por Categoria</div></div>
+              <canvas id="srv-chart-cat" height="200"></canvas>
+            </div>
+            <div class="card" style="padding:1.25rem">
+              <div class="card-header"><div class="card-title">Faturamento por Profissional</div></div>
+              <canvas id="srv-chart-prof" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- TABELAS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <!-- Ranking serviços -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
+                🏆 Ranking de Serviços
+              </div>
+              <div id="srv-ranking" style="max-height:320px;overflow-y:auto">
+                <div class="empty">Importe o relatório para ver os dados</div>
+              </div>
+            </div>
+            <!-- Por categoria -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
+                📂 Faturamento por Categoria
+              </div>
+              <div id="srv-por-cat" style="max-height:320px;overflow-y:auto">
+                <div class="empty">Importe o relatório para ver os dados</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABELA POR PROFISSIONAL -->
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between">
+              <span>👤 Desempenho por Profissional</span>
+            </div>
+            <div id="srv-por-prof" style="overflow-x:auto">
+              <div class="empty">Importe o relatório para ver os dados</div>
+            </div>
+          </div>
+
+          <!-- TABELA DETALHADA -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+              <span>📋 Detalhes por Cliente</span>
+              <input type="text" id="srv-busca" placeholder="Buscar cliente ou serviço..." oninput="filtrarSrvTabela(this.value)"
+                style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg3);width:220px">
+            </div>
+            <div id="srv-detalhe" style="max-height:400px;overflow-y:auto;overflow-x:auto">
+              <div class="empty">Importe o relatório para ver os dados</div>
+            </div>
           </div>
         </div>
 
@@ -2318,6 +2409,7 @@ function showPage(id, el) {
   if (selMes) selMes.style.display = id === 'dashboard' ? '' : 'none';
 
   if (id === 'pdv') initPDV();
+  if (id === 'servicos') { preencherFiltrosServicos(); initServicos(); }
   if (id === 'dfc') loadDFC();
   if (id === 'dre') loadDRE();
   if (id === 'lancamentos') loadLancamentos();
@@ -3800,26 +3892,7 @@ async function darBaixaCP(id) {
 }
 
 // ─── SERVIÇOS ────────────────────────────────────────
-async function loadServicos() {
-  const { data } = await sb.from('servicos_importados').select('*');
-  if (!data?.length) return;
-  const total = data.reduce((s,r)=>s+Number(r.total||0),0);
-  const qtd = data.length;
-  document.getElementById('srv-fat').textContent = fmtBRL(total);
-  document.getElementById('srv-qtd').textContent = qtd.toLocaleString('pt-BR');
-  document.getElementById('srv-ticket').textContent = fmtBRL(total/qtd);
 
-  // Ranking por serviço
-  const map = {};
-  data.forEach(r => { map[r.servico] = (map[r.servico]||0) + Number(r.total||0); });
-  const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Serviço</th><th>Total</th></tr></thead><tbody>';
-  sorted.forEach(([srv,val],i) => {
-    html += `<tr><td style="color:var(--text3)">${i+1}</td><td>${srv}</td><td style="color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(val)}</td></tr>`;
-  });
-  html += '</tbody></table></div>';
-  document.getElementById('srv-table').innerHTML = html;
-}
 
 // ─── CLIENTES ────────────────────────────────────────
 async function loadClientes() {
@@ -5086,6 +5159,334 @@ function sortTable(th) {
 function aplicarSort(containerEl) {
   const ths = containerEl?.querySelectorAll('thead th:not(.no-sort)');
   ths?.forEach(th => { th.onclick = () => sortTable(th); });
+}
+
+
+// ─── SERVIÇOS ────────────────────────────────────────────
+let _srvData = []; // todos os dados carregados
+let _srvChartCat = null;
+let _srvChartProf = null;
+
+async function initServicos() {
+  await loadServicos();
+}
+
+async function loadServicos() {
+  const ano = document.getElementById('srv-ano')?.value || '';
+  const mes = document.getElementById('srv-mes')?.value || '';
+  const prof = document.getElementById('srv-profissional')?.value || '';
+  const cat = document.getElementById('srv-categoria')?.value || '';
+
+  let q = sb.from('rel_servicos').select('*').order('data_comanda', {ascending: false});
+  if (ano) q = q.gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
+  if (mes && ano) {
+    const ult = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+    q = q.gte('data_comanda', `${ano}-${mes}-01`).lte('data_comanda', `${ano}-${mes}-${String(ult).padStart(2,'0')}`);
+  }
+  if (prof) q = q.eq('profissional', prof);
+  if (cat) q = q.eq('categoria', cat);
+
+  const { data } = await q.limit(5000);
+  _srvData = data || [];
+
+  if (!_srvData.length) {
+    ['srv-ranking','srv-por-cat','srv-por-prof','srv-detalhe'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div class="empty">Nenhum dado encontrado</div>';
+    });
+    ['srv-fat','srv-qtd','srv-ticket','srv-profs'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = '—';
+    });
+    return;
+  }
+
+  renderServicos(_srvData);
+}
+
+function renderServicos(data) {
+  const total = data.reduce((s,r) => s + Number(r.total||0), 0);
+  const atend = data.length;
+  const ticket = atend > 0 ? total/atend : 0;
+  const profs = new Set(data.map(r => r.profissional).filter(Boolean)).size;
+
+  const el = id => document.getElementById(id);
+  if (el('srv-fat')) el('srv-fat').textContent = fmtBRL(total);
+  if (el('srv-qtd')) el('srv-qtd').textContent = atend.toLocaleString('pt-BR');
+  if (el('srv-ticket')) el('srv-ticket').textContent = fmtBRL(ticket);
+  if (el('srv-profs')) el('srv-profs').textContent = profs;
+
+  // Ranking serviços
+  const srvMap = {};
+  data.forEach(r => {
+    if (!r.servico) return;
+    if (!srvMap[r.servico]) srvMap[r.servico] = { total: 0, qtd: 0 };
+    srvMap[r.servico].total += Number(r.total||0);
+    srvMap[r.servico].qtd += 1;
+  });
+  const srvRanking = Object.entries(srvMap).sort((a,b) => b[1].total - a[1].total);
+  const maxSrv = srvRanking[0]?.[1].total || 1;
+
+  const rankingEl = el('srv-ranking');
+  if (rankingEl) {
+    rankingEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">#</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">SERVIÇO</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">QTD</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">%</th>
+      </tr></thead>
+      <tbody>${srvRanking.slice(0,20).map(([nome, v], i) => {
+        const pct = (v.total/total*100).toFixed(1);
+        const barW = (v.total/maxSrv*100).toFixed(1);
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:6px 10px;color:var(--text3);font-size:11px">${i+1}</td>
+          <td style="padding:6px 10px;font-size:11px">
+            <div>${nome}</div>
+            <div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px">
+              <div style="width:${barW}%;height:100%;background:var(--accent);border-radius:2px"></div>
+            </div>
+          </td>
+          <td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
+          <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  // Por categoria
+  const catMap = {};
+  data.forEach(r => {
+    if (!r.categoria) return;
+    if (!catMap[r.categoria]) catMap[r.categoria] = { total: 0, qtd: 0 };
+    catMap[r.categoria].total += Number(r.total||0);
+    catMap[r.categoria].qtd += 1;
+  });
+  const catRanking = Object.entries(catMap).sort((a,b) => b[1].total - a[1].total);
+
+  const catEl = el('srv-por-cat');
+  if (catEl) {
+    catEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CATEGORIA</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">QTD</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL</th>
+        <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">%</th>
+      </tr></thead>
+      <tbody>${catRanking.map(([nome, v]) => {
+        const pct = (v.total/total*100).toFixed(1);
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
+          <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  // Por profissional
+  const profMap = {};
+  data.forEach(r => {
+    const p = r.profissional || '(sem profissional)';
+    if (!profMap[p]) profMap[p] = { total: 0, qtd: 0, clientes: new Set() };
+    profMap[p].total += Number(r.total||0);
+    profMap[p].qtd += 1;
+    if (r.cliente) profMap[p].clientes.add(r.cliente);
+  });
+  const profRanking = Object.entries(profMap).sort((a,b) => b[1].total - a[1].total);
+
+  const profEl = el('srv-por-prof');
+  if (profEl) {
+    profEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">PROFISSIONAL</th>
+        <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">ATEND.</th>
+        <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">CLIENTES</th>
+        <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TICKET MÉDIO</th>
+        <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL</th>
+        <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">%</th>
+      </tr></thead>
+      <tbody>${profRanking.map(([nome, v]) => {
+        const pct = (v.total/total*100).toFixed(1);
+        const ticket = v.qtd > 0 ? v.total/v.qtd : 0;
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 12px;font-size:12px;font-weight:600">${nome}</td>
+          <td style="padding:8px 12px;text-align:right;font-size:12px">${v.qtd}</td>
+          <td style="padding:8px 12px;text-align:right;font-size:12px">${v.clientes.size}</td>
+          <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(ticket)}</td>
+          <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  // Tabela detalhada
+  renderSrvDetalhe(data);
+
+  // Gráficos
+  renderSrvCharts(catRanking, profRanking);
+}
+
+function renderSrvDetalhe(data) {
+  const el = document.getElementById('srv-detalhe');
+  if (!el) return;
+  if (!data.length) { el.innerHTML = '<div class="empty">Nenhum dado</div>'; return; }
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--bg3);position:sticky;top:0;z-index:5">
+      <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">DATA</th>
+      <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">PROFISSIONAL</th>
+      <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CLIENTE</th>
+      <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">SERVIÇO</th>
+      <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CATEGORIA</th>
+      <th style="padding:7px 10px;text-align:center;font-size:10px;font-weight:600;color:var(--text2)">QTD</th>
+      <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL</th>
+    </tr></thead>
+    <tbody>${data.slice(0,200).map(r => `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 10px;color:var(--text2);white-space:nowrap">${fmtDate(r.data_comanda)}</td>
+      <td style="padding:6px 10px;font-weight:500">${r.profissional||'—'}</td>
+      <td style="padding:6px 10px">${r.cliente||'—'}</td>
+      <td style="padding:6px 10px">${r.servico||'—'}</td>
+      <td style="padding:6px 10px"><span class="badge badge-blue">${r.categoria||'—'}</span></td>
+      <td style="padding:6px 10px;text-align:center">${r.qtd||1}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${Number(r.total)>0?'var(--green)':'var(--text2)'}">${fmtBRL(r.total||0)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function filtrarSrvTabela(termo) {
+  const t = (termo||'').toLowerCase();
+  const filtrado = t ? _srvData.filter(r =>
+    (r.cliente||'').toLowerCase().includes(t) ||
+    (r.servico||'').toLowerCase().includes(t) ||
+    (r.profissional||'').toLowerCase().includes(t)
+  ) : _srvData;
+  renderSrvDetalhe(filtrado);
+}
+
+function renderSrvCharts(catRanking, profRanking) {
+  const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a','#9333ea','#ea580c','#0284c7'];
+
+  // Gráfico categorias (donut)
+  const ctxCat = document.getElementById('srv-chart-cat')?.getContext('2d');
+  if (ctxCat) {
+    if (_srvChartCat) _srvChartCat.destroy();
+    _srvChartCat = new Chart(ctxCat, {
+      type: 'doughnut',
+      data: {
+        labels: catRanking.map(([n]) => n),
+        datasets: [{ data: catRanking.map(([,v]) => v.total), backgroundColor: CORES, borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'right', labels: { font: { size: 10 }, padding: 8 } } } }
+    });
+  }
+
+  // Gráfico profissional (barras horizontais)
+  const ctxProf = document.getElementById('srv-chart-prof')?.getContext('2d');
+  if (ctxProf) {
+    if (_srvChartProf) _srvChartProf.destroy();
+    _srvChartProf = new Chart(ctxProf, {
+      type: 'bar',
+      data: {
+        labels: profRanking.slice(0,8).map(([n]) => n.split(' ')[0]),
+        datasets: [{ label: 'Faturamento', data: profRanking.slice(0,8).map(([,v]) => v.total), backgroundColor: CORES, borderRadius: 6 }]
+      },
+      options: {
+        responsive: true, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { callback: v => 'R$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } } }, y: { ticks: { font: { size: 10 } } } }
+      }
+    });
+  }
+}
+
+async function importarRelServicos(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('imp-servicos-status');
+  statusEl.innerHTML = '<div class="loading"><div class="spin"></div> Processando...</div>';
+
+  try {
+    const XLSX = await loadXLSX();
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!rows.length) { statusEl.innerHTML = '<div style="color:var(--red);padding:8px">Arquivo vazio ou formato inválido</div>'; return; }
+
+    // Mapeia colunas
+    const payload = rows.map(r => ({
+      profissional: r['Profissional'] || r['profissional'] || '',
+      data_comanda: parseDataBR(r['Data Comanda'] || r['Data'] || ''),
+      dia_semana: r['Dia da Semana'] || r['dia_semana'] || '',
+      numero_comanda: parseInt(r['Número Comanda'] || r['Numero Comanda'] || 0) || null,
+      servico: r['Serviço'] || r['Servico'] || r['servico'] || '',
+      categoria: r['Categoria'] || r['categoria'] || '',
+      cliente: r['Cliente'] || r['cliente'] || '',
+      cpf: r['CPF'] || r['cpf'] || '',
+      celular: String(r['Celular'] || r['celular'] || ''),
+      qtd: parseInt(r['Qtd.'] || r['Qtd'] || r['qtd'] || 1) || 1,
+      valor: parseFloat(String(r['Valor'] || 0).replace(',','.')) || 0,
+      desconto: parseFloat(String(r['Desconto'] || 0).replace(',','.')) || 0,
+      total: parseFloat(String(r['Total'] || r['total'] || 0).replace(',','.')) || 0,
+      pacote: r['Pacote'] || ''
+    })).filter(r => r.servico || r.cliente);
+
+    // Insere em lotes
+    const lote = 500;
+    let inseridos = 0;
+    for (let i = 0; i < payload.length; i += lote) {
+      const { error } = await sb.from('rel_servicos').insert(payload.slice(i, i + lote));
+      if (error) throw new Error(error.message);
+      inseridos += Math.min(lote, payload.length - i);
+    }
+
+    // Atualiza filtros
+    await preencherFiltrosServicos();
+    statusEl.innerHTML = `<div style="color:var(--green);padding:8px;font-size:12px">✅ ${inseridos} registros importados com sucesso!</div>`;
+    setTimeout(() => { statusEl.innerHTML = ''; }, 4000);
+    loadServicos();
+  } catch(e) {
+    statusEl.innerHTML = `<div style="color:var(--red);padding:8px">Erro: ${e.message}</div>`;
+  }
+  input.value = '';
+}
+
+function parseDataBR(val) {
+  if (!val) return null;
+  const s = String(val);
+  // DD/MM/YYYY
+  const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  // YYYY-MM-DD
+  if (s.match(/\d{4}-\d{2}-\d{2}/)) return s.substring(0,10);
+  // Excel serial
+  const n = parseInt(s);
+  if (n > 40000) {
+    const d = new Date((n - 25569) * 86400 * 1000);
+    return d.toISOString().substring(0,10);
+  }
+  return null;
+}
+
+async function preencherFiltrosServicos() {
+  const { data } = await sb.from('rel_servicos').select('profissional,categoria');
+  const profs = [...new Set((data||[]).map(r=>r.profissional).filter(Boolean))].sort();
+  const cats  = [...new Set((data||[]).map(r=>r.categoria).filter(Boolean))].sort();
+
+  const selP = document.getElementById('srv-profissional');
+  const selC = document.getElementById('srv-categoria');
+  if (selP) {
+    const cur = selP.value;
+    selP.innerHTML = '<option value="">Todos os profissionais</option>' + profs.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join('');
+  }
+  if (selC) {
+    const cur = selC.value;
+    selC.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  }
 }
 
 // ─── DFC ─────────────────────────────────────────────────
