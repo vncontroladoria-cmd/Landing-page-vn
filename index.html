@@ -357,6 +357,37 @@ tbody tr:hover { background: var(--bg3); }
 @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } .charts-row { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .sidebar { display: none; } .main { margin-left: 0; width: 100%; } .metrics-grid { grid-template-columns: 1fr 1fr; } }
 
+/* ── RESPONSIVO TOTAL ───────────────────────────────── */
+/* Conteúdo nunca ultrapassa a tela */
+.content { overflow-x: hidden; }
+.page { max-width: 100%; overflow-x: hidden; }
+
+/* Tabelas responsivas — scroll interno se necessário */
+.table-wrap, .card > div[style*="overflow"] { 
+  overflow-x: auto; max-width: 100%;
+}
+table { font-size: 11px; }
+thead th { padding: 7px 8px !important; font-size: 10px !important; }
+tbody td { padding: 8px 8px !important; font-size: 11px !important; }
+
+/* Reduz padding do content em telas menores */
+@media (max-width: 1200px) {
+  .content { padding: 1rem; }
+  .metrics-grid { gap: 8px; }
+  .metric-card { padding: 0.875rem 1rem; }
+  .metric-val { font-size: 18px; }
+}
+
+/* Cards de métricas menores */
+.metric-card { padding: 0.875rem 1rem; }
+.metric-val { font-size: 19px; }
+.metric-label { font-size: 10px; }
+
+/* Dashboard grid responsivo */
+.metrics-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
 /* ── UPGRADE VISUAL ─────────────────────────────────── */
 
 /* Animação de entrada das páginas */
@@ -745,7 +776,7 @@ input:focus, select:focus {
           <!-- TABELA DE LANÇAMENTOS -->
           <div class="card" style="padding:0;overflow:hidden">
             <div style="overflow-x:auto">
-              <table id="lanc-main-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:1100px">
+              <table id="lanc-main-table" style="width:100%;border-collapse:collapse;font-size:11px">
                 <thead>
                   <tr style="background:var(--bg3)">
                     <th style="padding:10px 12px;border-bottom:1.5px solid var(--border);width:36px">
@@ -1055,12 +1086,12 @@ input:focus, select:focus {
                 <table style="width:100%;border-collapse:collapse;font-size:12px" id="pdv-itens-table">
                   <thead>
                     <tr style="background:var(--bg3);border-bottom:1px solid var(--border)">
-                      <th style="padding:8px;text-align:left;min-width:130px">FORMA PAGAMENTO</th>
-                      <th style="padding:8px;text-align:left;min-width:160px">CATEGORIA</th>
-                      <th style="padding:8px;text-align:left;min-width:180px">DESCRIÇÃO</th>
-                      <th style="padding:8px;text-align:center;min-width:80px">TIPO</th>
-                      <th style="padding:8px;text-align:right;min-width:100px">VALOR</th>
-                      <th style="padding:8px;text-align:center;min-width:50px"></th>
+                      <th style="padding:6px 8px;text-align:left">FORMA PGTO</th>
+                      <th style="padding:6px 8px;text-align:left">CATEGORIA</th>
+                      <th style="padding:6px 8px;text-align:left">DESCRIÇÃO</th>
+                      <th style="padding:6px 8px;text-align:center">TIPO</th>
+                      <th style="padding:6px 8px;text-align:right">VALOR</th>
+                      <th style="padding:6px 8px"></th>
                     </tr>
                   </thead>
                   <tbody id="pdv-itens-body"></tbody>
