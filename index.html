@@ -1386,10 +1386,21 @@ input:focus, select:focus {
             </div>
           </div>
 
+          <!-- HISTÓRICO POR CLIENTE (EXPANSÍVEL) -->
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+              <span>👤 Histórico Detalhado por Cliente</span>
+              <span style="font-size:11px;color:var(--text2);font-weight:400">Clique no + para ver os serviços de cada cliente</span>
+            </div>
+            <div id="srv-historico-cli" style="max-height:480px;overflow-y:auto">
+              <div class="empty">Importe o relatório para ver os dados</div>
+            </div>
+          </div>
+
           <!-- TABELA DETALHADA -->
           <div class="card" style="padding:0;overflow:hidden">
             <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
-              <span>📋 Detalhes por Cliente</span>
+              <span>📋 Todos os Lançamentos</span>
               <input type="text" id="srv-busca" placeholder="Buscar cliente ou serviço..." oninput="filtrarSrvTabela(this.value)"
                 style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg3);width:220px">
             </div>
@@ -5208,8 +5219,21 @@ async function loadServicos() {
 }
 
 function renderServicos(data) {
+  // Deduplica serviços 1/2 + 2/2: conta atendimentos únicos via cliente+comanda
+  const cleanSrv = (n) => String(n||'')
+    .replace(/\s*\(?\s*\d+\s*\/\s*\d+\s*\)?\s*$/i,'')
+    .replace(/\s*-?\s*parte\s*\d+\s*$/i,'').replace(/\s+/g,' ').trim();
+  const normKey = (s) => String(s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+
+  // Atendimentos únicos = comandas únicas por cliente
+  const atendSet = new Set();
+  data.forEach(r => {
+    const sig = (r.cliente ? normKey(r.cliente) : 'x') + '|' + (r.numero_comanda || r.data_comanda || Math.random());
+    atendSet.add(sig);
+  });
   const total = data.reduce((s,r) => s + Number(r.total||0), 0);
-  const atend = data.length;
+  const atend = atendSet.size || data.length;
   const ticket = atend > 0 ? total/atend : 0;
   const profs = new Set(data.map(r => r.profissional).filter(Boolean)).size;
 
@@ -5240,20 +5264,21 @@ function renderServicos(data) {
         <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL</th>
         <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">%</th>
       </tr></thead>
-      <tbody>${srvRanking.slice(0,20).map(([nome, v], i) => {
+      <tbody>${srvRanking.slice(0,25).map(([nome, v], i) => {
         const pct = (v.total/total*100).toFixed(1);
         const barW = (v.total/maxSrv*100).toFixed(1);
+        const podio = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
         return `<tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:6px 10px;color:var(--text3);font-size:11px">${i+1}</td>
+          <td style="padding:6px 8px;text-align:center;font-size:${i<3?'14':'11'}px;width:36px">${podio}</td>
           <td style="padding:6px 10px;font-size:11px">
-            <div>${nome}</div>
-            <div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px">
-              <div style="width:${barW}%;height:100%;background:var(--accent);border-radius:2px"></div>
+            <div style="font-weight:500;margin-bottom:4px">${nome}</div>
+            <div style="position:relative;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,var(--accent),#34d399);border-radius:3px"></div>
             </div>
           </td>
-          <td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
-          <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--green)">${fmtBRL(v.total)}</td>
-          <td style="padding:6px 10px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
         </tr>`;
       }).join('')}</tbody>
     </table>`;
@@ -5327,11 +5352,123 @@ function renderServicos(data) {
     </table>`;
   }
 
+  // Histórico por cliente (expansível)
+  renderSrvHistoricoCliente(data);
+
   // Tabela detalhada
   renderSrvDetalhe(data);
 
   // Gráficos
   renderSrvCharts(catRanking, profRanking);
+}
+
+function renderSrvHistoricoCliente(data) {
+  const el = document.getElementById('srv-historico-cli');
+  if (!el) return;
+  if (!data.length) { el.innerHTML = '<div class="empty">Nenhum dado</div>'; return; }
+
+  const normKey = (s) => String(s||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+  const cleanSrv = (n) => String(n||'')
+    .replace(/\s*\(?\s*\d+\s*\/\s*\d+\s*\)?\s*$/i,'')
+    .replace(/\s*-?\s*parte\s*\d+\s*$/i,'').replace(/\s+/g,' ').trim();
+
+  // Agrupa por cliente
+  const cliMap = {};
+  data.forEach(r => {
+    const nome = (r.cliente||'—').trim();
+    if(nome==='—') return;
+    const k = normKey(nome);
+    if(!cliMap[k]) cliMap[k] = { label:nome, atend:[], totalVal:0, totalSrv:0 };
+    cliMap[k].atend.push({
+      data: r.data_comanda,
+      servico: cleanSrv(r.servico||''),
+      profissional: r.profissional||'—',
+      total: Number(r.total||0)
+    });
+    cliMap[k].totalVal += Number(r.total||0);
+    cliMap[k].totalSrv += 1;
+  });
+
+  const clientes = Object.values(cliMap)
+    .sort((a,b) => b.totalVal - a.totalVal)
+    .slice(0,100);
+
+  const maxVal = clientes[0]?.totalVal || 1;
+
+  el.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead style="position:sticky;top:0;z-index:5">
+        <tr style="background:var(--bg3)">
+          <th style="padding:8px 10px;width:36px"></th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">#</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CLIENTE</th>
+          <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">SERVIÇOS</th>
+          <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL GASTO</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${clientes.map((c,idx) => {
+          const id = 'srvcli-'+idx;
+          const barPct = (c.totalVal/maxVal*100).toFixed(1);
+          const ats = c.atend.slice().sort((a,b) => (b.data||'').localeCompare(a.data||''));
+          return `
+            <tr class="srv-cli-row" style="cursor:pointer;border-bottom:1px solid var(--border)" onclick="srvToggleCli('${id}')">
+              <td style="padding:7px 10px;text-align:center">
+                <button id="${id}-btn" style="width:22px;height:22px;border-radius:5px;border:1.5px solid var(--border2);background:var(--bg2);font-weight:700;font-size:12px;cursor:pointer;color:var(--text2)">+</button>
+              </td>
+              <td style="padding:7px 8px;color:var(--text3);font-size:11px">${idx+1}</td>
+              <td style="padding:7px 10px">
+                <div style="font-weight:600;font-size:12px;margin-bottom:4px">${c.label}</div>
+                <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+                  <div style="position:absolute;left:0;top:0;height:100%;width:${barPct}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
+                </div>
+              </td>
+              <td style="padding:7px 10px;text-align:right;font-size:12px;color:var(--text2)">${c.totalSrv}</td>
+              <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(c.totalVal)}</td>
+            </tr>
+            <tr id="${id}" style="display:none;background:var(--bg3)">
+              <td colspan="5" style="padding:0 0 12px 44px">
+                <table style="width:calc(100%-44px);border-collapse:collapse;font-size:11px;background:var(--bg2);border-radius:8px;border:1px solid var(--border);overflow:hidden">
+                  <thead>
+                    <tr style="background:var(--bg3)">
+                      <th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">DATA</th>
+                      <th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">SERVIÇO</th>
+                      <th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">PROFISSIONAL</th>
+                      <th style="padding:7px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">VALOR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${ats.map((a,ai) => `
+                      <tr style="${ai<ats.length-1?'border-bottom:1px solid var(--border)':''}">
+                        <td style="padding:6px 12px;color:var(--text2);white-space:nowrap">${a.data ? fmtDate(a.data) : '—'}</td>
+                        <td style="padding:6px 12px;font-weight:500">${a.servico||'—'}</td>
+                        <td style="padding:6px 12px;color:var(--text2)">${a.profissional}</td>
+                        <td style="padding:6px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${a.total>0?fmtBRL(a.total):'—'}</td>
+                      </tr>
+                    `).join('')}
+                    <tr style="background:var(--bg3);border-top:1.5px solid var(--border2)">
+                      <td colspan="3" style="padding:7px 12px;font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Subtotal</td>
+                      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:800;font-size:12.5px;color:var(--green)">${fmtBRL(c.totalVal)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    ${clientes.length >= 100 ? '<div style="padding:10px;text-align:center;font-size:11px;color:var(--text3);background:var(--bg3)">Mostrando 100 clientes de maior valor</div>' : ''}
+  `;
+}
+
+function srvToggleCli(id) {
+  const row = document.getElementById(id);
+  const btn = document.getElementById(id+'-btn');
+  if (!row) return;
+  const open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : 'table-row';
+  if (btn) { btn.textContent = open ? '+' : '−'; btn.style.color = open ? 'var(--text2)' : 'var(--accent)'; }
 }
 
 function renderSrvDetalhe(data) {
@@ -5345,7 +5482,6 @@ function renderSrvDetalhe(data) {
       <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CLIENTE</th>
       <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">SERVIÇO</th>
       <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CATEGORIA</th>
-      <th style="padding:7px 10px;text-align:center;font-size:10px;font-weight:600;color:var(--text2)">QTD</th>
       <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL</th>
     </tr></thead>
     <tbody>${data.slice(0,200).map(r => `<tr style="border-bottom:1px solid var(--border)">
@@ -5354,7 +5490,6 @@ function renderSrvDetalhe(data) {
       <td style="padding:6px 10px">${r.cliente||'—'}</td>
       <td style="padding:6px 10px">${r.servico||'—'}</td>
       <td style="padding:6px 10px"><span class="badge badge-blue">${r.categoria||'—'}</span></td>
-      <td style="padding:6px 10px;text-align:center">${r.qtd||1}</td>
       <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${Number(r.total)>0?'var(--green)':'var(--text2)'}">${fmtBRL(r.total||0)}</td>
     </tr>`).join('')}</tbody>
   </table>`;
