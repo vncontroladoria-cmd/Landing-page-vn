@@ -1215,6 +1215,11 @@ input:focus, select:focus {
                 <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
                 <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
               </select>
+              <select id="dre-modo" onchange="loadDRE()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+                <option value="realizado">Realizado</option>
+                <option value="projetado">Projetado</option>
+                <option value="ambos">Realizado × Projetado</option>
+              </select>
               <button class="btn" onclick="loadDRE()">↻ Atualizar</button>
             </div>
           </div>
@@ -5158,137 +5163,201 @@ async function loadDRE() {
   el.innerHTML = '<div class="loading"><div class="spin"></div> Calculando...</div>';
   const ano = document.getElementById('dre-ano')?.value || '2026';
   const mesFiltro = document.getElementById('dre-mes')?.value || '';
+  const modo = document.getElementById('dre-modo')?.value || 'realizado';
 
   const { data: grupos } = await sb.from('grupos_plano').select('*').eq('demonstrativo','DRE').order('ordem');
   const { data: cats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
   const { data: lancs } = await sb.from('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+  // Busca metas projetadas por categoria/mês (tabela metas_dre se existir, senão usa zeros)
+  let metasMap = {};
+  try {
+    const { data: metas } = await sb.from('metas_dre').select('*').eq('ano', ano);
+    (metas||[]).forEach(m => { metasMap[m.categoria+'_'+m.mes] = Number(m.valor||0); });
+  } catch(e) {}
+
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
 
   const mCols = mesFiltro ? [mesFiltro] : MESES.map((_,i) => String(i+1).padStart(2,'0'));
   const mNomes = mesFiltro ? [MESES[parseInt(mesFiltro)-1]] : MESES;
   const nMeses = mCols.length;
+  const mostrarProj = modo === 'projetado' || modo === 'ambos';
+  const mostrarReal = modo === 'realizado' || modo === 'ambos';
 
-  function calcular(fn, mes) {
+  function calcReal(fn, mes) {
     return (lancs||[]).filter(l => l.data_lancamento?.substring(5,7) === mes && fn(l))
       .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
   }
+  function calcProj(catNome, mes) { return metasMap[catNome+'_'+mes] || 0; }
 
-  let receitaBruta = Array(nMeses).fill(0);
+  // Monta dados por grupo
   const gruposData = (grupos||[]).map(g => {
     const gCats = (cats||[]).filter(c => c.grupo === g.nome);
     const sinal = g.sinal === '(+)' ? 1 : -1;
-    const realizado = mCols.map(m => gCats.reduce((s,c) => s + calcular(l => (l.categoria||l.categoria_dre||'') === c.nome, m), 0));
-    if (g.ordem === 1) receitaBruta = realizado.map(v => Math.abs(v));
-    return { ...g, gCats, realizado, sinal };
+    const realizado = mCols.map(m => gCats.reduce((s,c) => s + calcReal(l => (l.categoria||l.categoria_dre||'') === c.nome, m), 0));
+    const projetado = mCols.map(m => gCats.reduce((s,c) => s + calcProj(c.nome, m), 0));
+    return { ...g, gCats, realizado, projetado, sinal };
   });
 
-  // Resultado operacional e líquido
-  const gruposRO = ['Receita Operacional','Custo Variável','Marketing','Administrativa','Equipe','Impostos'];
-  const resultadoOp = mCols.map((m,i) => gruposData.filter(g => gruposRO.includes(g.nome))
-    .reduce((s,g) => s + (g.sinal === 1 ? g.realizado[i] : -Math.abs(g.realizado[i])), 0));
-  let resultadoMes = Array(nMeses).fill(0);
-  gruposData.forEach(g => g.realizado.forEach((v,i) => { resultadoMes[i] += g.sinal * v; }));
+  // Helper: pega valor do grupo por nome
+  const getG = (nome, arr) => { const g = gruposData.find(g => g.nome === nome); return g ? g[arr] : Array(nMeses).fill(0); };
 
-  const thS = `padding:7px 6px;text-align:right;border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap`;
+  // Indicadores calculados por mês
+  const recBruta  = i => getG('Receita Bruta','realizado')[i];
+  const deducoes  = i => getG('Deduções de Faturamento','realizado')[i];
+  const custDir   = i => getG('Custos dos Serviços Direto','realizado')[i];
+  const custInd   = i => getG('Custos dos Serviços Indireto','realizado')[i];
+  const market    = i => getG('Market / Comercial','realizado')[i];
+  const admin     = i => getG('Administrativas','realizado')[i];
+  const equipe    = i => getG('Equipe / CLTs','realizado')[i];
+  const outrasRec = i => getG('Outras Receitas','realizado')[i];
+  const despFin   = i => getG('Despesas Financeiras','realizado')[i];
 
-  // Header: meses com Realizado + % por mês, depois Total, Média, %
-  let thMeses = mNomes.map(m => `
-    <th style="${thS}" colspan="2">${m}</th>`).join('');
-  let thSub = mNomes.map(() => `
-    <th style="${thS}">Real.</th>
-    <th style="${thS};color:#166534">%</th>`).join('');
+  const recLiq  = i => recBruta(i) - Math.abs(deducoes(i));
+  const margem  = i => recLiq(i) - Math.abs(custDir(i)) - Math.abs(custInd(i));
+  const despOp  = i => Math.abs(market(i)) + Math.abs(admin(i)) + Math.abs(equipe(i));
+  const ebitda  = i => margem(i) - despOp(i);
+  const pe      = i => { const pct = recLiq(i) > 0 ? margem(i)/recLiq(i) : 0; return pct > 0 ? despOp(i)/pct : 0; };
+  const resLiq  = i => ebitda(i) + Math.abs(outrasRec(i)) - Math.abs(despFin(i));
+
+  const recBrutaArr = mCols.map((_,i) => Math.abs(recBruta(i)));
+
+  // Estilos
+  const thS = `padding:7px 5px;text-align:right;border-bottom:2px solid var(--border);font-size:9px;font-weight:600;color:var(--text2);white-space:nowrap`;
+  const thSL = `padding:7px 8px;text-align:left;border-bottom:2px solid var(--border);font-size:9px;font-weight:600;color:var(--text2)`;
+
+  // Monta colunas do header
+  function colHeaders() {
+    if (modo === 'ambos') {
+      return mNomes.map(m => `<th colspan="3" style="${thS}">${m}</th>`).join('') +
+        (mesFiltro ? '' : `<th colspan="2" style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉD</th>`);
+    }
+    return mNomes.map(m => `<th colspan="2" style="${thS}">${m}</th>`).join('') +
+      (mesFiltro ? '' : `<th colspan="2" style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉD</th>`);
+  }
+  function subHeaders() {
+    if (modo === 'ambos') {
+      return mNomes.map(() => `<th style="${thS}">Real.</th><th style="${thS};color:#1a56db">Proj.</th><th style="${thS};color:#166534">%</th>`).join('') +
+        (mesFiltro ? '' : `<th style="${thS}">Real.</th><th style="${thS};color:#166534">%</th><th style="${thS}">Méd</th>`);
+    }
+    if (modo === 'projetado') {
+      return mNomes.map(() => `<th style="${thS}">Proj.</th><th style="${thS};color:#166534">%</th>`).join('') +
+        (mesFiltro ? '' : `<th style="${thS};color:#1a56db">Total</th><th style="${thS};color:#166534">%</th><th style="${thS};color:#b45309">Méd</th>`);
+    }
+    return mNomes.map(() => `<th style="${thS}">Real.</th><th style="${thS};color:#166534">%</th>`).join('') +
+      (mesFiltro ? '' : `<th style="${thS};color:#1a56db">Total</th><th style="${thS};color:#166534">%</th><th style="${thS};color:#b45309">Méd</th>`);
+  }
+
+  function cellsGrupo(realArr, projArr, recBArr) {
+    return mCols.map((_,i) => {
+      const r = realArr[i], p = projArr[i];
+      const pct = recBArr[i] > 0 ? (Math.abs(r)/recBArr[i]*100).toFixed(1)+'%' : '';
+      if (modo === 'ambos') return `
+        <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${r>0?'var(--green)':r<0?'var(--red)':'var(--text3)'}">${r!==0?fmtNum(Math.abs(r)):''}</td>
+        <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
+        <td style="padding:7px 5px;text-align:right;font-size:9px;color:var(--text2)">${pct}</td>`;
+      if (modo === 'projetado') return `
+        <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
+        <td style="padding:7px 5px;text-align:right;font-size:9px;color:var(--text2)">${pct}</td>`;
+      return `
+        <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${r>0?'var(--green)':r<0?'var(--red)':'var(--text3)'}">${r!==0?fmtNum(Math.abs(r)):''}</td>
+        <td style="padding:7px 5px;text-align:right;font-size:9px;color:var(--text2)">${pct}</td>`;
+    }).join('');
+  }
+
+  function totaisCols(arr, recBArr) {
+    if (mesFiltro) return '';
+    const total = arr.reduce((s,v)=>s+v,0);
+    const totalRec = recBArr.reduce((s,v)=>s+v,0);
+    const pct = totalRec>0?(Math.abs(total)/totalRec*100).toFixed(1)+'%':'';
+    const media = total/nMeses;
+    if (modo === 'ambos') return `
+      <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
+      <td style="padding:7px 5px;text-align:right;font-size:9px;background:#e8f0fe;color:var(--text2)">${pct}</td>
+      <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;background:#fef9f0;color:var(--text2)">${fmtNum(Math.abs(media))}</td>`;
+    return `
+      <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
+      <td style="padding:7px 5px;text-align:right;font-size:9px;background:#e8f0fe;color:var(--text2)">${pct}</td>
+      <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;background:#fef9f0;color:var(--text2)">${fmtNum(Math.abs(media))}</td>`;
+  }
+
+  function indicadorRow(label, arr, bg, textColor, bold=true) {
+    const total = arr.reduce((s,v)=>s+v,0);
+    const totalRec = recBrutaArr.reduce((s,v)=>s+v,0);
+    const cells = mCols.map((_,i) => {
+      const v = arr[i];
+      const pct = recBrutaArr[i]>0?(v/recBrutaArr[i]*100).toFixed(1)+'%':'';
+      const cols = modo==='ambos' ? 3 : 2;
+      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:${bold?'700':'500'};font-size:11px;color:${v>=0?textColor:'var(--red)'}">${fmtNum(v)}</td>`;
+    }).join('');
+    const totCols = mesFiltro ? '' : (() => {
+      const pct = totalRec>0?(total/totalRec*100).toFixed(1)+'%':'';
+      const cols = modo==='ambos' ? 3 : 3;
+      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${total>=0?textColor:'var(--red)'}">${fmtNum(total)}</td>`;
+    })();
+    return `<tr style="background:${bg};border-top:2px solid var(--border)">
+      <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:${bg};z-index:10;color:${textColor};font-size:11px">${label}</td>
+      ${cells}${totCols}
+    </tr>`;
+  }
 
   let html = `<div style="overflow-x:auto;position:relative">
-  <table style="width:100%;border-collapse:collapse;font-size:11px" id="dre-tbl">
+  <table style="width:100%;border-collapse:collapse;font-size:10px" id="dre-tbl">
     <thead style="position:sticky;top:0;z-index:20;background:var(--bg3)">
       <tr>
-        <th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);position:sticky;left:0;background:var(--bg3);z-index:30;min-width:180px;font-size:10px" rowspan="2">
+        <th style="${thSL};min-width:180px;position:sticky;left:0;background:var(--bg3);z-index:30" rowspan="2">
           DESCRIÇÃO
-          <button onclick="toggleAllDRE()" id="dre-expand-btn" style="margin-left:6px;font-size:10px;padding:2px 6px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer">Expandir</button>
+          <button onclick="toggleAllDRE()" id="dre-expand-btn" style="margin-left:6px;font-size:9px;padding:2px 6px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer">Expandir</button>
         </th>
-        ${thMeses}
-        ${mesFiltro ? '' : `<th style="${thS}" colspan="2">TOTAL</th><th style="${thS}">MÉDIA</th>`}
+        ${colHeaders()}
       </tr>
-      <tr style="background:var(--bg3)">
-        ${thSub}
-        ${mesFiltro ? '' : `<th style="${thS};color:#1a56db">Valor</th><th style="${thS};color:#166534">%</th><th style="${thS};color:#b45309">Valor</th>`}
-      </tr>
+      <tr style="background:var(--bg3)">${subHeaders()}</tr>
     </thead>
     <tbody>`;
 
+  // Grupos normais
   gruposData.forEach((g, gi) => {
-    const totalR = g.realizado.reduce((s,v)=>s+v,0);
-    const totalRecBruta = receitaBruta.reduce((s,v)=>s+v,0);
-    const pctG = totalRecBruta ? (Math.abs(totalR)/totalRecBruta*100).toFixed(1)+'%' : '';
     const corG = g.cor || '#6b7280';
     const bgG = gi%2===0 ? 'var(--bg3)' : '#f8fafc';
     const gId = 'dre-g-' + gi;
-
-    let cellsMes = g.realizado.map((v,i) => {
-      const pct = receitaBruta[i] ? (Math.abs(v)/receitaBruta[i]*100).toFixed(1)+'%' : '';
-      return `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>
-              <td style="padding:8px 6px;text-align:right;font-size:10px;color:var(--text2)">${pct}</td>`;
-    }).join('');
+    const totalReal = g.realizado.reduce((s,v)=>s+v,0);
 
     html += `<tr style="background:${bgG};border-top:2px solid var(--border);cursor:pointer" onclick="toggleDREGrupo('${gId}')">
-      <td style="padding:9px 10px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgG};z-index:10;font-size:11px">
-        <span id="${gId}-arrow" style="margin-right:5px;font-size:10px">▶</span>${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:10px;color:var(--text2)">${g.sinal}</span>
+      <td style="padding:8px 10px;font-weight:700;color:${corG};border-left:3px solid ${corG};position:sticky;left:0;background:${bgG};z-index:10;font-size:10px">
+        <span id="${gId}-arrow" style="margin-right:4px;font-size:9px">▶</span>${g.ordem}. ${g.nome}
+        <span style="font-weight:400;font-size:9px;color:var(--text2)">${g.sinal}</span>
       </td>
-      ${cellsMes}
-      ${mesFiltro ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalR>0?'var(--green)':totalR<0?'var(--red)':'var(--text3)'}">${totalR!==0?fmtNum(Math.abs(totalR)):''}</td>
-        <td style="padding:8px 6px;text-align:right;font-size:10px;background:#e8f0fe;color:var(--text2)">${pctG}</td>
-        <td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${totalR!==0?fmtNum(Math.abs(totalR/nMeses)):''}</td>`}
+      ${cellsGrupo(g.realizado, g.projetado, recBrutaArr)}
+      ${totaisCols(g.realizado, recBrutaArr)}
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
-      const vals = mCols.map(m => calcular(l => (l.categoria||l.categoria_dre||'') === c.nome, m));
-      const total = vals.reduce((s,v)=>s+v,0);
+      const vals = mCols.map(m => calcReal(l => (l.categoria||l.categoria_dre||'') === c.nome, m));
+      const projVals = mCols.map(m => calcProj(c.nome, m));
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
-      let catCells = vals.map((v,i) => {
-        const pct = receitaBruta[i] ? (Math.abs(v)/receitaBruta[i]*100).toFixed(1)+'%' : '';
-        return `<td style="padding:5px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>
-                <td style="padding:5px 6px;text-align:right;font-size:10px;color:var(--text3)">${pct}</td>`;
-      }).join('');
-      const totalRecBruta2 = receitaBruta.reduce((s,v)=>s+v,0);
-      const pctC = totalRecBruta2 ? (Math.abs(total)/totalRecBruta2*100).toFixed(1)+'%' : '';
       html += `<tr class="dre-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
-        <td style="padding:5px 10px 5px 22px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
-        ${catCells}
-        ${mesFiltro ? '' : `<td style="padding:5px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
-          <td style="padding:5px 6px;text-align:right;font-size:10px;background:#e8f0fe;color:var(--text3)">${pctC}</td>
-          <td style="padding:5px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${total!==0?fmtNum(Math.abs(total/nMeses)):''}</td>`}
+        <td style="padding:5px 10px 5px 20px;color:var(--text2);font-size:9px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
+        ${cellsGrupo(vals, projVals, recBrutaArr)}
+        ${totaisCols(vals, recBrutaArr)}
       </tr>`;
     });
+
+    // Indicadores após grupos específicos
+    if (g.nome === 'Deduções de Faturamento') {
+      html += indicadorRow('📊 Receita Líquida', mCols.map((_,i) => recLiq(i)), '#eff6ff', '#1d4ed8');
+    }
+    if (g.nome === 'Custos dos Serviços Indireto') {
+      html += indicadorRow('📊 Margem de Contribuição', mCols.map((_,i) => margem(i)), '#f0fdf4', 'var(--green)');
+      // Ponto de Equilíbrio
+      const peArr = mCols.map((_,i) => pe(i));
+      html += indicadorRow('⚖️ Ponto de Equilíbrio', peArr, '#fefce8', '#b45309', false);
+    }
+    if (g.nome === 'Equipe / CLTs') {
+      html += indicadorRow('💡 Resultado Op. (EBITDA)', mCols.map((_,i) => ebitda(i)), '#1e293b', '#4ade80');
+    }
   });
 
-  // Resultado Operacional
-  const totalRO = resultadoOp.reduce((s,v)=>s+v,0);
-  const totalRecBrutaTotal = receitaBruta.reduce((s,v)=>s+v,0);
-  html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
-    <td style="padding:9px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">Resultado Operacional</td>
-    ${resultadoOp.map((v,i) => {
-      const pct = receitaBruta[i] ? (v/receitaBruta[i]*100).toFixed(1)+'%' : '';
-      return `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>
-              <td style="padding:9px 6px;text-align:right;font-size:10px;color:var(--text2)">${pct}</td>`;
-    }).join('')}
-    ${mesFiltro ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td>
-      <td style="background:#e8f0fe"></td>
-      <td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/nMeses)}</td>`}
-  </tr>`;
-
-  // Resultado Líquido
-  const totalRL = resultadoMes.reduce((s,v)=>s+v,0);
-  html += `<tr style="background:#1e293b;border-top:2px solid var(--accent)">
-    <td style="padding:9px 10px;font-weight:700;position:sticky;left:0;background:#1e293b;z-index:10;color:#fff;font-size:11px">Resultado Líquido</td>
-    ${resultadoMes.map((v,i) => {
-      const pct = receitaBruta[i] ? (v/receitaBruta[i]*100).toFixed(1)+'%' : '';
-      return `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>
-              <td style="padding:9px 6px;text-align:right;font-size:10px;color:#94a3b8">${pct}</td>`;
-    }).join('')}
-    ${mesFiltro ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td>
-      <td style="background:#0f172a"></td>
-      <td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/nMeses)}</td>`}
-  </tr>`;
+  // Resultado Líquido Final
+  html += indicadorRow('🏆 Resultado Líquido', mCols.map((_,i) => resLiq(i)), '#111', '#4ade80');
 
   html += '</tbody></table></div>';
   el.innerHTML = html;
