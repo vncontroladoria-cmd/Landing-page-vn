@@ -356,6 +356,138 @@ tbody tr:hover { background: var(--bg3); }
 /* RESPONSIVE */
 @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } .charts-row { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .sidebar { display: none; } .main { margin-left: 0; width: 100%; } .metrics-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ── UPGRADE VISUAL ─────────────────────────────────── */
+
+/* Animação de entrada das páginas */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page.active { animation: pageIn 0.22s ease forwards; }
+
+/* Cards com hover elegante */
+.metric-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+}
+.metric-card::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%);
+  pointer-events: none; border-radius: 12px;
+}
+
+/* Card geral hover */
+.card {
+  transition: box-shadow 0.18s ease;
+}
+.card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+/* Botão primário com shimmer no hover */
+.btn-primary {
+  position: relative; overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute; top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transition: left 0.4s ease;
+}
+.btn-primary:hover::after { left: 140%; }
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+
+/* Linhas de tabela com transição */
+tbody tr {
+  transition: background 0.12s ease;
+}
+
+/* Nav items com transição suave */
+.nav-item {
+  transition: background 0.15s ease, color 0.15s ease, padding-left 0.15s ease;
+}
+.nav-item:hover { padding-left: calc(0.875rem + 2px); }
+.nav-item.active {
+  position: relative;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute; left: 0; top: 20%; bottom: 20%;
+  width: 3px; background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+
+/* Topbar com borda sutil */
+.topbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Modal com animação */
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-overlay.open .modal {
+  animation: modalIn 0.2s ease forwards;
+}
+
+/* Toast com animação melhorada */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast.show { animation: toastIn 0.25s ease forwards; }
+
+/* Sidebar nav section fade */
+.sidebar.open .sidebar-section {
+  animation: fadeIn 0.2s ease forwards;
+}
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+
+/* Input focus com glow verde suave */
+.form-group input:focus,
+.form-group select:focus,
+input:focus, select:focus {
+  box-shadow: 0 0 0 3px rgba(42,157,92,0.12);
+}
+
+/* Badges com transição */
+.badge { transition: opacity 0.15s; }
+
+/* Botão normal hover refinado */
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.btn:active { transform: translateY(0); box-shadow: none; }
+
+/* Scrollbar mais fina e elegante */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* Sidebar logo hover */
+.sidebar-logo { transition: background 0.15s; }
+.sidebar-logo:hover { background: rgba(255,255,255,0.05); }
+
+/* Metric card borda colorida animada no hover */
+.metric-card::before {
+  transition: opacity 0.2s ease;
+}
+.metric-card:hover::before {
+  opacity: 1;
+  background: linear-gradient(90deg, var(--accent), rgba(42,157,92,0.3));
+}
 </style>
 </head>
 <body>
