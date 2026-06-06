@@ -3104,6 +3104,16 @@ async function confirmarImportacaoGlobal() {
   btn.disabled = true;
 
   try {
+    // Verifica quantos registros já existem no Supabase para este tipo
+    const { count } = await sb.from('rel_dados_brutos')
+      .select('id', { count: 'exact', head: true })
+      .eq('tipo_id', _impTipoEscolhido.id);
+    
+    if (count > 0) {
+      const ok = confirm(`⚠️ Já existem ${count} registros importados para "${_impTipoEscolhido.nome}".\n\nSe importar novamente os dados ficarão duplicados.\n\nClique OK para importar mesmo assim ou Cancelar para ir na página de Importação e limpar os dados antes.`);
+      if (!ok) { btn.textContent = '💾 Confirmar Importação'; btn.disabled = false; return; }
+    }
+
     const linhas = _impArquivoRows.map((r, i) => ({
       tipo_id: _impTipoEscolhido.id,
       linha_numero: i + 1,
