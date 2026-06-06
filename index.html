@@ -5143,7 +5143,7 @@ function renderClientes(linhas, ano, mes) {
   const perEl = el('cli-periodo');
   if(el('cli-periodo-sub')) el('cli-periodo-sub').textContent = `${totalClientes} clientes · ${recorrentes.length} recorrentes · ${novos.length} novos`;
   if (perEl) {
-    perEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(perEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE <span class=si>↕</span></th>
@@ -5167,9 +5167,9 @@ function renderClientes(linhas, ano, mes) {
           </td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.visitas}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
-        </tr>`;
+        </tr>`
       }).join('')}</tbody>
-    </table>`;
+    </table>`);
   }
 
   // ── Clientes novos ──────────────────────────────────────
@@ -5178,7 +5178,7 @@ function renderClientes(linhas, ano, mes) {
   const novosEl = el('cli-novos-lista');
   if(el('cli-novos-sub')) el('cli-novos-sub').textContent = `${novos.length} novos · R$ ${novos.reduce((s,[,v])=>s+v.total,0).toLocaleString('pt-BR',{minimumFractionDigits:2})} consumido`;
   if (novosEl) {
-    novosEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(novosEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE <span class=si>↕</span></th>
@@ -5199,7 +5199,7 @@ function renderClientes(linhas, ano, mes) {
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.visitas}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}</tbody>
-    </table>`;
+    </table>`);
   }
 }
 
@@ -5328,7 +5328,7 @@ function renderProdutos(rows) {
 
   const rankEl = el('prod-ranking');
   if (rankEl) {
-    rankEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(rankEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:30px;text-align:left"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PRODUTO <span class=si>↕</span></th>
@@ -5348,9 +5348,9 @@ function renderProdutos(rows) {
           </td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
-        </tr>`;
+        </tr>`
       }).join('')}</tbody>
-    </table>`;
+    </table>`);
   }
 
   // ── Gráfico por categoria ───────────────────────────────
@@ -5400,7 +5400,7 @@ function renderProdutos(rows) {
 
   const profEl = el('prod-por-prof');
   if (profEl) {
-    profEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(profEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PROFISSIONAL <span class=si>↕</span></th>
@@ -5425,7 +5425,7 @@ function renderProdutos(rows) {
           <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(total)}</td>
         </tr>
       </tbody>
-    </table>`;
+    </table>`);
   }
 
   // ── Clientes que compraram ──────────────────────────────
@@ -5444,7 +5444,7 @@ function renderProdutos(rows) {
 
   const cliEl = el('prod-por-cli');
   if (cliEl) {
-    cliEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(cliEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE <span class=si>↕</span></th>
@@ -5463,9 +5463,9 @@ function renderProdutos(rows) {
           </td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
-        </tr>`;
+        </tr>`
       }).join('')}</tbody>
-    </table>`;
+    </table>`);
   }
 }
 
@@ -5554,7 +5554,7 @@ async function loadPerformance() {
 
   const rankEl = el('perf-ranking-prof');
   if (rankEl) {
-    rankEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(rankEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">PROFISSIONAL <span class=si>↕</span></th>
@@ -5577,7 +5577,7 @@ async function loadPerformance() {
             <td style="padding:8px;text-align:right;font-size:12px;color:var(--text2)">${v.atend.size}</td>
             <td style="padding:8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.fat)}</td>
             <td style="padding:8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;color:var(--text2)">${fmtBRL(v.comissao)}</td>
-          </tr>`;
+          </tr>`
         }).join('')}
         <tr style="background:var(--bg3);border-top:2px solid var(--border2)">
           <td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2)">TOTAL</td>
@@ -5586,7 +5586,7 @@ async function loadPerformance() {
           <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--text2)">${fmtBRL(comissaoTotal)}</td>
         </tr>
       </tbody>
-    </table>`;
+    </table>`);
   }
 
   // ── Gráfico donut profissionais ────────────────────────
@@ -5623,7 +5623,7 @@ async function loadPerformance() {
 
   const srvEl = el('perf-servicos');
   if (srvEl) {
-    srvEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(srvEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">SERVIÇO <span class=si>↕</span></th>
@@ -5638,7 +5638,7 @@ async function loadPerformance() {
           <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table>`);
   }
 
   // ── Clientes atendidos ─────────────────────────────────
@@ -5654,7 +5654,7 @@ async function loadPerformance() {
 
   const cliPerfEl = el('perf-clientes');
   if (cliPerfEl) {
-    cliPerfEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(cliPerfEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE <span class=si>↕</span></th>
@@ -5669,7 +5669,7 @@ async function loadPerformance() {
           <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table>`);
   }
 }
 
@@ -6902,6 +6902,14 @@ function _doSort(th) {
   [...dados, ...foot].forEach(r => tbody.appendChild(r));
 }
 
+// Helper: seta innerHTML e ativa sort/sticky na tabela resultante
+function _setTable(el, html) {
+  if (!el) return;
+  el.innerHTML = html;
+  const t = el.querySelector('table');
+  if (t) _ativarTh(t);
+}
+
 // Delegação global — captura clique em qualquer th
 document.addEventListener('click', e => {
   const th = e.target.closest('th');
@@ -6913,19 +6921,21 @@ document.addEventListener('click', e => {
 
 // Aplica sticky + indicador em todos os th de uma tabela
 function _ativarTh(table) {
-  if (table._sortOk) return;
-  table._sortOk = true;
   table.querySelectorAll('thead th').forEach(th => {
-    if (th.classList.contains('no-sort')) return;
-    th.style.cssText += ';position:sticky;top:0;z-index:10;cursor:pointer;user-select:none';
-    if (!th.style.background) th.style.background = 'var(--bg3)';
-    if (!th.querySelector('._si')) {
-      const si = document.createElement('span');
-      si.className = '_si';
-      si.style.cssText = 'font-size:9px;opacity:.3;margin-left:3px;font-weight:400';
-      si.textContent = '↕';
-      th.appendChild(si);
-    }
+    if (th.classList.contains('no-sort') || th.dataset.si) return;
+    th.dataset.si = '1';
+    th.style.position = 'sticky';
+    th.style.top = '0';
+    th.style.zIndex = '10';
+    th.style.background = 'var(--bg3)';
+    th.style.cursor = 'pointer';
+    th.style.userSelect = 'none';
+    th.style.whiteSpace = 'nowrap';
+    const si = document.createElement('span');
+    si.className = '_si';
+    si.style.cssText = 'font-size:9px;opacity:.3;margin-left:3px;font-weight:400;display:inline';
+    si.textContent = '↕';
+    th.appendChild(si);
   });
 }
 
@@ -7077,7 +7087,7 @@ function renderServicos(data) {
 
   const rankingEl = el('srv-ranking');
   if (rankingEl) {
-    rankingEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(rankingEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="${TH_STYLE};text-align:left;width:36px"># <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="${TH_STYLE};text-align:left">SERVIÇO <span class=si>↕</span></th>
@@ -7100,9 +7110,9 @@ function renderServicos(data) {
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
           <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
-        </tr>`;
+        </tr>`
       }).join('')}</tbody>
-    </table>`;
+    </table>`);
   }
 
   // Por categoria
@@ -7117,7 +7127,7 @@ function renderServicos(data) {
 
   const catEl = el('srv-por-cat');
   if (catEl) {
-    catEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(catEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CATEGORIA <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">QTD <span class=si>↕</span></th>
@@ -7131,9 +7141,9 @@ function renderServicos(data) {
           <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
           <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--green)">${fmtBRL(v.total)}</td>
           <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
-        </tr>`;
+        </tr>`
       }).join('')}</tbody>
-    </table>`;
+    </table>`);
   }
 
   // Por profissional
@@ -7149,7 +7159,7 @@ function renderServicos(data) {
 
   const profEl = el('srv-por-prof');
   if (profEl) {
-    profEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(profEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:left">PROFISSIONAL <span class=si>↕</span></th>
         <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">ATEND. <span class=si>↕</span></th>
@@ -7168,9 +7178,9 @@ function renderServicos(data) {
           <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(ticket)}</td>
           <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
           <td style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
-        </tr>`;
+        </tr>`
       }).join('')}</tbody>
-    </table>`;
+    </table>`);
   }
 
   // Histórico por cliente (expansível)
@@ -7296,7 +7306,7 @@ function renderSrvDetalhe(data) {
   const el = document.getElementById('srv-detalhe');
   if (!el) return;
   if (!data.length) { el.innerHTML = '<div class="empty">Nenhum dado</div>'; return; }
-  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+  _setTable(el, `<table style="width:100%;border-collapse:collapse;font-size:11px">
     <thead><tr style="background:var(--bg3);position:sticky;top:0;z-index:5">
       <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">DATA</th>
       <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">PROFISSIONAL</th>
@@ -7313,7 +7323,7 @@ function renderSrvDetalhe(data) {
       <td style="padding:6px 10px"><span class="badge badge-blue">${r.categoria||'—'}</span></td>
       <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${Number(r.total)>0?'var(--green)':'var(--text2)'}">${fmtBRL(r.total||0)}</td>
     </tr>`).join('')}</tbody>
-  </table>`;
+  </table>`);
 }
 
 function filtrarSrvTabela(termo) {
