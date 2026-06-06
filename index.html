@@ -6911,7 +6911,26 @@ function parseSrvRow(colunas) {
     return '';
   };
   const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
-  const parseD = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
+  const parseD = v => {
+    if (!v && v !== 0) return null;
+    const s = String(v).trim();
+    if (!s || s === 'NaN') return null;
+    // YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+    // DD/MM/YYYY ou DD-MM-YYYY
+    const m1 = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+    if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+    // Serial Excel (ex: 46112 = 01/04/2026)
+    const n = parseInt(s);
+    if (!isNaN(n) && n > 40000 && n < 60000) {
+      const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+      if (!isNaN(d)) return d.toISOString().substring(0, 10);
+    }
+    // Tenta Date.parse como fallback
+    const dp = new Date(s);
+    if (!isNaN(dp)) return dp.toISOString().substring(0, 10);
+    return null;
+  };
 
   return {
     profissional:   get('Profissional','profissional'),
