@@ -10,22 +10,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f5f6f8;
+  --bg: #f4f5f7;
   --bg2: #ffffff;
-  --bg3: #f7f8fa;
+  --bg3: #f8f9fa;
   --bg4: #eef0f3;
-  --border: #e8eaed;
+  --border: #e4e6ea;
   --border2: #d0d3d9;
-  --text: #111827;
+  --text: #1a1d23;
   --text2: #6b7280;
   --text3: #9ca3af;
-  --green: #059669;
-  --green-dim: #05966918;
-  --green-light: #ecfdf5;
+  --green: #2a9d5c;
+  --green-dim: #2a9d5c18;
+  --green-light: #e8f5ee;
   --red: #dc2626;
   --red-dim: #dc262618;
-  --amber: #d97706;
-  --amber-dim: #d9770618;
+  --amber: #b45309;
+  --amber-dim: #b4530918;
   --blue: #2563eb;
   --blue-dim: #2563eb18;
   --purple: #7c3aed;
@@ -33,12 +33,12 @@
   --teal: #0891b2;
   --teal-dim: #0891b218;
   --silver: #8a9bb0;
-  --accent: #059669;
+  --accent: #2a9d5c;
   --sidebar-bg: #1e2d3d;
   --sidebar-w: 230px;
-  --radius: 12px;
-  --shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.07);
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -195,61 +195,45 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 /* CARDS MÉTRICAS */
 .metrics-grid {
   display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 14px; margin-bottom: 1.25rem;
+  gap: 12px; margin-bottom: 1.25rem;
 }
 .metric-card {
   background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 1.25rem 1.375rem;
+  border-radius: 12px; padding: 1.125rem 1.25rem;
   box-shadow: var(--shadow); position: relative; overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
-.metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .metric-card::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, var(--accent), rgba(5,150,105,0.2));
+  background: linear-gradient(90deg, var(--accent), transparent);
 }
-/* Cards coloridos — gradiente suave pastel */
-.metric-card.c-green { background: linear-gradient(135deg,#f0fdf8 0%,#dcfce7 100%); border:1px solid #bbf7d0; }
-.metric-card.c-blue  { background: linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%); border:1px solid #bfdbfe; }
-.metric-card.c-purple{ background: linear-gradient(135deg,#faf5ff 0%,#ede9fe 100%); border:1px solid #ddd6fe; }
-.metric-card.c-amber { background: linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%); border:1px solid #fde68a; }
-.metric-card.c-teal  { background: linear-gradient(135deg,#f0fdfa 0%,#ccfbf1 100%); border:1px solid #99f6e4; }
-.metric-card.c-red   { background: linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%); border:1px solid #fecdd3; }
-.metric-card.c-green::before { background: linear-gradient(90deg,#059669,transparent); }
-.metric-card.c-blue::before  { background: linear-gradient(90deg,#2563eb,transparent); }
-.metric-card.c-purple::before{ background: linear-gradient(90deg,#7c3aed,transparent); }
-.metric-card.c-amber::before { background: linear-gradient(90deg,#d97706,transparent); }
-.metric-card.c-teal::before  { background: linear-gradient(90deg,#0891b2,transparent); }
-.metric-card.c-red::before   { background: linear-gradient(90deg,#dc2626,transparent); }
-.metric-card.c-green .metric-label,.metric-card.c-green .metric-delta { color: #065f46; }
-.metric-card.c-green .metric-val   { color: #047857; }
-.metric-card.c-blue  .metric-label,.metric-card.c-blue  .metric-delta { color: #1e40af; }
-.metric-card.c-blue  .metric-val   { color: #1d4ed8; }
-.metric-card.c-purple .metric-label,.metric-card.c-purple .metric-delta{ color: #5b21b6; }
-.metric-card.c-purple .metric-val  { color: #6d28d9; }
-.metric-card.c-amber .metric-label,.metric-card.c-amber .metric-delta { color: #92400e; }
-.metric-card.c-amber .metric-val   { color: #b45309; }
-.metric-card.c-teal  .metric-label,.metric-card.c-teal  .metric-delta { color: #065a4d; }
-.metric-card.c-teal  .metric-val   { color: #0e7490; }
-.metric-card.c-red   .metric-label,.metric-card.c-red   .metric-delta { color: #9f1239; }
-.metric-card.c-red   .metric-val   { color: #dc2626; }
-.metric-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; line-height: 1.2; }
+/* Cards coloridos — mesmo estilo do sistema de referência */
+.metric-card.c-green  { background:#f0faf5; border-color:#c6e8d5; }
+.metric-card.c-green::before  { background:linear-gradient(90deg,#2a9d5c,transparent); }
+.metric-card.c-blue   { background:#eff6ff; border-color:#bfdbfe; }
+.metric-card.c-blue::before   { background:linear-gradient(90deg,#2563eb,transparent); }
+.metric-card.c-purple { background:#faf5ff; border-color:#ddd6fe; }
+.metric-card.c-purple::before { background:linear-gradient(90deg,#7c3aed,transparent); }
+.metric-card.c-amber  { background:#fffbeb; border-color:#fde68a; }
+.metric-card.c-amber::before  { background:linear-gradient(90deg,#d97706,transparent); }
+.metric-card.c-teal   { background:#f0fdfa; border-color:#99f6e4; }
+.metric-card.c-teal::before   { background:linear-gradient(90deg,#0891b2,transparent); }
+.metric-card.c-red    { background:#fff1f2; border-color:#fecdd3; }
+.metric-card.c-red::before    { background:linear-gradient(90deg,#dc2626,transparent); }
+.metric-label { font-size: 11px; color: var(--text2); margin-bottom: 8px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; }
+.metric-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; line-height: 1.2; color: var(--text); }
 .metric-val.green { color: var(--green); }
 .metric-val.red { color: var(--red); }
 .metric-val.amber { color: var(--amber); }
-.metric-delta { font-size: 11px; margin-top: 5px; font-weight: 500; }
+.metric-delta { font-size: 11px; margin-top: 5px; font-weight: 500; color: var(--text3); }
 .metric-delta.up { color: var(--green); }
 .metric-delta.down { color: var(--red); }
-.metric-delta.neutral { color: var(--text3); }
 
 /* CARDS GERAIS */
 .card {
   background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 1.25rem;
-  margin-bottom: 14px; box-shadow: var(--shadow);
-  transition: box-shadow 0.18s ease;
+  border-radius: 12px; padding: 1.25rem;
+  margin-bottom: 12px; box-shadow: var(--shadow);
 }
-.card:hover { box-shadow: var(--shadow-md); }
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .card-title { font-size: 13px; font-weight: 600; color: var(--text); }
 .card-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
