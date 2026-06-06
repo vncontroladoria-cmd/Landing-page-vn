@@ -6849,68 +6849,81 @@ function toggleInline(rowId) {
 
 
 // ─── ORDENAÇÃO DE TABELAS ────────────────────────────────
+// ─── SORT UNIVERSAL ────────────────────────────────────────
 function sortTable(th) {
   const table = th.closest('table');
+  if (!table) return;
   const tbody = table.querySelector('tbody');
+  if (!tbody) return;
   const ths = Array.from(table.querySelectorAll('thead th'));
   const col = ths.indexOf(th);
-  const asc = th.dataset.sortDir !== 'desc';
+  // alterna: primeiro clique = desc (maior→menor), segundo = asc
+  const goDesc = th.dataset.dir !== 'desc';
+  ths.forEach(t => { t.dataset.dir=''; t.querySelector('.si') && (t.querySelector('.si').textContent='↕'); });
+  th.dataset.dir = goDesc ? 'desc' : 'asc';
+  if (th.querySelector('.si')) th.querySelector('.si').textContent = goDesc ? '↓' : '↑';
 
-  // Reset todos, seta o clicado
-  ths.forEach(t => {
-    t.dataset.sortDir = '';
-    const lbl = t.querySelector('.sort-lbl');
-    if (lbl) lbl.textContent = ' ↕';
-  });
-  th.dataset.sortDir = asc ? 'desc' : 'asc';
-  const lbl = th.querySelector('.sort-lbl');
-  if (lbl) lbl.textContent = asc ? ' ↓' : ' ↑';
-
-  const rows = Array.from(tbody.querySelectorAll('tr:not([style*="display:none"])'));
-  const all  = Array.from(tbody.querySelectorAll('tr'));
-
-  // Separa linhas de totais (última linha com fundo escuro) — não ordena
-  const totais = all.filter(r => r.style.background || r.querySelector('td[colspan]'));
-  const dados  = all.filter(r => !totais.includes(r));
+  const allRows = Array.from(tbody.querySelectorAll('tr'));
+  // Linhas de total/rodapé ficam no final sem ordenar
+  const isTot = r => r.querySelector('td[colspan]') || r.style.borderTop?.includes('2px');
+  const totais = allRows.filter(isTot);
+  const dados  = allRows.filter(r => !isTot(r));
 
   dados.sort((a, b) => {
-    const ac = a.cells[col]; const bc = b.cells[col];
-    if (!ac || !bc) return 0;
-    const av = (ac.querySelector('.cell-view') || ac).textContent.trim();
-    const bv = (bc.querySelector('.cell-view') || bc).textContent.trim();
-    // Tenta número (R$, %, inteiro)
-    const an = parseFloat(av.replace(/[R$%\s]/g,'').replace(/\./g,'').replace(',','.'));
-    const bn = parseFloat(bv.replace(/[R$%\s]/g,'').replace(/\./g,'').replace(',','.'));
-    if (!isNaN(an) && !isNaN(bn)) return asc ? bn - an : an - bn;
-    return asc ? av.localeCompare(bv,'pt-BR') : bv.localeCompare(av,'pt-BR');
+    const ca = a.cells[col], cb = b.cells[col];
+    if (!ca || !cb) return 0;
+    const ta = (ca.querySelector('.cell-view')||ca).textContent.replace(/\n/g,' ').trim();
+    const tb = (cb.querySelector('.cell-view')||cb).textContent.replace(/\n/g,' ').trim();
+    const na = parseFloat(ta.replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'));
+    const nb = parseFloat(tb.replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'));
+    if (!isNaN(na) && !isNaN(nb)) return goDesc ? nb-na : na-nb;
+    return goDesc ? tb.localeCompare(ta,'pt-BR') : ta.localeCompare(tb,'pt-BR');
   });
-
-  dados.forEach(r => tbody.appendChild(r));
-  totais.forEach(r => tbody.appendChild(r));
+  [...dados,...totais].forEach(r => tbody.appendChild(r));
 }
 
-// Aplica sortTable em todas as tabelas ao carregar
-function aplicarSort(containerEl) {
-  const ths = (containerEl||document).querySelectorAll('thead th:not(.no-sort)');
-  ths.forEach(th => {
-    if (th.dataset.sortBound) return;
-    th.dataset.sortBound = '1';
-    th.style.cursor = 'pointer';
-    th.style.userSelect = 'none';
-    if (!th.querySelector('.sort-lbl')) {
-      const lbl = document.createElement('span');
-      lbl.className = 'sort-lbl';
-      lbl.style.cssText = 'opacity:.4;font-size:10px;margin-left:2px';
-      lbl.textContent = ' ↕';
-      th.appendChild(lbl);
-    }
-    th.addEventListener('click', () => sortTable(th));
+// Injeta sort + sticky em qualquer tabela (nova ou existente)
+function ativarSort(root) {
+  const tabelas = (root instanceof HTMLTableElement) ? [root]
+    : (root||document).querySelectorAll('table');
+  tabelas.forEach(table => {
+    if (table.dataset.sortOk) return;
+    table.dataset.sortOk = '1';
+    const ths = table.querySelectorAll('thead th');
+    ths.forEach(th => {
+      if (th.classList.contains('no-sort')) return;
+      // sticky
+      th.style.position = 'sticky';
+      th.style.top = '0';
+      th.style.zIndex = '10';
+      if (!th.style.background && !th.style.backgroundColor)
+        th.style.background = 'var(--bg3)';
+      // indicador
+      if (!th.querySelector('.si')) {
+        const si = document.createElement('span');
+        si.className = 'si';
+        si.style.cssText = 'opacity:.35;font-size:9px;margin-left:3px;font-weight:400';
+        si.textContent = '↕';
+        th.appendChild(si);
+      }
+      th.style.cursor = 'pointer';
+      th.style.userSelect = 'none';
+      th.addEventListener('click', () => sortTable(th));
+    });
   });
 }
 
-// Observer para aplicar sort em tabelas criadas dinamicamente
-const _sortObserver = new MutationObserver(() => aplicarSort(document));
-_sortObserver.observe(document.body, { childList: true, subtree: true });
+// Aplica sort em tabelas existentes
+function aplicarSort(el) { ativarSort(el); }
+
+// Observer: detecta novas tabelas criadas dinamicamente e ativa sort
+new MutationObserver(muts => {
+  muts.forEach(m => m.addedNodes.forEach(n => {
+    if (n.nodeType !== 1) return;
+    if (n.tagName === 'TABLE') ativarSort(n);
+    else n.querySelectorAll?.('table').forEach(t => ativarSort(t));
+  }));
+}).observe(document.body, { childList: true, subtree: true });
 
 
 // ─── SERVIÇOS ────────────────────────────────────────────
