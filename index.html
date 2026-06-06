@@ -6925,41 +6925,30 @@ async function initServicos() {
 function parseSrvRow(colunas) {
   const c = colunas || {};
   const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-  
-  // Busca coluna: exata primeiro, depois parcial
-  const getCol = (...nomes) => {
-    const keys = Object.keys(c);
+  const keys = Object.keys(c);
+
+  // Busca valor de uma coluna pelo nome exato ou parcial
+  const get = (...nomes) => {
     for (const n of nomes) {
       const k = keys.find(k => norm(k) === norm(n));
-      if (k !== undefined && c[k] !== '' && c[k] !== null && c[k] !== undefined) return String(c[k]).trim();
+      if (k && c[k] != null && c[k] !== '') return String(c[k]).trim();
     }
     for (const n of nomes) {
-      const k = keys.find(k => norm(k).startsWith(norm(n)) || norm(n) === norm(k));
-      if (k !== undefined && c[k] !== '' && c[k] !== null && c[k] !== undefined) return String(c[k]).trim();
+      const k = keys.find(k => norm(k).includes(norm(n)));
+      if (k && c[k] != null && c[k] !== '') return String(c[k]).trim();
     }
     return '';
   };
-  const get = getCol;
 
-  // Busca TOTAL de forma explícita — nunca confunde com Valor
+  // Total e Valor buscados pela coluna EXATA — sem ambiguidade
   const getTotal = () => {
-    const keys = Object.keys(c);
-    // 1. Chave exatamente "Total" (case insensitive)
-    const exactTotal = keys.find(k => norm(k) === 'total');
-    if (exactTotal !== undefined && c[exactTotal] !== '' && c[exactTotal] !== null) {
-      return String(c[exactTotal]).trim();
-    }
-    return '';
+    // Busca chave cuja norm seja exatamente 'total'
+    const k = keys.find(k => norm(k) === 'total');
+    return (k && c[k] != null && c[k] !== '') ? String(c[k]).trim() : '';
   };
-  
-  // Busca VALOR de forma explícita — nunca confunde com Total
   const getValor = () => {
-    const keys = Object.keys(c);
-    const exactValor = keys.find(k => norm(k) === 'valor');
-    if (exactValor !== undefined && c[exactValor] !== '' && c[exactValor] !== null) {
-      return String(c[exactValor]).trim();
-    }
-    return '';
+    const k = keys.find(k => norm(k) === 'valor');
+    return (k && c[k] != null && c[k] !== '') ? String(c[k]).trim() : '';
   };
   const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
   const parseD = v => {
@@ -6983,17 +6972,6 @@ function parseSrvRow(colunas) {
     return null;
   };
 
-  // Log das chaves e valores de Total/Valor (só primeiros 2 registros)
-  if (!parseSrvRow._logged) {
-    parseSrvRow._logged = 0;
-  }
-  if (parseSrvRow._logged < 3) {
-    parseSrvRow._logged++;
-    console.log('[parseSrvRow] chaves:', Object.keys(c));
-    console.log('[parseSrvRow] Total raw:', c['Total'], '| Valor raw:', c['Valor']);
-    console.log('[parseSrvRow] getTotal():', getTotal(), '| getValor():', getValor());
-  }
-
   return {
     profissional:   get('Profissional','profissional'),
     data_comanda:   parseD(get('Data Comanda','DataComanda','Data','data')),
@@ -7008,14 +6986,7 @@ function parseSrvRow(colunas) {
     qtd:            parseInt(get('Qtd.','Qtd','qtd','quantidade'))||1,
     valor:          parseN(getValor()),
     desconto:       parseN(get('Desconto')),
-    total:          (() => {
-      const t = parseN(getTotal());
-      if (t > 0) return t;
-      // fallback: Valor * Qtd se Total não disponível
-      const v = parseN(getValor());
-      const q = parseInt(get('Qtd.','Qtd','qtd','quantidade'))||1;
-      return v * q;
-    })(),
+    total:          parseN(getTotal()) || parseN(getValor()) * (parseInt(get('Qtd.','Qtd','qtd'))||1),
     pacote:         get('Pacote','pacote'),
   };
 }
