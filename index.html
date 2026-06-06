@@ -89,7 +89,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 
 /* APP */
 #app { display: none; }
-.layout { height: 100vh; overflow: hidden; }
+.layout { height: 100vh; }
 
 /* SIDEBAR — overlay, não ocupa espaço no layout */
 .sidebar {
@@ -181,7 +181,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .btn-logout:hover { border-color: var(--red); color: #f87171; }
 
 /* MAIN */
-.main { display: flex; flex-direction: column; overflow: hidden; width: 100%; }
+.main { display: flex; flex-direction: column; width: 100%; min-height: 100vh; }
 .topbar {
   padding: 0 1.5rem; height: 58px;
   background: linear-gradient(to right,#ffffff,#f9fafb); border-bottom: 1px solid var(--border);
@@ -386,7 +386,7 @@ tbody tr:hover { background: var(--bg3); }
 
 /* ── RESPONSIVO TOTAL ───────────────────────────────── */
 /* Conteúdo nunca ultrapassa a tela */
-.content { overflow-x: hidden; }
+.content { overflow-y: auto; overflow-x: hidden; height: 100vh; }
 .page { max-width: 100%; overflow-x: hidden; }
 
 /* Tabelas responsivas — scroll interno se necessário */
