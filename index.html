@@ -1501,7 +1501,7 @@ input:focus, select:focus {
           </div>
 
           <!-- LINHA 1: Ranking (top10 fixo + rolagem) + Donut mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
                 🏆 Ranking de Serviços
@@ -1515,7 +1515,7 @@ input:focus, select:focus {
                 📂 Distribuição por Categoria
               </div>
               <div style="padding:1rem">
-                <canvas id="srv-chart-cat" height="150"></canvas>
+                <canvas id="srv-chart-cat" height="100"></canvas>
               </div>
               <!-- mantém por-cat e chart-prof ocultos mas funcionais -->
               <div id="srv-por-cat" style="display:none"></div>
@@ -1604,7 +1604,7 @@ input:focus, select:focus {
           </div>
 
           <!-- LINHA 2: Gráfico por dia + Gráfico canal — mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
                 <div style="font-weight:600;font-size:13px">📅 Clientes por Dia do Mês</div>
@@ -1736,7 +1736,7 @@ input:focus, select:focus {
           </div>
 
           <!-- LINHA 1: Ranking top10 + Donut mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
                 <span>🏆 Ranking de Produtos</span>
@@ -1752,7 +1752,7 @@ input:focus, select:focus {
                 <span id="prod-cat-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
               </div>
               <div style="padding:1rem">
-                <canvas id="prod-chart-cat" height="150"></canvas>
+                <canvas id="prod-chart-cat" height="100"></canvas>
               </div>
             </div>
           </div>
@@ -1845,7 +1845,7 @@ input:focus, select:focus {
           <div style="font-size:11px;color:var(--text2);margin-bottom:1rem" id="perf-info-bar"></div>
 
           <!-- LINHA 1: Ranking + Donut mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
                 <div style="font-weight:600;font-size:13px">🏆 Ranking de Profissionais</div>
@@ -1861,7 +1861,7 @@ input:focus, select:focus {
                 <div style="font-size:11px;color:var(--text2);margin-top:1px">Distribuição percentual</div>
               </div>
               <div style="padding:1rem">
-                <canvas id="perf-chart-prof" height="150"></canvas>
+                <canvas id="perf-chart-prof" height="100"></canvas>
               </div>
             </div>
           </div>
