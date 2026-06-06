@@ -6851,120 +6851,98 @@ function toggleInline(rowId) {
 // ─── ORDENAÇÃO DE TABELAS ────────────────────────────────
 // ─── SORT UNIVERSAL ────────────────────────────────────────
 // sortCol: chamado pelo onclick inline dos th gerados dinamicamente
-function sortCol(th) {
+// ─── SORT + STICKY HEADER UNIVERSAL ─────────────────────────
+// Funciona via delegação no document — detecta clique em qualquer th de qualquer tabela
+function _doSort(th) {
   const table = th.closest('table');
   if (!table) return;
   const tbody = table.querySelector('tbody');
   if (!tbody) return;
   const ths = Array.from(table.querySelectorAll('th'));
   const col = ths.indexOf(th);
+  if (col < 0) return;
 
-  // alterna direção: padrão = desc (maior→menor)
-  const goDesc = th.dataset.dir !== 'desc';
+  const goDesc = th.dataset.sd !== 'desc';
+
+  // Reset visual todos os th da tabela
   ths.forEach(t => {
-    t.dataset.dir = '';
-    t.style.color = 'var(--text2)';
-    const si = t.querySelector('.si');
-    if (si) si.textContent = '↕';
+    t.dataset.sd = '';
+    t.style.color = '';
+    const si = t.querySelector('._si');
+    if (si) { si.textContent = '↕'; si.style.opacity = '0.3'; }
   });
-  th.dataset.dir = goDesc ? 'desc' : 'asc';
+  // Marca o clicado
+  th.dataset.sd = goDesc ? 'desc' : 'asc';
   th.style.color = 'var(--accent)';
-  const si = th.querySelector('.si');
-  if (si) si.textContent = goDesc ? '↓' : '↑';
+  const si = th.querySelector('._si');
+  if (si) { si.textContent = goDesc ? '↓' : '↑'; si.style.opacity = '1'; }
 
-  // separa linhas de totais (colspan ou border-top 2px)
-  const allRows = Array.from(tbody.querySelectorAll('tr'));
-  const isTot = r => r.querySelector('td[colspan]');
-  const totais = allRows.filter(isTot);
-  const dados  = allRows.filter(r => !isTot(r));
+  // Ordena — linhas com colspan vão pro final (total/rodapé)
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const isFoot = r => !!r.querySelector('td[colspan]');
+  const dados = rows.filter(r => !isFoot(r));
+  const foot  = rows.filter(isFoot);
 
   dados.sort((a, b) => {
     const ca = a.cells[col], cb = b.cells[col];
     if (!ca || !cb) return 0;
-    const ta = (ca.querySelector('.cell-view') || ca).textContent.trim();
-    const tb = (cb.querySelector('.cell-view') || cb).textContent.trim();
-    const na = parseFloat(ta.replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'));
-    const nb = parseFloat(tb.replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'));
+    // pega só o texto visível, ignorando barras/ícones
+    const ta = ca.textContent.replace(/\s+/g,' ').trim();
+
+    const tb = cb.textContent.replace(/\s+/g,' ').trim();
+
+    // tenta número: remove R$ . espaço %, converte vírgula decimal
+    const na = parseFloat(ta.replace(/[^\d,.-]/g,'').replace('.','').replace(',','.'));
+    const nb = parseFloat(tb.replace(/[^\d,.-]/g,'').replace('.','').replace(',','.'));
     if (!isNaN(na) && !isNaN(nb)) return goDesc ? nb - na : na - nb;
-    return goDesc ? tb.localeCompare(ta,'pt-BR') : ta.localeCompare(tb,'pt-BR');
+    return goDesc
+      ? tb.localeCompare(ta, 'pt-BR', {sensitivity:'base'})
+      : ta.localeCompare(tb, 'pt-BR', {sensitivity:'base'});
   });
-  [...dados,...totais].forEach(r => tbody.appendChild(r));
+  [...dados, ...foot].forEach(r => tbody.appendChild(r));
 }
 
-function sortTable(th) {
-  const table = th.closest('table');
-  if (!table) return;
-  const tbody = table.querySelector('tbody');
-  if (!tbody) return;
-  const ths = Array.from(table.querySelectorAll('thead th'));
-  const col = ths.indexOf(th);
-  // alterna: primeiro clique = desc (maior→menor), segundo = asc
-  const goDesc = th.dataset.dir !== 'desc';
-  ths.forEach(t => { t.dataset.dir=''; t.querySelector('.si') && (t.querySelector('.si').textContent='↕'); });
-  th.dataset.dir = goDesc ? 'desc' : 'asc';
-  if (th.querySelector('.si')) th.querySelector('.si').textContent = goDesc ? '↓' : '↑';
+// Delegação global — captura clique em qualquer th
+document.addEventListener('click', e => {
+  const th = e.target.closest('th');
+  if (!th) return;
+  if (th.classList.contains('no-sort')) return;
+  if (!th.closest('thead')) return;
+  _doSort(th);
+});
 
-  const allRows = Array.from(tbody.querySelectorAll('tr'));
-  // Linhas de total/rodapé ficam no final sem ordenar
-  const isTot = r => r.querySelector('td[colspan]') || r.style.borderTop?.includes('2px');
-  const totais = allRows.filter(isTot);
-  const dados  = allRows.filter(r => !isTot(r));
-
-  dados.sort((a, b) => {
-    const ca = a.cells[col], cb = b.cells[col];
-    if (!ca || !cb) return 0;
-    const ta = (ca.querySelector('.cell-view')||ca).textContent.replace(/\n/g,' ').trim();
-    const tb = (cb.querySelector('.cell-view')||cb).textContent.replace(/\n/g,' ').trim();
-    const na = parseFloat(ta.replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'));
-    const nb = parseFloat(tb.replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'));
-    if (!isNaN(na) && !isNaN(nb)) return goDesc ? nb-na : na-nb;
-    return goDesc ? tb.localeCompare(ta,'pt-BR') : ta.localeCompare(tb,'pt-BR');
-  });
-  [...dados,...totais].forEach(r => tbody.appendChild(r));
-}
-
-// Injeta sort + sticky em qualquer tabela (nova ou existente)
-function ativarSort(root) {
-  const tabelas = (root instanceof HTMLTableElement) ? [root]
-    : (root||document).querySelectorAll('table');
-  tabelas.forEach(table => {
-    if (table.dataset.sortOk) return;
-    table.dataset.sortOk = '1';
-    const ths = table.querySelectorAll('thead th');
-    ths.forEach(th => {
-      if (th.classList.contains('no-sort')) return;
-      // sticky
-      th.style.position = 'sticky';
-      th.style.top = '0';
-      th.style.zIndex = '10';
-      if (!th.style.background && !th.style.backgroundColor)
-        th.style.background = 'var(--bg3)';
-      // indicador
-      if (!th.querySelector('.si')) {
-        const si = document.createElement('span');
-        si.className = 'si';
-        si.style.cssText = 'opacity:.35;font-size:9px;margin-left:3px;font-weight:400';
-        si.textContent = '↕';
-        th.appendChild(si);
-      }
-      th.style.cursor = 'pointer';
-      th.style.userSelect = 'none';
-      th.addEventListener('click', () => sortTable(th));
-    });
+// Aplica sticky + indicador em todos os th de uma tabela
+function _ativarTh(table) {
+  if (table._sortOk) return;
+  table._sortOk = true;
+  table.querySelectorAll('thead th').forEach(th => {
+    if (th.classList.contains('no-sort')) return;
+    th.style.cssText += ';position:sticky;top:0;z-index:10;cursor:pointer;user-select:none';
+    if (!th.style.background) th.style.background = 'var(--bg3)';
+    if (!th.querySelector('._si')) {
+      const si = document.createElement('span');
+      si.className = '_si';
+      si.style.cssText = 'font-size:9px;opacity:.3;margin-left:3px;font-weight:400';
+      si.textContent = '↕';
+      th.appendChild(si);
+    }
   });
 }
 
-// Aplica sort em tabelas existentes
-function aplicarSort(el) { ativarSort(el); }
+// Chama _ativarTh em todas as tabelas existentes e nas novas via MutationObserver
+function aplicarSort(root) {
+  (root||document).querySelectorAll('table').forEach(_ativarTh);
+}
+function sortTable(th) { _doSort(th); }
+function ativarSort(root) { aplicarSort(root); }
 
-// Observer: detecta novas tabelas criadas dinamicamente e ativa sort
 new MutationObserver(muts => {
   muts.forEach(m => m.addedNodes.forEach(n => {
-    if (n.nodeType !== 1) return;
-    if (n.tagName === 'TABLE') ativarSort(n);
-    else n.querySelectorAll?.('table').forEach(t => ativarSort(t));
+    if (!n || n.nodeType !== 1) return;
+    if (n.tagName === 'TABLE') _ativarTh(n);
+    else n.querySelectorAll && n.querySelectorAll('table').forEach(_ativarTh);
   }));
-}).observe(document.body, { childList: true, subtree: true });
+}).observe(document.body, {childList:true, subtree:true});
 
 
 // ─── SERVIÇOS ────────────────────────────────────────────
