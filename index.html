@@ -6925,10 +6925,15 @@ async function initServicos() {
 function parseSrvRow(colunas) {
   const c = colunas || {};
   // Mapeamento flexível das colunas do Excel
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g,'');
   const get = (...nomes) => {
     for (const n of nomes) {
-      const k = Object.keys(c).find(k => k.toLowerCase().replace(/[^a-z0-9]/g,'').includes(n.toLowerCase().replace(/[^a-z0-9]/g,'')));
-      if (k && c[k] !== '' && c[k] !== null && c[k] !== undefined) return String(c[k]).trim();
+      // Busca exata primeiro
+      const exact = Object.keys(c).find(k => norm(k) === norm(n));
+      if (exact && c[exact] !== '' && c[exact] !== null && c[exact] !== undefined) return String(c[exact]).trim();
+      // Depois busca parcial
+      const partial = Object.keys(c).find(k => norm(k).includes(norm(n)) || norm(n).includes(norm(k)));
+      if (partial && c[partial] !== '' && c[partial] !== null && c[partial] !== undefined) return String(c[partial]).trim();
     }
     return '';
   };
@@ -6966,8 +6971,8 @@ function parseSrvRow(colunas) {
     telefone:       get('Telefone','telefone'),
     celular:        get('Celular','celular'),
     qtd:            parseInt(get('Qtd.','Qtd','qtd','quantidade'))||1,
-    valor:          parseN(get('Valor','valor')),
-    desconto:       parseN(get('Desconto','desconto')),
+    valor:          parseN(get('Valor')),
+    desconto:       parseN(get('Desconto')),
     total:          parseN(get('Total','total')),
     pacote:         get('Pacote','pacote'),
   };
