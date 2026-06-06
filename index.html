@@ -6983,6 +6983,17 @@ function parseSrvRow(colunas) {
     return null;
   };
 
+  // Log das chaves e valores de Total/Valor (só primeiros 2 registros)
+  if (!parseSrvRow._logged) {
+    parseSrvRow._logged = 0;
+  }
+  if (parseSrvRow._logged < 3) {
+    parseSrvRow._logged++;
+    console.log('[parseSrvRow] chaves:', Object.keys(c));
+    console.log('[parseSrvRow] Total raw:', c['Total'], '| Valor raw:', c['Valor']);
+    console.log('[parseSrvRow] getTotal():', getTotal(), '| getValor():', getValor());
+  }
+
   return {
     profissional:   get('Profissional','profissional'),
     data_comanda:   parseD(get('Data Comanda','DataComanda','Data','data')),
@@ -6997,7 +7008,14 @@ function parseSrvRow(colunas) {
     qtd:            parseInt(get('Qtd.','Qtd','qtd','quantidade'))||1,
     valor:          parseN(getValor()),
     desconto:       parseN(get('Desconto')),
-    total:          parseN(getTotal()),
+    total:          (() => {
+      const t = parseN(getTotal());
+      if (t > 0) return t;
+      // fallback: Valor * Qtd se Total não disponível
+      const v = parseN(getValor());
+      const q = parseInt(get('Qtd.','Qtd','qtd','quantidade'))||1;
+      return v * q;
+    })(),
     pacote:         get('Pacote','pacote'),
   };
 }
