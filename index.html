@@ -1514,8 +1514,8 @@ input:focus, select:focus {
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
                 📂 Distribuição por Categoria
               </div>
-              <div style="padding:1rem">
-                <canvas id="srv-chart-cat" height="100"></canvas>
+              <div style="padding:1rem;height:200px;position:relative">
+                <canvas id="srv-chart-cat"></canvas>
               </div>
               <!-- mantém por-cat e chart-prof ocultos mas funcionais -->
               <div id="srv-por-cat" style="display:none"></div>
@@ -1612,8 +1612,8 @@ input:focus, select:focus {
               </div>
               <!-- mini badges com totais por dia -->
               <div id="cli-dias-totais" style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border)"></div>
-              <div style="padding:12px">
-                <canvas id="cli-chart-dia" height="90"></canvas>
+              <div style="padding:12px;height:130px;position:relative">
+                <canvas id="cli-chart-dia"></canvas>
               </div>
             </div>
             <div class="card" style="padding:0;overflow:hidden">
@@ -1621,8 +1621,8 @@ input:focus, select:focus {
                 <div style="font-weight:600;font-size:13px">🔗 Como Conheceram o Salão</div>
                 <div style="font-size:11px;color:var(--text2);margin-top:2px" id="cli-canal-sub">Canais de aquisição</div>
               </div>
-              <div style="padding:12px">
-                <canvas id="cli-chart-canal" height="90"></canvas>
+              <div style="padding:12px;height:180px;position:relative">
+                <canvas id="cli-chart-canal"></canvas>
               </div>
             </div>
           </div>
@@ -1751,8 +1751,8 @@ input:focus, select:focus {
                 <span>📂 Faturamento por Categoria</span>
                 <span id="prod-cat-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
               </div>
-              <div style="padding:1rem">
-                <canvas id="prod-chart-cat" height="100"></canvas>
+              <div style="padding:1rem;height:200px;position:relative">
+                <canvas id="prod-chart-cat"></canvas>
               </div>
             </div>
           </div>
@@ -1860,8 +1860,8 @@ input:focus, select:focus {
                 <div style="font-weight:600;font-size:13px">Faturamento por Profissional</div>
                 <div style="font-size:11px;color:var(--text2);margin-top:1px">Distribuição percentual</div>
               </div>
-              <div style="padding:1rem">
-                <canvas id="perf-chart-prof" height="100"></canvas>
+              <div style="padding:1rem;height:200px;position:relative">
+                <canvas id="perf-chart-prof"></canvas>
               </div>
             </div>
           </div>
@@ -4126,7 +4126,7 @@ async function loadDashboard() {
         tension:0.4, fill:true, pointRadius:2, pointBackgroundColor:'#22c55e', borderWidth:2
       }]},
       options: {
-        responsive:true, maintainAspectRatio:true,
+        responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmtBRL(ctx.raw)}} },
         scales: {
           x:{ ticks:{font:{size:9}}, grid:{display:false} },
@@ -4154,7 +4154,7 @@ async function loadDashboard() {
         datasets:[{ data:catEntries.map(([,v])=>v), backgroundColor:CORES, borderWidth:2, borderColor:'var(--bg2)' }]
       },
       options:{
-        responsive:true, maintainAspectRatio:true,
+        responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{ position:'bottom', labels:{font:{size:9},padding:5,boxWidth:10} } }
       }
     });
@@ -5090,7 +5090,7 @@ function renderClientes(linhas, ano, mes) {
         datasets: [{ data: diasVals, backgroundColor: '#22c55e', borderRadius: 4, borderSkipped: false }]
       },
       options: {
-        responsive: true, maintainAspectRatio: true,
+        responsive: true, maintainAspectRatio: false,
         plugins: { legend:{display:false}, tooltip:{ callbacks:{label:ctx=>`${ctx.raw} cliente(s)`} } },
         scales: {
           x: { ticks:{font:{size:8}}, grid:{display:false} },
@@ -5121,7 +5121,7 @@ function renderClientes(linhas, ano, mes) {
         datasets: [{ data: canalRank.map(([,v])=>v), backgroundColor: CORES, borderWidth: 2, borderColor:'var(--bg2)' }]
       },
       options: {
-        responsive: true, maintainAspectRatio: true,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
           legend:{ position:'right', labels:{font:{size:9},padding:5,boxWidth:10} },
           tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} (${(ctx.raw/totalClientes*100).toFixed(1)}%)` } }
@@ -5369,7 +5369,7 @@ function renderProdutos(rows) {
         datasets: [{ data: catRank.map(([,v])=>v), backgroundColor: CORES, borderWidth: 2, borderColor: 'var(--bg2)' }]
       },
       options: {
-        responsive: true, maintainAspectRatio: true,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { position: 'right', labels: { font:{size:9}, padding:5, boxWidth:10 } },
           tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtBRL(ctx.raw)} (${(ctx.raw/total*100).toFixed(1)}%)` } }
@@ -5593,7 +5593,7 @@ async function loadPerformance() {
         datasets: [{ data: profRank.map(([,v])=>v.fat), backgroundColor: CORES, borderWidth:2, borderColor:'var(--bg2)' }]
       },
       options: {
-        responsive:true, maintainAspectRatio:true,
+        responsive:true, maintainAspectRatio:false,
         plugins: {
           legend:{ position:'right', labels:{font:{size:9},padding:5,boxWidth:10} },
           tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${fmtBRL(ctx.raw)} (${(ctx.raw/totalFat*100).toFixed(1)}%)` } }
@@ -7265,7 +7265,7 @@ function renderSrvCharts(catRanking, profRanking) {
         labels: catRanking.map(([n]) => n),
         datasets: [{ data: catRanking.map(([,v]) => v.total), backgroundColor: CORES, borderWidth: 2, borderColor: '#fff' }]
       },
-      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, padding: 5, boxWidth: 10 } } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, padding: 5, boxWidth: 10 } } } }
     });
   }
 
@@ -7280,7 +7280,7 @@ function renderSrvCharts(catRanking, profRanking) {
         datasets: [{ label: 'Faturamento', data: profRanking.slice(0,8).map(([,v]) => v.total), backgroundColor: CORES, borderRadius: 6 }]
       },
       options: {
-        responsive: true, maintainAspectRatio: true, indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
         plugins: { legend: { display: false } },
         scales: {
           x: { ticks: { callback: v => 'R$'+(v/1000).toFixed(0)+'k', font:{size:9} }, grid:{display:false} },
