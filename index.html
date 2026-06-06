@@ -1501,20 +1501,20 @@ input:focus, select:focus {
           </div>
 
           <!-- LINHA 1: Ranking + Gráfico Categoria -->
-          <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:14px;margin-bottom:14px;align-items:start">
             <!-- Ranking serviços -->
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
                 🏆 Ranking de Serviços
               </div>
-              <div id="srv-ranking" style="max-height:280px;overflow-y:auto">
+              <div id="srv-ranking" style="max-height:220px;overflow-y:auto">
                 <div class="empty">Importe o relatório para ver os dados</div>
               </div>
             </div>
             <!-- Gráfico por categoria (donut pequeno) -->
             <div class="card" style="padding:1rem">
               <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Distribuição por Categoria</div>
-              <canvas id="srv-chart-cat" height="160"></canvas>
+              <canvas id="srv-chart-cat" height="110"></canvas>
             </div>
           </div>
 
@@ -1525,14 +1525,14 @@ input:focus, select:focus {
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
                 📂 Faturamento por Categoria
               </div>
-              <div id="srv-por-cat" style="max-height:280px;overflow-y:auto">
+              <div id="srv-por-cat" style="max-height:220px;overflow-y:auto">
                 <div class="empty">Importe o relatório para ver os dados</div>
               </div>
             </div>
             <!-- Gráfico por profissional (barras pequenas) -->
             <div class="card" style="padding:1rem">
               <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Distribuição por Profissional</div>
-              <canvas id="srv-chart-prof" height="160"></canvas>
+              <canvas id="srv-chart-prof" height="110"></canvas>
             </div>
           </div>
 
@@ -1626,16 +1626,16 @@ input:focus, select:focus {
           </div>
 
           <!-- LINHA 2: Gráfico por dia + Gráfico canal -->
-          <div style="display:grid;grid-template-columns:1.3fr 0.7fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1.3fr 0.7fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:1rem">
               <div style="font-weight:600;font-size:13px;margin-bottom:2px">📅 Clientes por Dia do Mês</div>
               <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Clientes únicos atendidos em cada dia</div>
-              <canvas id="cli-chart-dia" height="120"></canvas>
+              <canvas id="cli-chart-dia" height="80"></canvas>
             </div>
             <div class="card" style="padding:1rem">
               <div style="font-weight:600;font-size:13px;margin-bottom:2px">🔗 Como Conheceram o Salão</div>
               <div style="font-size:11px;color:var(--text2);margin-bottom:10px" id="cli-canal-sub">Canais de aquisição</div>
-              <canvas id="cli-chart-canal" height="140"></canvas>
+              <canvas id="cli-chart-canal" height="100"></canvas>
             </div>
           </div>
 
@@ -1748,20 +1748,20 @@ input:focus, select:focus {
           </div>
 
           <!-- LINHA 1: Ranking + Gráfico categoria -->
-          <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
                 <span>🏆 Ranking de Produtos</span>
                 <span id="prod-rank-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
               </div>
-              <div id="prod-ranking" style="max-height:340px;overflow-y:auto">
+              <div id="prod-ranking" style="max-height:260px;overflow-y:auto">
                 <div class="empty">Importe o relatório de Produtos</div>
               </div>
             </div>
             <div class="card" style="padding:1rem">
               <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Faturamento por Categoria</div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:8px" id="prod-cat-sub"></div>
-              <canvas id="prod-chart-cat" height="170"></canvas>
+              <canvas id="prod-chart-cat" height="120"></canvas>
             </div>
           </div>
 
@@ -1853,25 +1853,25 @@ input:focus, select:focus {
           <div style="font-size:11px;color:var(--text2);margin-bottom:1rem" id="perf-info-bar"></div>
 
           <!-- LINHA 1: Ranking profissionais + Gráfico donut -->
-          <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
                 <div style="font-weight:600;font-size:13px">🏆 Ranking de Profissionais</div>
                 <div style="font-size:11px;color:var(--text2);margin-top:1px" id="perf-rank-sub"></div>
               </div>
-              <div id="perf-ranking-prof" style="overflow-x:auto">
+              <div id="perf-ranking-prof" style="overflow-x:auto;max-height:320px;overflow-y:auto">
                 <div class="empty">Sem dados</div>
               </div>
             </div>
             <div class="card" style="padding:1rem">
               <div style="font-weight:600;font-size:13px;margin-bottom:2px">Faturamento por Profissional</div>
               <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Distribuição percentual</div>
-              <canvas id="perf-chart-prof" height="200"></canvas>
+              <canvas id="perf-chart-prof" height="140"></canvas>
             </div>
           </div>
 
           <!-- LINHA 2: Serviços + Clientes atendidos -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
                 <div style="font-weight:600;font-size:13px">💇 Serviços Mais Vendidos</div>
