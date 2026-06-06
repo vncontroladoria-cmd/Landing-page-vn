@@ -485,6 +485,13 @@ tbody tr {
 .nav-item:hover { padding-left: calc(0.875rem + 2px); }
 .nav-sub { padding-left: 1.5rem !important; }
 .nav-sub:hover { padding-left: calc(1.5rem + 2px) !important; }
+thead th { cursor:pointer; user-select:none; white-space:nowrap; transition:background .15s; }
+thead th:hover { background:var(--bg2) !important; }
+thead th .sort-lbl { opacity:.35; font-size:10px; }
+thead th[data-sort-dir="desc"] { color:var(--accent) !important; }
+thead th[data-sort-dir="desc"] .sort-lbl { opacity:1; color:var(--accent); }
+thead th[data-sort-dir="asc"] { color:var(--accent) !important; }
+thead th[data-sort-dir="asc"] .sort-lbl { opacity:1; color:var(--accent); }
 .imp-tipo-btn {
   padding: 5px 14px; font-size: 12px; font-weight: 600;
   border-radius: 20px; border: 1.5px solid var(--border2);
@@ -6845,30 +6852,65 @@ function toggleInline(rowId) {
 function sortTable(th) {
   const table = th.closest('table');
   const tbody = table.querySelector('tbody');
-  const ths = table.querySelectorAll('thead th');
-  const col = Array.from(ths).indexOf(th);
-  const asc = !th.classList.contains('sort-asc');
+  const ths = Array.from(table.querySelectorAll('thead th'));
+  const col = ths.indexOf(th);
+  const asc = th.dataset.sortDir !== 'desc';
 
-  ths.forEach(t => t.classList.remove('sort-asc','sort-desc'));
-  th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+  // Reset todos, seta o clicado
+  ths.forEach(t => {
+    t.dataset.sortDir = '';
+    const lbl = t.querySelector('.sort-lbl');
+    if (lbl) lbl.textContent = ' ↕';
+  });
+  th.dataset.sortDir = asc ? 'desc' : 'asc';
+  const lbl = th.querySelector('.sort-lbl');
+  if (lbl) lbl.textContent = asc ? ' ↓' : ' ↑';
 
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  rows.sort((a, b) => {
-    const av = a.cells[col]?.querySelector('.cell-view')?.textContent?.trim() || a.cells[col]?.textContent?.trim() || '';
-    const bv = b.cells[col]?.querySelector('.cell-view')?.textContent?.trim() || b.cells[col]?.textContent?.trim() || '';
-    const an = parseFloat(av.replace(/[R$\s.]/g,'').replace(',','.'));
-    const bn = parseFloat(bv.replace(/[R$\s.]/g,'').replace(',','.'));
-    if (!isNaN(an) && !isNaN(bn)) return asc ? an-bn : bn-an;
+  const rows = Array.from(tbody.querySelectorAll('tr:not([style*="display:none"])'));
+  const all  = Array.from(tbody.querySelectorAll('tr'));
+
+  // Separa linhas de totais (última linha com fundo escuro) — não ordena
+  const totais = all.filter(r => r.style.background || r.querySelector('td[colspan]'));
+  const dados  = all.filter(r => !totais.includes(r));
+
+  dados.sort((a, b) => {
+    const ac = a.cells[col]; const bc = b.cells[col];
+    if (!ac || !bc) return 0;
+    const av = (ac.querySelector('.cell-view') || ac).textContent.trim();
+    const bv = (bc.querySelector('.cell-view') || bc).textContent.trim();
+    // Tenta número (R$, %, inteiro)
+    const an = parseFloat(av.replace(/[R$%\s]/g,'').replace(/\./g,'').replace(',','.'));
+    const bn = parseFloat(bv.replace(/[R$%\s]/g,'').replace(/\./g,'').replace(',','.'));
+    if (!isNaN(an) && !isNaN(bn)) return asc ? bn - an : an - bn;
     return asc ? av.localeCompare(bv,'pt-BR') : bv.localeCompare(av,'pt-BR');
   });
-  rows.forEach(r => tbody.appendChild(r));
+
+  dados.forEach(r => tbody.appendChild(r));
+  totais.forEach(r => tbody.appendChild(r));
 }
 
 // Aplica sortTable em todas as tabelas ao carregar
 function aplicarSort(containerEl) {
-  const ths = containerEl?.querySelectorAll('thead th:not(.no-sort)');
-  ths?.forEach(th => { th.onclick = () => sortTable(th); });
+  const ths = (containerEl||document).querySelectorAll('thead th:not(.no-sort)');
+  ths.forEach(th => {
+    if (th.dataset.sortBound) return;
+    th.dataset.sortBound = '1';
+    th.style.cursor = 'pointer';
+    th.style.userSelect = 'none';
+    if (!th.querySelector('.sort-lbl')) {
+      const lbl = document.createElement('span');
+      lbl.className = 'sort-lbl';
+      lbl.style.cssText = 'opacity:.4;font-size:10px;margin-left:2px';
+      lbl.textContent = ' ↕';
+      th.appendChild(lbl);
+    }
+    th.addEventListener('click', () => sortTable(th));
+  });
 }
+
+// Observer para aplicar sort em tabelas criadas dinamicamente
+const _sortObserver = new MutationObserver(() => aplicarSort(document));
+_sortObserver.observe(document.body, { childList: true, subtree: true });
 
 
 // ─── SERVIÇOS ────────────────────────────────────────────
