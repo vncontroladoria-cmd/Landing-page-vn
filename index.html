@@ -838,7 +838,7 @@ input:focus, select:focus {
           <!-- BARRA DE SELEÇÃO -->
           <div id="lanc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px">
             <span id="lanc-sel-count" style="font-size:13px;font-weight:600;color:#92400e">0 selecionados</span>
-            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionados()">🗑️ Excluir selecionados</button>
+            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionadosImport()">🗑️ Excluir selecionados</button>
             <button class="btn btn-sm" onclick="limparSelecao()">✕ Cancelar</button>
           </div>
 
@@ -1337,13 +1337,34 @@ input:focus, select:focus {
 
           <!-- TABELA DE DADOS IMPORTADOS -->
           <div class="card" style="padding:0;overflow:hidden">
-            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <!-- Linha 1: título + busca + limpar -->
+            <div style="padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <div style="font-weight:600;font-size:13px" id="imp-tabela-titulo">📊 Dados Importados</div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <input type="text" id="imp-busca-dados" placeholder="Buscar..." oninput="filtrarDadosImport(this.value)"
-                  style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg3);width:180px">
-                <button class="btn btn-sm" id="imp-btn-limpar" onclick="confirmarLimparDados()" style="display:none;border-color:var(--red);color:var(--red)">🗑 Limpar</button>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="imp-busca-dados" placeholder="Buscar..." oninput="aplicarFiltrosImport()"
+                  style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);width:160px">
+                <button class="btn btn-sm" id="imp-btn-excluir-sel" onclick="excluirSelecionados()" style="display:none;border-color:var(--red);color:var(--red)">🗑 Excluir selecionados (<span id="imp-count-sel">0</span>)</button>
+                <button class="btn btn-sm" id="imp-btn-limpar" onclick="confirmarLimparDados()" style="display:none;border-color:var(--red);color:var(--red)">🗑 Limpar tudo</button>
               </div>
+            </div>
+            <!-- Linha 2: filtros mês/ano -->
+            <div id="imp-filtros-barra" style="display:none;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:11px;font-weight:600;color:var(--text2)">Filtrar:</span>
+              <select id="imp-filtro-ano" onchange="aplicarFiltrosImport()"
+                style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+                <option value="">Todos os anos</option>
+              </select>
+              <select id="imp-filtro-mes" onchange="aplicarFiltrosImport()"
+                style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+                <option value="">Todos os meses</option>
+                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                <option value="03">Março</option><option value="04">Abril</option>
+                <option value="05">Maio</option><option value="06">Junho</option>
+                <option value="07">Julho</option><option value="08">Agosto</option>
+                <option value="09">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+              <span id="imp-count-total" style="font-size:11px;color:var(--text2);margin-left:4px"></span>
             </div>
             <div id="imp-tabela-container" style="overflow-x:auto;max-height:500px">
               <div class="empty">Importe um relatório para ver os dados aqui.</div>
@@ -2804,44 +2825,182 @@ async function carregarDadosTipo(tipoId, tipoNome) {
 
   _impDadosCarregados = data;
   _impColunasCarregadas = Object.keys(data[0].colunas || {});
+  _impColunaData = detectarColunaData(_impColunasCarregadas);
+
   if (btnLimpar) { btnLimpar.style.display = ''; btnLimpar.setAttribute('data-tipo-id', tipoId); btnLimpar.setAttribute('data-tipo-nome', tipoNome); }
+
+  // Mostra barra de filtros
+  const barra = document.getElementById('imp-filtros-barra');
+  if (barra) barra.style.display = 'flex';
+
+  // Preenche anos disponíveis
+  preencherFiltroAno(data);
+
+  // Reset filtros
+  const anoSel = document.getElementById('imp-filtro-ano');
+  const mesSel = document.getElementById('imp-filtro-mes');
+  const busca  = document.getElementById('imp-busca-dados');
+  if (anoSel) anoSel.value = '';
+  if (mesSel) mesSel.value = '';
+  if (busca)  busca.value  = '';
+
+  const countEl = document.getElementById('imp-count-total');
+  if (countEl) countEl.textContent = `${data.length} registros`;
 
   renderTabelaDados(data);
 }
+
+// coluna de data detectada automaticamente (nome da coluna)
+let _impColunaData = null;
+// ids dos registros selecionados para excluir
+let _impSelecionados = new Set();
 
 function renderTabelaDados(data) {
   const container = document.getElementById('imp-tabela-container');
   if (!container) return;
   const cols = _impColunasCarregadas;
+  _impSelecionados = new Set();
+  atualizarBtnExcluirSel();
 
   container.innerHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead style="position:sticky;top:0;background:var(--bg3);z-index:5">
         <tr>
-          <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap">#</th>
+          <th style="padding:7px 10px;text-align:center;width:36px">
+            <input type="checkbox" id="imp-sel-all" onchange="selecionarTodos(this.checked)"
+              title="Selecionar todos" style="cursor:pointer">
+          </th>
+          <th style="padding:7px 8px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">#</th>
           ${cols.map(c => `<th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap">${c}</th>`).join('')}
         </tr>
       </thead>
       <tbody>
         ${data.slice(0, 500).map((r, i) => `
-          <tr style="border-bottom:1px solid var(--border);${i%2===1?'background:var(--bg3)':''}">
-            <td style="padding:6px 10px;color:var(--text3);font-size:10px">${r.linha_numero}</td>
+          <tr id="imp-row-${r.id}" style="border-bottom:1px solid var(--border);${i%2===1?'background:var(--bg3)':''}">
+            <td style="padding:6px 10px;text-align:center">
+              <input type="checkbox" class="imp-row-chk" data-id="${r.id}"
+                onchange="toggleSelImport('${r.id}',this.checked)" style="cursor:pointer">
+            </td>
+            <td style="padding:6px 8px;color:var(--text3);font-size:10px">${r.linha_numero}</td>
             ${cols.map(c => `<td style="padding:6px 10px;white-space:nowrap;font-size:11px">${r.colunas[c] ?? ''}</td>`).join('')}
           </tr>
         `).join('')}
-        ${data.length > 500 ? `<tr><td colspan="${cols.length+1}" style="padding:8px;text-align:center;color:var(--text3);font-size:11px">Mostrando 500 de ${data.length} registros</td></tr>` : ''}
+        ${data.length > 500 ? `<tr><td colspan="${cols.length+2}" style="padding:8px;text-align:center;color:var(--text3);font-size:11px">Mostrando 500 de ${data.length} registros</td></tr>` : ''}
       </tbody>
     </table>
   `;
 }
 
-function filtrarDadosImport(termo) {
-  if (!termo) { renderTabelaDados(_impDadosCarregados); return; }
-  const t = termo.toLowerCase();
-  const filtrado = _impDadosCarregados.filter(r =>
-    Object.values(r.colunas || {}).some(v => String(v).toLowerCase().includes(t))
-  );
+function toggleSelImport(id, checked) {
+  if (checked) _impSelecionados.add(id);
+  else _impSelecionados.delete(id);
+  atualizarBtnExcluirSel();
+  // atualiza "selecionar todos" se necessário
+  const total = document.querySelectorAll('.imp-row-chk').length;
+  const selAll = document.getElementById('imp-sel-all');
+  if (selAll) selAll.checked = _impSelecionados.size === total && total > 0;
+}
+
+function selecionarTodos(checked) {
+  document.querySelectorAll('.imp-row-chk').forEach(chk => {
+    chk.checked = checked;
+    if (checked) _impSelecionados.add(chk.getAttribute('data-id'));
+    else _impSelecionados.delete(chk.getAttribute('data-id'));
+  });
+  atualizarBtnExcluirSel();
+}
+
+function atualizarBtnExcluirSel() {
+  const btn = document.getElementById('imp-btn-excluir-sel');
+  const count = document.getElementById('imp-count-sel');
+  if (!btn) return;
+  const n = _impSelecionados.size;
+  btn.style.display = n > 0 ? '' : 'none';
+  if (count) count.textContent = n;
+}
+
+async function excluirSelecionadosImport() {
+  const ids = [..._impSelecionados];
+  if (!ids.length) return;
+  if (!confirm(`Excluir ${ids.length} registro(s) selecionado(s)?`)) return;
+
+  const { error } = await sb.from('rel_dados_brutos').delete().in('id', ids);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  showToast(`${ids.length} registro(s) excluído(s).`, 'success');
+  // Remove linhas da tela e da lista
+  ids.forEach(id => {
+    document.getElementById('imp-row-' + id)?.remove();
+    _impDadosCarregados = _impDadosCarregados.filter(r => r.id !== id);
+  });
+  _impSelecionados = new Set();
+  atualizarBtnExcluirSel();
+  const countEl = document.getElementById('imp-count-total');
+  if (countEl) countEl.textContent = `${_impDadosCarregados.length} registros`;
+}
+
+function aplicarFiltrosImport() {
+  const termo = (document.getElementById('imp-busca-dados')?.value || '').toLowerCase();
+  const ano   = document.getElementById('imp-filtro-ano')?.value  || '';
+  const mes   = document.getElementById('imp-filtro-mes')?.value  || '';
+
+  let filtrado = _impDadosCarregados;
+
+  // Filtro texto
+  if (termo) {
+    filtrado = filtrado.filter(r =>
+      Object.values(r.colunas || {}).some(v => String(v).toLowerCase().includes(termo))
+    );
+  }
+
+  // Filtro data — busca a coluna que parece data
+  if ((ano || mes) && _impColunaData) {
+    filtrado = filtrado.filter(r => {
+      const raw = String(r.colunas[_impColunaData] || '');
+      // Aceita YYYY-MM-DD ou DD/MM/YYYY
+      let anoVal = '', mesVal = '';
+      const m1 = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      const m2 = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+      if (m1) { anoVal = m1[1]; mesVal = m1[2]; }
+      else if (m2) { anoVal = m2[3]; mesVal = m2[2]; }
+      if (ano && anoVal !== ano) return false;
+      if (mes && mesVal !== mes) return false;
+      return true;
+    });
+  }
+
+  const countEl = document.getElementById('imp-count-total');
+  if (countEl) countEl.textContent = `${filtrado.length} de ${_impDadosCarregados.length} registros`;
+
   renderTabelaDados(filtrado);
+}
+
+function preencherFiltroAno(data) {
+  const anos = new Set();
+  if (_impColunaData) {
+    data.forEach(r => {
+      const raw = String(r.colunas[_impColunaData] || '');
+      const m1 = raw.match(/^(\d{4})-\d{2}/);
+      const m2 = raw.match(/^\d{2}\/\d{2}\/(\d{4})/);
+      if (m1) anos.add(m1[1]);
+      else if (m2) anos.add(m2[1]);
+    });
+  }
+  const sel = document.getElementById('imp-filtro-ano');
+  if (!sel) return;
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todos os anos</option>'
+    + [...anos].sort().reverse().map(a => `<option value="${a}" ${a===atual?'selected':''}>${a}</option>`).join('');
+}
+
+function detectarColunaData(cols) {
+  // Tenta achar coluna de data pelas palavras-chave
+  const chaves = ['data','date','dt','Data Comanda','DataComanda','Data Movimentação','data_comanda'];
+  for (const c of chaves) {
+    const found = cols.find(col => col.toLowerCase().includes(c.toLowerCase()));
+    if (found) return found;
+  }
+  return null;
 }
 
 async function confirmarLimparDados() {
@@ -2849,13 +3008,16 @@ async function confirmarLimparDados() {
   const tipoId = btn?.getAttribute('data-tipo-id');
   const tipoNome = btn?.getAttribute('data-tipo-nome');
   if (!tipoId) return;
-  if (!confirm(`Apagar todos os dados importados de "${tipoNome}"?\nEssa ação não pode ser desfeita.`)) return;
+  if (!confirm(`Apagar TODOS os dados importados de "${tipoNome}"?\nEssa ação não pode ser desfeita.`)) return;
 
   const { error } = await sb.from('rel_dados_brutos').delete().eq('tipo_id', tipoId);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   showToast(`Dados de "${tipoNome}" removidos.`, 'success');
   document.getElementById('imp-tabela-container').innerHTML = '<div class="empty">Nenhum dado.</div>';
   if (btn) btn.style.display = 'none';
+  document.getElementById('imp-btn-excluir-sel')?.style && (document.getElementById('imp-btn-excluir-sel').style.display = 'none');
+  const barra = document.getElementById('imp-filtros-barra');
+  if (barra) barra.style.display = 'none';
 }
 
 // Enter no modal de novo tipo
