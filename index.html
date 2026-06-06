@@ -743,33 +743,98 @@ input:focus, select:focus {
 
         <!-- DASHBOARD -->
         <div class="page active" id="page-dashboard">
-          <div class="metrics-grid" id="dash-metrics">
-            <div class="metric-card c-green"><div class="metric-label">Faturamento</div><div class="metric-val" id="m-fat">—</div><div class="metric-delta" id="m-fat-d"></div></div>
-            <div class="metric-card c-red"><div class="metric-label">Saídas / Custos</div><div class="metric-val" id="m-sai">—</div><div class="metric-delta" id="m-sai-d"></div></div>
-            <div class="metric-card c-blue"><div class="metric-label">Lucro Líquido</div><div class="metric-val" id="m-luc">—</div><div class="metric-delta" id="m-luc-d"></div></div>
-            <div class="metric-card c-amber"><div class="metric-label">Total Serviços</div><div class="metric-val" id="m-srv">—</div><div class="metric-delta" id="m-srv-d"></div></div>
+
+          <!-- CARDS LINHA 1 — métricas principais -->
+          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
+            <div class="metric-card c-green">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Faturamento Serviços</div>
+              <div style="font-size:20px;font-weight:800" id="m-fat">—</div>
+              <div style="font-size:11px;opacity:.7" id="m-fat-d"></div>
+            </div>
+            <div class="metric-card c-blue">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Clientes</div>
+              <div style="font-size:28px;font-weight:800" id="m-cli">—</div>
+              <div style="font-size:11px;opacity:.7" id="m-cli-d"></div>
+            </div>
+            <div class="metric-card c-purple">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Serviços</div>
+              <div style="font-size:28px;font-weight:800" id="m-srv">—</div>
+              <div style="font-size:11px;opacity:.7" id="m-srv-d"></div>
+            </div>
+            <div class="metric-card c-amber">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Produtos Vendidos</div>
+              <div style="font-size:28px;font-weight:800" id="m-prod">—</div>
+              <div style="font-size:11px;opacity:.7" id="m-prod-d"></div>
+            </div>
           </div>
 
-          <div class="charts-row">
-            <div class="card">
-              <div class="card-header">
-                <div><div class="card-title">Faturamento diário</div><div class="card-sub" id="dash-period"></div></div>
+          <!-- CARDS LINHA 2 — financeiro -->
+          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
+            <div class="metric-card" style="background:var(--bg2);border:1px solid var(--border)">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:4px">Entradas (Caixa)</div>
+              <div style="font-size:18px;font-weight:800;color:var(--green);font-family:'DM Mono',monospace" id="m-entrada">—</div>
+              <div style="font-size:11px;color:var(--text2)" id="m-entrada-d">lançamentos do período</div>
+            </div>
+            <div class="metric-card" style="background:var(--bg2);border:1px solid var(--border)">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:4px">Saídas (Custos)</div>
+              <div style="font-size:18px;font-weight:800;color:var(--red);font-family:'DM Mono',monospace" id="m-sai">—</div>
+              <div style="font-size:11px;color:var(--text2)" id="m-sai-d">despesas do período</div>
+            </div>
+            <div class="metric-card" style="background:var(--bg2);border:1.5px solid var(--accent)">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:4px">Lucro Líquido</div>
+              <div style="font-size:18px;font-weight:800;font-family:'DM Mono',monospace" id="m-luc">—</div>
+              <div style="font-size:11px;color:var(--text2)" id="m-luc-d"></div>
+            </div>
+            <div class="metric-card" style="background:var(--bg2);border:1px solid var(--border)">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:4px">Ticket Médio</div>
+              <div style="font-size:18px;font-weight:800;font-family:'DM Mono',monospace;color:var(--accent)" id="m-ticket">—</div>
+              <div style="font-size:11px;color:var(--text2)">por atendimento</div>
+            </div>
+          </div>
+
+          <!-- GRÁFICOS -->
+          <div style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:14px;margin-bottom:14px">
+            <div class="card" style="padding:1rem">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div>
+                  <div style="font-weight:600;font-size:13px">📈 Faturamento Diário</div>
+                  <div style="font-size:11px;color:var(--text2)" id="dash-period">serviços por dia</div>
+                </div>
               </div>
-              <canvas id="chart-daily" height="160"></canvas>
+              <canvas id="chart-daily" height="120"></canvas>
             </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Por categoria</div></div>
-              <canvas id="chart-cat" height="160"></canvas>
+            <div class="card" style="padding:1rem">
+              <div style="font-weight:600;font-size:13px;margin-bottom:4px">📂 Por Categoria DFC</div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:8px">saídas por categoria</div>
+              <canvas id="chart-cat" height="140"></canvas>
             </div>
           </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Últimos lançamentos</div>
-              <button class="btn btn-sm" onclick="showPage('lancamentos', document.querySelector('.nav-item:nth-child(3)'))">Ver todos</button>
+          <!-- TOP 3 LADO A LADO -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">🏆 Top Profissionais</div>
+              <div id="dash-top-prof" style="max-height:200px;overflow-y:auto"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">💇 Top Serviços</div>
+              <div id="dash-top-srv" style="max-height:200px;overflow-y:auto"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">👤 Top Clientes</div>
+              <div id="dash-top-cli" style="max-height:200px;overflow-y:auto"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+            </div>
+          </div>
+
+          <!-- ÚLTIMOS LANÇAMENTOS -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:600;font-size:13px">💳 Últimos Lançamentos</div>
+              <button class="btn btn-sm" onclick="showPage('lancamentos',document.querySelector('[data-page=lancamentos]'))">Ver todos →</button>
             </div>
             <div id="dash-lancamentos"><div class="loading"><div class="spin"></div> Carregando...</div></div>
           </div>
+
         </div>
 
         <!-- LANÇAMENTOS -->
@@ -1726,15 +1791,107 @@ input:focus, select:focus {
 
         <!-- PERFORMANCE -->
         <div class="page" id="page-performance">
-          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
-            <input type="file" id="imp-performance" accept=".xlsx,.xls,.csv" style="display:none" onchange="importFile('performance',this)">
-            <button class="btn btn-primary" onclick="triggerImport('performance')">📥 Importar Relatório</button>
+
+          <!-- TOOLBAR -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:18px;font-weight:700">Performance Operacional</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px">Profissionais · Serviços · Clientes</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">ANO</span>
+                <select id="perf-ano" onchange="loadPerformance()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">MÊS</span>
+                <select id="perf-mes" onchange="loadPerformance()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                  <option value="">Todos</option>
+                  <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+                  <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+                  <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+                  <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">PROFISSIONAL</span>
+                <select id="perf-prof" onchange="loadPerformance()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                  <option value="">Todos os profissionais</option>
+                </select>
+              </div>
+              <button class="btn" onclick="loadPerformance()">↻</button>
+            </div>
           </div>
-          <div id="imp-performance-status"></div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Performance por profissional</div></div>
-            <div id="perf-table"><div class="empty">Importe os relatórios de serviços e lucratividade para ver os dados</div></div>
+
+          <!-- CARDS -->
+          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
+            <div class="metric-card c-green">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Faturamento</div>
+              <div style="font-size:22px;font-weight:800" id="perf-fat">—</div>
+              <div style="font-size:11px;opacity:.7">Total de serviços vendidos</div>
+            </div>
+            <div class="metric-card c-blue">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Atendimentos</div>
+              <div style="font-size:28px;font-weight:800" id="perf-atend">—</div>
+              <div style="font-size:11px;opacity:.7">Comandas únicas no período</div>
+            </div>
+            <div class="metric-card c-purple">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Comissão Profissional</div>
+              <div style="font-size:22px;font-weight:800" id="perf-comissao">—</div>
+              <div style="font-size:11px;opacity:.7">Total pago aos profissionais</div>
+            </div>
+            <div class="metric-card c-amber">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Ticket Médio</div>
+              <div style="font-size:22px;font-weight:800" id="perf-ticket">—</div>
+              <div style="font-size:11px;opacity:.7">Faturamento ÷ atendimentos</div>
+            </div>
           </div>
+
+          <!-- INFO BAR -->
+          <div style="font-size:11px;color:var(--text2);margin-bottom:1rem" id="perf-info-bar"></div>
+
+          <!-- LINHA 1: Ranking profissionais + Gráfico donut -->
+          <div style="display:grid;grid-template-columns:1.1fr 0.9fr;gap:14px;margin-bottom:14px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
+                <div style="font-weight:600;font-size:13px">🏆 Ranking de Profissionais</div>
+                <div style="font-size:11px;color:var(--text2);margin-top:1px" id="perf-rank-sub"></div>
+              </div>
+              <div id="perf-ranking-prof" style="overflow-x:auto">
+                <div class="empty">Sem dados</div>
+              </div>
+            </div>
+            <div class="card" style="padding:1rem">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px">Faturamento por Profissional</div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:10px">Distribuição percentual</div>
+              <canvas id="perf-chart-prof" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- LINHA 2: Serviços + Clientes atendidos -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
+                <div style="font-weight:600;font-size:13px">💇 Serviços Mais Vendidos</div>
+                <div style="font-size:11px;color:var(--text2);margin-top:1px" id="perf-srv-sub"></div>
+              </div>
+              <div id="perf-servicos" style="max-height:380px;overflow-y:auto">
+                <div class="empty">Sem dados</div>
+              </div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
+                <div style="font-weight:600;font-size:13px">👤 Clientes Atendidos</div>
+                <div style="font-size:11px;color:var(--text2);margin-top:1px" id="perf-cli-sub"></div>
+              </div>
+              <div id="perf-clientes" style="max-height:380px;overflow-y:auto">
+                <div class="empty">Sem dados</div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- FORNECEDORES -->
@@ -2708,7 +2865,7 @@ function showPage(id, el) {
   if (id === 'servicos') loadServicos();
   if (id === 'clientes') initClientes();
   if (id === 'produtos') initProdutos();
-  if (id === 'performance') loadPerformance();
+  if (id === 'performance') initPerformance();
   if (id === 'configuracoes') loadFornecedores();
   if (id === 'fornecedores') loadFornecedores();
   if (id === 'plano-contas') loadPlanoContas();
@@ -3888,70 +4045,180 @@ async function excluirCategoriaPDV(id) {
 
 // ─── DASHBOARD ────────────────────────────────────────
 async function loadDashboard() {
-  const mes = document.getElementById('global-mes').value;
-  const [ano, m] = mes.split('-');
-  const ini = `${ano}-${m}-01`;
-  const fim = `${ano}-${m}-31`;
+  const el = id => document.getElementById(id);
+  const hoje = new Date();
+  const anoAtual = String(hoje.getFullYear());
+  const mesAtual = String(hoje.getMonth()+1).padStart(2,'0');
 
-  // Lançamentos do mês
+  // Período: mês atual por padrão
+  const ini = `${anoAtual}-${mesAtual}-01`;
+  const fim = `${anoAtual}-${mesAtual}-31`;
+  const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626'];
+
+  // ── 1. Lançamentos financeiros ───────────────────────
   const { data: lancs } = await sb.from('lancamentos')
     .select('*').gte('data_lancamento', ini).lte('data_lancamento', fim);
 
-  const entradas = (lancs||[]).filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.valor),0);
-  const saidas = (lancs||[]).filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.valor),0);
-  const lucro = entradas - saidas;
+  const entradas = (lancs||[]).filter(l=>l.tipo==='ENTRADA'&&l.descricao!=='Saldo Inicial').reduce((s,l)=>s+Number(l.valor||0),0);
+  const saidas   = (lancs||[]).filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.valor||0),0);
+  const lucro    = entradas - saidas;
 
-  document.getElementById('m-fat').textContent = fmtBRL(entradas);
-  document.getElementById('m-sai').textContent = fmtBRL(saidas);
-  document.getElementById('m-luc').textContent = fmtBRL(lucro);
-  document.getElementById('m-luc').className = 'metric-val ' + (lucro >= 0 ? 'green' : 'red');
+  if(el('m-entrada')) el('m-entrada').textContent = fmtBRL(entradas);
+  if(el('m-sai'))     el('m-sai').textContent     = fmtBRL(saidas);
+  if(el('m-luc')) {
+    el('m-luc').textContent = fmtBRL(Math.abs(lucro));
+    el('m-luc').style.color = lucro >= 0 ? 'var(--green)' : 'var(--red)';
+    if(el('m-luc-d')) el('m-luc-d').textContent = lucro >= 0 ? '↑ positivo' : '↓ atenção';
+  }
 
-  // Serviços importados
-  const { data: srvs } = await sb.from('servicos_importados')
-    .select('total').gte('data_comanda', ini).lte('data_comanda', fim);
-  const totalSrv = (srvs||[]).reduce((s,r)=>s+Number(r.total||0),0);
-  document.getElementById('m-srv').textContent = fmtBRL(totalSrv);
+  // ── 2. Dados de serviços ─────────────────────────────
+  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+  const tipoSrv  = (tipos||[]).find(t=>t.nome.toLowerCase().includes('servi'));
+  const tipoProd = (tipos||[]).find(t=>t.nome.toLowerCase().includes('produto'));
 
-  // Gráfico diário
+  let srvRows = [], prodRows = [];
+
+  if (tipoSrv) {
+    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoSrv.id).limit(15000);
+    srvRows = (data||[]).map(r=>parseSrvRow(r.colunas))
+      .filter(r=>(r.servico||r.cliente) && r.data_comanda?.startsWith(anoAtual) && r.data_comanda?.substring(5,7)===mesAtual);
+  }
+  if (tipoProd) {
+    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoProd.id).limit(15000);
+    prodRows = (data||[]).map(r=>parseProdRow(r.colunas))
+      .filter(r=>r.produto && r.data?.startsWith(anoAtual) && r.data?.substring(5,7)===mesAtual);
+  }
+
+  const fatSrv    = srvRows.reduce((s,r)=>s+r.total,0);
+  const nClientes = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
+  const nServicos = srvRows.length;
+  const nProd     = prodRows.reduce((s,r)=>s+r.qtd,0);
+  const comandas  = new Set(srvRows.map(r=>(r.numero_comanda||r.data_comanda)));
+  const ticket    = comandas.size > 0 ? fatSrv/comandas.size : 0;
+
+  if(el('m-fat'))    el('m-fat').textContent    = fmtBRL(fatSrv);
+  if(el('m-fat-d'))  el('m-fat-d').textContent  = 'faturamento de serviços';
+  if(el('m-cli'))    el('m-cli').textContent     = nClientes.toLocaleString('pt-BR');
+  if(el('m-cli-d'))  el('m-cli-d').textContent   = 'clientes únicos';
+  if(el('m-srv'))    el('m-srv').textContent     = nServicos.toLocaleString('pt-BR');
+  if(el('m-srv-d'))  el('m-srv-d').textContent   = 'atendimentos registrados';
+  if(el('m-prod'))   el('m-prod').textContent    = nProd.toLocaleString('pt-BR');
+  if(el('m-prod-d')) el('m-prod-d').textContent  = 'unidades vendidas';
+  if(el('m-ticket')) el('m-ticket').textContent  = fmtBRL(ticket);
+
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  if(el('dash-period')) el('dash-period').textContent = `${meses[parseInt(mesAtual)-1]}/${anoAtual} · serviços por dia`;
+
+  // ── 3. Gráfico faturamento diário (serviços) ─────────
   const dailyMap = {};
-  (lancs||[]).filter(l=>l.tipo==='ENTRADA').forEach(l => {
-    const d = l.data_lancamento?.substring(8,10) || '??';
-    dailyMap[d] = (dailyMap[d]||0) + Number(l.valor);
+  srvRows.forEach(r => {
+    if (!r.data_comanda) return;
+    const d = parseInt(r.data_comanda.substring(8,10));
+    dailyMap[d] = (dailyMap[d]||0) + r.total;
   });
-  const labels = Object.keys(dailyMap).sort();
-  const vals = labels.map(d=>dailyMap[d]);
+  const maxDia = new Date(parseInt(anoAtual), parseInt(mesAtual), 0).getDate();
+  const dLabels = Array.from({length:maxDia},(_,i)=>i+1);
+  const dVals   = dLabels.map(d=>dailyMap[d]||0);
 
   if (chartDaily) chartDaily.destroy();
-  const ctx1 = document.getElementById('chart-daily').getContext('2d');
-  chartDaily = new Chart(ctx1, {
-    type:'line',
-    data:{ labels, datasets:[{ data:vals, borderColor:'#00d68f', backgroundColor:'#00d68f15', tension:0.4, fill:true, pointRadius:3, pointBackgroundColor:'#00d68f' }] },
-    options:{ plugins:{legend:{display:false}}, scales:{ x:{grid:{color:'#222'},ticks:{color:'#666',font:{size:10}}}, y:{grid:{color:'#222'},ticks:{color:'#666',font:{size:10},callback:v=>'R$'+v.toLocaleString('pt-BR')}} } }
-  });
+  const ctx1 = el('chart-daily')?.getContext('2d');
+  if (ctx1) {
+    chartDaily = new Chart(ctx1, {
+      type: 'line',
+      data: { labels:dLabels, datasets:[{
+        data:dVals, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.1)',
+        tension:0.4, fill:true, pointRadius:2, pointBackgroundColor:'#22c55e', borderWidth:2
+      }]},
+      options: {
+        responsive:true, maintainAspectRatio:true,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmtBRL(ctx.raw)}} },
+        scales: {
+          x:{ ticks:{font:{size:9}}, grid:{display:false} },
+          y:{ ticks:{font:{size:9},callback:v=>v>0?'R$'+(v/1000).toFixed(0)+'k':''}, grid:{color:'var(--border)'} }
+        }
+      }
+    });
+  }
 
-  // Gráfico categorias
+  // ── 4. Gráfico saídas por categoria ─────────────────
   const catMap = {};
   (lancs||[]).filter(l=>l.tipo==='SAIDA').forEach(l => {
-    catMap[l.categoria] = (catMap[l.categoria]||0) + Number(l.valor);
+    const k = l.categoria || 'Outros';
+    catMap[k] = (catMap[k]||0) + Number(l.valor||0);
   });
-  const catLabels = Object.keys(catMap);
-  const catVals = catLabels.map(c=>catMap[c]);
-  const colors = ['#00d68f','#ff4d6d','#ffb703','#4895ef','#9b5de5','#f15bb5'];
+  const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
 
   if (chartCat) chartCat.destroy();
-  const ctx2 = document.getElementById('chart-cat').getContext('2d');
-  chartCat = new Chart(ctx2, {
-    type:'doughnut',
-    data:{ labels:catLabels, datasets:[{ data:catVals, backgroundColor:colors, borderWidth:0 }] },
-    options:{ plugins:{ legend:{ position:'bottom', labels:{ color:'#888', font:{size:11}, padding:8 } } }, cutout:'65%' }
+  const ctx2 = el('chart-cat')?.getContext('2d');
+  if (ctx2 && catEntries.length) {
+    chartCat = new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: catEntries.map(([n])=>n),
+        datasets:[{ data:catEntries.map(([,v])=>v), backgroundColor:CORES, borderWidth:2, borderColor:'var(--bg2)' }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:true,
+        plugins:{ legend:{ position:'bottom', labels:{font:{size:9},padding:5,boxWidth:10} } }
+      }
+    });
+  }
+
+  // ── 5. Top 5 Profissionais ────────────────────────────
+  const profMap = {};
+  srvRows.forEach(r => {
+    const k = r.profissional||'—';
+    if(!profMap[k]) profMap[k]=0;
+    profMap[k]+=r.total;
   });
+  const topProf = Object.entries(profMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(el('dash-top-prof')) el('dash-top-prof').innerHTML = topProf.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:11px">${topProf.map(([n,v],i)=>`
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:${i<3?'13':'10'}px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+          <td style="padding:7px 10px;font-weight:600">${n}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v)}</td>
+        </tr>`).join('')}</table>`
+    : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
 
-  // Últimos lançamentos
+  // ── 6. Top 5 Serviços ─────────────────────────────────
+  const srvMap = {};
+  srvRows.forEach(r => {
+    const k = (r.servico||'—').replace(/\s*\(?\d+\/\d+\)?\s*$/,'').trim();
+    if(!srvMap[k]) srvMap[k]={qtd:0,total:0};
+    srvMap[k].qtd++; srvMap[k].total+=r.total;
+  });
+  const topSrv = Object.entries(srvMap).sort((a,b)=>b[1].qtd-a[1].qtd).slice(0,5);
+  if(el('dash-top-srv')) el('dash-top-srv').innerHTML = topSrv.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:11px">${topSrv.map(([n,v],i)=>`
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:${i<3?'13':'10'}px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+          <td style="padding:7px 10px;font-weight:600;font-size:10px">${n}</td>
+          <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}x</td>
+        </tr>`).join('')}</table>`
+    : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
+
+  // ── 7. Top 5 Clientes ─────────────────────────────────
+  const cliMap = {};
+  srvRows.forEach(r => {
+    const k = r.cliente||'—';
+    if(!cliMap[k]) cliMap[k]=0;
+    cliMap[k]+=r.total;
+  });
+  const topCli = Object.entries(cliMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(el('dash-top-cli')) el('dash-top-cli').innerHTML = topCli.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:11px">${topCli.map(([n,v],i)=>`
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:${i<3?'13':'10'}px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+          <td style="padding:7px 10px;font-weight:600">${n}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v)}</td>
+        </tr>`).join('')}</table>`
+    : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
+
+  // ── 8. Últimos lançamentos ────────────────────────────
   const { data: recentes } = await sb.from('lancamentos')
-    .select('*').order('data_lancamento', {ascending:false}).limit(8);
+    .select('*').order('data_lancamento',{ascending:false}).limit(6);
   renderLancTable(recentes||[], 'dash-lancamentos', true);
-
-  document.getElementById('dash-period').textContent = `${m}/${ano}`;
 }
 
 // ─── LANÇAMENTOS ────────────────────────────────────────
@@ -5189,25 +5456,207 @@ function renderProdutos(rows) {
 }
 
 // ─── PERFORMANCE ────────────────────────────────────────
+let _perfChartProf = null;
+
+async function initPerformance() {
+  // Preenche filtros de ano e profissional
+  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+  const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
+  if (tipoSrv) {
+    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', tipoSrv.id).limit(15000);
+    const rows = (data||[]).map(r => parseSrvRow(r.colunas));
+    const anos  = [...new Set(rows.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
+    const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
+    const selA = document.getElementById('perf-ano');
+    const selP = document.getElementById('perf-prof');
+    if (selA) selA.innerHTML = '<option value="">Todos</option>' + anos.map(a=>`<option value="${a}">${a}</option>`).join('');
+    if (selP) selP.innerHTML = '<option value="">Todos os profissionais</option>' + profs.map(p=>`<option value="${p}">${p}</option>`).join('');
+  }
+  await loadPerformance();
+}
+
 async function loadPerformance() {
-  const { data } = await sb.from('lucratividade_importada').select('*');
-  if (!data?.length) { document.getElementById('perf-table').innerHTML = '<div class="empty">Importe o relatório de lucratividade para ver os dados</div>'; return; }
-  const map = {};
-  data.forEach(r => {
-    if (!r.profissional) return;
-    if (!map[r.profissional]) map[r.profissional] = { fat:0, lucro:0, qtd:0 };
-    map[r.profissional].fat += Number(r.faturado||0);
-    map[r.profissional].lucro += Number(r.lucro||0);
-    map[r.profissional].qtd += 1;
+  const ano  = document.getElementById('perf-ano')?.value  || '';
+  const mes  = document.getElementById('perf-mes')?.value  || '';
+  const prof = document.getElementById('perf-prof')?.value || '';
+  const el   = id => document.getElementById(id);
+
+  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+  const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
+
+  let rows = [];
+  if (tipoSrv) {
+    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoSrv.id).limit(15000);
+    rows = (data||[]).map(r => parseSrvRow(r.colunas)).filter(r => r.servico || r.profissional);
+  }
+
+  if (ano)  rows = rows.filter(r => r.data_comanda?.startsWith(ano));
+  if (mes)  rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
+  if (prof) rows = rows.filter(r => r.profissional === prof);
+
+  const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a'];
+
+  if (!rows.length) {
+    ['perf-ranking-prof','perf-servicos','perf-clientes'].forEach(id => {
+      const e = el(id); if(e) e.innerHTML = '<div class="empty">Nenhum dado. Importe o relatório de Serviços.</div>';
+    });
+    ['perf-fat','perf-atend','perf-comissao','perf-ticket'].forEach(id => { const e=el(id); if(e) e.textContent='—'; });
+    return;
+  }
+
+  // ── Totais ────────────────────────────────────────────
+  const totalFat = rows.reduce((s,r)=>s+r.total,0);
+  // Comandas únicas por profissional+cliente
+  const comandasSet = new Set(rows.map(r=>(r.profissional||'x')+'|'+(r.numero_comanda||r.data_comanda||Math.random())));
+  const totalAtend  = comandasSet.size;
+  const ticket      = totalAtend > 0 ? totalFat/totalAtend : 0;
+  // Comissão estimada = 40% do faturamento (padrão salão — ajuste conforme regra)
+  const comissaoTotal = totalFat * 0.40;
+
+  if(el('perf-fat'))     el('perf-fat').textContent     = fmtBRL(totalFat);
+  if(el('perf-atend'))   el('perf-atend').textContent   = totalAtend.toLocaleString('pt-BR');
+  if(el('perf-comissao'))el('perf-comissao').textContent= fmtBRL(comissaoTotal);
+  if(el('perf-ticket'))  el('perf-ticket').textContent  = fmtBRL(ticket);
+
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mesNome = mes ? meses[parseInt(mes)-1] : 'Todos';
+  const periodoStr = [mesNome, ano].filter(Boolean).join('/');
+  if(el('perf-info-bar')) el('perf-info-bar').innerHTML =
+    `<span style="background:var(--bg3);padding:3px 8px;border-radius:5px;border:1px solid var(--border)">📅 ${periodoStr} · ${rows.length} lançamentos brutos</span>`;
+
+  // ── Ranking profissionais ──────────────────────────────
+  const profMap = {};
+  rows.forEach(r => {
+    const k = r.profissional || '(sem profissional)';
+    if (!profMap[k]) profMap[k] = { fat:0, atend:new Set(), comissao:0 };
+    profMap[k].fat += r.total;
+    profMap[k].atend.add((r.numero_comanda||r.data_comanda||Math.random()));
+    profMap[k].comissao += r.total * 0.40;
   });
-  const sorted = Object.entries(map).sort((a,b)=>b[1].fat-a[1].fat);
-  let html = '<div class="table-wrap"><table><thead><tr><th>Profissional</th><th>Atendimentos</th><th>Faturamento</th><th>Lucro</th><th>Margem</th></tr></thead><tbody>';
-  sorted.forEach(([prof, d]) => {
-    const margem = d.fat > 0 ? ((d.lucro/d.fat)*100).toFixed(1) : 0;
-    html += `<tr><td>${prof}</td><td>${d.qtd}</td><td style="color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(d.fat)}</td><td style="font-family:'DM Mono',monospace">${fmtBRL(d.lucro)}</td><td><span class="badge ${Number(margem)>40?'badge-green':'badge-amber'}">${margem}%</span></td></tr>`;
+  const profRank = Object.entries(profMap).sort((a,b)=>b[1].fat-a[1].fat);
+  const maxFatProf = profRank[0]?.[1].fat || 1;
+
+  if(el('perf-rank-sub')) el('perf-rank-sub').textContent = `${profRank.length} profissional(is)`;
+
+  const rankEl = el('perf-ranking-prof');
+  if (rankEl) {
+    rankEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">#</th>
+        <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">PROFISSIONAL</th>
+        <th style="padding:8px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">ATEND.</th>
+        <th style="padding:8px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">FATURAMENTO</th>
+        <th style="padding:8px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">COMISSÃO</th>
+      </tr></thead>
+      <tbody>
+        ${profRank.map(([nome,v],i) => {
+          const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+          const barW = (v.fat/maxFatProf*100).toFixed(1);
+          return `<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 10px;font-size:${i<3?'14':'11'}px;text-align:center">${pod}</td>
+            <td style="padding:8px 10px">
+              <div style="font-size:12px;font-weight:600;margin-bottom:3px">${nome}</div>
+              <div style="position:relative;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+                <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:${CORES[i%CORES.length]};border-radius:3px"></div>
+              </div>
+            </td>
+            <td style="padding:8px;text-align:right;font-size:12px;color:var(--text2)">${v.atend.size}</td>
+            <td style="padding:8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.fat)}</td>
+            <td style="padding:8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;color:var(--text2)">${fmtBRL(v.comissao)}</td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:var(--bg3);border-top:2px solid var(--border2)">
+          <td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2)">TOTAL</td>
+          <td style="padding:8px;text-align:right;font-size:11px;font-weight:700">${totalAtend}</td>
+          <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(totalFat)}</td>
+          <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--text2)">${fmtBRL(comissaoTotal)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+  }
+
+  // ── Gráfico donut profissionais ────────────────────────
+  const ctxProf = el('perf-chart-prof')?.getContext('2d');
+  if (ctxProf) {
+    if (_perfChartProf) _perfChartProf.destroy();
+    _perfChartProf = new Chart(ctxProf, {
+      type: 'doughnut',
+      data: {
+        labels: profRank.map(([n])=>n),
+        datasets: [{ data: profRank.map(([,v])=>v.fat), backgroundColor: CORES, borderWidth:2, borderColor:'var(--bg2)' }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:true,
+        plugins: {
+          legend:{ position:'right', labels:{font:{size:9},padding:5,boxWidth:10} },
+          tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${fmtBRL(ctx.raw)} (${(ctx.raw/totalFat*100).toFixed(1)}%)` } }
+        }
+      }
+    });
+  }
+
+  // ── Serviços mais vendidos (sem duplicar 1/2) ──────────
+  const cleanSrv = n => String(n||'').replace(/\s*\(?\s*\d+\s*\/\s*\d+\s*\)?\s*$/i,'').trim();
+  const srvMap = {};
+  rows.forEach(r => {
+    const k = cleanSrv(r.servico) || '(sem serviço)';
+    if (!srvMap[k]) srvMap[k] = { qtd:0, total:0 };
+    srvMap[k].qtd   += r.qtd || 1;
+    srvMap[k].total += r.total;
   });
-  html += '</tbody></table></div>';
-  document.getElementById('perf-table').innerHTML = html;
+  const srvRank = Object.entries(srvMap).sort((a,b)=>b[1].qtd-a[1].qtd);
+  if(el('perf-srv-sub')) el('perf-srv-sub').textContent = `${srvRank.length} serviços únicos · sem duplicar 1/2, 2/3`;
+
+  const srvEl = el('perf-servicos');
+  if (srvEl) {
+    srvEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3);position:sticky;top:0;z-index:3">
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">#</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">SERVIÇO</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">QTD.</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">VALOR</th>
+      </tr></thead>
+      <tbody>${srvRank.slice(0,20).map(([nome,v],i) => `
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
+          <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
+          <td style="padding:7px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
+          <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  // ── Clientes atendidos ─────────────────────────────────
+  const cliPerfMap = {};
+  rows.forEach(r => {
+    const k = r.cliente || '(sem cliente)';
+    if (!cliPerfMap[k]) cliPerfMap[k] = { visitas:new Set(), total:0 };
+    cliPerfMap[k].visitas.add(r.data_comanda||Math.random());
+    cliPerfMap[k].total += r.total;
+  });
+  const cliPerfRank = Object.entries(cliPerfMap).sort((a,b)=>b[1].visitas.size-a[1].visitas.size);
+  if(el('perf-cli-sub')) el('perf-cli-sub').textContent = `${cliPerfRank.length} clientes únicos · ordenado por número de visitas`;
+
+  const cliPerfEl = el('perf-clientes');
+  if (cliPerfEl) {
+    cliPerfEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3);position:sticky;top:0;z-index:3">
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">#</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">CLIENTE</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">VISITAS</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">VALOR</th>
+      </tr></thead>
+      <tbody>${cliPerfRank.slice(0,20).map(([nome,v],i) => `
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
+          <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
+          <td style="padding:7px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.visitas.size}</td>
+          <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
 }
 
 // ─── IMPORTAÇÃO ────────────────────────────────────────
