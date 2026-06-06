@@ -6861,40 +6861,56 @@ function toggleInline(rowId) {
 
 
 // ─── ORDENAÇÃO DE TABELAS ────────────────────────────────
+// Sort — versão definitiva
+let _lastSortTh = null;
 function sortTable(th) {
   const table = th.closest('table');
+  if (!table) return;
   const tbody = table.querySelector('tbody');
-  const ths = table.querySelectorAll('thead th');
-  const col = Array.from(ths).indexOf(th);
+  if (!tbody) return;
+  const ths = Array.from(table.querySelectorAll('thead th'));
+  const col = ths.indexOf(th);
   const asc = !th.classList.contains('sort-asc');
+
+  // Reset todas as colunas da tabela
   ths.forEach(t => t.classList.remove('sort-asc','sort-desc'));
   th.classList.add(asc ? 'sort-asc' : 'sort-desc');
-  // Função para extrair valor ordenável de uma célula
-  function _val(cell) {
+
+  // Extrai texto de uma célula ignorando barras de progresso
+  function cellVal(cell) {
     if (!cell) return '';
-    // Pega primeiro elemento de texto direto (ignora barras de progresso/divs internos)
-    for (const node of cell.childNodes) {
-      if (node.nodeType === 3 && node.textContent.trim()) return node.textContent.trim();
+    // Texto direto no nó (não dentro de div)
+    for (const n of cell.childNodes) {
+      if (n.nodeType === 3 && n.textContent.trim()) return n.textContent.trim();
     }
-    // Fallback: primeiro div com texto
-    const first = cell.querySelector('div');
-    if (first) return first.textContent.trim();
-    return cell.textContent.replace(/\s+/g,' ').trim();
+    // Primeiro div com texto (nome do serviço/cliente)
+    const d = cell.querySelector('div');
+    if (d) return d.textContent.trim();
+    return cell.textContent.trim();
   }
-  Array.from(tbody.querySelectorAll('tr')).sort((a, b) => {
-    const av = _val(a.cells[col]);
-    const bv = _val(b.cells[col]);
-    // Remove R$, pontos de milhar, converte vírgula decimal
-    const an = parseFloat(av.replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'));
-    const bn = parseFloat(bv.replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'));
-    if (!isNaN(an) && !isNaN(bn)) return asc ? an-bn : bn-an;
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const av = cellVal(a.cells[col]);
+    const bv = cellVal(b.cells[col]);
+    // Converte para número: remove R$ espaços, trata ponto milhar e vírgula decimal
+    const an = parseFloat(av.replace(/[R$\s%]/g,'').replace(/\./g,'').replace(',','.'));
+    const bn = parseFloat(bv.replace(/[R$\s%]/g,'').replace(/\./g,'').replace(',','.'));
+    if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
     return asc ? av.localeCompare(bv,'pt-BR') : bv.localeCompare(av,'pt-BR');
-  }).forEach(r => tbody.appendChild(r));
+  });
+  rows.forEach(r => tbody.appendChild(r));
 }
+
 function aplicarSort(el) {
-  el?.querySelectorAll('thead th:not(.no-sort)').forEach(th => { th.onclick = () => sortTable(th); });
+  if (!el) return;
+  el.querySelectorAll('thead th').forEach(th => {
+    if (th.classList.contains('no-sort')) return;
+    th.style.cursor = 'pointer';
+    th.onclick = () => sortTable(th);
+  });
 }
-// sortCol: mesmo que sortTable, usado em onclick inline dos th gerados dinamicamente
+
 const sortCol = sortTable;
 
 
