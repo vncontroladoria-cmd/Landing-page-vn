@@ -1525,20 +1525,92 @@ input:focus, select:focus {
 
         <!-- PRODUTOS -->
         <div class="page" id="page-produtos">
-          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
-            <input type="file" id="imp-produtos" accept=".xlsx,.xls,.csv" style="display:none" onchange="importFile('produtos',this)">
-            <button class="btn btn-primary" onclick="triggerImport('produtos')">📥 Importar Relatório</button>
+
+          <!-- TOOLBAR -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <select id="prod-ano" onchange="loadProdutos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="">Todos os anos</option>
+              </select>
+              <select id="prod-mes" onchange="loadProdutos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="">Todos os meses</option>
+                <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
+                <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
+                <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
+                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+              </select>
+              <select id="prod-categoria" onchange="loadProdutos()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <option value="">Todas as categorias</option>
+              </select>
+              <button class="btn" onclick="loadProdutos()">↻</button>
+            </div>
+            <button class="btn btn-primary" onclick="showPage('importacao',document.querySelector('[data-page=importacao]'))">📥 Ir para Importação</button>
           </div>
-          <div id="imp-produtos-status"></div>
-          <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
-            <div class="metric-card"><div class="metric-label">Total vendido</div><div class="metric-val green" id="prod-fat">—</div></div>
-            <div class="metric-card"><div class="metric-label">Itens vendidos</div><div class="metric-val" id="prod-qtd">—</div></div>
-            <div class="metric-card"><div class="metric-label">Produtos únicos</div><div class="metric-val amber" id="prod-uniq">—</div></div>
+
+          <!-- CARDS -->
+          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
+            <div class="metric-card c-green">
+              <div class="metric-label">Faturamento</div>
+              <div class="metric-val" id="prod-fat">—</div>
+              <div class="metric-delta" id="prod-fat-d"></div>
+            </div>
+            <div class="metric-card c-blue">
+              <div class="metric-label">Produtos Vendidos</div>
+              <div class="metric-val" id="prod-qtd">—</div>
+              <div class="metric-delta" style="font-size:11px;color:var(--text2)">Total de unidades</div>
+            </div>
+            <div class="metric-card c-red">
+              <div class="metric-label">Custo do Produto</div>
+              <div class="metric-val" id="prod-custo">—</div>
+              <div class="metric-delta" id="prod-margem"></div>
+            </div>
+            <div class="metric-card c-amber">
+              <div class="metric-label">Ticket Médio</div>
+              <div class="metric-val" id="prod-ticket">—</div>
+              <div class="metric-delta" style="font-size:11px;color:var(--text2)">Valor médio por unidade</div>
+            </div>
           </div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Produtos mais vendidos</div></div>
-            <div id="prod-table"><div class="empty">Importe o relatório de produtos para ver os dados</div></div>
+
+          <!-- LINHA 1: Ranking + Gráfico categoria -->
+          <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:14px;margin-bottom:14px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+                <span>🏆 Ranking de Produtos</span>
+                <span id="prod-rank-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
+              </div>
+              <div id="prod-ranking" style="max-height:340px;overflow-y:auto">
+                <div class="empty">Importe o relatório de Produtos</div>
+              </div>
+            </div>
+            <div class="card" style="padding:1rem">
+              <div style="font-weight:600;font-size:12px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Faturamento por Categoria</div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:8px" id="prod-cat-sub"></div>
+              <canvas id="prod-chart-cat" height="170"></canvas>
+            </div>
           </div>
+
+          <!-- LINHA 2: Vendas por profissional + Clientes que compraram -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+                <span>👩‍💼 Vendas por Profissional</span>
+                <span id="prod-prof-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
+              </div>
+              <div id="prod-por-prof" style="max-height:320px;overflow-y:auto">
+                <div class="empty">Sem dados</div>
+              </div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+                <span>🛍️ Clientes que Compraram</span>
+                <span id="prod-cli-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
+              </div>
+              <div id="prod-por-cli" style="max-height:320px;overflow-y:auto">
+                <div class="empty">Sem dados</div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- PERFORMANCE -->
@@ -2524,7 +2596,7 @@ function showPage(id, el) {
   if (id === 'metricas') loadMetricas();
   if (id === 'servicos') loadServicos();
   if (id === 'clientes') loadClientes();
-  if (id === 'produtos') loadProdutos();
+  if (id === 'produtos') initProdutos();
   if (id === 'performance') loadPerformance();
   if (id === 'configuracoes') loadFornecedores();
   if (id === 'fornecedores') loadFornecedores();
@@ -4515,25 +4587,269 @@ async function loadClientes() {
 }
 
 // ─── PRODUTOS ────────────────────────────────────────
-async function loadProdutos() {
-  const { data } = await sb.from('produtos_importados').select('*');
-  if (!data?.length) { document.getElementById('prod-table').innerHTML = '<div class="empty">Importe o relatório de produtos para ver os dados</div>'; return; }
-  const total = data.reduce((s,r)=>s+Number(r.valor||0)*Number(r.quantidade||1),0);
-  const qtd = data.reduce((s,r)=>s+Number(r.quantidade||1),0);
-  const uniq = new Set(data.map(r=>r.produto)).size;
-  document.getElementById('prod-fat').textContent = fmtBRL(total);
-  document.getElementById('prod-qtd').textContent = qtd.toLocaleString('pt-BR');
-  document.getElementById('prod-uniq').textContent = uniq.toLocaleString('pt-BR');
+// Converte linha jsonb para objeto padronizado de produtos
+function parseProdRow(colunas) {
+  const c = colunas || {};
+  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+  const get = (...nomes) => {
+    for (const n of nomes) {
+      const k = Object.keys(c).find(k => norm(k).includes(norm(n)));
+      if (k && c[k] !== '' && c[k] !== null && c[k] !== undefined) return String(c[k]).trim();
+    }
+    return '';
+  };
+  const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
+  const parseD = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
 
-  const map = {};
-  data.forEach(r => { map[r.produto] = (map[r.produto]||0) + Number(r.valor||0)*Number(r.quantidade||1); });
-  const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Produto</th><th>Total vendido</th></tr></thead><tbody>';
-  sorted.forEach(([prod,val],i) => {
-    html += `<tr><td style="color:var(--text3)">${i+1}</td><td>${prod}</td><td style="color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(val)}</td></tr>`;
+  return {
+    produto:      get('Produto','produto','descricao','Descrição','item','Item','nome','Nome'),
+    categoria:    get('Categoria','categoria','grupo','Grupo'),
+    profissional: get('Profissional','profissional','vendedor','Vendedor'),
+    cliente:      get('Cliente','cliente'),
+    data:         parseD(get('Data','data','DataVenda','Data Venda','DataComanda','Data Comanda')),
+    qtd:          parseN(get('Qtd','Qtd.','qtd','quantidade','Quantidade','Unidades','unidades')) || 1,
+    valor:        parseN(get('Valor','valor','preco','Preço','Preco','price')),
+    custo:        parseN(get('Custo','custo','CustoUnitario','Custo Unitario','CustoProduto')),
+    desconto:     parseN(get('Desconto','desconto')),
+    total:        parseN(get('Total','total')),
+  };
+}
+
+let _prodData = [];
+let _prodChartCat = null;
+
+async function initProdutos() {
+  await loadProdutos();
+}
+
+async function loadProdutos() {
+  const ano  = document.getElementById('prod-ano')?.value  || '';
+  const mes  = document.getElementById('prod-mes')?.value  || '';
+  const cat  = document.getElementById('prod-categoria')?.value || '';
+
+  // Busca tipo "Produtos" no Supabase
+  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
+  const tipoProd = (tipos||[]).find(t => t.nome.toLowerCase().includes('produto'));
+
+  let rows = [];
+  if (tipoProd) {
+    const { data, error } = await sb.from('rel_dados_brutos')
+      .select('colunas').eq('tipo_id', tipoProd.id).limit(15000);
+    if (!error) rows = (data||[]).map(r => parseProdRow(r.colunas)).filter(r => r.produto);
+  }
+
+  // Filtros locais
+  if (ano) rows = rows.filter(r => r.data?.startsWith(ano));
+  if (mes) rows = rows.filter(r => r.data?.substring(5,7) === mes);
+  if (cat) rows = rows.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
+
+  _prodData = rows;
+
+  // Preenche filtros
+  preencherFiltrosProdutos(rows, ano, mes, cat, tipoProd);
+
+  const vazio = '<div class="empty">Nenhum dado. Importe o relatório de Produtos na página de Importação.</div>';
+  if (!rows.length) {
+    ['prod-ranking','prod-por-prof','prod-por-cli'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.innerHTML = vazio;
+    });
+    ['prod-fat','prod-qtd','prod-custo','prod-ticket'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.textContent = '—';
+    });
+    return;
+  }
+
+  renderProdutos(rows);
+}
+
+function preencherFiltrosProdutos(rows, ano, mes, cat, tipoProd) {
+  // Anos
+  const selA = document.getElementById('prod-ano');
+  if (selA && tipoProd) {
+    const anos = [...new Set(rows.map(r=>r.data?.substring(0,4)).filter(Boolean))].sort().reverse();
+    const cur = selA.value;
+    selA.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
+  }
+  // Categorias
+  const selC = document.getElementById('prod-categoria');
+  if (selC) {
+    // pega todas as cats sem filtrar por cat atual
+    const allCats = [...new Set(_prodData.concat(rows).map(r=>r.categoria).filter(Boolean))].sort();
+    const cur = selC.value;
+    selC.innerHTML = '<option value="">Todas as categorias</option>' + allCats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  }
+}
+
+function renderProdutos(rows) {
+  const total   = rows.reduce((s,r) => s + (r.total || r.valor * r.qtd || 0), 0);
+  const qtd     = rows.reduce((s,r) => s + r.qtd, 0);
+  const custo   = rows.reduce((s,r) => s + (r.custo * r.qtd || 0), 0);
+  const ticket  = qtd > 0 ? total / qtd : 0;
+  const margem  = total > 0 ? ((total - custo) / total * 100).toFixed(1) : 0;
+
+  const el = id => document.getElementById(id);
+  if(el('prod-fat'))    el('prod-fat').textContent    = fmtBRL(total);
+  if(el('prod-qtd'))    el('prod-qtd').textContent    = qtd.toLocaleString('pt-BR');
+  if(el('prod-custo'))  el('prod-custo').textContent  = custo > 0 ? fmtBRL(custo) : '—';
+  if(el('prod-ticket')) el('prod-ticket').textContent = fmtBRL(ticket);
+  if(el('prod-margem')) el('prod-margem').textContent = custo > 0 ? `Margem: ${margem}%` : '';
+
+  // ── Ranking de produtos ─────────────────────────────────
+  const prodMap = {};
+  rows.forEach(r => {
+    const k = r.produto;
+    if (!k) return;
+    if (!prodMap[k]) prodMap[k] = { total: 0, qtd: 0 };
+    prodMap[k].total += r.total || r.valor * r.qtd || 0;
+    prodMap[k].qtd   += r.qtd;
   });
-  html += '</tbody></table></div>';
-  document.getElementById('prod-table').innerHTML = html;
+  const prodRank = Object.entries(prodMap).sort((a,b) => b[1].qtd - a[1].qtd);
+  const maxProd  = prodRank[0]?.[1].total || 1;
+
+  const subRank = el('prod-rank-sub');
+  if (subRank) subRank.textContent = `${prodRank.length} produtos · ordenado por quantidade`;
+
+  const rankEl = el('prod-ranking');
+  if (rankEl) {
+    rankEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:7px 8px;width:30px;text-align:center;font-size:10px;color:var(--text2)">#</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">PRODUTO</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">QTD</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">VALOR</th>
+      </tr></thead>
+      <tbody>${prodRank.slice(0,25).map(([nome,v],i) => {
+        const barW = (v.total/maxProd*100).toFixed(1);
+        const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:6px 8px;text-align:center;font-size:${i<3?'14':'11'}px">${pod}</td>
+          <td style="padding:6px 10px">
+            <div style="font-size:11px;font-weight:500;margin-bottom:3px">${nome}</div>
+            <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,#2563eb,#60a5fa);border-radius:2px"></div>
+            </div>
+          </td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  // ── Gráfico por categoria ───────────────────────────────
+  const catMap = {};
+  rows.forEach(r => {
+    const k = r.categoria || 'Sem categoria';
+    if (!catMap[k]) catMap[k] = 0;
+    catMap[k] += r.total || r.valor * r.qtd || 0;
+  });
+  const catRank = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
+
+  const subCat = el('prod-cat-sub');
+  if (subCat) subCat.textContent = `${catRank.length} categorias`;
+
+  const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a','#9333ea','#ea580c'];
+  const ctxCat = el('prod-chart-cat')?.getContext('2d');
+  if (ctxCat) {
+    if (_prodChartCat) _prodChartCat.destroy();
+    _prodChartCat = new Chart(ctxCat, {
+      type: 'doughnut',
+      data: {
+        labels: catRank.map(([n])=>n),
+        datasets: [{ data: catRank.map(([,v])=>v), backgroundColor: CORES, borderWidth: 2, borderColor: 'var(--bg2)' }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { position: 'right', labels: { font:{size:9}, padding:5, boxWidth:10 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtBRL(ctx.raw)} (${(ctx.raw/total*100).toFixed(1)}%)` } }
+        }
+      }
+    });
+  }
+
+  // ── Vendas por profissional ─────────────────────────────
+  const profMap = {};
+  rows.forEach(r => {
+    const k = r.profissional || '(sem profissional)';
+    if (!profMap[k]) profMap[k] = { total: 0, qtd: 0 };
+    profMap[k].total += r.total || r.valor * r.qtd || 0;
+    profMap[k].qtd   += r.qtd;
+  });
+  const profRank = Object.entries(profMap).sort((a,b) => b[1].total - a[1].total);
+
+  const subProf = el('prod-prof-sub');
+  if (subProf) subProf.textContent = `${profRank.length} profissional(is)`;
+
+  const profEl = el('prod-por-prof');
+  if (profEl) {
+    profEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">#</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">PROFISSIONAL</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">QTD</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">VALOR</th>
+      </tr></thead>
+      <tbody>
+        ${profRank.map(([nome,v],i) => `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
+          <td style="padding:7px 10px">
+            <div style="font-size:12px;font-weight:600;margin-bottom:3px">${nome}</div>
+            <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${(v.total/profRank[0][1].total*100).toFixed(1)}%;background:linear-gradient(90deg,#059669,#34d399);border-radius:2px"></div>
+            </div>
+          </td>
+          <td style="padding:7px 8px;text-align:right;font-size:12px;color:var(--text2)">${v.qtd}</td>
+          <td style="padding:7px 8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+        </tr>`).join('')}
+        <tr style="background:var(--bg3);border-top:2px solid var(--border2)">
+          <td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2)">TOTAL</td>
+          <td style="padding:8px;text-align:right;font-size:11px;font-weight:700">${qtd}</td>
+          <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(total)}</td>
+        </tr>
+      </tbody>
+    </table>`;
+  }
+
+  // ── Clientes que compraram ──────────────────────────────
+  const cliMap = {};
+  rows.forEach(r => {
+    const k = r.cliente || '(sem cliente)';
+    if (!cliMap[k]) cliMap[k] = { total: 0, qtd: 0 };
+    cliMap[k].total += r.total || r.valor * r.qtd || 0;
+    cliMap[k].qtd   += r.qtd;
+  });
+  const cliRank = Object.entries(cliMap).sort((a,b) => b[1].total - a[1].total);
+  const maxCli  = cliRank[0]?.[1].total || 1;
+
+  const subCli = el('prod-cli-sub');
+  if (subCli) subCli.textContent = `${cliRank.length} clientes · ordenado por valor`;
+
+  const cliEl = el('prod-por-cli');
+  if (cliEl) {
+    cliEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--bg3)">
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">#</th>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">CLIENTE</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">QTD</th>
+        <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">VALOR</th>
+      </tr></thead>
+      <tbody>${cliRank.slice(0,20).map(([nome,v],i) => {
+        const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:6px 10px;font-size:${i<3?'14':'11'}px;text-align:center">${pod}</td>
+          <td style="padding:6px 10px">
+            <div style="font-size:11px;font-weight:500;margin-bottom:3px">${nome}</div>
+            <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${(v.total/maxCli*100).toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
+            </div>
+          </td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
 }
 
 // ─── PERFORMANCE ────────────────────────────────────────
