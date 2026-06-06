@@ -485,6 +485,15 @@ tbody tr {
 .nav-item:hover { padding-left: calc(0.875rem + 2px); }
 .nav-sub { padding-left: 1.5rem !important; }
 .nav-sub:hover { padding-left: calc(1.5rem + 2px) !important; }
+.imp-tipo-btn {
+  padding: 5px 14px; font-size: 12px; font-weight: 600;
+  border-radius: 20px; border: 1.5px solid var(--border2);
+  background: var(--bg2); color: var(--text2);
+  cursor: pointer; font-family: 'Outfit', sans-serif;
+  transition: all 0.15s;
+}
+.imp-tipo-btn:hover { border-color: var(--accent); color: var(--accent); }
+.imp-tipo-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .nav-group-header:hover { background: rgba(255,255,255,0.04); border-radius: 6px; }
 .nav-item.active {
   position: relative;
@@ -691,6 +700,14 @@ input:focus, select:focus {
         <div class="nav-item nav-sub" data-page="usuarios" onclick="showPage('usuarios',this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           <span class="nav-label">Usuários</span>
+        </div>
+      </div>
+
+      <!-- IMPORTAÇÃO (fora dos grupos) -->
+      <div style="padding:6px 0.375rem;margin-top:4px">
+        <div class="nav-item" data-page="importacao" onclick="showPage('importacao',this)" style="background:linear-gradient(90deg,rgba(5,150,105,0.15),transparent);border:1px solid rgba(5,150,105,0.2)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="nav-label" style="color:#34d399;font-weight:600">Importação</span>
         </div>
       </div>
 
@@ -1276,6 +1293,62 @@ input:focus, select:focus {
             </div>
           </div>
           <div id="dre-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+        </div>
+
+        <!-- IMPORTAÇÃO DE RELATÓRIOS -->
+        <div class="page" id="page-importacao">
+
+          <!-- CABEÇALHO -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px">
+            <div>
+              <div style="font-size:20px;font-weight:700;color:var(--text)">Importação de Relatórios</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px">Crie tipos de relatório e importe arquivos Excel do seu sistema</div>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalNovoTipo()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Criar Tipo de Relatório
+            </button>
+          </div>
+
+          <!-- FILTRO DE TIPOS -->
+          <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center">
+            <span style="font-size:12px;font-weight:600;color:var(--text2)">Filtrar por tipo:</span>
+            <div id="imp-filtros-tipos" style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="imp-tipo-btn active" data-tipo="" onclick="filtrarTipoImport('')">Todos</button>
+            </div>
+          </div>
+
+          <!-- CARDS DE TIPOS -->
+          <div id="imp-tipos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:1.5rem">
+            <div class="empty">Nenhum tipo criado ainda. Clique em "Criar Tipo de Relatório".</div>
+          </div>
+
+          <!-- BOTÃO IMPORTAR (aparece quando há tipos) -->
+          <div id="imp-area-importar" style="display:none;background:var(--bg3);border:2px dashed var(--border2);border-radius:12px;padding:2rem;text-align:center;margin-bottom:1.5rem">
+            <div style="font-size:32px;margin-bottom:8px">📥</div>
+            <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px">Importar Relatório</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:1rem">Selecione o arquivo Excel (.xlsx) e escolha para qual tipo importar</div>
+            <input type="file" id="imp-arquivo-global" accept=".xlsx,.xls,.csv" style="display:none" onchange="iniciarImportacaoGlobal(this)">
+            <button class="btn btn-primary" onclick="document.getElementById('imp-arquivo-global').click()" style="font-size:14px;padding:10px 24px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Selecionar Arquivo Excel
+            </button>
+          </div>
+
+          <!-- TABELA DE DADOS IMPORTADOS -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div style="font-weight:600;font-size:13px" id="imp-tabela-titulo">📊 Dados Importados</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="imp-busca-dados" placeholder="Buscar..." oninput="filtrarDadosImport(this.value)"
+                  style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg3);width:180px">
+                <button class="btn btn-sm" id="imp-btn-limpar" onclick="confirmarLimparDados()" style="display:none;border-color:var(--red);color:var(--red)">🗑 Limpar</button>
+              </div>
+            </div>
+            <div id="imp-tabela-container" style="overflow-x:auto;max-height:500px">
+              <div class="empty">Importe um relatório para ver os dados aqui.</div>
+            </div>
+          </div>
         </div>
 
         <!-- CONCILIAÇÃO BANCÁRIA -->
@@ -2436,8 +2509,334 @@ function showPage(id, el) {
   if (id === 'plano-contas') loadPlanoContas();
   if (id === 'bancos') loadBancos();
   if (id === 'usuarios') loadUsuarios();
+  if (id === 'importacao') loadImportacao();
 }
 
+
+
+// ─── IMPORTAÇÃO DE RELATÓRIOS ─────────────────────────────
+
+let _impTipos = [];           // tipos carregados do supabase
+let _impTipoAtivo = null;     // filtro ativo
+let _impArquivoRows = [];     // linhas lidas do Excel
+let _impArquivoColunas = [];  // colunas do arquivo
+let _impTipoEscolhido = null; // tipo escolhido no modal
+
+// Carrega a página
+async function loadImportacao() {
+  await loadTiposImport();
+}
+
+// ── Tipos ──────────────────────────────────────────────────
+
+async function loadTiposImport() {
+  const { data, error } = await sb.from('rel_tipos').select('*').eq('ativo', true).order('nome');
+  if (error) { showToast('Erro ao carregar tipos: ' + error.message, 'error'); return; }
+  _impTipos = data || [];
+  renderTiposGrid();
+  renderFiltrosTipos();
+
+  // Mostra área de importar só se tiver pelo menos 1 tipo
+  const areaImport = document.getElementById('imp-area-importar');
+  if (areaImport) areaImport.style.display = _impTipos.length > 0 ? 'block' : 'none';
+}
+
+function renderFiltrosTipos() {
+  const el = document.getElementById('imp-filtros-tipos');
+  if (!el) return;
+  el.innerHTML = `<button class="imp-tipo-btn ${!_impTipoAtivo ? 'active' : ''}" onclick="filtrarTipoImport('')">Todos</button>`
+    + _impTipos.map(t =>
+        `<button class="imp-tipo-btn ${_impTipoAtivo === t.id ? 'active' : ''}" onclick="filtrarTipoImport('${t.id}')">${t.nome}</button>`
+      ).join('');
+}
+
+function renderTiposGrid() {
+  const el = document.getElementById('imp-tipos-grid');
+  if (!el) return;
+  if (!_impTipos.length) {
+    el.innerHTML = '<div class="empty">Nenhum tipo criado ainda. Clique em "Criar Tipo de Relatório".</div>';
+    return;
+  }
+
+  const visíveis = _impTipoAtivo
+    ? _impTipos.filter(t => t.id === _impTipoAtivo)
+    : _impTipos;
+
+  const cores = ['c-green','c-blue','c-purple','c-amber','c-teal','c-red'];
+  el.innerHTML = visíveis.map((t, i) => `
+    <div class="metric-card ${cores[i % cores.length]}" style="cursor:default;position:relative">
+      <button onclick="excluirTipo('${t.id}','${t.nome}')"
+        style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.1);border:none;border-radius:5px;width:22px;height:22px;cursor:pointer;color:currentColor;font-size:13px;display:flex;align-items:center;justify-content:center">×</button>
+      <div style="font-size:24px;margin-bottom:6px">📂</div>
+      <div class="metric-label" style="font-size:13px;font-weight:700">${t.nome}</div>
+      ${t.descricao ? `<div style="font-size:11px;opacity:0.7;margin-top:4px">${t.descricao}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function filtrarTipoImport(tipoId) {
+  _impTipoAtivo = tipoId || null;
+  renderFiltrosTipos();
+  renderTiposGrid();
+}
+
+// ── Criar novo tipo ────────────────────────────────────────
+
+function abrirModalNovoTipo() {
+  document.getElementById('novo-tipo-nome').value = '';
+  document.getElementById('novo-tipo-desc').value = '';
+  document.getElementById('modal-novo-tipo').classList.add('open');
+  setTimeout(() => document.getElementById('novo-tipo-nome').focus(), 100);
+}
+
+async function salvarNovoTipo() {
+  const nome = document.getElementById('novo-tipo-nome').value.trim();
+  const desc = document.getElementById('novo-tipo-desc').value.trim();
+  if (!nome) { showToast('Digite o nome do tipo.', 'error'); return; }
+
+  const { error } = await sb.from('rel_tipos').insert({ nome, descricao: desc || null });
+  if (error) {
+    if (error.message.includes('unique') || error.code === '23505') {
+      showToast('Já existe um tipo com esse nome.', 'error');
+    } else {
+      showToast('Erro: ' + error.message, 'error');
+    }
+    return;
+  }
+
+  closeModal('modal-novo-tipo');
+  showToast(`Tipo "${nome}" criado!`, 'success');
+  loadTiposImport();
+}
+
+async function excluirTipo(id, nome) {
+  if (!confirm(`Excluir o tipo "${nome}"?\nTodos os dados importados desse tipo serão apagados.`)) return;
+  const { error } = await sb.from('rel_tipos').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast(`Tipo "${nome}" excluído.`, 'success');
+  loadTiposImport();
+  document.getElementById('imp-tabela-container').innerHTML = '<div class="empty">Importe um relatório para ver os dados aqui.</div>';
+}
+
+// ── Importar arquivo ───────────────────────────────────────
+
+async function iniciarImportacaoGlobal(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  showToast('Lendo arquivo...', '');
+
+  try {
+    const XLSX = await loadXLSX();
+    const buf = await file.arrayBuffer();
+    let rows = [];
+    try {
+      const wb = XLSX.read(buf, { cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, dateNF: 'dd/mm/yyyy' });
+    } catch {
+      const wb = XLSX.read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    }
+
+    if (!rows.length) { showToast('Arquivo vazio ou inválido.', 'error'); return; }
+
+    _impArquivoColunas = Object.keys(rows[0]);
+    _impArquivoRows = rows;
+
+    // Abre modal para escolher o tipo
+    abrirModalEscolherTipo(file.name);
+
+  } catch(e) {
+    showToast('Erro ao ler arquivo: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+function abrirModalEscolherTipo(nomeArquivo) {
+  const lista = document.getElementById('modal-tipos-lista');
+  if (!lista) return;
+
+  lista.innerHTML = _impTipos.map(t => `
+    <button onclick="escolherTipoImport('${t.id}', '${t.nome.replace(/'/g,"\\'")}', \`${nomeArquivo}\`)"
+      style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg2);cursor:pointer;text-align:left;font-family:'Outfit',sans-serif;transition:border-color 0.15s;width:100%"
+      onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:22px">📂</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${t.nome}</div>
+        ${t.descricao ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">${t.descricao}</div>` : ''}
+      </div>
+    </button>
+  `).join('');
+
+  document.getElementById('modal-escolher-tipo').classList.add('open');
+}
+
+function escolherTipoImport(tipoId, tipoNome, nomeArquivo) {
+  _impTipoEscolhido = { id: tipoId, nome: tipoNome };
+  closeModal('modal-escolher-tipo');
+  abrirPreviewGlobal(tipoNome, nomeArquivo);
+}
+
+// ── Preview antes de confirmar ─────────────────────────────
+
+function abrirPreviewGlobal(tipoNome, nomeArquivo) {
+  const rows = _impArquivoRows;
+  const cols = _impArquivoColunas;
+
+  document.getElementById('preview-global-titulo').textContent = `📋 Preview — ${tipoNome}`;
+  document.getElementById('preview-global-sub').textContent =
+    `${rows.length} registros · ${cols.length} colunas · Arquivo: ${nomeArquivo}`;
+  document.getElementById('preview-global-total').textContent =
+    `${rows.length} registros serão importados para "${tipoNome}"`;
+
+  // Thead dinâmico com todas as colunas do Excel
+  document.getElementById('preview-global-thead').innerHTML = `<tr style="background:var(--bg3)">
+    ${cols.map(c => `<th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap">${c}</th>`).join('')}
+  </tr>`;
+
+  // Tbody com até 200 linhas
+  document.getElementById('preview-global-tbody').innerHTML =
+    rows.slice(0, 200).map((r, i) =>
+      `<tr style="border-bottom:1px solid var(--border);${i%2===1?'background:var(--bg3)':''}">
+        ${cols.map(c => `<td style="padding:6px 10px;white-space:nowrap;font-size:11px;color:var(--text)">${r[c] ?? ''}</td>`).join('')}
+      </tr>`
+    ).join('') +
+    (rows.length > 200 ? `<tr><td colspan="${cols.length}" style="padding:8px;text-align:center;color:var(--text3);font-size:11px">... e mais ${rows.length-200} registros</td></tr>` : '');
+
+  document.getElementById('modal-preview-global').classList.add('open');
+}
+
+async function confirmarImportacaoGlobal() {
+  if (!_impTipoEscolhido || !_impArquivoRows.length) return;
+
+  const btn = document.getElementById('preview-global-confirmar');
+  btn.textContent = '⏳ Salvando...';
+  btn.disabled = true;
+
+  try {
+    const linhas = _impArquivoRows.map((r, i) => ({
+      tipo_id: _impTipoEscolhido.id,
+      linha_numero: i + 1,
+      colunas: r   // jsonb — armazena a linha completa
+    }));
+
+    const lote = 500;
+    let inseridos = 0;
+    for (let i = 0; i < linhas.length; i += lote) {
+      const { error } = await sb.from('rel_dados_brutos').insert(linhas.slice(i, i + lote));
+      if (error) throw new Error(error.message);
+      inseridos += Math.min(lote, linhas.length - i);
+    }
+
+    closeModal('modal-preview-global');
+    showToast(`✅ ${inseridos} registros importados para "${_impTipoEscolhido.nome}"!`, 'success');
+
+    // Carrega a tabela do tipo importado
+    _impTipoAtivo = _impTipoEscolhido.id;
+    renderFiltrosTipos();
+    renderTiposGrid();
+    carregarDadosTipo(_impTipoEscolhido.id, _impTipoEscolhido.nome);
+
+  } catch(e) {
+    showToast('Erro ao salvar: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    btn.textContent = '💾 Confirmar Importação';
+    btn.disabled = false;
+  }
+}
+
+// ── Tabela de dados importados ─────────────────────────────
+
+let _impDadosCarregados = [];
+let _impColunasCarregadas = [];
+
+async function carregarDadosTipo(tipoId, tipoNome) {
+  const titulo = document.getElementById('imp-tabela-titulo');
+  const container = document.getElementById('imp-tabela-container');
+  const btnLimpar = document.getElementById('imp-btn-limpar');
+  if (titulo) titulo.textContent = `📊 Dados — ${tipoNome}`;
+
+  container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
+
+  const { data, error } = await sb.from('rel_dados_brutos')
+    .select('linha_numero, colunas')
+    .eq('tipo_id', tipoId)
+    .order('linha_numero')
+    .limit(5000);
+
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  if (!data || !data.length) {
+    container.innerHTML = '<div class="empty">Nenhum dado importado para este tipo ainda.</div>';
+    if (btnLimpar) btnLimpar.style.display = 'none';
+    return;
+  }
+
+  _impDadosCarregados = data;
+  _impColunasCarregadas = Object.keys(data[0].colunas || {});
+  if (btnLimpar) { btnLimpar.style.display = ''; btnLimpar.setAttribute('data-tipo-id', tipoId); btnLimpar.setAttribute('data-tipo-nome', tipoNome); }
+
+  renderTabelaDados(data);
+}
+
+function renderTabelaDados(data) {
+  const container = document.getElementById('imp-tabela-container');
+  if (!container) return;
+  const cols = _impColunasCarregadas;
+
+  container.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead style="position:sticky;top:0;background:var(--bg3);z-index:5">
+        <tr>
+          <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap">#</th>
+          ${cols.map(c => `<th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap">${c}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${data.slice(0, 500).map((r, i) => `
+          <tr style="border-bottom:1px solid var(--border);${i%2===1?'background:var(--bg3)':''}">
+            <td style="padding:6px 10px;color:var(--text3);font-size:10px">${r.linha_numero}</td>
+            ${cols.map(c => `<td style="padding:6px 10px;white-space:nowrap;font-size:11px">${r.colunas[c] ?? ''}</td>`).join('')}
+          </tr>
+        `).join('')}
+        ${data.length > 500 ? `<tr><td colspan="${cols.length+1}" style="padding:8px;text-align:center;color:var(--text3);font-size:11px">Mostrando 500 de ${data.length} registros</td></tr>` : ''}
+      </tbody>
+    </table>
+  `;
+}
+
+function filtrarDadosImport(termo) {
+  if (!termo) { renderTabelaDados(_impDadosCarregados); return; }
+  const t = termo.toLowerCase();
+  const filtrado = _impDadosCarregados.filter(r =>
+    Object.values(r.colunas || {}).some(v => String(v).toLowerCase().includes(t))
+  );
+  renderTabelaDados(filtrado);
+}
+
+async function confirmarLimparDados() {
+  const btn = document.getElementById('imp-btn-limpar');
+  const tipoId = btn?.getAttribute('data-tipo-id');
+  const tipoNome = btn?.getAttribute('data-tipo-nome');
+  if (!tipoId) return;
+  if (!confirm(`Apagar todos os dados importados de "${tipoNome}"?\nEssa ação não pode ser desfeita.`)) return;
+
+  const { error } = await sb.from('rel_dados_brutos').delete().eq('tipo_id', tipoId);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast(`Dados de "${tipoNome}" removidos.`, 'success');
+  document.getElementById('imp-tabela-container').innerHTML = '<div class="empty">Nenhum dado.</div>';
+  if (btn) btn.style.display = 'none';
+}
+
+// Enter no modal de novo tipo
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('modal-novo-tipo')?.classList.contains('open')) salvarNovoTipo();
+  }
+});
 
 // ─── PDV / CAIXA ────────────────────────────────────────
 let _pdvCaixaId = null;
@@ -4244,6 +4643,7 @@ const pageTitlesExtra = {
   'plano-contas':'Plano de Contas', bancos:'Bancos', usuarios:'Usuários'
 };
 Object.assign(pageTitles, pageTitlesExtra);
+pageTitles['importacao'] = 'Importação de Relatórios';
 
 async function toggleFormFornecedor() {
   const f = document.getElementById('form-fornecedor');
@@ -7534,5 +7934,66 @@ document.getElementById('login-pass').addEventListener('keypress', e => { if(e.k
     </div>
   </div>
 </div>
+
+<!-- MODAL: NOVO TIPO DE RELATÓRIO -->
+<div id="modal-novo-tipo" class="modal-overlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">➕ Criar Tipo de Relatório</div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>Nome do tipo</label>
+      <input id="novo-tipo-nome" class="form-group input" placeholder="Ex: Serviços, Produtos, Clientes..." style="padding:9px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);width:100%;font-family:'Outfit',sans-serif">
+    </div>
+    <div class="form-group" style="margin-bottom:1rem">
+      <label>Descrição (opcional)</label>
+      <input id="novo-tipo-desc" class="form-group input" placeholder="Ex: Relatório de serviços realizados" style="padding:9px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);width:100%;font-family:'Outfit',sans-serif">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-novo-tipo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarNovoTipo()">Criar Tipo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ESCOLHER TIPO AO IMPORTAR -->
+<div id="modal-escolher-tipo" class="modal-overlay">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">📥 Para qual relatório é esse arquivo?</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1.25rem">Escolha o tipo de relatório que corresponde ao arquivo que você selecionou.</div>
+    <div id="modal-tipos-lista" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;margin-bottom:1.25rem"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-escolher-tipo')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PREVIEW IMPORTAÇÃO GLOBAL -->
+<div id="modal-preview-global" class="modal-overlay">
+  <div class="modal" style="max-width:800px;max-height:90vh;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div>
+        <div class="modal-title" style="margin-bottom:2px" id="preview-global-titulo">Preview da Importação</div>
+        <div style="font-size:12px;color:var(--text2)" id="preview-global-sub"></div>
+      </div>
+      <button onclick="closeModal('modal-preview-global')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div id="preview-global-avisos" style="margin-bottom:8px"></div>
+    <div style="overflow:auto;flex:1;border:1px solid var(--border);border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px" id="preview-global-table">
+        <thead id="preview-global-thead" style="position:sticky;top:0;background:var(--bg3);z-index:5"></thead>
+        <tbody id="preview-global-tbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+      <div style="font-size:13px;color:var(--text2)" id="preview-global-total"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-preview-global')">Cancelar</button>
+        <button class="btn btn-primary" id="preview-global-confirmar" onclick="confirmarImportacaoGlobal()">
+          💾 Confirmar Importação
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
