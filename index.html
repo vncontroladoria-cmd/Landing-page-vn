@@ -1409,8 +1409,7 @@ input:focus, select:focus {
               <button class="btn" onclick="loadServicos()">↻ Atualizar</button>
             </div>
             <div style="display:flex;gap:8px">
-              <input type="file" id="imp-servicos" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarRelServicos(this)">
-              <button class="btn btn-primary" onclick="document.getElementById('imp-servicos').click()">📥 Importar Relatório</button>
+              <button class="btn btn-primary" onclick="showPage('importacao',document.querySelector('[data-page=importacao]'))">📥 Ir para Importação</button>
             </div>
           </div>
 
@@ -5768,48 +5767,90 @@ let _srvChartCat = null;
 let _srvChartProf = null;
 
 async function initServicos() {
+  await preencherFiltrosServicos();
   await loadServicos();
 }
 
+// Converte linha do jsonb (rel_dados_brutos) para objeto padronizado de serviços
+function parseSrvRow(colunas) {
+  const c = colunas || {};
+  // Mapeamento flexível das colunas do Excel
+  const get = (...nomes) => {
+    for (const n of nomes) {
+      const k = Object.keys(c).find(k => k.toLowerCase().replace(/[^a-z0-9]/g,'').includes(n.toLowerCase().replace(/[^a-z0-9]/g,'')));
+      if (k && c[k] !== '' && c[k] !== null && c[k] !== undefined) return String(c[k]).trim();
+    }
+    return '';
+  };
+  const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
+  const parseD = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
+
+  return {
+    profissional:   get('Profissional','profissional'),
+    data_comanda:   parseD(get('Data Comanda','DataComanda','Data','data')),
+    dia_semana:     get('Dia da Semana','DiaDaSemana','Dia'),
+    numero_comanda: parseInt(get('Número Comanda','NumeroComanda','Numero Comanda','numero','comanda'))||null,
+    servico:        get('Serviço','Servico','servico'),
+    categoria:      get('Categoria','categoria'),
+    cliente:        get('Cliente','cliente'),
+    cpf:            get('CPF','cpf'),
+    telefone:       get('Telefone','telefone'),
+    celular:        get('Celular','celular'),
+    qtd:            parseInt(get('Qtd.','Qtd','qtd','quantidade'))||1,
+    valor:          parseN(get('Valor','valor')),
+    desconto:       parseN(get('Desconto','desconto')),
+    total:          parseN(get('Total','total')),
+    pacote:         get('Pacote','pacote'),
+  };
+}
+
 async function loadServicos() {
-  const ano = document.getElementById('srv-ano')?.value || '';
-  const mes = document.getElementById('srv-mes')?.value || '';
+  const ano  = document.getElementById('srv-ano')?.value  || '';
+  const mes  = document.getElementById('srv-mes')?.value  || '';
   const prof = document.getElementById('srv-profissional')?.value || '';
-  const cat = document.getElementById('srv-categoria')?.value || '';
+  const cat  = document.getElementById('srv-categoria')?.value    || '';
 
-  let q = sb.from('rel_servicos').select('*').order('data_comanda', {ascending: false});
-  
-  // Aplica filtro de data uma única vez
-  if (ano && mes) {
-    const ult = new Date(parseInt(ano), parseInt(mes), 0).getDate();
-    q = q.gte('data_comanda', `${ano}-${mes}-01`).lte('data_comanda', `${ano}-${mes}-${String(ult).padStart(2,'0')}`);
-  } else if (ano) {
-    q = q.gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
+  // Busca o tipo_id de "Serviços" no Supabase
+  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
+  const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
+
+  let rows = [];
+
+  if (tipoSrv) {
+    // Puxar de rel_dados_brutos (nova base unificada)
+    const { data, error } = await sb.from('rel_dados_brutos')
+      .select('colunas')
+      .eq('tipo_id', tipoSrv.id)
+      .limit(15000);
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+    rows = (data||[]).map(r => parseSrvRow(r.colunas)).filter(r => r.servico || r.cliente);
+  } else {
+    // Fallback: tabela antiga rel_servicos
+    const { data, error } = await sb.from('rel_servicos').select('*').limit(10000);
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+    rows = data || [];
   }
-  if (prof) q = q.eq('profissional', prof);
-  if (cat) q = q.eq('categoria', cat);
 
-  const { data, error } = await q.limit(10000);
-  if (error) { showToast('Erro ao carregar: ' + error.message, 'error'); return; }
-  _srvData = data || [];
+  // Filtros locais
+  if (ano) rows = rows.filter(r => r.data_comanda?.startsWith(ano));
+  if (mes) rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
+  if (prof) rows = rows.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
+  if (cat)  rows = rows.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
 
-  console.log('[Serviços] Registros carregados:', _srvData.length);
+  _srvData = rows;
 
   if (!_srvData.length) {
-    const msgVazio = ano || mes
-      ? `<div class="empty">Nenhum dado no período selecionado.<br><small style="color:var(--text3)">Tente "Todos os anos" para ver todos os registros.</small></div>`
-      : `<div class="empty">Nenhum dado. Importe o relatório usando o botão 📥 Importar Relatório.</div>`;
+    const msg = ano || mes
+      ? '<div class="empty">Nenhum dado no período. Tente "Todos os anos".</div>'
+      : '<div class="empty">Nenhum dado. Importe o relatório de Serviços na página de Importação.</div>';
     ['srv-ranking','srv-por-cat','srv-por-prof','srv-detalhe','srv-historico-cli'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = msgVazio;
+      const el = document.getElementById(id); if (el) el.innerHTML = msg;
     });
     ['srv-fat','srv-qtd','srv-ticket','srv-profs'].forEach(id => {
       const el = document.getElementById(id); if (el) el.textContent = '—';
     });
     return;
   }
-
-  showToast(`${_srvData.length} registros carregados`, 'success');
 
   renderServicos(_srvData);
 }
@@ -6361,9 +6402,22 @@ function parseDataBR(val) {
 }
 
 async function preencherFiltrosServicos() {
-  const { data } = await sb.from('rel_servicos').select('profissional,categoria');
-  const profs = [...new Set((data||[]).map(r=>r.profissional).filter(Boolean))].sort();
-  const cats  = [...new Set((data||[]).map(r=>r.categoria).filter(Boolean))].sort();
+  // Busca tipo "Serviços"
+  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
+  const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
+
+  let profs = [], cats = [];
+
+  if (tipoSrv) {
+    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', tipoSrv.id).limit(15000);
+    const rows = (data||[]).map(r => parseSrvRow(r.colunas));
+    profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
+    cats  = [...new Set(rows.map(r=>r.categoria).filter(Boolean))].sort();
+  } else {
+    const { data } = await sb.from('rel_servicos').select('profissional,categoria');
+    profs = [...new Set((data||[]).map(r=>r.profissional).filter(Boolean))].sort();
+    cats  = [...new Set((data||[]).map(r=>r.categoria).filter(Boolean))].sort();
+  }
 
   const selP = document.getElementById('srv-profissional');
   const selC = document.getElementById('srv-categoria');
@@ -6374,6 +6428,15 @@ async function preencherFiltrosServicos() {
   if (selC) {
     const cur = selC.value;
     selC.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  }
+
+  // Preenche anos disponíveis
+  const selA = document.getElementById('srv-ano');
+  if (selA && tipoSrv) {
+    const { data: d2 } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', tipoSrv.id).limit(15000);
+    const anos = [...new Set((d2||[]).map(r => { const v=parseSrvRow(r.colunas).data_comanda; return v?v.substring(0,4):''; }).filter(Boolean))].sort().reverse();
+    const cur = selA.value;
+    selA.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
   }
 }
 
