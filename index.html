@@ -3149,14 +3149,26 @@ async function carregarDadosTipo(tipoId, tipoNome) {
 
   container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
 
-  const { data, error } = await sb.from('rel_dados_brutos')
-    .select('id, linha_numero, colunas')
-    .eq('tipo_id', tipoId)
-    .order('linha_numero')
-    .limit(5000);
+  // Busca todos os registros com paginação (Supabase limita 1000 por request)
+  let allData = [];
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data: page, error } = await sb.from('rel_dados_brutos')
+      .select('id, linha_numero, colunas')
+      .eq('tipo_id', tipoId)
+      .order('linha_numero')
+      .range(from, from + pageSize - 1);
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+    if (!page || !page.length) break;
+    allData = allData.concat(page);
+    if (page.length < pageSize) break;
+    from += pageSize;
+    container.innerHTML = `<div class="loading"><div class="spin"></div> Carregando... ${allData.length} registros</div>`;
+  }
+  const data = allData;
 
-  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-  if (!data || !data.length) {
+  if (!data.length) {
     container.innerHTML = '<div class="empty">Nenhum dado importado para este tipo ainda.</div>';
     if (btnLimpar) btnLimpar.style.display = 'none';
     return;
@@ -7271,7 +7283,7 @@ function renderSrvDetalhe(data) {
       <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CATEGORIA</th>
       <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL</th>
     </tr></thead>
-    <tbody>${data.slice(0,200).map(r => `<tr style="border-bottom:1px solid var(--border)">
+    <tbody>${data.map(r => `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:6px 10px;color:var(--text2);white-space:nowrap">${fmtDate(r.data_comanda)}</td>
       <td style="padding:6px 10px;font-weight:500">${r.profissional||'—'}</td>
       <td style="padding:6px 10px">${r.cliente||'—'}</td>
