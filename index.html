@@ -576,6 +576,10 @@ input:focus, select:focus {
   opacity: 1;
   background: linear-gradient(90deg, var(--accent), rgba(42,157,92,0.3));
 }
+thead th:not(.no-sort){cursor:pointer;user-select:none;position:sticky;top:0;z-index:10;background:var(--bg3);}
+thead th:not(.no-sort):hover{color:var(--accent);}
+thead th.sort-asc::after{content:' ↑';color:var(--accent);font-size:10px;}
+thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 </style>
 </head>
 <body>
@@ -5170,6 +5174,7 @@ function renderClientes(linhas, ano, mes) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
+    aplicarSort(perEl);
   }
 
   // ── Clientes novos ──────────────────────────────────────
@@ -5200,6 +5205,7 @@ function renderClientes(linhas, ano, mes) {
           <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}</tbody>
     </table>`);
+    aplicarSort(novosEl);
   }
 }
 
@@ -5351,6 +5357,7 @@ function renderProdutos(rows) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
+    aplicarSort(rankEl);
   }
 
   // ── Gráfico por categoria ───────────────────────────────
@@ -5426,6 +5433,7 @@ function renderProdutos(rows) {
         </tr>
       </tbody>
     </table>`);
+    aplicarSort(profEl);
   }
 
   // ── Clientes que compraram ──────────────────────────────
@@ -5466,6 +5474,7 @@ function renderProdutos(rows) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
+    aplicarSort(cliEl);
   }
 }
 
@@ -5587,6 +5596,7 @@ async function loadPerformance() {
         </tr>
       </tbody>
     </table>`);
+    aplicarSort(rankEl);
   }
 
   // ── Gráfico donut profissionais ────────────────────────
@@ -5639,6 +5649,7 @@ async function loadPerformance() {
         </tr>`).join('')}
       </tbody>
     </table>`);
+    aplicarSort(srvEl);
   }
 
   // ── Clientes atendidos ─────────────────────────────────
@@ -5670,6 +5681,7 @@ async function loadPerformance() {
         </tr>`).join('')}
       </tbody>
     </table>`);
+    aplicarSort(cliPerfEl);
   }
 }
 
@@ -6849,110 +6861,26 @@ function toggleInline(rowId) {
 
 
 // ─── ORDENAÇÃO DE TABELAS ────────────────────────────────
-// ─── SORT UNIVERSAL ────────────────────────────────────────
-// sortCol: chamado pelo onclick inline dos th gerados dinamicamente
-// ─── SORT + STICKY HEADER UNIVERSAL ─────────────────────────
-// Funciona via delegação no document — detecta clique em qualquer th de qualquer tabela
-function _doSort(th) {
+function sortTable(th) {
   const table = th.closest('table');
-  if (!table) return;
   const tbody = table.querySelector('tbody');
-  if (!tbody) return;
-  const ths = Array.from(table.querySelectorAll('th'));
-  const col = ths.indexOf(th);
-  if (col < 0) return;
-
-  const goDesc = th.dataset.sd !== 'desc';
-
-  // Reset visual todos os th da tabela
-  ths.forEach(t => {
-    t.dataset.sd = '';
-    t.style.color = '';
-    const si = t.querySelector('._si');
-    if (si) { si.textContent = '↕'; si.style.opacity = '0.3'; }
-  });
-  // Marca o clicado
-  th.dataset.sd = goDesc ? 'desc' : 'asc';
-  th.style.color = 'var(--accent)';
-  const si = th.querySelector('._si');
-  if (si) { si.textContent = goDesc ? '↓' : '↑'; si.style.opacity = '1'; }
-
-  // Ordena — linhas com colspan vão pro final (total/rodapé)
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  const isFoot = r => !!r.querySelector('td[colspan]');
-  const dados = rows.filter(r => !isFoot(r));
-  const foot  = rows.filter(isFoot);
-
-  dados.sort((a, b) => {
-    const ca = a.cells[col], cb = b.cells[col];
-    if (!ca || !cb) return 0;
-    // pega só o texto visível, ignorando barras/ícones
-    const ta = ca.textContent.replace(/\s+/g,' ').trim();
-
-    const tb = cb.textContent.replace(/\s+/g,' ').trim();
-
-    // tenta número: remove R$ . espaço %, converte vírgula decimal
-    const na = parseFloat(ta.replace(/[^\d,.-]/g,'').replace('.','').replace(',','.'));
-    const nb = parseFloat(tb.replace(/[^\d,.-]/g,'').replace('.','').replace(',','.'));
-    if (!isNaN(na) && !isNaN(nb)) return goDesc ? nb - na : na - nb;
-    return goDesc
-      ? tb.localeCompare(ta, 'pt-BR', {sensitivity:'base'})
-      : ta.localeCompare(tb, 'pt-BR', {sensitivity:'base'});
-  });
-  [...dados, ...foot].forEach(r => tbody.appendChild(r));
+  const ths = table.querySelectorAll('thead th');
+  const col = Array.from(ths).indexOf(th);
+  const asc = !th.classList.contains('sort-asc');
+  ths.forEach(t => t.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+  Array.from(tbody.querySelectorAll('tr')).sort((a, b) => {
+    const av = a.cells[col]?.textContent?.replace(/\s+/g,' ').trim() || '';
+    const bv = b.cells[col]?.textContent?.replace(/\s+/g,' ').trim() || '';
+    const an = parseFloat(av.replace(/[^\d,.-]/g,'').replace(/\.(?=.*\.)/g,'').replace(',','.'));
+    const bn = parseFloat(bv.replace(/[^\d,.-]/g,'').replace(/\.(?=.*\.)/g,'').replace(',','.'));
+    if (!isNaN(an) && !isNaN(bn)) return asc ? an-bn : bn-an;
+    return asc ? av.localeCompare(bv,'pt-BR') : bv.localeCompare(av,'pt-BR');
+  }).forEach(r => tbody.appendChild(r));
 }
-
-// Helper: seta innerHTML e ativa sort/sticky na tabela resultante
-function _setTable(el, html) {
-  if (!el) return;
-  el.innerHTML = html;
-  const t = el.querySelector('table');
-  if (t) _ativarTh(t);
+function aplicarSort(el) {
+  el?.querySelectorAll('thead th:not(.no-sort)').forEach(th => { th.onclick = () => sortTable(th); });
 }
-
-// Delegação global — captura clique em qualquer th
-document.addEventListener('click', e => {
-  const th = e.target.closest('th');
-  if (!th) return;
-  if (th.classList.contains('no-sort')) return;
-  if (!th.closest('thead')) return;
-  _doSort(th);
-});
-
-// Aplica sticky + indicador em todos os th de uma tabela
-function _ativarTh(table) {
-  table.querySelectorAll('thead th').forEach(th => {
-    if (th.classList.contains('no-sort') || th.dataset.si) return;
-    th.dataset.si = '1';
-    th.style.position = 'sticky';
-    th.style.top = '0';
-    th.style.zIndex = '10';
-    th.style.background = 'var(--bg3)';
-    th.style.cursor = 'pointer';
-    th.style.userSelect = 'none';
-    th.style.whiteSpace = 'nowrap';
-    const si = document.createElement('span');
-    si.className = '_si';
-    si.style.cssText = 'font-size:9px;opacity:.3;margin-left:3px;font-weight:400;display:inline';
-    si.textContent = '↕';
-    th.appendChild(si);
-  });
-}
-
-// Chama _ativarTh em todas as tabelas existentes e nas novas via MutationObserver
-function aplicarSort(root) {
-  (root||document).querySelectorAll('table').forEach(_ativarTh);
-}
-function sortTable(th) { _doSort(th); }
-function ativarSort(root) { aplicarSort(root); }
-
-new MutationObserver(muts => {
-  muts.forEach(m => m.addedNodes.forEach(n => {
-    if (!n || n.nodeType !== 1) return;
-    if (n.tagName === 'TABLE') _ativarTh(n);
-    else n.querySelectorAll && n.querySelectorAll('table').forEach(_ativarTh);
-  }));
-}).observe(document.body, {childList:true, subtree:true});
 
 
 // ─── SERVIÇOS ────────────────────────────────────────────
@@ -7113,6 +7041,7 @@ function renderServicos(data) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
+    aplicarSort(rankingEl);
   }
 
   // Por categoria
@@ -7144,6 +7073,7 @@ function renderServicos(data) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
+    aplicarSort(catEl);
   }
 
   // Por profissional
@@ -7181,6 +7111,7 @@ function renderServicos(data) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
+    aplicarSort(profEl);
   }
 
   // Histórico por cliente (expansível)
