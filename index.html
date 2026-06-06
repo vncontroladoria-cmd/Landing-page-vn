@@ -89,17 +89,26 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 
 /* APP */
 #app { display: none; }
-.layout { display: flex; height: 100vh; overflow: hidden; }
+.layout { height: 100vh; overflow: hidden; }
 
-/* SIDEBAR */
+/* SIDEBAR — overlay, não ocupa espaço no layout */
 .sidebar {
-  width: 52px; background: var(--sidebar-bg);
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 1000;
+  width: 230px; background: var(--sidebar-bg);
   display: flex; flex-direction: column;
-  flex-shrink: 0; overflow-y: auto; overflow-x: hidden;
-  transition: width 0.28s cubic-bezier(0.4,0,0.2,1);
-  box-shadow: 4px 0 20px rgba(0,0,0,0.12);
+  overflow-y: auto; overflow-x: hidden;
+  transform: translateX(-100%);
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.18);
 }
-.sidebar.open { width: 230px; }
+.sidebar.open { transform: translateX(0); }
+
+/* Overlay escuro atrás do menu */
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.3);
+}
+.sidebar-overlay.show { display: block; }
 
 .sidebar-logo {
   padding: 1rem 0.75rem;
@@ -113,7 +122,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   letter-spacing: -0.5px; white-space: nowrap;
   opacity: 0; transition: opacity 0.15s; pointer-events: none;
 }
-.sidebar.open .logo-mark { opacity: 1; }
+.logo-mark { opacity: 1; }
 .logo-mark span { color: var(--green); }
 .sidebar:not(.open) { cursor: pointer; }
 
@@ -123,7 +132,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   white-space: nowrap; overflow: hidden;
   opacity: 0; height: 0; padding: 0; transition: opacity 0.15s, height 0.2s, padding 0.2s;
 }
-.sidebar.open .sidebar-section { opacity: 1; height: auto; padding: 1.25rem 1rem 0.35rem; }
+.sidebar-section { opacity: 1; height: auto; padding: 1.25rem 1rem 0.35rem; }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
   padding: 9px 0.75rem; font-size: 12.5px; color: rgba(255,255,255,0.5);
@@ -136,8 +145,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .nav-item.active::before { background: #34d399; }
 .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
 .nav-item .nav-icon { width: 16px; flex-shrink: 0; text-align: center; font-size: 14px; }
-.nav-label { opacity: 0; transition: opacity 0.15s; white-space: nowrap; }
-.sidebar.open .nav-label { opacity: 1; }
+.nav-label { white-space: nowrap; }
 .submenu { display: none; flex-direction: column; }
 .submenu.open { display: flex; }
 .submenu-item {
@@ -161,20 +169,19 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   font-size: 11px; font-weight: 600;
   display: flex; align-items: center; justify-content: center;
 }
-.user-info { opacity: 0; transition: opacity 0.15s; white-space: nowrap; overflow: hidden; }
-.sidebar.open .user-info { opacity: 1; }
+.user-info { white-space: nowrap; overflow: hidden; }
 .btn-logout {
   margin-top: 8px; width: 100%; padding: 7px;
   font-size: 12px; background: transparent;
   border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
   color: rgba(255,255,255,0.4); cursor: pointer; font-family: 'Outfit', sans-serif;
-  transition: all 0.15s; display: none; white-space: nowrap;
+  transition: all 0.15s; white-space: nowrap;
 }
-.sidebar.open .btn-logout { display: block; }
+
 .btn-logout:hover { border-color: var(--red); color: #f87171; }
 
 /* MAIN */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.main { display: flex; flex-direction: column; overflow: hidden; width: 100%; }
 .topbar {
   padding: 0 1.5rem; height: 58px;
   background: linear-gradient(to right,#ffffff,#f9fafb); border-bottom: 1px solid var(--border);
@@ -602,7 +609,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 <div id="app">
   <div class="layout">
     <!-- SIDEBAR -->
-    <div class="sidebar" id="main-sidebar">
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+      <div class="sidebar" id="main-sidebar">
       <div class="sidebar-logo" style="cursor:default">
         <div class="sidebar-logo-icon" style="flex-shrink:0;display:flex;align-items:center;justify-content:center">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -2795,14 +2803,11 @@ function abrirGrupoDoItem(pageId) {
 
 function toggleSidebar() {
   const sidebar = document.getElementById('main-sidebar');
-  const btn = document.getElementById('sidebar-toggle-btn');
+  const overlay = document.getElementById('sidebar-overlay');
   if (!sidebar) return;
   sidebar.classList.toggle('open');
   const isOpen = sidebar.classList.contains('open');
-  if (btn) {
-    btn.textContent = isOpen ? '‹' : '›';
-    btn.style.left = isOpen ? '218px' : '40px';
-  }
+  if (overlay) overlay.classList.toggle('show', isOpen);
 }
 
 // Fecha sidebar ao clicar em nav-item
@@ -2841,6 +2846,7 @@ function showPage(id, el) {
   const c = document.querySelector('.content'); if(c) c.scrollTop = 0;
   // Fecha sidebar ao navegar
   document.getElementById('main-sidebar')?.classList.remove('open');
+  document.getElementById('sidebar-overlay')?.classList.remove('show');
 
   // Mostra select de mês só no dashboard
   const selMes = document.getElementById('global-mes');
