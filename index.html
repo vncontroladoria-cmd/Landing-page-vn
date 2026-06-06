@@ -6869,11 +6869,24 @@ function sortTable(th) {
   const asc = !th.classList.contains('sort-asc');
   ths.forEach(t => t.classList.remove('sort-asc','sort-desc'));
   th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+  // Função para extrair valor ordenável de uma célula
+  function _val(cell) {
+    if (!cell) return '';
+    // Pega primeiro elemento de texto direto (ignora barras de progresso/divs internos)
+    for (const node of cell.childNodes) {
+      if (node.nodeType === 3 && node.textContent.trim()) return node.textContent.trim();
+    }
+    // Fallback: primeiro div com texto
+    const first = cell.querySelector('div');
+    if (first) return first.textContent.trim();
+    return cell.textContent.replace(/\s+/g,' ').trim();
+  }
   Array.from(tbody.querySelectorAll('tr')).sort((a, b) => {
-    const av = a.cells[col]?.textContent?.replace(/\s+/g,' ').trim() || '';
-    const bv = b.cells[col]?.textContent?.replace(/\s+/g,' ').trim() || '';
-    const an = parseFloat(av.replace(/[^\d,.-]/g,'').replace(/\.(?=.*\.)/g,'').replace(',','.'));
-    const bn = parseFloat(bv.replace(/[^\d,.-]/g,'').replace(/\.(?=.*\.)/g,'').replace(',','.'));
+    const av = _val(a.cells[col]);
+    const bv = _val(b.cells[col]);
+    // Remove R$, pontos de milhar, converte vírgula decimal
+    const an = parseFloat(av.replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'));
+    const bn = parseFloat(bv.replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'));
     if (!isNaN(an) && !isNaN(bn)) return asc ? an-bn : bn-an;
     return asc ? av.localeCompare(bv,'pt-BR') : bv.localeCompare(av,'pt-BR');
   }).forEach(r => tbody.appendChild(r));
@@ -6881,6 +6894,8 @@ function sortTable(th) {
 function aplicarSort(el) {
   el?.querySelectorAll('thead th:not(.no-sort)').forEach(th => { th.onclick = () => sortTable(th); });
 }
+// sortCol: mesmo que sortTable, usado em onclick inline dos th gerados dinamicamente
+const sortCol = sortTable;
 
 
 // ─── SERVIÇOS ────────────────────────────────────────────
