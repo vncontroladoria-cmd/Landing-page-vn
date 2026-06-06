@@ -602,7 +602,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 <div id="app">
   <div class="layout">
     <!-- SIDEBAR -->
-    <div class="sidebar open" id="main-sidebar">
+    <div class="sidebar" id="main-sidebar">
       <div class="sidebar-logo" onclick="toggleSidebar()">
         <div class="sidebar-logo-icon" style="flex-shrink:0">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -2838,6 +2838,8 @@ function showPage(id, el) {
   document.getElementById('page-title').textContent = pageTitles[id] || id;
   abrirGrupoDoItem(id);
   const c = document.querySelector('.content'); if(c) c.scrollTop = 0;
+  // Fecha sidebar ao navegar
+  document.getElementById('main-sidebar')?.classList.remove('open');
 
   // Mostra select de mês só no dashboard
   const selMes = document.getElementById('global-mes');
