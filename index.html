@@ -5149,10 +5149,10 @@ function renderClientes(linhas, ano, mes) {
   if (perEl) {
     _setTable(perEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left">#</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL</th>
       </tr></thead>
       <tbody>${sorted.slice(0,30).map(([nome,v],i) => {
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
@@ -5185,11 +5185,11 @@ function renderClientes(linhas, ano, mes) {
   if (novosEl) {
     _setTable(novosEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:left">CANAL <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left">#</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:left">CANAL</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL</th>
       </tr></thead>
       <tbody>${novosSort.slice(0,30).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
@@ -5336,10 +5336,10 @@ function renderProdutos(rows) {
   if (rankEl) {
     _setTable(rankEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:30px;text-align:left"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PRODUTO <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:30px;text-align:left">#</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PRODUTO</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>${prodRank.slice(0,25).map(([nome,v],i) => {
         const barW = (v.total/maxProd*100).toFixed(1);
@@ -5409,10 +5409,10 @@ function renderProdutos(rows) {
   if (profEl) {
     _setTable(profEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PROFISSIONAL <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PROFISSIONAL</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>
         ${profRank.map(([nome,v],i) => `<tr style="border-bottom:1px solid var(--border)">
@@ -5454,10 +5454,10 @@ function renderProdutos(rows) {
   if (cliEl) {
     _setTable(cliEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>${cliRank.slice(0,20).map(([nome,v],i) => {
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
@@ -5565,11 +5565,11 @@ async function loadPerformance() {
   if (rankEl) {
     _setTable(rankEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">PROFISSIONAL <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">ATEND. <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">FATURAMENTO <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">COMISSÃO <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">#</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">PROFISSIONAL</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">ATEND.</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">FATURAMENTO</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">COMISSÃO</th>
       </tr></thead>
       <tbody>
         ${profRank.map(([nome,v],i) => {
@@ -5635,10 +5635,10 @@ async function loadPerformance() {
   if (srvEl) {
     _setTable(srvEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">SERVIÇO <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD. <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">SERVIÇO</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD.</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>${srvRank.slice(0,20).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
@@ -5667,10 +5667,10 @@ async function loadPerformance() {
   if (cliPerfEl) {
     _setTable(cliPerfEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>${cliPerfRank.slice(0,20).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
@@ -6912,6 +6912,14 @@ function aplicarSort(el) {
 }
 
 const sortCol = sortTable;
+const TH_STYLE = "padding:7px 10px;font-size:10px;font-weight:700;color:var(--text2);background:var(--bg3);position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap";
+
+// _setTable: seta innerHTML e aplica sort
+function _setTable(el, html) {
+  if (!el) return;
+  el.innerHTML = html;
+  aplicarSort(el);
+}
 
 
 // ─── SERVIÇOS ────────────────────────────────────────────
@@ -7048,11 +7056,11 @@ function renderServicos(data) {
   if (rankingEl) {
     _setTable(rankingEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:left;width:36px"># <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:left">SERVIÇO <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">QTD <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">TOTAL <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">% <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:left;width:36px">#</th>
+        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:left">SERVIÇO</th>
+        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">QTD</th>
+        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">TOTAL</th>
+        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">%</th>
       </tr></thead>
       <tbody>${srvRanking.slice(0,25).map(([nome, v], i) => {
         const pct = (v.total/total*100).toFixed(1);
@@ -7089,10 +7097,10 @@ function renderServicos(data) {
   if (catEl) {
     _setTable(catEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CATEGORIA <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">QTD <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">TOTAL <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">% <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CATEGORIA</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">QTD</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">TOTAL</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">%</th>
       </tr></thead>
       <tbody>${catRanking.map(([nome, v]) => {
         const pct = (v.total/total*100).toFixed(1);
@@ -7122,12 +7130,12 @@ function renderServicos(data) {
   if (profEl) {
     _setTable(profEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:left">PROFISSIONAL <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">ATEND. <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">CLIENTES <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">TICKET MÉDIO <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">TOTAL <span class=si>↕</span></th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">% <span class=si>↕</span></th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:left">PROFISSIONAL</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">ATEND.</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">CLIENTES</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">TICKET MÉDIO</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">TOTAL</th>
+        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">%</th>
       </tr></thead>
       <tbody>${profRanking.map(([nome, v]) => {
         const pct = (v.total/total*100).toFixed(1);
