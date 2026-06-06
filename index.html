@@ -1433,7 +1433,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </select>
               <span id="imp-count-total" style="font-size:11px;color:var(--text2);margin-left:4px"></span>
             </div>
-            <div id="imp-tabela-container" style="overflow-x:auto;max-height:500px">
+            <div id="imp-tabela-container" style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 300px)">
               <div class="empty">Importe um relatório para ver os dados aqui.</div>
             </div>
           </div>
@@ -3086,7 +3086,7 @@ function abrirPreviewGlobal(tipoNome, nomeArquivo) {
 
   // Tbody com até 200 linhas
   document.getElementById('preview-global-tbody').innerHTML =
-    rows.slice(0, 200).map((r, i) =>
+    rows.map((r, i) =>
       `<tr style="border-bottom:1px solid var(--border);${i%2===1?'background:var(--bg3)':''}">
         ${cols.map(c => `<td style="padding:6px 10px;white-space:nowrap;font-size:11px;color:var(--text)">${r[c] ?? ''}</td>`).join('')}
       </tr>`
@@ -3214,7 +3214,7 @@ function renderTabelaDados(data) {
         </tr>
       </thead>
       <tbody>
-        ${data.slice(0, 500).map((r, i) => `
+        ${data.map((r, i) => `
           <tr id="imp-row-${r.id}" style="border-bottom:1px solid var(--border);${i%2===1?'background:var(--bg3)':''}">
             <td style="padding:6px 10px;text-align:center">
               <input type="checkbox" class="imp-row-chk" data-id="${r.id}"
@@ -3224,7 +3224,6 @@ function renderTabelaDados(data) {
             ${cols.map(c => `<td style="padding:6px 10px;white-space:nowrap;font-size:11px">${r.colunas[c] ?? ''}</td>`).join('')}
           </tr>
         `).join('')}
-        ${data.length > 500 ? `<tr><td colspan="${cols.length+2}" style="padding:8px;text-align:center;color:var(--text3);font-size:11px">Mostrando 500 de ${data.length} registros</td></tr>` : ''}
       </tbody>
     </table>
   `;
@@ -7482,7 +7481,7 @@ function abrirModalPreviewImport(dados) {
 
   // Tabela com TODOS os registros
   const tbody = document.getElementById('imp-preview-body');
-  tbody.innerHTML = dados.slice(0, 200).map((r,i) => `
+  tbody.innerHTML = dados.map((r,i) => `
     <tr style="border-bottom:1px solid var(--border);${i%2===0?'':'background:var(--bg3)'}">
       <td style="padding:6px 10px;font-weight:500;white-space:nowrap">${r.profissional||'—'}</td>
       <td style="padding:6px 10px;white-space:nowrap;color:${r.data_comanda?'var(--text)':'var(--red);font-weight:600'}">${r.data_comanda||'❌ INVÁLIDA'}</td>
