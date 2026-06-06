@@ -267,9 +267,7 @@ thead th {
   cursor: pointer; user-select: none; transition: color 0.15s;
 }
 thead th:hover { color: var(--accent); }
-thead th.sort-asc::after { content: ' ↑'; color: var(--accent); }
-thead th.sort-desc::after { content: ' ↓'; color: var(--accent); }
-thead th.no-sort { cursor: default; }
+
 thead th.no-sort:hover { color: var(--text2); }
 tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
 tbody tr:last-child td { border-bottom: none; }
@@ -5149,10 +5147,10 @@ function renderClientes(linhas, ano, mes) {
   if (perEl) {
     _setTable(perEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left">#</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL</th>
       </tr></thead>
       <tbody>${sorted.slice(0,30).map(([nome,v],i) => {
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
@@ -5174,7 +5172,6 @@ function renderClientes(linhas, ano, mes) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
-    aplicarSort(perEl);
   }
 
   // ── Clientes novos ──────────────────────────────────────
@@ -5185,11 +5182,11 @@ function renderClientes(linhas, ano, mes) {
   if (novosEl) {
     _setTable(novosEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left">#</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:left">CANAL</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:28px;text-align:left">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:left">CANAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL</th>
       </tr></thead>
       <tbody>${novosSort.slice(0,30).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
@@ -5205,7 +5202,6 @@ function renderClientes(linhas, ano, mes) {
           <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}</tbody>
     </table>`);
-    aplicarSort(novosEl);
   }
 }
 
@@ -5336,10 +5332,10 @@ function renderProdutos(rows) {
   if (rankEl) {
     _setTable(rankEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:30px;text-align:left">#</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PRODUTO</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;width:30px;text-align:left">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PRODUTO</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>${prodRank.slice(0,25).map(([nome,v],i) => {
         const barW = (v.total/maxProd*100).toFixed(1);
@@ -5357,7 +5353,6 @@ function renderProdutos(rows) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
-    aplicarSort(rankEl);
   }
 
   // ── Gráfico por categoria ───────────────────────────────
@@ -5409,10 +5404,10 @@ function renderProdutos(rows) {
   if (profEl) {
     _setTable(profEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PROFISSIONAL</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PROFISSIONAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>
         ${profRank.map(([nome,v],i) => `<tr style="border-bottom:1px solid var(--border)">
@@ -5433,7 +5428,6 @@ function renderProdutos(rows) {
         </tr>
       </tbody>
     </table>`);
-    aplicarSort(profEl);
   }
 
   // ── Clientes que compraram ──────────────────────────────
@@ -5454,10 +5448,10 @@ function renderProdutos(rows) {
   if (cliEl) {
     _setTable(cliEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>${cliRank.slice(0,20).map(([nome,v],i) => {
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
@@ -5474,7 +5468,6 @@ function renderProdutos(rows) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
-    aplicarSort(cliEl);
   }
 }
 
@@ -5565,11 +5558,11 @@ async function loadPerformance() {
   if (rankEl) {
     _setTable(rankEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">#</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">PROFISSIONAL</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">ATEND.</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">FATURAMENTO</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">COMISSÃO</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">PROFISSIONAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">ATEND.</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">FATURAMENTO</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">COMISSÃO</th>
       </tr></thead>
       <tbody>
         ${profRank.map(([nome,v],i) => {
@@ -5596,7 +5589,6 @@ async function loadPerformance() {
         </tr>
       </tbody>
     </table>`);
-    aplicarSort(rankEl);
   }
 
   // ── Gráfico donut profissionais ────────────────────────
@@ -5635,10 +5627,10 @@ async function loadPerformance() {
   if (srvEl) {
     _setTable(srvEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">SERVIÇO</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD.</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">SERVIÇO</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD.</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>${srvRank.slice(0,20).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
@@ -5649,7 +5641,6 @@ async function loadPerformance() {
         </tr>`).join('')}
       </tbody>
     </table>`);
-    aplicarSort(srvEl);
   }
 
   // ── Clientes atendidos ─────────────────────────────────
@@ -5667,10 +5658,10 @@ async function loadPerformance() {
   if (cliPerfEl) {
     _setTable(cliPerfEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
       <tbody>${cliPerfRank.slice(0,20).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
@@ -5681,7 +5672,6 @@ async function loadPerformance() {
         </tr>`).join('')}
       </tbody>
     </table>`);
-    aplicarSort(cliPerfEl);
   }
 }
 
@@ -6099,7 +6089,6 @@ async function loadFornecedores() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
-  aplicarSort(el);
 }
 
 async function salvarFornecedorInline(id, rowId) {
@@ -6551,7 +6540,6 @@ async function loadBancos() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
-  aplicarSort(el);
 }
 
 async function salvarBancoInline(id, rowId) {
@@ -6742,7 +6730,6 @@ async function loadUsuarios() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
-  aplicarSort(el);
 }
 
 async function editarUsuarioModal(id) {
@@ -6860,9 +6847,10 @@ function toggleInline(rowId) {
 }
 
 
-// ─── ORDENAÇÃO DE TABELAS ────────────────────────────────
-// Sort — versão definitiva
-let _lastSortTh = null;
+
+// ─── SORT ──────────────────────────────────────────────────
+const TH_STYLE = "padding:7px 10px;font-size:10px;font-weight:700;color:var(--text2);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:10;background:var(--bg3)";
+
 function sortTable(th) {
   const table = th.closest('table');
   if (!table) return;
@@ -6871,58 +6859,44 @@ function sortTable(th) {
   const ths = Array.from(table.querySelectorAll('thead th'));
   const col = ths.indexOf(th);
   const asc = !th.classList.contains('sort-asc');
-
-  // Reset todas as colunas da tabela
   ths.forEach(t => t.classList.remove('sort-asc','sort-desc'));
   th.classList.add(asc ? 'sort-asc' : 'sort-desc');
-
-  // Extrai texto de uma célula ignorando barras de progresso
   function cellVal(cell) {
     if (!cell) return '';
-    // Texto direto no nó (não dentro de div)
-    for (const n of cell.childNodes) {
+    for (const n of cell.childNodes)
       if (n.nodeType === 3 && n.textContent.trim()) return n.textContent.trim();
-    }
-    // Primeiro div com texto (nome do serviço/cliente)
     const d = cell.querySelector('div');
-    if (d) return d.textContent.trim();
-    return cell.textContent.trim();
+    return d ? d.textContent.trim() : cell.textContent.trim();
   }
-
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  rows.sort((a, b) => {
-    const av = cellVal(a.cells[col]);
-    const bv = cellVal(b.cells[col]);
-    // Converte para número: remove R$ espaços, trata ponto milhar e vírgula decimal
+  Array.from(tbody.querySelectorAll('tr')).sort((a,b) => {
+    const av = cellVal(a.cells[col]), bv = cellVal(b.cells[col]);
     const an = parseFloat(av.replace(/[R$\s%]/g,'').replace(/\./g,'').replace(',','.'));
     const bn = parseFloat(bv.replace(/[R$\s%]/g,'').replace(/\./g,'').replace(',','.'));
-    if (!isNaN(an) && !isNaN(bn)) return asc ? an - bn : bn - an;
+    if (!isNaN(an) && !isNaN(bn)) return asc ? an-bn : bn-an;
     return asc ? av.localeCompare(bv,'pt-BR') : bv.localeCompare(av,'pt-BR');
+  }).forEach(r => tbody.appendChild(r));
+}
+
+const sortCol = sortTable;
+
+function _setTable(el, html) {
+  if (!el) return;
+  el.innerHTML = html;
+  // Aplica sort em todos os th da tabela recém criada
+  el.querySelectorAll('thead th').forEach(th => {
+    th.onclick = () => sortTable(th);
   });
-  rows.forEach(r => tbody.appendChild(r));
 }
 
 function aplicarSort(el) {
   if (!el) return;
   el.querySelectorAll('thead th').forEach(th => {
-    if (th.classList.contains('no-sort')) return;
-    th.style.cursor = 'pointer';
-    th.onclick = () => sortTable(th);
+    if (!th.classList.contains('no-sort')) th.onclick = () => sortTable(th);
   });
 }
 
-const sortCol = sortTable;
-const TH_STYLE = "padding:7px 10px;font-size:10px;font-weight:700;color:var(--text2);background:var(--bg3);position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap";
+// ─── SERVIÇOS ────────────────────────────────────────────────
 
-// _setTable: seta innerHTML e aplica sort
-function _setTable(el, html) {
-  if (!el) return;
-  el.innerHTML = html;
-  aplicarSort(el);
-}
-
-
-// ─── SERVIÇOS ────────────────────────────────────────────
 let _srvData = []; // todos os dados carregados
 let _srvChartCat = null;
 let _srvChartProf = null;
@@ -7056,11 +7030,11 @@ function renderServicos(data) {
   if (rankingEl) {
     _setTable(rankingEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:left;width:36px">#</th>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:left">SERVIÇO</th>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">QTD</th>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">TOTAL</th>
-        <th onclick="sortCol(this)" style="${TH_STYLE};text-align:right">%</th>
+        <th style="${TH_STYLE};text-align:left;width:36px">#</th>
+        <th style="${TH_STYLE};text-align:left">SERVIÇO</th>
+        <th style="${TH_STYLE};text-align:right">QTD</th>
+        <th style="${TH_STYLE};text-align:right">TOTAL</th>
+        <th style="${TH_STYLE};text-align:right">%</th>
       </tr></thead>
       <tbody>${srvRanking.slice(0,25).map(([nome, v], i) => {
         const pct = (v.total/total*100).toFixed(1);
@@ -7080,7 +7054,6 @@ function renderServicos(data) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
-    aplicarSort(rankingEl);
   }
 
   // Por categoria
@@ -7097,10 +7070,10 @@ function renderServicos(data) {
   if (catEl) {
     _setTable(catEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CATEGORIA</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">QTD</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">TOTAL</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">%</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CATEGORIA</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">QTD</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">TOTAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:right">%</th>
       </tr></thead>
       <tbody>${catRanking.map(([nome, v]) => {
         const pct = (v.total/total*100).toFixed(1);
@@ -7112,7 +7085,6 @@ function renderServicos(data) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
-    aplicarSort(catEl);
   }
 
   // Por profissional
@@ -7130,12 +7102,12 @@ function renderServicos(data) {
   if (profEl) {
     _setTable(profEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:left">PROFISSIONAL</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">ATEND.</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">CLIENTES</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">TICKET MÉDIO</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">TOTAL</th>
-        <th onclick="sortCol(this)" style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">%</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:left">PROFISSIONAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">ATEND.</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">CLIENTES</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">TICKET MÉDIO</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">TOTAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 12px;text-align:right">%</th>
       </tr></thead>
       <tbody>${profRanking.map(([nome, v]) => {
         const pct = (v.total/total*100).toFixed(1);
@@ -7150,7 +7122,6 @@ function renderServicos(data) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
-    aplicarSort(profEl);
   }
 
   // Histórico por cliente (expansível)
@@ -9256,7 +9227,6 @@ async function atualizarFornecedores() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
-  aplicarSort(el);
   showToast('Atualizado!','success');
 }
 
