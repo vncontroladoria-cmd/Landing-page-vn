@@ -3150,7 +3150,7 @@ async function carregarDadosTipo(tipoId, tipoNome) {
   container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
 
   const { data, error } = await sb.from('rel_dados_brutos')
-    .select('linha_numero, colunas')
+    .select('id, linha_numero, colunas')
     .eq('tipo_id', tipoId)
     .order('linha_numero')
     .limit(5000);
