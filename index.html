@@ -4117,6 +4117,9 @@ function parsePDVTexto(text) {
     return 0;
   };
 
+  console.log('[PDV] linhas processadas:', linhas.map((l,i) => i+':'+prep(l)).join(' | '));
+  console.log('[PDV] categorias:', _pdvCategorias.map(c => n(c.nome)));
+
   _pdvCategorias.forEach(cat => {
     const catN = n(cat.nome);
 
