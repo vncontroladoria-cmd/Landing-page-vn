@@ -6997,28 +6997,19 @@ async function loadServicos() {
   const prof = document.getElementById('srv-profissional')?.value || '';
   const cat  = document.getElementById('srv-categoria')?.value    || '';
 
-  // Busca o tipo_id de "Serviços" no Supabase
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
-  const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
-
+  // Usa rel_servicos diretamente — colunas já separadas e corretas
   let rows = [];
-
-  if (tipoSrv) {
-    // Puxar de rel_dados_brutos (nova base unificada)
-    const { data, error } = await sb.from('rel_dados_brutos')
-      .select('colunas')
-      .eq('tipo_id', tipoSrv.id)
-      .limit(15000);
+  let from = 0;
+  while (true) {
+    const { data, error } = await sb.from('rel_servicos')
+      .select('profissional,data_comanda,dia_semana,numero_comanda,servico,categoria,cliente,cpf,telefone,celular,qtd,valor,desconto,total,pacote')
+      .order('data_comanda', { ascending: false })
+      .range(from, from + 999);
     if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-    rows = (data||[]).map(r => parseSrvRow(r.colunas)).filter(r => r.servico || r.cliente);
-    
-
-    
-  } else {
-    // Fallback: tabela antiga rel_servicos
-    const { data, error } = await sb.from('rel_servicos').select('*').limit(10000);
-    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-    rows = data || [];
+    if (!data || !data.length) break;
+    rows = rows.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
   }
 
   // Filtros locais
@@ -7595,42 +7586,21 @@ function parseDataBR(val) {
 }
 
 async function preencherFiltrosServicos() {
-  // Busca tipo "Serviços"
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
-  const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
+  // Lê direto de rel_servicos — colunas certas garantidas
+  const { data } = await sb.from('rel_servicos').select('profissional,categoria,data_comanda');
+  const rows = data || [];
 
-  let profs = [], cats = [];
-
-  if (tipoSrv) {
-    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', tipoSrv.id).limit(15000);
-    const rows = (data||[]).map(r => parseSrvRow(r.colunas));
-    profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
-    cats  = [...new Set(rows.map(r=>r.categoria).filter(Boolean))].sort();
-  } else {
-    const { data } = await sb.from('rel_servicos').select('profissional,categoria');
-    profs = [...new Set((data||[]).map(r=>r.profissional).filter(Boolean))].sort();
-    cats  = [...new Set((data||[]).map(r=>r.categoria).filter(Boolean))].sort();
-  }
+  const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
+  const cats  = [...new Set(rows.map(r=>r.categoria).filter(Boolean))].sort();
+  const anos  = [...new Set(rows.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
 
   const selP = document.getElementById('srv-profissional');
   const selC = document.getElementById('srv-categoria');
-  if (selP) {
-    const cur = selP.value;
-    selP.innerHTML = '<option value="">Todos os profissionais</option>' + profs.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join('');
-  }
-  if (selC) {
-    const cur = selC.value;
-    selC.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
-  }
-
-  // Preenche anos disponíveis
   const selA = document.getElementById('srv-ano');
-  if (selA && tipoSrv) {
-    const { data: d2 } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', tipoSrv.id).limit(15000);
-    const anos = [...new Set((d2||[]).map(r => { const v=parseSrvRow(r.colunas).data_comanda; return v?v.substring(0,4):''; }).filter(Boolean))].sort().reverse();
-    const cur = selA.value;
-    selA.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
-  }
+
+  if (selP) { const cur=selP.value; selP.innerHTML='<option value="">Todos os profissionais</option>'+profs.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join(''); }
+  if (selC) { const cur=selC.value; selC.innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join(''); }
+  if (selA) { const cur=selA.value; selA.innerHTML='<option value="">Todos os anos</option>'+anos.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join(''); }
 }
 
 // ─── DFC ─────────────────────────────────────────────────
