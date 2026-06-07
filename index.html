@@ -5447,64 +5447,63 @@ async function loadClientes() { await initClientes(); }
 function renderClientesPage() {
   const el = id => document.getElementById(id);
 
+  // Sem dados do relatório principal
   if (!_cliTodosData.length) {
     ['cli-periodo','cli-novos-lista'].forEach(id => {
-      const e = el(id); if(e) e.innerHTML = '<div class="empty">Importe o relatório "Todos Clientes" para ver os dados.</div>';
+      const e = el(id);
+      if (e) e.innerHTML = '<div class="empty">Importe o relatório de Clientes para ver os dados.</div>';
     });
-    ['cli-total','cli-consumido','cli-visitas','cli-ticket'].forEach(id=>{const e=el(id);if(e)e.textContent='—';});
+    ['cli-total','cli-consumido','cli-visitas','cli-ticket',
+     'cli-novos-count','cli-rec-count','cli-ticket-novos','cli-ticket-rec'].forEach(id=>{
+      const e=el(id); if(e) e.textContent='—';
+    });
     return;
   }
 
-  // Mapa de novos pelo nome normalizado
-  const novosSet = new Set(_cliNovosData.map(c => _normCli(c.nome)));
+  // Mapa de clientes novos pelo nome normalizado
+  const novosSet  = new Set(_cliNovosData.map(c => _normCli(c.nome)));
   const novosInfo = {};
   _cliNovosData.forEach(c => { novosInfo[_normCli(c.nome)] = c; });
 
-  // Marca cada cliente como novo ou recorrente
+  // Todos os clientes marcados como novo/recorrente
   const todos = _cliTodosData.map(c => ({
     ...c,
-    isNovo: novosSet.has(_normCli(c.nome)),
-    canal: novosInfo[_normCli(c.nome)]?.canal || '—',
+    isNovo:       novosSet.has(_normCli(c.nome)),
+    canal:        novosInfo[_normCli(c.nome)]?.canal        || '—',
     dataCadastro: novosInfo[_normCli(c.nome)]?.dataCadastro || '',
   }));
 
-  const totalClientes = todos.length;
-  const totalConsumo  = todos.reduce((s,c) => s+c.total, 0);
-  const totalVisitas  = todos.reduce((s,c) => s+c.visitas, 0);
-  const ticket        = totalClientes > 0 ? totalConsumo/totalClientes : 0;
-  const novos         = todos.filter(c => c.isNovo);
-  const recorrentes   = todos.filter(c => !c.isNovo);
+  const novos       = todos.filter(c => c.isNovo);
+  const recorrentes = todos.filter(c => !c.isNovo);
+  const totalConsumo = todos.reduce((s,c) => s+c.total, 0);
+  const totalVisitas = todos.reduce((s,c) => s+c.visitas, 0);
+  const ticket       = todos.length > 0 ? totalConsumo/todos.length : 0;
+  const ticketNovos  = novos.length > 0 ? novos.reduce((s,c)=>s+c.total,0)/novos.length : 0;
+  const ticketRec    = recorrentes.length > 0 ? recorrentes.reduce((s,c)=>s+c.total,0)/recorrentes.length : 0;
 
-  // Cards
-  if(el('cli-total'))     el('cli-total').textContent     = totalClientes.toLocaleString('pt-BR');
-  if(el('cli-total-sub')) el('cli-total-sub').textContent = `${recorrentes.length} recorrentes · ${novos.length} novos`;
-  if(el('cli-consumido')) el('cli-consumido').textContent = fmtBRL(totalConsumo);
-  if(el('cli-visitas'))   el('cli-visitas').textContent   = totalVisitas.toLocaleString('pt-BR');
-  if(el('cli-visitas-sub')) el('cli-visitas-sub').textContent = totalClientes>0?`${(totalVisitas/totalClientes).toFixed(1)} visita/cliente`:'';
-  if(el('cli-ticket'))    el('cli-ticket').textContent    = fmtBRL(ticket);
+  // ── Cards de métricas ──────────────────────────────────
+  if(el('cli-total'))       el('cli-total').textContent       = todos.length.toLocaleString('pt-BR');
+  if(el('cli-total-sub'))   el('cli-total-sub').textContent   = `${recorrentes.length} recorrentes · ${novos.length} novos`;
+  if(el('cli-consumido'))   el('cli-consumido').textContent   = fmtBRL(totalConsumo);
+  if(el('cli-visitas'))     el('cli-visitas').textContent     = totalVisitas.toLocaleString('pt-BR');
+  if(el('cli-visitas-sub')) el('cli-visitas-sub').textContent = todos.length>0?`${(totalVisitas/todos.length).toFixed(1)} visita/cliente`:'';
+  if(el('cli-ticket'))      el('cli-ticket').textContent      = fmtBRL(ticket);
   if(el('cli-novos-count')) el('cli-novos-count').textContent = novos.length;
-  if(el('cli-novos-pct'))   el('cli-novos-pct').textContent   = `${(novos.length/totalClientes*100).toFixed(1)}% do total`;
+  if(el('cli-novos-pct'))   el('cli-novos-pct').textContent   = todos.length>0?`${(novos.length/todos.length*100).toFixed(1)}% do total`:'';
   if(el('cli-rec-count'))   el('cli-rec-count').textContent   = recorrentes.length;
-  if(el('cli-rec-pct'))     el('cli-rec-pct').textContent     = `${(recorrentes.length/totalClientes*100).toFixed(1)}% do total`;
-  const ticketNovos = novos.length>0 ? novos.reduce((s,c)=>s+c.total,0)/novos.length : 0;
-  const ticketRec   = recorrentes.length>0 ? recorrentes.reduce((s,c)=>s+c.total,0)/recorrentes.length : 0;
+  if(el('cli-rec-pct'))     el('cli-rec-pct').textContent     = todos.length>0?`${(recorrentes.length/todos.length*100).toFixed(1)}% do total`:'';
   if(el('cli-ticket-novos')) el('cli-ticket-novos').textContent = fmtBRL(ticketNovos);
   if(el('cli-ticket-rec'))   el('cli-ticket-rec').textContent   = fmtBRL(ticketRec);
 
-  // Card canal principal
-  const canalMap = {};
-  novos.forEach(c => { const k = c.canal||'Não informado'; canalMap[k]=(canalMap[k]||0)+1; });
-  const topCanal = Object.entries(canalMap).sort((a,b)=>b[1]-a[1])[0];
-  if(el('cli-canal-top')) el('cli-canal-top').textContent = topCanal?.[0] || '—';
-  if(el('cli-canal-qtd')) el('cli-canal-qtd').textContent = topCanal ? `${topCanal[1]} clientes` : '';
-
-  // Card 1: TODOS OS CLIENTES ordenados por total
+  // ── CARD 1: Todos os clientes + badge NOVO ─────────────
   const todosSort = [...todos].sort((a,b) => b.total - a.total);
   const maxTotal  = todosSort[0]?.total || 1;
-  const perEl = el('cli-periodo');
-  if(el('cli-periodo-sub')) el('cli-periodo-sub').textContent = `${totalClientes} clientes · ${recorrentes.length} recorrentes · ${novos.length} novos`;
-  if (perEl) {
-    _setTable(perEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
+  const periodoEl = el('cli-periodo');
+  if(el('cli-periodo-sub')) el('cli-periodo-sub').textContent =
+    `${todos.length} clientes · ${recorrentes.length} recorrentes · ${novos.length} novos`;
+
+  if (periodoEl) {
+    _setTable(periodoEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th style="${TH_STYLE};padding:7px 8px;width:28px;text-align:left">#</th>
         <th style="${TH_STYLE};padding:7px 10px;text-align:left">CLIENTE</th>
@@ -5532,20 +5531,23 @@ function renderClientesPage() {
     </table>`);
   }
 
-  // Card 2: SÓ CLIENTES NOVOS com valor consumido
-  const novosSort = [...novos].sort((a,b) => b.total - a.total);
-  // Clientes novos que não estão no relatório de todos (sem serviço ainda)
-  const novosNaoEncontrados = _cliNovosData.filter(c => !novosSet.has(_normCli(c.nome)) || !todos.find(t=>_normCli(t.nome)===_normCli(c.nome)));
-
+  // ── CARD 2: Só clientes novos + valor cruzado ──────────
   const novosEl = el('cli-novos-lista');
-  if(el('cli-novos-sub')) el('cli-novos-sub').textContent = `${_cliNovosData.length} novos · ${novos.length} com serviço · ${fmtBRL(novos.reduce((s,c)=>s+c.total,0))} consumido`;
+  if(el('cli-novos-sub')) el('cli-novos-sub').textContent =
+    `${_cliNovosData.length} cadastros · ${novos.length} com serviço · ${fmtBRL(novos.reduce((s,c)=>s+c.total,0))} consumido`;
   if(el('cli-novos-badge')) el('cli-novos-badge').style.display = _cliNovosData.length ? '' : 'none';
 
   if (novosEl) {
     if (!_cliNovosData.length) {
       novosEl.innerHTML = '<div class="empty">Importe o relatório de Clientes Novos para ver o cruzamento.</div>';
     } else {
-      const maxNovo = novosSort[0]?.total || 1;
+      // Clientes novos com valor (cruzado) + sem valor (só cadastro)
+      const novosComValor = novos.sort((a,b) => b.total - a.total);
+      const novosSemServico = _cliNovosData.filter(c =>
+        !todos.some(t => _normCli(t.nome) === _normCli(c.nome))
+      );
+      const maxNovo = novosComValor[0]?.total || 1;
+
       _setTable(novosEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr>
           <th style="${TH_STYLE};padding:7px 8px;width:28px;text-align:left">#</th>
@@ -5555,11 +5557,11 @@ function renderClientesPage() {
           <th style="${TH_STYLE};padding:7px 8px;text-align:right">TOTAL</th>
         </tr></thead>
         <tbody>
-          ${novosSort.map((c,i) => `
+          ${novosComValor.map((c,i) => `
             <tr style="border-bottom:1px solid var(--border)">
               <td style="padding:6px 8px;text-align:center;font-size:${i<3?'14':'11'}px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
               <td style="padding:6px 10px">
-                <div style="font-size:11px;font-weight:600;margin-bottom:3px">${c.nome}</div>
+                <div style="font-size:11px;font-weight:600;margin-bottom:2px">${c.nome}</div>
                 ${c.dataCadastro?`<div style="font-size:10px;color:var(--text3)">Cadastro: ${fmtDate(c.dataCadastro)}</div>`:''}
                 <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:2px">
                   <div style="position:absolute;left:0;top:0;height:100%;width:${(c.total/maxNovo*100).toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
@@ -5569,15 +5571,15 @@ function renderClientesPage() {
               <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${c.visitas}</td>
               <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(c.total)}</td>
             </tr>`).join('')}
-          ${_cliNovosData.filter(c => !todos.some(t=>_normCli(t.nome)===_normCli(c.nome))).map(c => `
-            <tr style="border-bottom:1px solid var(--border);opacity:.5">
-              <td style="padding:6px 8px;text-align:center;font-size:11px;color:var(--text3)">—</td>
+          ${novosSemServico.map(c => `
+            <tr style="border-bottom:1px solid var(--border);opacity:.55">
+              <td style="padding:6px 8px;text-align:center;color:var(--text3)">—</td>
               <td style="padding:6px 10px">
                 <div style="font-size:11px;font-weight:600">${c.nome}</div>
                 ${c.dataCadastro?`<div style="font-size:10px;color:var(--text3)">Cadastro: ${fmtDate(c.dataCadastro)}</div>`:''}
               </td>
               <td style="padding:6px 8px;font-size:10px;color:var(--text2)">${c.canal||'—'}</td>
-              <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text3)">—</td>
+              <td style="padding:6px 8px;text-align:right;color:var(--text3)">—</td>
               <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text3)">Sem serviço</td>
             </tr>`).join('')}
         </tbody>
@@ -5585,6 +5587,7 @@ function renderClientesPage() {
     }
   }
 }
+
 
 function renderClientes(linhas, ano, mes) {
   const el = id => document.getElementById(id);
