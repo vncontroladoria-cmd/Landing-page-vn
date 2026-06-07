@@ -1167,7 +1167,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
               </select>
             </div>
-            <div style="display:flex;gap:8px">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="text" id="pdv-busca" placeholder="Buscar data ou responsável..." oninput="filtrarPDV()"
+                style="padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-size:13px;width:220px">
+              <button class="btn" id="pdv-btn-excluir-sel" onclick="excluirSelecionadosPDV()" style="display:none;color:var(--red);border-color:var(--red)">
+                🗑 Excluir selecionados (<span id="pdv-count-sel">0</span>)
+              </button>
               <button class="btn" onclick="abrirModalPdvCategorias()">⚙️ Categorias</button>
               <button class="btn" onclick="abrirModalImportarPDV()">📥 Importar</button>
               <button class="btn btn-primary" onclick="abrirModalNovoCaixa()">+ Novo Caixa</button>
@@ -3417,6 +3422,59 @@ async function carregarCategoriasPDV() {
   _pdvCategorias = data || [];
 }
 
+// ─── PDV: busca, seleção e exclusão em massa ─────────────
+function filtrarPDV() {
+  const termo = (document.getElementById('pdv-busca')?.value || '').toLowerCase().trim();
+  if (!termo) {
+    renderPDVLinhas(_pdvCaixasCarregados, _pdvItensCarregados, _pdvFormas);
+    return;
+  }
+  const filtrado = _pdvCaixasCarregados.filter(c =>
+    fmtDate(c.data_caixa).toLowerCase().includes(termo) ||
+    (c.responsavel||'').toLowerCase().includes(termo) ||
+    (c.data_caixa||'').includes(termo)
+  );
+  renderPDVLinhas(filtrado, _pdvItensCarregados, _pdvFormas);
+}
+
+function pdvToggleSel(id, checked) {
+  if (checked) _pdvSelecionados.add(id);
+  else _pdvSelecionados.delete(id);
+  const btn = document.getElementById('pdv-btn-excluir-sel');
+  const cnt = document.getElementById('pdv-count-sel');
+  if (btn) btn.style.display = _pdvSelecionados.size > 0 ? '' : 'none';
+  if (cnt) cnt.textContent = _pdvSelecionados.size;
+  const selAll = document.getElementById('pdv-sel-all');
+  const total = document.querySelectorAll('.pdv-chk').length;
+  if (selAll) selAll.checked = _pdvSelecionados.size === total && total > 0;
+}
+
+function pdvSelecionarTodos(checked) {
+  document.querySelectorAll('.pdv-chk').forEach(chk => {
+    chk.checked = checked;
+    pdvToggleSel(chk.dataset.id, checked);
+  });
+}
+
+async function excluirSelecionadosPDV() {
+  const ids = [..._pdvSelecionados];
+  if (!ids.length) return;
+  if (!confirm(`Excluir ${ids.length} caixa(s) selecionado(s)?
+Essa ação não pode ser desfeita.`)) return;
+  for (const id of ids) {
+    await sb.from('pdv_itens').delete().eq('caixa_id', id);
+    await sb.from('pdv_caixas').delete().eq('id', id);
+    document.getElementById('pdv-row-' + id)?.remove();
+  }
+  _pdvSelecionados.clear();
+  const btn = document.getElementById('pdv-btn-excluir-sel');
+  if (btn) btn.style.display = 'none';
+  const selAll = document.getElementById('pdv-sel-all');
+  if (selAll) selAll.checked = false;
+  showToast(`${ids.length} caixa(s) excluído(s).`, 'success');
+  loadPDV();
+}
+
 async function loadPDV() {
   const ano = document.getElementById('pdv-filtro-ano')?.value || '2026';
   const mes = document.getElementById('pdv-filtro-mes')?.value || '';
@@ -3476,17 +3534,35 @@ async function loadPDV() {
     return;
   }
 
-  // Header dinâmico
-  const colSpan = 3 + formas.length + 1; // data+resp+status | formas | total | ações
+  // Header dinâmico com checkbox + sort
   thead.innerHTML = `<tr style="background:var(--bg3);border-bottom:2px solid var(--border)">
+    <th class="no-sort" style="padding:10px 12px;text-align:center;width:36px">
+      <input type="checkbox" id="pdv-sel-all" onchange="pdvSelecionarTodos(this.checked)" style="cursor:pointer">
+    </th>
     <th style="padding:10px 12px;text-align:left;font-weight:600;white-space:nowrap">DATA</th>
     <th style="padding:10px 12px;text-align:left;font-weight:600">RESPONSÁVEL</th>
     ${formas.map(f => `<th style="padding:10px 12px;text-align:right;font-weight:600;font-size:11px;white-space:nowrap">${f.toUpperCase()}</th>`).join('')}
     <th style="padding:10px 12px;text-align:right;font-weight:600;color:var(--green)">TOTAL</th>
-    <th style="padding:10px 12px;text-align:center;font-weight:600">AÇÕES</th>
+    <th class="no-sort" style="padding:10px 12px;text-align:center;font-weight:600">AÇÕES</th>
   </tr>`;
+  aplicarSort(thead.closest('table'));
 
   // Linhas — uma por caixa/dia
+  _pdvCaixasCarregados = caixas;
+  _pdvItensCarregados  = todosItens;
+  _pdvFormas = formas;
+  renderPDVLinhas(caixas, todosItens, formas);
+}
+
+let _pdvCaixasCarregados = [];
+let _pdvItensCarregados  = [];
+let _pdvFormas = [];
+const _pdvSelecionados = new Set();
+
+function renderPDVLinhas(caixas, todosItens, formas) {
+  const tbody = document.getElementById('pdv-tbody');
+  if (!tbody) return;
+  const normForma = f => (f||'Outros').replace(/\s+(MASTER CARD|VISA|ELO|AMEX|HIPERCARD|HIPER)\b.*/i,'').trim();
   tbody.innerHTML = caixas.map(c => {
     const itensC = todosItens.filter(i => i.caixa_id === c.id && i.tipo === 'ENTRADA');
     const totalDia = itensC.reduce((s,i) => s + Number(i.valor||0), 0);
@@ -3494,7 +3570,10 @@ async function loadPDV() {
       const v = itensC.filter(i => normForma(i.forma_pagamento) === f).reduce((s,i)=>s+Number(i.valor||0),0);
       return `<td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${v > 0 ? fmtBRL(v) : '<span style="color:var(--text3)">—</span>'}</td>`;
     }).join('');
-    return `<tr style="border-bottom:1px solid var(--border)">
+    return `<tr id="pdv-row-${c.id}" style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 12px;text-align:center">
+        <input type="checkbox" class="pdv-chk" data-id="${c.id}" onchange="pdvToggleSel('${c.id}',this.checked)" style="cursor:pointer">
+      </td>
       <td style="padding:10px 12px;font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${fmtDate(c.data_caixa)}</td>
       <td style="padding:10px 12px;font-size:13px">${c.responsavel||'—'}</td>
       ${colsForma}
