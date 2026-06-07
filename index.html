@@ -1567,26 +1567,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div style="font-size:11px;color:var(--text2);margin-top:2px">Análise da base de clientes — visitas, gastos e captação</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">ANO</span>
-                <select id="cli-ano" onchange="loadClientes()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
-                  <option value="">Todos</option>
-                </select>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">MÊS</span>
-                <select id="cli-mes" onchange="loadClientes()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
-                  <option value="">Todos</option>
-                  <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
-                  <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
-                  <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
-                  <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-                </select>
-              </div>
-              <button class="btn" onclick="loadClientes()" style="margin-top:14px">↻</button>
-              <button class="btn btn-primary" onclick="showPage('importacao',document.querySelector('[data-page=importacao]'))" style="margin-top:14px">📥 Importação</button>
+              <button class="btn" onclick="loadClientes()">↻</button>
+              <!-- Importar relatório de TODOS os clientes do período -->
+              <input type="file" id="cli-todos-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarTodosClientes(this)">
+              <button class="btn" onclick="document.getElementById('cli-todos-input').click()" title="Relatório com todos os clientes atendidos no período">👥 Importar Todos Clientes</button>
+              <!-- Importar relatório de CLIENTES NOVOS -->
               <input type="file" id="cli-novos-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarClientesNovos(this)">
-              <button class="btn" onclick="document.getElementById('cli-novos-input').click()" style="margin-top:14px">👤 Importar Clientes Novos</button>
+              <button class="btn btn-primary" onclick="document.getElementById('cli-novos-input').click()" title="Relatório de novos cadastros do período">✨ Importar Clientes Novos</button>
             </div>
           </div>
 
@@ -5318,47 +5305,285 @@ function parseCliRow(colunas) {
   };
 }
 
-async function initClientes() {
-  // Preenche anos a partir do tipo Serviços (base principal)
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
-  const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
-  if (tipoSrv) {
-    const { data: d } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoSrv.id).limit(15000);
-    const rows = (d||[]).map(r => parseCliRow(r.colunas));
-    const anos = [...new Set(rows.map(r=>r.data?.substring(0,4)).filter(Boolean))].sort().reverse();
-    const selA = document.getElementById('cli-ano');
-    if (selA) selA.innerHTML = '<option value="">Todos</option>' + anos.map(a=>`<option value="${a}">${a}</option>`).join('');
-  }
-  // Carrega clientes novos do Supabase (se já foram importados antes)
-  await carregarClientesNovosDoSupabase();
-  await loadClientes();
+// Dados em memória dos dois relatórios
+let _cliTodosData  = []; // todos os clientes do período (relatório 2)
+let _cliNovosData  = []; // clientes novos cadastrados (relatório 1)
+
+const _normCli = s => (s||'').toLowerCase()
+  .normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .replace(/\s+/g,' ').trim();
+
+// ── Importar relatório de TODOS os clientes ────────────────
+async function importarTodosClientes(input) {
+  const file = input.files[0]; if (!file) return; input.value = '';
+  showToast('Lendo relatório de clientes...','');
+  try {
+    const XLSX = await loadXLSX();
+    const wb = XLSX.read(await file.arrayBuffer(), {cellDates:true});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+    if (!rows.length) { showToast('Arquivo vazio.','error'); return; }
+
+    const cols = Object.keys(rows[0]);
+    const norm2 = s => _normCli(s);
+    const get = (r,...ns) => { for(const n of ns){ const k=cols.find(c=>norm2(c).includes(norm2(n))); if(k&&r[k]!=null&&r[k]!=='')return String(r[k]).trim(); } return ''; };
+    const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
+    const parseD = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
+
+    _cliTodosData = rows.map(r => ({
+      nome:      get(r,'Cliente','cliente','Nome','nome'),
+      celular:   get(r,'Celular','celular','Telefone','telefone'),
+      ultimaVisita: parseD(get(r,'Última Visita','UltimaVisita','ultima visita','data')),
+      total:     parseN(get(r,'Total Consumido','TotalConsumido','total','valor')),
+      visitas:   parseInt(get(r,'Número de Visitas','NumeroVisitas','visitas','numero de visitas'))||1,
+      profissional: get(r,'Profissionais','profissional','Profissional'),
+    })).filter(r => r.nome);
+
+    // Salva no Supabase
+    const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+    let tipo = tipos?.find(t => t.nome.toLowerCase().includes('todos os clientes') || t.nome.toLowerCase() === 'clientes');
+    if (!tipo) {
+      const { data: novo } = await sb.from('rel_tipos').insert({nome:'Clientes', descricao:'Relatório de todos os clientes do período'}).select().single();
+      tipo = novo;
+    }
+    if (tipo) {
+      await sb.from('rel_dados_brutos').delete().eq('tipo_id', tipo.id);
+      const linhas = rows.map((r,i) => ({tipo_id:tipo.id, linha_numero:i+1, colunas:r}));
+      for(let i=0;i<linhas.length;i+=500) await sb.from('rel_dados_brutos').insert(linhas.slice(i,i+500));
+    }
+
+    showToast(`✅ ${_cliTodosData.length} clientes carregados!`, 'success');
+    renderClientesPage();
+  } catch(e) { showToast('Erro: '+e.message,'error'); console.error(e); }
 }
 
-async function loadClientes() {
-  const ano = document.getElementById('cli-ano')?.value || '';
-  const mes = document.getElementById('cli-mes')?.value || '';
+// ── Importar relatório de CLIENTES NOVOS ──────────────────
+async function importarClientesNovos(input) {
+  const file = input.files[0]; if (!file) return; input.value = '';
+  showToast('Lendo clientes novos...','');
+  try {
+    const XLSX = await loadXLSX();
+    const wb = XLSX.read(await file.arrayBuffer(), {cellDates:true});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+    if (!rows.length) { showToast('Arquivo vazio.','error'); return; }
 
-  // Busca fonte de dados: tipo Serviços (tem cliente + data)
+    const cols = Object.keys(rows[0]);
+    const norm2 = s => _normCli(s);
+    const get = (r,...ns) => { for(const n of ns){ const k=cols.find(c=>norm2(c).includes(norm2(n))); if(k&&r[k]!=null&&r[k]!=='')return String(r[k]).trim(); } return ''; };
+    const parseD = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
+
+    _cliNovosData = rows.map(r => ({
+      nome:         get(r,'Cliente','cliente','Nome','nome'),
+      celular:      get(r,'Celular','celular','Telefone','telefone'),
+      canal:        get(r,'Como Conheceu','ComoConheceu','canal','Canal'),
+      dataCadastro: parseD(get(r,'Data Cadastro','DataCadastro','data cadastro','data')),
+      responsavel:  get(r,'Responsável','Responsavel','responsavel'),
+    })).filter(r => r.nome);
+
+    // Salva no Supabase
+    const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+    let tipo = tipos?.find(t => t.nome.toLowerCase().includes('clientes novos') || t.nome.toLowerCase().includes('cliente novo'));
+    if (!tipo) {
+      const { data: novo } = await sb.from('rel_tipos').insert({nome:'Clientes Novos', descricao:'Relatório de novos cadastros'}).select().single();
+      tipo = novo;
+    }
+    if (tipo) {
+      await sb.from('rel_dados_brutos').delete().eq('tipo_id', tipo.id);
+      const linhas = rows.map((r,i) => ({tipo_id:tipo.id, linha_numero:i+1, colunas:r}));
+      for(let i=0;i<linhas.length;i+=500) await sb.from('rel_dados_brutos').insert(linhas.slice(i,i+500));
+    }
+
+    showToast(`✅ ${_cliNovosData.length} clientes novos carregados!`, 'success');
+    renderClientesPage();
+  } catch(e) { showToast('Erro: '+e.message,'error'); console.error(e); }
+}
+
+// ── Carrega dados do Supabase ao abrir a página ────────────
+async function initClientes() {
   const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
-  const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
 
-  let linhas = [];
-  if (tipoSrv) {
-    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoSrv.id).limit(15000);
-    linhas = (data||[]).map(r => parseCliRow(r.colunas)).filter(r => r.cliente && r.data);
+  // Carrega "Clientes" (todos)
+  const tipoTodos = tipos?.find(t => t.nome.toLowerCase() === 'clientes' || t.nome.toLowerCase().includes('todos os clientes'));
+  if (tipoTodos) {
+    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoTodos.id).limit(5000);
+    if (data?.length) {
+      const cols = Object.keys(data[0]?.colunas||{});
+      const norm2 = s => _normCli(s);
+      const get = (r,...ns) => { for(const n of ns){ const k=cols.find(c=>norm2(c).includes(norm2(n))); if(k&&r[k]!=null&&r[k]!=='')return String(r[k]).trim(); } return ''; };
+      const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
+      const parseD = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
+      _cliTodosData = data.map(r => ({
+        nome: get(r.colunas,'Cliente','cliente','Nome'),
+        total: parseN(get(r.colunas,'Total Consumido','TotalConsumido','total')),
+        visitas: parseInt(get(r.colunas,'Número de Visitas','visitas'))||1,
+        ultimaVisita: parseD(get(r.colunas,'Última Visita','ultima visita','data')),
+        profissional: get(r.colunas,'Profissionais','profissional'),
+      })).filter(r => r.nome);
+    }
   }
 
-  // Filtros
-  if (ano) linhas = linhas.filter(r => r.data?.startsWith(ano));
-  if (mes) linhas = linhas.filter(r => r.data?.substring(5,7) === mes);
+  // Carrega "Clientes Novos"
+  const tipoNovos = tipos?.find(t => t.nome.toLowerCase().includes('clientes novos') || t.nome.toLowerCase().includes('cliente novo'));
+  if (tipoNovos) {
+    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoNovos.id).limit(5000);
+    if (data?.length) {
+      const cols = Object.keys(data[0]?.colunas||{});
+      const norm2 = s => _normCli(s);
+      const get = (r,...ns) => { for(const n of ns){ const k=cols.find(c=>norm2(c).includes(norm2(n))); if(k&&r[k]!=null&&r[k]!=='')return String(r[k]).trim(); } return ''; };
+      const parseD = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
+      _cliNovosData = data.map(r => ({
+        nome: get(r.colunas,'Cliente','cliente','Nome'),
+        canal: get(r.colunas,'Como Conheceu','ComoConheceu','canal'),
+        dataCadastro: parseD(get(r.colunas,'Data Cadastro','DataCadastro','data cadastro')),
+      })).filter(r => r.nome);
+    }
+  }
 
-  if (!linhas.length) {
-    ['cli-periodo','cli-novos-lista'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML='<div class="empty">Nenhum dado. Importe o relatório de Serviços na Importação.</div>'; });
-    ['cli-total','cli-consumido','cli-visitas','cli-ticket','cli-novos-count','cli-rec-count','cli-ticket-novos','cli-ticket-rec','cli-pico-dia','cli-canal-top'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+  renderClientesPage();
+}
+
+async function loadClientes() { await initClientes(); }
+
+// ── Renderiza a página com os dois relatórios cruzados ─────
+function renderClientesPage() {
+  const el = id => document.getElementById(id);
+
+  if (!_cliTodosData.length) {
+    ['cli-periodo','cli-novos-lista'].forEach(id => {
+      const e = el(id); if(e) e.innerHTML = '<div class="empty">Importe o relatório "Todos Clientes" para ver os dados.</div>';
+    });
+    ['cli-total','cli-consumido','cli-visitas','cli-ticket'].forEach(id=>{const e=el(id);if(e)e.textContent='—';});
     return;
   }
 
-  renderClientes(linhas, ano, mes);
+  // Mapa de novos pelo nome normalizado
+  const novosSet = new Set(_cliNovosData.map(c => _normCli(c.nome)));
+  const novosInfo = {};
+  _cliNovosData.forEach(c => { novosInfo[_normCli(c.nome)] = c; });
+
+  // Marca cada cliente como novo ou recorrente
+  const todos = _cliTodosData.map(c => ({
+    ...c,
+    isNovo: novosSet.has(_normCli(c.nome)),
+    canal: novosInfo[_normCli(c.nome)]?.canal || '—',
+    dataCadastro: novosInfo[_normCli(c.nome)]?.dataCadastro || '',
+  }));
+
+  const totalClientes = todos.length;
+  const totalConsumo  = todos.reduce((s,c) => s+c.total, 0);
+  const totalVisitas  = todos.reduce((s,c) => s+c.visitas, 0);
+  const ticket        = totalClientes > 0 ? totalConsumo/totalClientes : 0;
+  const novos         = todos.filter(c => c.isNovo);
+  const recorrentes   = todos.filter(c => !c.isNovo);
+
+  // Cards
+  if(el('cli-total'))     el('cli-total').textContent     = totalClientes.toLocaleString('pt-BR');
+  if(el('cli-total-sub')) el('cli-total-sub').textContent = `${recorrentes.length} recorrentes · ${novos.length} novos`;
+  if(el('cli-consumido')) el('cli-consumido').textContent = fmtBRL(totalConsumo);
+  if(el('cli-visitas'))   el('cli-visitas').textContent   = totalVisitas.toLocaleString('pt-BR');
+  if(el('cli-visitas-sub')) el('cli-visitas-sub').textContent = totalClientes>0?`${(totalVisitas/totalClientes).toFixed(1)} visita/cliente`:'';
+  if(el('cli-ticket'))    el('cli-ticket').textContent    = fmtBRL(ticket);
+  if(el('cli-novos-count')) el('cli-novos-count').textContent = novos.length;
+  if(el('cli-novos-pct'))   el('cli-novos-pct').textContent   = `${(novos.length/totalClientes*100).toFixed(1)}% do total`;
+  if(el('cli-rec-count'))   el('cli-rec-count').textContent   = recorrentes.length;
+  if(el('cli-rec-pct'))     el('cli-rec-pct').textContent     = `${(recorrentes.length/totalClientes*100).toFixed(1)}% do total`;
+  const ticketNovos = novos.length>0 ? novos.reduce((s,c)=>s+c.total,0)/novos.length : 0;
+  const ticketRec   = recorrentes.length>0 ? recorrentes.reduce((s,c)=>s+c.total,0)/recorrentes.length : 0;
+  if(el('cli-ticket-novos')) el('cli-ticket-novos').textContent = fmtBRL(ticketNovos);
+  if(el('cli-ticket-rec'))   el('cli-ticket-rec').textContent   = fmtBRL(ticketRec);
+
+  // Card canal principal
+  const canalMap = {};
+  novos.forEach(c => { const k = c.canal||'Não informado'; canalMap[k]=(canalMap[k]||0)+1; });
+  const topCanal = Object.entries(canalMap).sort((a,b)=>b[1]-a[1])[0];
+  if(el('cli-canal-top')) el('cli-canal-top').textContent = topCanal?.[0] || '—';
+  if(el('cli-canal-qtd')) el('cli-canal-qtd').textContent = topCanal ? `${topCanal[1]} clientes` : '';
+
+  // Card 1: TODOS OS CLIENTES ordenados por total
+  const todosSort = [...todos].sort((a,b) => b.total - a.total);
+  const maxTotal  = todosSort[0]?.total || 1;
+  const perEl = el('cli-periodo');
+  if(el('cli-periodo-sub')) el('cli-periodo-sub').textContent = `${totalClientes} clientes · ${recorrentes.length} recorrentes · ${novos.length} novos`;
+  if (perEl) {
+    _setTable(perEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="${TH_STYLE};padding:7px 8px;width:28px;text-align:left">#</th>
+        <th style="${TH_STYLE};padding:7px 10px;text-align:left">CLIENTE</th>
+        <th style="${TH_STYLE};padding:7px 8px;text-align:right">VISITAS</th>
+        <th style="${TH_STYLE};padding:7px 8px;text-align:right">TOTAL</th>
+      </tr></thead>
+      <tbody>${todosSort.map((c,i) => {
+        const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+        const barW = (c.total/maxTotal*100).toFixed(1);
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:6px 8px;text-align:center;font-size:${i<3?'14':'11'}px">${pod}</td>
+          <td style="padding:6px 10px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <span style="font-size:11px;font-weight:600">${c.nome}</span>
+              ${c.isNovo?'<span style="background:#059669;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px">NOVO</span>':''}
+            </div>
+            <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,#059669,#34d399);border-radius:2px"></div>
+            </div>
+          </td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${c.visitas}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(c.total)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`);
+  }
+
+  // Card 2: SÓ CLIENTES NOVOS com valor consumido
+  const novosSort = [...novos].sort((a,b) => b.total - a.total);
+  // Clientes novos que não estão no relatório de todos (sem serviço ainda)
+  const novosNaoEncontrados = _cliNovosData.filter(c => !novosSet.has(_normCli(c.nome)) || !todos.find(t=>_normCli(t.nome)===_normCli(c.nome)));
+
+  const novosEl = el('cli-novos-lista');
+  if(el('cli-novos-sub')) el('cli-novos-sub').textContent = `${_cliNovosData.length} novos · ${novos.length} com serviço · ${fmtBRL(novos.reduce((s,c)=>s+c.total,0))} consumido`;
+  if(el('cli-novos-badge')) el('cli-novos-badge').style.display = _cliNovosData.length ? '' : 'none';
+
+  if (novosEl) {
+    if (!_cliNovosData.length) {
+      novosEl.innerHTML = '<div class="empty">Importe o relatório de Clientes Novos para ver o cruzamento.</div>';
+    } else {
+      const maxNovo = novosSort[0]?.total || 1;
+      _setTable(novosEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>
+          <th style="${TH_STYLE};padding:7px 8px;width:28px;text-align:left">#</th>
+          <th style="${TH_STYLE};padding:7px 10px;text-align:left">CLIENTE</th>
+          <th style="${TH_STYLE};padding:7px 8px;text-align:left">CANAL</th>
+          <th style="${TH_STYLE};padding:7px 8px;text-align:right">VISITAS</th>
+          <th style="${TH_STYLE};padding:7px 8px;text-align:right">TOTAL</th>
+        </tr></thead>
+        <tbody>
+          ${novosSort.map((c,i) => `
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:6px 8px;text-align:center;font-size:${i<3?'14':'11'}px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+              <td style="padding:6px 10px">
+                <div style="font-size:11px;font-weight:600;margin-bottom:3px">${c.nome}</div>
+                ${c.dataCadastro?`<div style="font-size:10px;color:var(--text3)">Cadastro: ${fmtDate(c.dataCadastro)}</div>`:''}
+                <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:2px">
+                  <div style="position:absolute;left:0;top:0;height:100%;width:${(c.total/maxNovo*100).toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
+                </div>
+              </td>
+              <td style="padding:6px 8px;font-size:10px;color:var(--text2)">${c.canal||'—'}</td>
+              <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${c.visitas}</td>
+              <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(c.total)}</td>
+            </tr>`).join('')}
+          ${_cliNovosData.filter(c => !todos.some(t=>_normCli(t.nome)===_normCli(c.nome))).map(c => `
+            <tr style="border-bottom:1px solid var(--border);opacity:.5">
+              <td style="padding:6px 8px;text-align:center;font-size:11px;color:var(--text3)">—</td>
+              <td style="padding:6px 10px">
+                <div style="font-size:11px;font-weight:600">${c.nome}</div>
+                ${c.dataCadastro?`<div style="font-size:10px;color:var(--text3)">Cadastro: ${fmtDate(c.dataCadastro)}</div>`:''}
+              </td>
+              <td style="padding:6px 8px;font-size:10px;color:var(--text2)">${c.canal||'—'}</td>
+              <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text3)">—</td>
+              <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text3)">Sem serviço</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`);
+    }
+  }
 }
 
 function renderClientes(linhas, ano, mes) {
@@ -7998,179 +8223,6 @@ async function preencherFiltrosServicos() {
 // ─── CLIENTES NOVOS: IMPORTAÇÃO E CRUZAMENTO ─────────────
 
 let _cliNovosImportados = []; // lista de nomes de clientes novos importados
-
-async function importarClientesNovos(input) {
-  const file = input.files[0];
-  if (!file) return;
-  input.value = '';
-  showToast('Lendo arquivo de clientes novos...', '');
-
-  try {
-    const XLSX = await loadXLSX();
-    const buf  = await file.arrayBuffer();
-    const wb   = XLSX.read(buf, { cellDates: true });
-    const ws   = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-    if (!rows.length) { showToast('Arquivo vazio.', 'error'); return; }
-
-    // Extrai nomes e dados dos clientes novos
-    const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
-    const colunas = Object.keys(rows[0]);
-    const get = (row, ...nomes) => {
-      for (const n of nomes) {
-        const k = colunas.find(c => norm(c) === norm(n) || norm(c).includes(norm(n)));
-        if (k && row[k] != null && row[k] !== '') return String(row[k]).trim();
-      }
-      return '';
-    };
-
-    _cliNovosImportados = rows.map(r => ({
-      nome:         get(r, 'Cliente', 'cliente', 'Nome', 'nome'),
-      telefone:     get(r, 'Telefone', 'telefone'),
-      celular:      get(r, 'Celular', 'celular'),
-      email:        get(r, 'E-mail', 'email', 'Email'),
-      canal:        get(r, 'Como Conheceu', 'ComoConheceu', 'canal', 'Canal'),
-      dataCadastro: get(r, 'Data Cadastro', 'DataCadastro', 'data'),
-      responsavel:  get(r, 'Responsável', 'Responsavel', 'responsavel'),
-    })).filter(r => r.nome);
-
-    showToast(`✅ ${_cliNovosImportados.length} clientes novos carregados. Cruzando com serviços...`, 'success');
-
-    // Salva no Supabase como tipo "Clientes Novos"
-    const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
-    let tipoCli = tipos?.find(t => t.nome.toLowerCase().includes('clientes novos') || t.nome.toLowerCase().includes('cliente novo'));
-    if (!tipoCli) {
-      // Cria o tipo automaticamente
-      const { data: novo } = await sb.from('rel_tipos').insert({ nome: 'Clientes Novos', descricao: 'Relatório de cadastro de novos clientes' }).select().single();
-      tipoCli = novo;
-    }
-    if (tipoCli) {
-      // Limpa dados anteriores deste tipo
-      await sb.from('rel_dados_brutos').delete().eq('tipo_id', tipoCli.id);
-      // Insere novos
-      const linhas = rows.map((r, i) => ({ tipo_id: tipoCli.id, linha_numero: i+1, colunas: r }));
-      const lote = 500;
-      for (let i = 0; i < linhas.length; i += lote) {
-        await sb.from('rel_dados_brutos').insert(linhas.slice(i, i+lote));
-      }
-    }
-
-    // Refaz o cruzamento na página de clientes
-    cruzarClientesNovos();
-
-  } catch(e) {
-    showToast('Erro: ' + e.message, 'error');
-    console.error(e);
-  }
-}
-
-async function carregarClientesNovosDoSupabase() {
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
-  const tipoCli = tipos?.find(t => t.nome.toLowerCase().includes('clientes novos') || t.nome.toLowerCase().includes('cliente novo'));
-  if (!tipoCli) return;
-
-  const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', tipoCli.id).limit(5000);
-  if (!data?.length) return;
-
-  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
-  _cliNovosImportados = data.map(r => {
-    const c = r.colunas || {};
-    const get = (...nomes) => {
-      for (const n of nomes) {
-        const k = Object.keys(c).find(k => norm(k).includes(norm(n)));
-        if (k && c[k] != null && c[k] !== '') return String(c[k]).trim();
-      }
-      return '';
-    };
-    return {
-      nome:         get('Cliente','cliente','Nome','nome'),
-      canal:        get('Como Conheceu','ComoConheceu','canal'),
-      dataCadastro: get('Data Cadastro','DataCadastro','data'),
-      celular:      get('Celular','celular','Telefone','telefone'),
-    };
-  }).filter(r => r.nome);
-}
-
-function cruzarClientesNovos() {
-  if (!_cliNovosImportados.length || !_srvData?.length) return;
-
-  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
-
-  // Mapa de nomes normalizados dos clientes novos
-  const novosMap = {};
-  _cliNovosImportados.forEach(c => {
-    novosMap[norm(c.nome)] = c;
-  });
-
-  // Cruza com serviços: agrupa gastos por cliente
-  const cliGastos = {};
-  _srvData.forEach(r => {
-    const nome = r.cliente;
-    if (!nome) return;
-    const nNome = norm(nome);
-    if (!novosMap[nNome]) return; // não é cliente novo
-    if (!cliGastos[nNome]) cliGastos[nNome] = { nome, total: 0, visitas: 0, canal: novosMap[nNome].canal || '—', data: novosMap[nNome].dataCadastro || '' };
-    cliGastos[nNome].total   += Number(r.total || 0);
-    cliGastos[nNome].visitas += 1;
-  });
-
-  const novosComGasto = Object.values(cliGastos).sort((a,b) => b.total - a.total);
-  // Clientes novos que não tiveram serviços no período
-  _cliNovosImportados.forEach(c => {
-    const nNome = norm(c.nome);
-    if (!cliGastos[nNome]) {
-      novosComGasto.push({ nome: c.nome, total: 0, visitas: 0, canal: c.canal || '—', data: c.dataCadastro || '', semServico: true });
-    }
-  });
-
-  const totalNovos = _cliNovosImportados.length;
-  const comServico = novosComGasto.filter(c => !c.semServico).length;
-  const totalGasto = novosComGasto.reduce((s,c) => s+c.total, 0);
-
-  // Atualiza badge e sub-título
-  const badge = document.getElementById('cli-novos-badge');
-  if (badge) badge.style.display = '';
-  const sub = document.getElementById('cli-novos-sub');
-  if (sub) sub.textContent = `${totalNovos} novos · ${comServico} com serviço · ${fmtBRL(totalGasto)} consumido`;
-
-  // Renderiza tabela
-  const el = document.getElementById('cli-novos-lista');
-  if (!el) return;
-
-  if (!novosComGasto.length) {
-    el.innerHTML = '<div class="empty">Nenhum cliente novo cruzado com serviços no período.</div>';
-    return;
-  }
-
-  const maxTotal = novosComGasto[0]?.total || 1;
-  _setTable(el, `<table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead><tr>
-      <th style="${TH_STYLE};padding:7px 8px;width:28px;text-align:left">#</th>
-      <th style="${TH_STYLE};padding:7px 10px;text-align:left">CLIENTE</th>
-      <th style="${TH_STYLE};padding:7px 8px;text-align:left">CANAL</th>
-      <th style="${TH_STYLE};padding:7px 8px;text-align:right">VISITAS</th>
-      <th style="${TH_STYLE};padding:7px 8px;text-align:right">TOTAL</th>
-    </tr></thead>
-    <tbody>${novosComGasto.map((c, i) => `
-      <tr style="border-bottom:1px solid var(--border);${c.semServico?'opacity:.6':''}">
-        <td style="padding:6px 8px;font-size:11px;color:var(--text3)">${i+1}</td>
-        <td style="padding:6px 10px">
-          <div style="font-size:11px;font-weight:600;margin-bottom:3px">${c.nome}</div>
-          ${c.data ? `<div style="font-size:10px;color:var(--text3)">Cadastro: ${c.data}</div>` : ''}
-          <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px">
-            <div style="position:absolute;left:0;top:0;height:100%;width:${(c.total/maxTotal*100).toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
-          </div>
-        </td>
-        <td style="padding:6px 8px;font-size:10px;color:var(--text2)">${c.canal}</td>
-        <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${c.visitas}</td>
-        <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:${c.total>0?'var(--green)':'var(--text3)'}">
-          ${c.total > 0 ? fmtBRL(c.total) : '—'}
-        </td>
-      </tr>`).join('')}
-    </tbody>
-  </table>`);
-}
 
 // ─── DFC ─────────────────────────────────────────────────
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
