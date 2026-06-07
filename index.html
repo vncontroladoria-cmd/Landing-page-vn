@@ -1174,7 +1174,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 🗑 Excluir selecionados (<span id="pdv-count-sel">0</span>)
               </button>
               <button class="btn" onclick="abrirModalPdvCategorias()">⚙️ Categorias</button>
-              <button class="btn" onclick="abrirModalImportarPDV()">📥 Importar</button>
+              <button class="btn" onclick="abrirModalImportarPDV()">📥 Importar Texto</button>
+              <input type="file" id="pdv-excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcelPDV(this)">
+              <button class="btn" onclick="document.getElementById('pdv-excel-input').click()">📊 Importar Excel</button>
               <button class="btn btn-primary" onclick="abrirModalNovoCaixa()">+ Novo Caixa</button>
             </div>
           </div>
@@ -3401,6 +3403,219 @@ document.addEventListener('keydown', e => {
     if (document.getElementById('modal-novo-tipo')?.classList.contains('open')) salvarNovoTipo();
   }
 });
+
+
+// ─── PDV: IMPORTAÇÃO EXCEL ───────────────────────────────
+
+let _pdvExcelLinhas = []; // linhas processadas para confirmar
+
+async function importarExcelPDV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  showToast('Lendo arquivo...','');
+
+  try {
+    const XLSX = await loadXLSX();
+    const buf  = await file.arrayBuffer();
+    const wb   = XLSX.read(buf, { cellDates: true });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1 });
+
+    if (!rows.length) { showToast('Arquivo vazio.','error'); return; }
+
+    // Detecta linha de cabeçalho (contém DATA/EXTRATO/ENTRADA/SAIDA)
+    let headerIdx = 0;
+    for (let i = 0; i < Math.min(5, rows.length); i++) {
+      const r = rows[i].map(c => String(c||'').toUpperCase());
+      if (r.some(c => c.includes('DATA')) && r.some(c => c.includes('EXTRATO')||c.includes('DESCRI'))) {
+        headerIdx = i; break;
+      }
+    }
+    const header = rows[headerIdx].map(c => String(c||'').trim().toUpperCase());
+    const iData    = header.findIndex(h => h.includes('DATA'));
+    const iExtrato = header.findIndex(h => h.includes('EXTRATO') || h.includes('DESCRI') || h.includes('HISTOR'));
+    const iEntrada = header.findIndex(h => h.includes('ENTRADA') || h.includes('CREDIT'));
+    const iSaida   = header.findIndex(h => h.includes('SAIDA') || h.includes('SAÍDA') || h.includes('DEBIT'));
+
+    if (iData < 0 || iExtrato < 0) {
+      showToast('Colunas DATA e EXTRATO não encontradas.','error'); return;
+    }
+
+    // Normaliza string para comparação
+    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+
+    // Função para parsear valor monetário BR
+    const parseVal = v => {
+      if (!v && v !== 0) return 0;
+      let s = String(v).replace(/[R$\s]/g,'').trim();
+      // Parênteses = negativo: (1.234,56) → -1234.56
+      const neg = s.startsWith('(') || s.startsWith('-');
+      s = s.replace(/[()+-]/g,'');
+      if (!s) return 0;
+      if (s.includes(',') && s.includes('.')) s = s.replace(/\./g,'').replace(',','.');
+      else if (s.includes(',')) s = s.replace(',','.');
+      const n = parseFloat(s) || 0;
+      return neg ? -n : n;
+    };
+
+    // Função para parsear data
+    const parseData = v => {
+      if (!v) return null;
+      if (v instanceof Date) return v.toISOString().substring(0,10);
+      const s = String(v).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+      const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+      if (m) {
+        const ano = m[3].length === 2 ? '20' + m[3] : m[3];
+        return `${ano}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+      }
+      return null;
+    };
+
+    // Processa linhas de dados
+    const dataRows = rows.slice(headerIdx + 1).filter(r => r.some(c => c !== ''));
+    const linhas = [];
+
+    for (const row of dataRows) {
+      const dataRaw   = row[iData];
+      const extrato   = String(row[iExtrato]||'').trim();
+      const entradaRaw = iEntrada >= 0 ? row[iEntrada] : '';
+      const saidaRaw   = iSaida   >= 0 ? row[iSaida]   : '';
+
+      if (!extrato) continue;
+
+      const data   = parseData(dataRaw);
+      const vEntr  = parseVal(entradaRaw);
+      const vSaida = Math.abs(parseVal(saidaRaw));
+
+      // Determina tipo e valor
+      let tipo = 'ENTRADA', valor = 0;
+      if (vEntr !== 0) { tipo = 'ENTRADA'; valor = Math.abs(vEntr); }
+      else if (vSaida !== 0) { tipo = 'SAIDA'; valor = vSaida; }
+      else continue; // sem valor — pula
+
+      // Identifica categoria pelo nome da categoria cadastrada
+      let catNome = extrato;
+      let catObj  = null;
+      for (const cat of _pdvCategorias) {
+        const cn = norm(cat.nome);
+        const ex = norm(extrato);
+        // Remove (N) do extrato antes de comparar
+        const exSemN = ex.replace(/\s*\(\d+\)\s*/g,' ').trim();
+        if (exSemN.startsWith(cn) || ex.startsWith(cn)) {
+          catObj = cat; catNome = cat.nome; break;
+        }
+      }
+      // Se não achou categoria, usa ENTRADA/SAIDA como padrão
+      if (!catObj) {
+        catNome = extrato;
+      }
+
+      linhas.push({ data, extrato, catNome, tipo, valor, identificado: !!catObj });
+    }
+
+    if (!linhas.length) { showToast('Nenhuma linha válida encontrada.','error'); return; }
+
+    // Guarda para confirmar
+    _pdvExcelLinhas = linhas;
+    abrirPreviewExcelPDV(linhas, file.name);
+
+  } catch(e) {
+    showToast('Erro ao ler arquivo: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+function abrirPreviewExcelPDV(linhas, nomeArq) {
+  const total  = linhas.length;
+  const identi = linhas.filter(l => l.identificado).length;
+  const naoId  = total - identi;
+  const sumEntr = linhas.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+l.valor,0);
+  const sumSaid = linhas.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+l.valor,0);
+
+  document.getElementById('pdv-excel-sub').textContent =
+    `${nomeArq} · ${total} linhas · ${identi} identificadas · ${naoId} sem categoria`;
+
+  document.getElementById('pdv-excel-resumo').innerHTML =
+    `Entradas: <strong style="color:var(--green)">${fmtBRL(sumEntr)}</strong> &nbsp;|&nbsp; Saídas: <strong style="color:var(--red)">${fmtBRL(sumSaid)}</strong>`;
+
+  // Agrupa por data para mostrar organizado
+  const datasUnicas = [...new Set(linhas.map(l=>l.data))].sort();
+
+  document.getElementById('pdv-excel-tbody').innerHTML = linhas.map((l, idx) => `
+    <tr style="border-bottom:1px solid var(--border);${!l.identificado?'background:#fffbeb':''}">
+      <td style="padding:6px 10px;font-size:11px;color:var(--text2);white-space:nowrap">${l.data ? fmtDate(l.data) : '<span style="color:var(--red)">?</span>'}</td>
+      <td style="padding:6px 10px;font-size:11px">${l.extrato}</td>
+      <td style="padding:6px 10px;font-size:11px">
+        <input type="text" value="${l.catNome}" onchange="_pdvExcelLinhas[${idx}].catNome=this.value"
+          style="width:100%;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:11px;background:var(--bg2);color:var(--text)">
+      </td>
+      <td style="padding:6px 10px;text-align:center">
+        <span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${l.tipo==='ENTRADA'?'#dcfce7':'#fee2e2'};color:${l.tipo==='ENTRADA'?'#166534':'#991b1b'}">${l.tipo}</span>
+      </td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${l.tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
+        ${fmtBRL(l.valor)}
+      </td>
+      <td style="padding:6px 10px;text-align:center;font-size:14px">
+        ${l.identificado ? '✅' : '<span style="color:var(--amber)">⚠️</span>'}
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('modal-pdv-excel').classList.add('open');
+}
+
+async function confirmarImportExcelPDV() {
+  const btn = document.getElementById('pdv-excel-confirmar');
+  btn.textContent = '⏳ Salvando...';
+  btn.disabled = true;
+
+  try {
+    // Agrupa por data — cada data vira um caixa
+    const porData = {};
+    _pdvExcelLinhas.forEach(l => {
+      if (!l.data) return;
+      if (!porData[l.data]) porData[l.data] = [];
+      porData[l.data].push(l);
+    });
+
+    let caixasCriados = 0;
+    for (const [data, linhas] of Object.entries(porData)) {
+      // Cria o caixa
+      const { data: caixa, error: errC } = await sb.from('pdv_caixas').insert({
+        data_caixa: data,
+        responsavel: '',
+        status: 'fechado'
+      }).select().single();
+      if (errC) throw new Error(errC.message);
+
+      // Cria os itens
+      const itens = linhas.map(l => ({
+        caixa_id:        caixa.id,
+        forma_pagamento: l.catNome,
+        descricao:       l.extrato,
+        categoria:       l.catNome,
+        tipo:            l.tipo,
+        valor:           l.valor
+      }));
+      const { error: errI } = await sb.from('pdv_itens').insert(itens);
+      if (errI) throw new Error(errI.message);
+      caixasCriados++;
+    }
+
+    closeModal('modal-pdv-excel');
+    showToast(`✅ ${caixasCriados} caixa(s) importado(s)!`, 'success');
+    loadPDV();
+
+  } catch(e) {
+    showToast('Erro: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    btn.textContent = '💾 Confirmar Importação';
+    btn.disabled = false;
+  }
+}
 
 // ─── PDV / CAIXA ────────────────────────────────────────
 let _pdvCaixaId = null;
@@ -9494,6 +9709,40 @@ document.getElementById('login-pass').addEventListener('keypress', e => { if(e.k
         <button class="btn btn-primary" id="preview-global-confirmar" onclick="confirmarImportacaoGlobal()">
           💾 Confirmar Importação
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: PREVIEW IMPORTAÇÃO EXCEL PDV -->
+<div id="modal-pdv-excel" class="modal-overlay">
+  <div class="modal" style="max-width:700px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <span id="pdv-excel-titulo">📊 Preview — Importação Excel PDV</span>
+      <button class="modal-close" onclick="closeModal('modal-pdv-excel')">×</button>
+    </div>
+    <div style="padding:0 1.25rem;font-size:12px;color:var(--text2);margin-bottom:8px" id="pdv-excel-sub"></div>
+    <div style="overflow-y:auto;flex:1;padding:0 1.25rem">
+      <table style="width:100%;border-collapse:collapse;font-size:12px" id="pdv-excel-table">
+        <thead style="position:sticky;top:0;background:var(--bg3);z-index:5">
+          <tr>
+            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">DATA</th>
+            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">EXTRATO</th>
+            <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">CATEGORIA</th>
+            <th style="padding:7px 10px;text-align:center;font-size:10px;font-weight:700;color:var(--text2)">TIPO</th>
+            <th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:700;color:var(--text2)">VALOR</th>
+            <th style="padding:7px 10px;text-align:center;font-size:10px;font-weight:700;color:var(--text2)">✓</th>
+          </tr>
+        </thead>
+        <tbody id="pdv-excel-tbody"></tbody>
+      </table>
+    </div>
+    <div style="padding:1rem 1.25rem;background:var(--bg3);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:12px;color:var(--text2)" id="pdv-excel-resumo"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('modal-pdv-excel')">Cancelar</button>
+        <button class="btn btn-primary" id="pdv-excel-confirmar" onclick="confirmarImportExcelPDV()">💾 Confirmar Importação</button>
       </div>
     </div>
   </div>
