@@ -1566,15 +1566,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div style="font-size:18px;font-weight:700">Clientes · Recorrentes &amp; Novos</div>
               <div style="font-size:11px;color:var(--text2);margin-top:2px">Análise da base de clientes — visitas, gastos e captação</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button class="btn" onclick="loadClientes()">↻</button>
-              <!-- Importar relatório de TODOS os clientes do período -->
-              <input type="file" id="cli-todos-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarTodosClientes(this)">
-              <button class="btn" onclick="document.getElementById('cli-todos-input').click()" title="Relatório com todos os clientes atendidos no período">👥 Importar Todos Clientes</button>
-              <!-- Importar relatório de CLIENTES NOVOS -->
-              <input type="file" id="cli-novos-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarClientesNovos(this)">
-              <button class="btn btn-primary" onclick="document.getElementById('cli-novos-input').click()" title="Relatório de novos cadastros do período">✨ Importar Clientes Novos</button>
-            </div>
+            <button class="btn" onclick="loadClientes()">↻ Atualizar</button>
           </div>
 
           <!-- CARDS LINHA 1 -->
@@ -3127,14 +3119,18 @@ async function confirmarImportacaoGlobal() {
       inseridos += Math.min(lote, linhas.length - i);
     }
 
-    // Se for Serviços, salva também em rel_servicos com colunas corretas
+    // Ações específicas por tipo
     const nomeT = _impTipoEscolhido.nome.toLowerCase();
-    if (nomeT.includes('servi')) {
+    if (nomeT.includes('servi') && !nomeT.includes('cliente')) {
+      // Serviços → salva também em rel_servicos
       const srvRows = _impArquivoRows.map(r => parseSrvRow(r)).filter(r => r.servico || r.cliente);
       for (let i = 0; i < srvRows.length; i += lote) {
         const { error } = await sb.from('rel_servicos').insert(srvRows.slice(i, i + lote));
         if (error) console.warn('rel_servicos insert:', error.message);
       }
+    } else if (nomeT.includes('cliente')) {
+      // Clientes ou Clientes Novos → recarrega a memória
+      await initClientes();
     }
 
     closeModal('modal-preview-global');
