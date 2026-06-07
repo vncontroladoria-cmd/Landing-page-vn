@@ -2174,41 +2174,49 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </div>
     </div>
 
-    <!-- PASSO 2: Detecção automática de colunas -->
+    <!-- PASSO 2: Mapear colunas -->
     <div id="excel-passo2" style="display:none">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--accent)">✅ Colunas detectadas automaticamente</div>
-      
-      <!-- Tabela mostrando o que foi encontrado em cada coluna -->
-      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px">
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="background:var(--bg3)">
-              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);width:80px">COLUNA</th>
-              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);width:130px">TIPO DETECTADO</th>
-              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text2)">EXEMPLO DO ARQUIVO</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);width:80px">USAR?</th>
-            </tr>
-          </thead>
-          <tbody id="excel-cols-detectadas"></tbody>
-        </table>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--accent)">Mapeie as colunas do arquivo</div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px;font-size:11px;color:var(--text2)">
+        📋 Colunas encontradas: <span id="excel-colunas-lista" style="font-weight:600;color:var(--text)"></span>
       </div>
-
-      <!-- Preview das primeiras linhas -->
-      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">📋 Primeiras linhas do arquivo:</div>
-      <div id="excel-preview-linhas" style="background:var(--bg3);border-radius:8px;padding:10px;font-size:11px;font-family:monospace;max-height:120px;overflow-y:auto;margin-bottom:14px;color:var(--text)"></div>
-
-      <input type="hidden" id="excel-col-data">
-      <input type="hidden" id="excel-col-desc">
-      <input type="hidden" id="excel-col-valor">
-      <input type="hidden" id="excel-col-entrada">
-      <input type="hidden" id="excel-col-saida">
-      <input type="hidden" id="excel-col-cat">
-      <input type="hidden" id="excel-col-anotacao">
-      <input type="hidden" id="excel-skip" value="0">
-
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem">
+        <div class="form-group">
+          <label>Coluna DATA <span style="color:var(--red)">*</span></label>
+          <select id="excel-col-data" style="width:100%"></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna EXTRATO/DESCRIÇÃO <span style="color:var(--red)">*</span></label>
+          <select id="excel-col-desc" style="width:100%"></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna ENTRADA</label>
+          <select id="excel-col-entrada" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna SAÍDA</label>
+          <select id="excel-col-saida" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna VALOR (único)</label>
+          <select id="excel-col-valor" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna ANOTAÇÃO/DESCRIÇÃO</label>
+          <select id="excel-col-anotacao" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Coluna CATEGORIA</label>
+          <select id="excel-col-cat" style="width:100%"><option value="">— não usar —</option></select>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:1rem">
+        Linhas de cabeçalho a ignorar:
+        <input type="number" id="excel-skip" value="0" min="0" max="20" style="width:60px;padding:4px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);margin-left:6px">
+      </div>
+      <div style="display:flex;justify-content:space-between">
         <button class="btn" onclick="document.getElementById('excel-passo2').style.display='none';document.getElementById('excel-passo1').style.display='block'">← Voltar</button>
-        <button class="btn btn-primary" onclick="processarExcelMapeado()">🔍 Conciliar →</button>
+        <button class="btn btn-primary" onclick="processarExcelMapeado()">🔍 Buscar conciliação →</button>
       </div>
     </div>
   </div>
@@ -9255,63 +9263,32 @@ async function lerColunaExcel() {
     idx: i, nome: String(c || `Coluna ${i+1}`).trim()
   })).filter(c => c.nome);
 
-  // ── Detecção automática de tipo de cada coluna ──────────
-  const detectar = (nome) => {
-    const n = nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-    if (/data|date/.test(n))                               return { tipo: 'DATA',      icone: '📅', cor: '#2563eb' };
-    if (/extrato|histor|lancam|descri.*ext|memo/.test(n))  return { tipo: 'EXTRATO',   icone: '📋', cor: '#7c3aed' };
-    if (/entrada|credit|receita/.test(n))                  return { tipo: 'ENTRADA',   icone: '⬆️', cor: '#059669' };
-    if (/saida|saída|debit|debito|despesa/.test(n))        return { tipo: 'SAÍDA',     icone: '⬇️', cor: '#dc2626' };
-    if (/^valor$|^value$|amount/.test(n))                  return { tipo: 'VALOR',     icone: '💰', cor: '#d97706' };
-    if (/descri|anot|obs|nota/.test(n))                    return { tipo: 'ANOTAÇÃO',  icone: '✏️', cor: '#0891b2' };
-    if (/categ|grupo|classif/.test(n))                     return { tipo: 'CATEGORIA', icone: '🏷️', cor: '#7c3aed' };
-    return { tipo: 'IGNORAR', icone: '—', cor: '#9ca3af' };
-  };
+  document.getElementById('excel-colunas-lista').textContent = _excelColunas.map(c => c.nome).join(', ');
 
-  // Aplica detecção e seta os campos hidden
-  const mapa = { DATA:'', EXTRATO:'', ENTRADA:'', 'SAÍDA':'', VALOR:'', 'ANOTAÇÃO':'', CATEGORIA:'' };
-  
+  // Preenche selects
+  const optsVazio = '<option value="">— não usar —</option>';
+  const opts = optsVazio + _excelColunas.map(c => `<option value="${c.idx}">${c.nome}</option>`).join('');
+  const optsObrig = _excelColunas.map(c => `<option value="${c.idx}">${c.nome}</option>`).join('');
+
+  document.getElementById('excel-col-data').innerHTML = optsObrig;
+  document.getElementById('excel-col-desc').innerHTML = optsObrig;
+  document.getElementById('excel-col-entrada').innerHTML = opts;
+  document.getElementById('excel-col-saida').innerHTML = opts;
+  document.getElementById('excel-col-valor').innerHTML = opts;
+  document.getElementById('excel-col-anotacao').innerHTML = opts;
+  document.getElementById('excel-col-cat').innerHTML = opts;
+
+  // Auto-detecta
   _excelColunas.forEach(c => {
-    const d = detectar(c.nome);
-    c.detec = d;
-    if (mapa[d.tipo] === '' && d.tipo !== 'IGNORAR') mapa[d.tipo] = String(c.idx);
+    const n = c.nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    if (/data|date/.test(n))                        document.getElementById('excel-col-data').value = c.idx;
+    if (/extrato|histor|lancam/.test(n))            document.getElementById('excel-col-desc').value = c.idx;
+    if (/entrada|credit|receita/.test(n))           document.getElementById('excel-col-entrada').value = c.idx;
+    if (/saida|saída|debit|debito/.test(n))         document.getElementById('excel-col-saida').value = c.idx;
+    if (/^valor$|amount/.test(n))                   document.getElementById('excel-col-valor').value = c.idx;
+    if (/descri|anot|obs|nota/.test(n))             document.getElementById('excel-col-anotacao').value = c.idx;
+    if (/categ/.test(n))                            document.getElementById('excel-col-cat').value = c.idx;
   });
-
-  // Seta campos hidden
-  document.getElementById('excel-col-data').value     = mapa['DATA']     || '';
-  document.getElementById('excel-col-desc').value     = mapa['EXTRATO']  || '';
-  document.getElementById('excel-col-entrada').value  = mapa['ENTRADA']  || '';
-  document.getElementById('excel-col-saida').value    = mapa['SAÍDA']    || '';
-  document.getElementById('excel-col-valor').value    = mapa['VALOR']    || '';
-  document.getElementById('excel-col-anotacao').value = mapa['ANOTAÇÃO'] || '';
-  document.getElementById('excel-col-cat').value      = mapa['CATEGORIA']|| '';
-
-  // ── Monta tabela de colunas detectadas ──────────────────
-  const amostra = _excelData.slice(headerRow + 1, headerRow + 4); // 3 linhas de exemplo
-  const tbody = document.getElementById('excel-cols-detectadas');
-  tbody.innerHTML = _excelColunas.map(c => {
-    const ex = amostra.map(r => String(r[c.idx]||'').trim()).filter(Boolean).slice(0,2).join(' | ');
-    const usada = c.detec.tipo !== 'IGNORAR';
-    return `<tr style="border-bottom:1px solid var(--border);${!usada?'opacity:.5':''}">
-      <td style="padding:8px 12px;font-size:11px;color:var(--text2)">Coluna ${c.idx+1}</td>
-      <td style="padding:8px 12px">
-        <span style="background:${c.detec.cor}18;color:${c.detec.cor};border:1px solid ${c.detec.cor}40;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700">
-          ${c.detec.icone} ${c.detec.tipo}
-        </span>
-      </td>
-      <td style="padding:8px 12px;font-size:11px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${ex}">${ex || '—'}</td>
-      <td style="padding:8px 12px;text-align:center;font-size:14px">${usada?'✅':'❌'}</td>
-    </tr>`;
-  }).join('');
-
-  // ── Preview das primeiras linhas ─────────────────────────
-  const previewEl = document.getElementById('excel-preview-linhas');
-  const colunasCabec = _excelColunas.map(c=>c.nome.padEnd(20,' ')).join(' ');
-  const linhasPreview = amostra.slice(0,3).map(r =>
-    _excelColunas.map(c => String(r[c.idx]||'').substring(0,20).padEnd(20,' ')).join(' ')
-  );
-  previewEl.innerHTML = `<div style="color:var(--accent);font-weight:700">${colunasCabec}</div>` +
-    linhasPreview.map(l => `<div>${l}</div>`).join('');
 
   document.getElementById('excel-passo1').style.display = 'none';
   document.getElementById('excel-passo2').style.display = 'block';
@@ -9330,8 +9307,7 @@ async function processarExcelMapeado() {
   const colCat      = document.getElementById('excel-col-cat').value;
   const colAnotacao = document.getElementById('excel-col-anotacao')?.value || '';
 
-  if (!colData) { showToast('Coluna DATA não detectada','error'); return; }
-  if (!colDesc) { showToast('Coluna EXTRATO não detectada','error'); return; }
+  if (!colData || !colDesc) { showToast('Mapeie data e descrição','error'); return; }
 
   closeModal('modal-importar-excel');
 
