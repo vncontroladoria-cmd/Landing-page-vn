@@ -9263,31 +9263,36 @@ async function lerColunaExcel() {
     idx: i, nome: String(c || `Coluna ${i+1}`).trim()
   })).filter(c => c.nome);
 
-  document.getElementById('excel-colunas-lista').textContent = _excelColunas.map(c => c.nome).join(', ');
+  // Mostra nomes das colunas encontradas
+  document.getElementById('excel-colunas-lista').textContent = 
+    _excelColunas.map((c,i) => `Col.${i+1}: ${c.nome}`).join(' | ');
 
-  // Preenche selects
-  const optsVazio = '<option value="">— não usar —</option>';
-  const opts = optsVazio + _excelColunas.map(c => `<option value="${c.idx}">${c.nome}</option>`).join('');
-  const optsObrig = _excelColunas.map(c => `<option value="${c.idx}">${c.nome}</option>`).join('');
+  // Preenche selects com "Coluna 1 — NOME", "Coluna 2 — NOME", etc.
+  const optsVazio  = '<option value="">— nada —</option>';
+  const optsNada   = optsVazio + _excelColunas.map(c => 
+    `<option value="${c.idx}">Coluna ${c.idx+1} — ${c.nome}</option>`).join('');
+  const optsObrig  = '<option value="">— selecione —</option>' + _excelColunas.map(c => 
+    `<option value="${c.idx}">Coluna ${c.idx+1} — ${c.nome}</option>`).join('');
 
-  document.getElementById('excel-col-data').innerHTML = optsObrig;
-  document.getElementById('excel-col-desc').innerHTML = optsObrig;
-  document.getElementById('excel-col-entrada').innerHTML = opts;
-  document.getElementById('excel-col-saida').innerHTML = opts;
-  document.getElementById('excel-col-valor').innerHTML = opts;
-  document.getElementById('excel-col-anotacao').innerHTML = opts;
-  document.getElementById('excel-col-cat').innerHTML = opts;
+  document.getElementById('excel-col-data').innerHTML     = optsObrig;
+  document.getElementById('excel-col-desc').innerHTML     = optsObrig;
+  document.getElementById('excel-col-entrada').innerHTML  = optsNada;
+  document.getElementById('excel-col-saida').innerHTML    = optsNada;
+  document.getElementById('excel-col-valor').innerHTML    = optsNada;
+  document.getElementById('excel-col-anotacao').innerHTML = optsNada;
+  document.getElementById('excel-col-cat').innerHTML      = optsNada;
 
-  // Auto-detecta
+  // Auto-detecta pelo nome da coluna
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   _excelColunas.forEach(c => {
-    const n = c.nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-    if (/data|date/.test(n))                        document.getElementById('excel-col-data').value = c.idx;
-    if (/extrato|histor|lancam/.test(n))            document.getElementById('excel-col-desc').value = c.idx;
-    if (/entrada|credit|receita/.test(n))           document.getElementById('excel-col-entrada').value = c.idx;
-    if (/saida|saída|debit|debito/.test(n))         document.getElementById('excel-col-saida').value = c.idx;
-    if (/^valor$|amount/.test(n))                   document.getElementById('excel-col-valor').value = c.idx;
-    if (/descri|anot|obs|nota/.test(n))             document.getElementById('excel-col-anotacao').value = c.idx;
-    if (/categ/.test(n))                            document.getElementById('excel-col-cat').value = c.idx;
+    const n = norm(c.nome);
+    if (/^data$|^date$/.test(n))                    document.getElementById('excel-col-data').value     = c.idx;
+    if (/extrato|histor|lancam/.test(n))             document.getElementById('excel-col-desc').value     = c.idx;
+    if (/entrada|credit|receita/.test(n))            document.getElementById('excel-col-entrada').value  = c.idx;
+    if (/saida|saída|debit|debito/.test(n))          document.getElementById('excel-col-saida').value    = c.idx;
+    if (/^valor$|^value$|amount/.test(n))            document.getElementById('excel-col-valor').value    = c.idx;
+    if (/descri|anot|obs|nota/.test(n))              document.getElementById('excel-col-anotacao').value = c.idx;
+    if (/categ/.test(n))                             document.getElementById('excel-col-cat').value      = c.idx;
   });
 
   document.getElementById('excel-passo1').style.display = 'none';
