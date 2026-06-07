@@ -3117,7 +3117,7 @@ async function confirmarImportacaoGlobal() {
     const linhas = _impArquivoRows.map((r, i) => ({
       tipo_id: _impTipoEscolhido.id,
       linha_numero: i + 1,
-      colunas: r   // jsonb — armazena a linha completa
+      colunas: r
     }));
 
     const lote = 500;
@@ -3126,6 +3126,16 @@ async function confirmarImportacaoGlobal() {
       const { error } = await sb.from('rel_dados_brutos').insert(linhas.slice(i, i + lote));
       if (error) throw new Error(error.message);
       inseridos += Math.min(lote, linhas.length - i);
+    }
+
+    // Se for Serviços, salva também em rel_servicos com colunas corretas
+    const nomeT = _impTipoEscolhido.nome.toLowerCase();
+    if (nomeT.includes('servi')) {
+      const srvRows = _impArquivoRows.map(r => parseSrvRow(r)).filter(r => r.servico || r.cliente);
+      for (let i = 0; i < srvRows.length; i += lote) {
+        const { error } = await sb.from('rel_servicos').insert(srvRows.slice(i, i + lote));
+        if (error) console.warn('rel_servicos insert:', error.message);
+      }
     }
 
     closeModal('modal-preview-global');
