@@ -4117,9 +4117,7 @@ function parsePDVTexto(text) {
     return 0;
   };
 
-  console.log('[PDV] linhas processadas:', linhas.map((l,i) => i+':'+prep(l)).join(' | '));
-  console.log('[PDV] categorias:', _pdvCategorias.map(c => n(c.nome)));
-
+  console.log('[PDV cats]', _pdvCategorias.map(c => `'${c.nome}'`).join(', '));
   _pdvCategorias.forEach(cat => {
     const catN = n(cat.nome);
 
@@ -4130,10 +4128,10 @@ function parsePDVTexto(text) {
       // Bate se começa com o nome da categoria (aceita plural: +s)
       if (!linhaN.startsWith(catN) && !linhaN.startsWith(catN + 's')) continue;
 
-      // Extrai valor da mesma linha ou da próxima
+      // Extrai valor APENAS da mesma linha
+      // (não busca linha seguinte — evita pegar valor de outra categoria)
       let valor = extraiValor(linha);
-      if (!valor && i + 1 < linhas.length) valor = extraiValor(linhas[i + 1]);
-      if (!valor) break;
+      if (!valor) break; // valor zero = ignora esta categoria
 
       itens.push({
         forma_pagamento: cat.nome,
