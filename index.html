@@ -1585,6 +1585,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </div>
               <button class="btn" onclick="loadClientes()" style="margin-top:14px">↻</button>
               <button class="btn btn-primary" onclick="showPage('importacao',document.querySelector('[data-page=importacao]'))" style="margin-top:14px">📥 Importação</button>
+              <input type="file" id="cli-novos-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarClientesNovos(this)">
+              <button class="btn" onclick="document.getElementById('cli-novos-input').click()" style="margin-top:14px">👤 Importar Clientes Novos</button>
             </div>
           </div>
 
@@ -1648,12 +1650,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </div>
             </div>
             <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
-                <div style="font-weight:600;font-size:13px">✨ Clientes Novos</div>
-                <div style="font-size:11px;color:var(--text2);margin-top:1px" id="cli-novos-sub"></div>
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-weight:600;font-size:13px">✨ Clientes Novos</div>
+                  <div style="font-size:11px;color:var(--text2);margin-top:1px" id="cli-novos-sub"></div>
+                </div>
+                <span id="cli-novos-badge" style="display:none;background:#059669;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">Cruzado</span>
               </div>
               <div id="cli-novos-lista" style="max-height:340px;overflow-y:auto">
-                <div class="empty">Sem dados</div>
+                <div class="empty">Importe o relatório de Clientes Novos para ver o cruzamento</div>
               </div>
             </div>
           </div>
@@ -5324,6 +5329,8 @@ async function initClientes() {
     const selA = document.getElementById('cli-ano');
     if (selA) selA.innerHTML = '<option value="">Todos</option>' + anos.map(a=>`<option value="${a}">${a}</option>`).join('');
   }
+  // Carrega clientes novos do Supabase (se já foram importados antes)
+  await carregarClientesNovosDoSupabase();
   await loadClientes();
 }
 
@@ -5508,6 +5515,11 @@ function renderClientes(linhas, ano, mes) {
         </tr>`
       }).join('')}</tbody>
     </table>`);
+  }
+
+  // Cruza com clientes novos importados (se houver)
+  if (_cliNovosImportados.length > 0) {
+    cruzarClientesNovos();
   }
 
   // ── Clientes novos ──────────────────────────────────────
@@ -7980,6 +7992,184 @@ async function preencherFiltrosServicos() {
   if (selP) { const cur=selP.value; selP.innerHTML='<option value="">Todos os profissionais</option>'+profs.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join(''); }
   if (selC) { const cur=selC.value; selC.innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join(''); }
   if (selA) { const cur=selA.value; selA.innerHTML='<option value="">Todos os anos</option>'+anos.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join(''); }
+}
+
+
+// ─── CLIENTES NOVOS: IMPORTAÇÃO E CRUZAMENTO ─────────────
+
+let _cliNovosImportados = []; // lista de nomes de clientes novos importados
+
+async function importarClientesNovos(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  showToast('Lendo arquivo de clientes novos...', '');
+
+  try {
+    const XLSX = await loadXLSX();
+    const buf  = await file.arrayBuffer();
+    const wb   = XLSX.read(buf, { cellDates: true });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!rows.length) { showToast('Arquivo vazio.', 'error'); return; }
+
+    // Extrai nomes e dados dos clientes novos
+    const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+    const colunas = Object.keys(rows[0]);
+    const get = (row, ...nomes) => {
+      for (const n of nomes) {
+        const k = colunas.find(c => norm(c) === norm(n) || norm(c).includes(norm(n)));
+        if (k && row[k] != null && row[k] !== '') return String(row[k]).trim();
+      }
+      return '';
+    };
+
+    _cliNovosImportados = rows.map(r => ({
+      nome:         get(r, 'Cliente', 'cliente', 'Nome', 'nome'),
+      telefone:     get(r, 'Telefone', 'telefone'),
+      celular:      get(r, 'Celular', 'celular'),
+      email:        get(r, 'E-mail', 'email', 'Email'),
+      canal:        get(r, 'Como Conheceu', 'ComoConheceu', 'canal', 'Canal'),
+      dataCadastro: get(r, 'Data Cadastro', 'DataCadastro', 'data'),
+      responsavel:  get(r, 'Responsável', 'Responsavel', 'responsavel'),
+    })).filter(r => r.nome);
+
+    showToast(`✅ ${_cliNovosImportados.length} clientes novos carregados. Cruzando com serviços...`, 'success');
+
+    // Salva no Supabase como tipo "Clientes Novos"
+    const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
+    let tipoCli = tipos?.find(t => t.nome.toLowerCase().includes('clientes novos') || t.nome.toLowerCase().includes('cliente novo'));
+    if (!tipoCli) {
+      // Cria o tipo automaticamente
+      const { data: novo } = await sb.from('rel_tipos').insert({ nome: 'Clientes Novos', descricao: 'Relatório de cadastro de novos clientes' }).select().single();
+      tipoCli = novo;
+    }
+    if (tipoCli) {
+      // Limpa dados anteriores deste tipo
+      await sb.from('rel_dados_brutos').delete().eq('tipo_id', tipoCli.id);
+      // Insere novos
+      const linhas = rows.map((r, i) => ({ tipo_id: tipoCli.id, linha_numero: i+1, colunas: r }));
+      const lote = 500;
+      for (let i = 0; i < linhas.length; i += lote) {
+        await sb.from('rel_dados_brutos').insert(linhas.slice(i, i+lote));
+      }
+    }
+
+    // Refaz o cruzamento na página de clientes
+    cruzarClientesNovos();
+
+  } catch(e) {
+    showToast('Erro: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+async function carregarClientesNovosDoSupabase() {
+  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
+  const tipoCli = tipos?.find(t => t.nome.toLowerCase().includes('clientes novos') || t.nome.toLowerCase().includes('cliente novo'));
+  if (!tipoCli) return;
+
+  const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', tipoCli.id).limit(5000);
+  if (!data?.length) return;
+
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+  _cliNovosImportados = data.map(r => {
+    const c = r.colunas || {};
+    const get = (...nomes) => {
+      for (const n of nomes) {
+        const k = Object.keys(c).find(k => norm(k).includes(norm(n)));
+        if (k && c[k] != null && c[k] !== '') return String(c[k]).trim();
+      }
+      return '';
+    };
+    return {
+      nome:         get('Cliente','cliente','Nome','nome'),
+      canal:        get('Como Conheceu','ComoConheceu','canal'),
+      dataCadastro: get('Data Cadastro','DataCadastro','data'),
+      celular:      get('Celular','celular','Telefone','telefone'),
+    };
+  }).filter(r => r.nome);
+}
+
+function cruzarClientesNovos() {
+  if (!_cliNovosImportados.length || !_srvData?.length) return;
+
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+
+  // Mapa de nomes normalizados dos clientes novos
+  const novosMap = {};
+  _cliNovosImportados.forEach(c => {
+    novosMap[norm(c.nome)] = c;
+  });
+
+  // Cruza com serviços: agrupa gastos por cliente
+  const cliGastos = {};
+  _srvData.forEach(r => {
+    const nome = r.cliente;
+    if (!nome) return;
+    const nNome = norm(nome);
+    if (!novosMap[nNome]) return; // não é cliente novo
+    if (!cliGastos[nNome]) cliGastos[nNome] = { nome, total: 0, visitas: 0, canal: novosMap[nNome].canal || '—', data: novosMap[nNome].dataCadastro || '' };
+    cliGastos[nNome].total   += Number(r.total || 0);
+    cliGastos[nNome].visitas += 1;
+  });
+
+  const novosComGasto = Object.values(cliGastos).sort((a,b) => b.total - a.total);
+  // Clientes novos que não tiveram serviços no período
+  _cliNovosImportados.forEach(c => {
+    const nNome = norm(c.nome);
+    if (!cliGastos[nNome]) {
+      novosComGasto.push({ nome: c.nome, total: 0, visitas: 0, canal: c.canal || '—', data: c.dataCadastro || '', semServico: true });
+    }
+  });
+
+  const totalNovos = _cliNovosImportados.length;
+  const comServico = novosComGasto.filter(c => !c.semServico).length;
+  const totalGasto = novosComGasto.reduce((s,c) => s+c.total, 0);
+
+  // Atualiza badge e sub-título
+  const badge = document.getElementById('cli-novos-badge');
+  if (badge) badge.style.display = '';
+  const sub = document.getElementById('cli-novos-sub');
+  if (sub) sub.textContent = `${totalNovos} novos · ${comServico} com serviço · ${fmtBRL(totalGasto)} consumido`;
+
+  // Renderiza tabela
+  const el = document.getElementById('cli-novos-lista');
+  if (!el) return;
+
+  if (!novosComGasto.length) {
+    el.innerHTML = '<div class="empty">Nenhum cliente novo cruzado com serviços no período.</div>';
+    return;
+  }
+
+  const maxTotal = novosComGasto[0]?.total || 1;
+  _setTable(el, `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>
+      <th style="${TH_STYLE};padding:7px 8px;width:28px;text-align:left">#</th>
+      <th style="${TH_STYLE};padding:7px 10px;text-align:left">CLIENTE</th>
+      <th style="${TH_STYLE};padding:7px 8px;text-align:left">CANAL</th>
+      <th style="${TH_STYLE};padding:7px 8px;text-align:right">VISITAS</th>
+      <th style="${TH_STYLE};padding:7px 8px;text-align:right">TOTAL</th>
+    </tr></thead>
+    <tbody>${novosComGasto.map((c, i) => `
+      <tr style="border-bottom:1px solid var(--border);${c.semServico?'opacity:.6':''}">
+        <td style="padding:6px 8px;font-size:11px;color:var(--text3)">${i+1}</td>
+        <td style="padding:6px 10px">
+          <div style="font-size:11px;font-weight:600;margin-bottom:3px">${c.nome}</div>
+          ${c.data ? `<div style="font-size:10px;color:var(--text3)">Cadastro: ${c.data}</div>` : ''}
+          <div style="position:relative;height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px">
+            <div style="position:absolute;left:0;top:0;height:100%;width:${(c.total/maxTotal*100).toFixed(1)}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
+          </div>
+        </td>
+        <td style="padding:6px 8px;font-size:10px;color:var(--text2)">${c.canal}</td>
+        <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${c.visitas}</td>
+        <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:${c.total>0?'var(--green)':'var(--text3)'}">
+          ${c.total > 0 ? fmtBRL(c.total) : '—'}
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`);
 }
 
 // ─── DFC ─────────────────────────────────────────────────
