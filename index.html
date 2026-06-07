@@ -7215,13 +7215,71 @@ function sortTable(th) {
 
 const sortCol = sortTable;
 
+// Adiciona tfoot com totais automáticos em qualquer tabela
+function addTfoot(el) {
+  if (!el) return;
+  const table = el.querySelector('table');
+  if (!table) return;
+  table.querySelector('tfoot')?.remove();
+
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+  if (!rows.length) return;
+  const nCols = rows[0].cells.length;
+  
+  // Para cada coluna, tenta somar valores numéricos
+  const totais = Array.from({length: nCols}, (_, ci) => {
+    let soma = 0, temNum = false, isMono = false, isGreen = false;
+    rows.forEach(row => {
+      const cell = row.cells[ci];
+      if (!cell) return;
+      const txt = cell.textContent.trim();
+      // Extrai número: R$ 1.234,56 ou 1.234,56 ou 42
+      const m = txt.match(/(\d{1,3}(?:\.\d{3})*,\d{2})/);
+      if (m) {
+        soma += parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+        temNum = true;
+        if (cell.style.fontFamily?.includes('Mono') || cell.querySelector('[style*="Mono"]')) isMono = true;
+        if (cell.style.color?.includes('green') || txt.includes('R$')) { isMono = true; isGreen = true; }
+      } else if (/^\d+$/.test(txt) && parseInt(txt) > 0) {
+        soma += parseInt(txt);
+        temNum = true;
+      }
+    });
+    return { soma, temNum, isMono, isGreen };
+  });
+
+  const tfoot = document.createElement('tfoot');
+  const tr = document.createElement('tr');
+  totais.forEach((t, ci) => {
+    const td = document.createElement('td');
+    td.style.cssText = 'padding:7px 10px;position:sticky;bottom:0;z-index:9;background:var(--bg3);border-top:2px solid var(--border2);font-weight:700';
+    if (!t.temNum) {
+      td.textContent = ci === 0 ? 'TOTAL' : '';
+      td.style.fontSize = '11px';
+      td.style.color = 'var(--text2)';
+    } else {
+      const isReais = t.isMono;
+      td.textContent = isReais ? fmtBRL(t.soma) : t.soma.toLocaleString('pt-BR');
+      td.style.textAlign = 'right';
+      td.style.fontFamily = "'DM Mono', monospace";
+      td.style.fontSize = '12px';
+      if (t.isGreen) td.style.color = 'var(--green)';
+    }
+    tr.appendChild(td);
+  });
+  tfoot.appendChild(tr);
+  table.appendChild(tfoot);
+}
+
 function _setTable(el, html) {
   if (!el) return;
   el.innerHTML = html;
-  // Aplica sort em todos os th da tabela recém criada
+  // Aplica sort
   el.querySelectorAll('thead th').forEach(th => {
     th.onclick = () => sortTable(th);
   });
+  // Adiciona total fixo no rodapé
+  addTfoot(el);
 }
 
 function aplicarSort(el) {
