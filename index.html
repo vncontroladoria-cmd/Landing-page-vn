@@ -746,85 +746,308 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <!-- DASHBOARD -->
         <div class="page active" id="page-dashboard">
 
-          <!-- CARDS LINHA 1 — métricas principais -->
-          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
-            <div class="metric-card c-green">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Faturamento Serviços</div>
-              <div style="font-size:20px;font-weight:800" id="m-fat">—</div>
-              <div style="font-size:11px;opacity:.7" id="m-fat-d"></div>
+          <!-- HEADER + FILTROS -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.2rem;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:18px;font-weight:700">Dashboard Executivo</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px">Visão consolidada da operação do salão</div>
             </div>
-            <div class="metric-card c-blue">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Clientes</div>
-              <div style="font-size:28px;font-weight:800" id="m-cli">—</div>
-              <div style="font-size:11px;opacity:.7" id="m-cli-d"></div>
-            </div>
-            <div class="metric-card c-purple">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Serviços</div>
-              <div style="font-size:28px;font-weight:800" id="m-srv">—</div>
-              <div style="font-size:11px;opacity:.7" id="m-srv-d"></div>
-            </div>
-            <div class="metric-card c-amber">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Produtos Vendidos</div>
-              <div style="font-size:28px;font-weight:800" id="m-prod">—</div>
-              <div style="font-size:11px;opacity:.7" id="m-prod-d"></div>
-            </div>
-          </div>
-
-          <!-- CARDS LINHA 2 — financeiro -->
-          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
-            <div class="metric-card" style="background:var(--bg2);border:1px solid var(--border)">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:4px">Entradas (Caixa)</div>
-              <div style="font-size:18px;font-weight:800;color:var(--green);font-family:'DM Mono',monospace" id="m-entrada">—</div>
-              <div style="font-size:11px;color:var(--text2)" id="m-entrada-d">lançamentos do período</div>
-            </div>
-            <div class="metric-card" style="background:var(--bg2);border:1px solid var(--border)">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:4px">Saídas (Custos)</div>
-              <div style="font-size:18px;font-weight:800;color:var(--red);font-family:'DM Mono',monospace" id="m-sai">—</div>
-              <div style="font-size:11px;color:var(--text2)" id="m-sai-d">despesas do período</div>
-            </div>
-            <div class="metric-card" style="background:var(--bg2);border:1.5px solid var(--accent)">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:4px">Lucro Líquido</div>
-              <div style="font-size:18px;font-weight:800;font-family:'DM Mono',monospace" id="m-luc">—</div>
-              <div style="font-size:11px;color:var(--text2)" id="m-luc-d"></div>
-            </div>
-            <div class="metric-card" style="background:var(--bg2);border:1px solid var(--border)">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:4px">Ticket Médio</div>
-              <div style="font-size:18px;font-weight:800;font-family:'DM Mono',monospace;color:var(--accent)" id="m-ticket">—</div>
-              <div style="font-size:11px;color:var(--text2)">por atendimento</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">ANO</span>
+                <select id="dash-ano" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                  <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                </select>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">MÊS</span>
+                <select id="dash-mes" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                  <option value="">Anual</option>
+                  <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
+                  <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
+                  <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
+                  <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">DATA INI</span>
+                <input type="date" id="dash-ini" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">DATA FIM</span>
+                <input type="date" id="dash-fim" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+              </div>
+              <button class="btn" onclick="document.getElementById('dash-ini').value='';document.getElementById('dash-fim').value='';loadDashboard()" style="margin-top:14px">Limpar datas</button>
+              <button class="btn btn-primary" onclick="loadDashboard()" style="margin-top:14px">↻ Atualizar</button>
             </div>
           </div>
 
-          <!-- GRÁFICOS -->
-          <div style="display:grid;grid-template-columns:1.4fr 0.6fr;gap:14px;margin-bottom:14px">
-            <div class="card" style="padding:1rem">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <!-- LINHA 1: 5 CARDS COLORIDOS PRINCIPAIS -->
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px">
+            <!-- Faturamento -->
+            <div style="background:linear-gradient(135deg,#059669,#10b981);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">FATURAMENTO</div>
+              <div style="font-size:19px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-fat">—</div>
+              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-fat-d">faturamento de serviços</div>
+              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">💰</div>
+            </div>
+            <!-- Clientes -->
+            <div style="background:linear-gradient(135deg,#2563eb,#60a5fa);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">CLIENTES</div>
+              <div style="font-size:28px;font-weight:800;line-height:1.1" id="m-cli">—</div>
+              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-cli-d">clientes únicos</div>
+              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">👥</div>
+            </div>
+            <!-- Serviços -->
+            <div style="background:linear-gradient(135deg,#7c3aed,#a78bfa);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">SERVIÇOS</div>
+              <div style="font-size:28px;font-weight:800;line-height:1.1" id="m-srv">—</div>
+              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-srv-d">atendimentos</div>
+              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">✂️</div>
+            </div>
+            <!-- Produtos -->
+            <div style="background:linear-gradient(135deg,#d97706,#fbbf24);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">PRODUTOS</div>
+              <div style="font-size:28px;font-weight:800;line-height:1.1" id="m-prod">—</div>
+              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-prod-d">unidades vendidas</div>
+              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">📦</div>
+            </div>
+            <!-- Ticket Médio -->
+            <div style="background:linear-gradient(135deg,#0891b2,#38bdf8);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">TICKET MÉDIO</div>
+              <div style="font-size:19px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-ticket">—</div>
+              <div style="font-size:10px;opacity:.75;margin-top:4px">por atendimento</div>
+              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">🎯</div>
+            </div>
+          </div>
+
+          <!-- LINHA 2: 5 CARDS FINANCEIROS BRANCOS -->
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
+            <div class="card" style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:16px">💵</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Entradas</span>
+              </div>
+              <div style="font-size:15px;font-weight:800;color:#059669;font-family:'DM Mono',monospace" id="m-entrada">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">lançamentos do período</div>
+            </div>
+            <div class="card" style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:16px">📊</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Taxa de Ocupação</span>
+              </div>
+              <div style="font-size:15px;font-weight:800;color:#2563eb;font-family:'DM Mono',monospace" id="m-ocup">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">dias com movimentação</div>
+            </div>
+            <div class="card" style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:16px">📈</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Ticket Ocupação</span>
+              </div>
+              <div style="font-size:15px;font-weight:800;color:#7c3aed;font-family:'DM Mono',monospace" id="m-tick-ocup">R$ 0,00</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">faturamento / dia com mov.</div>
+            </div>
+            <div class="card" style="padding:12px 14px;border:1.5px solid #fde68a;background:#fffbeb">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:16px">🎯</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:#92400e">Atingimento Meta</span>
+              </div>
+              <div style="font-size:15px;font-weight:800;color:#d97706;font-family:'DM Mono',monospace" id="m-meta-pct">—</div>
+              <div style="font-size:10px;color:#92400e;margin-top:3px" id="m-meta-sub">meta do período</div>
+            </div>
+            <div class="card" style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:16px">💸</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Saídas</span>
+              </div>
+              <div style="font-size:15px;font-weight:800;color:#dc2626;font-family:'DM Mono',monospace" id="m-sai">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">despesas do período</div>
+            </div>
+          </div>
+
+          <!-- LINHA 3: GRÁFICO DIÁRIO + TERMÔMETRO META -->
+          <div style="display:grid;grid-template-columns:1.6fr 0.4fr;gap:14px;margin-bottom:14px">
+            <!-- Gráfico faturamento diário -->
+            <div class="card" style="padding:14px 16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
                 <div>
-                  <div style="font-weight:600;font-size:13px">📈 Faturamento Diário</div>
+                  <div style="font-weight:600;font-size:13px">📈 Fluxo de Faturamento Diário</div>
                   <div style="font-size:11px;color:var(--text2)" id="dash-period">serviços por dia</div>
                 </div>
+                <div style="display:flex;gap:8px;font-size:10px;color:var(--text2)">
+                  <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:3px;background:#22c55e;display:inline-block;border-radius:2px"></span>Diário</span>
+                  <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:3px;background:#f59e0b;display:inline-block;border-radius:2px;border:1px dashed #f59e0b;background:none"></span>Projetado</span>
+                </div>
               </div>
-              <div style="position:relative;height:120px"><canvas id="chart-daily"></canvas></div>
+              <div style="position:relative;height:160px"><canvas id="chart-daily"></canvas></div>
             </div>
-            <div class="card" style="padding:1rem">
-              <div style="font-weight:600;font-size:13px;margin-bottom:4px">📂 Por Categoria DFC</div>
-              <div style="font-size:11px;color:var(--text2);margin-bottom:8px">saídas por categoria</div>
-              <div style="position:relative;height:140px"><canvas id="chart-cat"></canvas></div>
+            <!-- Termômetro meta -->
+            <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;align-items:center">
+              <div style="font-weight:600;font-size:12px;margin-bottom:8px;align-self:flex-start">🌡️ Termômetro da Meta</div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%">
+                <!-- Barra vertical termômetro -->
+                <div style="position:relative;width:28px;height:120px;background:var(--border);border-radius:14px;overflow:hidden;margin-bottom:8px">
+                  <div id="dash-termo-bar" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#dc2626,#f59e0b,#22c55e);border-radius:14px;transition:height .5s ease;height:0%"></div>
+                </div>
+                <div style="font-size:22px;font-weight:800;color:var(--accent)" id="dash-termo-pct">0%</div>
+                <div style="font-size:10px;color:var(--text2);text-align:center;margin-top:4px">da meta atingida</div>
+                <div style="width:100%;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">
+                    <span style="color:var(--text2)">Faturado</span>
+                    <span style="font-weight:600;font-family:'DM Mono',monospace" id="dash-termo-fat">—</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">
+                    <span style="color:var(--text2)">Necessário</span>
+                    <span style="font-weight:600;font-family:'DM Mono',monospace" id="dash-termo-nec">—</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:10px">
+                    <span style="color:var(--text2)">Meta</span>
+                    <span style="font-weight:600;font-family:'DM Mono',monospace" id="dash-termo-meta">—</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- TOP 3 LADO A LADO -->
+          <!-- LINHA 4: TOP 3 CARDS -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
             <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">🏆 Top Profissionais</div>
-              <div id="dash-top-prof" style="max-height:200px;overflow-y:auto"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                <span style="background:#fef3c7;color:#d97706;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">🏆</span>
+                <span style="font-weight:600;font-size:12px">Top 5 Profissionais</span>
+              </div>
+              <div id="dash-top-prof"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
             </div>
             <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">💇 Top Serviços</div>
-              <div id="dash-top-srv" style="max-height:200px;overflow-y:auto"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                <span style="background:#ede9fe;color:#7c3aed;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">✂️</span>
+                <span style="font-weight:600;font-size:12px">Top 5 Serviços</span>
+              </div>
+              <div id="dash-top-srv"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
             </div>
             <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">👤 Top Clientes</div>
-              <div id="dash-top-cli" style="max-height:200px;overflow-y:auto"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                <span style="background:#dbeafe;color:#2563eb;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">👤</span>
+                <span style="font-weight:600;font-size:12px">Top 5 Clientes</span>
+              </div>
+              <div id="dash-top-cli"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+            </div>
+          </div>
+
+          <!-- LINHA 5: NOVOS VS RECORRENTES + CANAIS + TENDÊNCIA -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:14px;margin-bottom:14px">
+            <!-- Novos vs Recorrentes -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                <span style="background:#dcfce7;color:#059669;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">👥</span>
+                <div>
+                  <div style="font-weight:600;font-size:12px">Novos vs Recorrentes</div>
+                  <div style="font-size:10px;color:var(--text2)" id="dash-novorec-sub">composição do mês</div>
+                </div>
+              </div>
+              <div style="padding:12px 14px">
+                <div style="display:flex;gap:12px;margin-bottom:10px">
+                  <div style="flex:1;text-align:center;padding:8px;background:#dcfce7;border-radius:8px">
+                    <div style="font-size:18px;font-weight:800;color:#059669" id="dash-novos-n">—</div>
+                    <div style="font-size:10px;color:#059669;font-weight:600">Novos</div>
+                  </div>
+                  <div style="flex:1;text-align:center;padding:8px;background:#dbeafe;border-radius:8px">
+                    <div style="font-size:18px;font-weight:800;color:#2563eb" id="dash-rec-n">—</div>
+                    <div style="font-size:10px;color:#2563eb;font-weight:600">Recorrentes</div>
+                  </div>
+                </div>
+                <div style="position:relative;height:80px"><canvas id="chart-novorec"></canvas></div>
+              </div>
+            </div>
+            <!-- Canais de Aquisição -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                <span style="background:#fce7f3;color:#db2777;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">📡</span>
+                <div>
+                  <div style="font-weight:600;font-size:12px">Canais de Aquisição</div>
+                  <div style="font-size:10px;color:var(--text2)">origem dos novos clientes</div>
+                </div>
+              </div>
+              <div id="dash-canais" style="padding:8px 0"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+            </div>
+            <!-- Tendência 6 meses -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                <span style="background:#f0fdf4;color:#16a34a;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">📊</span>
+                <div>
+                  <div style="font-weight:600;font-size:12px">Tendência · Últimos 6 Meses</div>
+                  <div style="font-size:10px;color:var(--text2)">faturamento mensal</div>
+                </div>
+              </div>
+              <div style="padding:12px 14px">
+                <div style="position:relative;height:120px"><canvas id="chart-tend"></canvas></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LINHA 6: DONUT ENTRADAS + DONUT SAÍDAS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:linear-gradient(90deg,#dcfce7,#f0fdf4);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                <span style="background:#059669;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700">↑</span>
+                <div>
+                  <div style="font-weight:600;font-size:12px">Entradas por Categoria · PIX</div>
+                  <div style="font-size:10px;color:var(--text2)" id="dash-ent-sub">lançamentos do período</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;padding:12px 14px;align-items:center">
+                <div style="position:relative;height:130px"><canvas id="chart-ent-cat"></canvas></div>
+                <div id="dash-ent-legend" style="font-size:11px"></div>
+              </div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:10px 14px;background:linear-gradient(90deg,#fee2e2,#fff5f5);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                <span style="background:#dc2626;color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700">↓</span>
+                <div>
+                  <div style="font-weight:600;font-size:12px">Saídas por Categoria · PDV</div>
+                  <div style="font-size:10px;color:var(--text2)" id="dash-sai-sub">lançamentos do período</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;padding:12px 14px;align-items:center">
+                <div style="position:relative;height:130px"><canvas id="chart-sai-cat"></canvas></div>
+                <div id="dash-sai-legend" style="font-size:11px"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LINHA 7: 4 CARDS RESUMO + ÚLTIMOS LANÇAMENTOS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+            <div class="card" style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:18px">🚀</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Maior Faturamento</span>
+              </div>
+              <div style="font-size:14px;font-weight:800;color:var(--green);font-family:'DM Mono',monospace" id="dash-maior-fat">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px" id="dash-maior-fat-d">dia do período</div>
+            </div>
+            <div class="card" style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:18px">💼</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Serviço + Vendido</span>
+              </div>
+              <div style="font-size:12px;font-weight:700;color:var(--accent)" id="dash-top1-srv">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px" id="dash-top1-srv-d">—</div>
+            </div>
+            <div class="card" style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:18px">⭐</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Melhor Profissional</span>
+              </div>
+              <div style="font-size:12px;font-weight:700;color:#7c3aed" id="dash-top1-prof">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px" id="dash-top1-prof-d">—</div>
+            </div>
+            <div class="card" style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:18px">📉</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Lucro Líquido</span>
+              </div>
+              <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace" id="m-luc">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px" id="m-luc-d">entradas − saídas</div>
             </div>
           </div>
 
@@ -2726,6 +2949,9 @@ let currentUser = null;
 let currentTipo = 'ENTRADA';
 let chartDaily = null;
 let chartCat = null;
+let chartTend = null;
+let chartNovoRec = null;
+let chartEntCat = null;
 
 function toggleSenha() {
   const input = document.getElementById('login-pass');
@@ -4178,9 +4404,317 @@ function detectarCategoriaPDVTexto(forma) {
   const f = forma.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const match = _pdvCategorias.find(c => {
     const cn = c.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    return f.includes(cn) || cn.includes(f.split(' ')[0]);
+async function loadDashboard() {
+  const el = id => document.getElementById(id);
+  const hoje = new Date();
+
+  // ── Período ───────────────────────────────────────────
+  const ano = el('dash-ano')?.value || String(hoje.getFullYear());
+  const mes = el('dash-mes')?.value || '';
+  const iniCustom = el('dash-ini')?.value || '';
+  const fimCustom = el('dash-fim')?.value || '';
+
+  let ini, fim;
+  if (iniCustom && fimCustom) {
+    ini = iniCustom; fim = fimCustom;
+  } else if (mes) {
+    const ult = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+    ini = `${ano}-${mes}-01`;
+    fim = `${ano}-${mes}-${String(ult).padStart(2,'0')}`;
+  } else {
+    ini = `${ano}-01-01`;
+    fim = `${ano}-12-31`;
+  }
+
+  const mesLabel = mes ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mes)-1] + '/' + ano : `Ano ${ano}`;
+  if (el('dash-period')) el('dash-period').textContent = mesLabel + ' · serviços por dia';
+
+  // Inicializa ano/mes com mês atual se vazio
+  if (el('dash-mes') && !el('dash-mes').value) {
+    el('dash-mes').value = String(hoje.getMonth()+1).padStart(2,'0');
+    return loadDashboard();
+  }
+
+  const CORES_ENT = ['#059669','#10b981','#34d399','#6ee7b7','#a7f3d0','#d1fae5'];
+  const CORES_SAI = ['#dc2626','#ef4444','#f87171','#fca5a5','#fecaca','#fee2e2'];
+  const CORES_BAR = ['#2a9d5c','#34d399','#059669','#10b981','#6ee7b7','#a7f3d0'];
+
+  // ── 1. Lançamentos ────────────────────────────────────
+  const { data: lancs } = await sb.from('lancamentos')
+    .select('*').gte('data_lancamento', ini).lte('data_lancamento', fim);
+
+  const entradas = (lancs||[]).filter(l=>l.tipo==='ENTRADA'&&l.descricao!=='Saldo Inicial').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
+  const saidas   = (lancs||[]).filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+  const lucro    = entradas - saidas;
+
+  if(el('m-entrada')) el('m-entrada').textContent = fmtBRL(entradas);
+  if(el('m-sai'))     el('m-sai').textContent     = fmtBRL(saidas);
+  if(el('m-luc')) {
+    el('m-luc').textContent = fmtBRL(Math.abs(lucro));
+    el('m-luc').style.color = lucro >= 0 ? 'var(--green)' : 'var(--red)';
+    if(el('m-luc-d')) el('m-luc-d').textContent = lucro >= 0 ? '↑ resultado positivo' : '↓ resultado negativo';
+  }
+
+  // ── 2. Dados de serviços ──────────────────────────────
+  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+  const tipoSrv  = (tipos||[]).find(t=>t.nome.toLowerCase().includes('servi')&&!t.nome.toLowerCase().includes('cliente'));
+  const tipoProd = (tipos||[]).find(t=>t.nome.toLowerCase().includes('produto'));
+
+  let srvRows = [], prodRows = [];
+  const anoMes = mes ? `${ano}-${mes}` : ano;
+
+  if (tipoSrv) {
+    const { data } = await sb.from('rel_servicos').select('*')
+      .gte('data_comanda', ini).lte('data_comanda', fim).limit(15000);
+    srvRows = (data||[]);
+    srvRows.forEach(r => {
+      r.total = Number(r.total||0)||Number(r.valor||0)*Number(r.qtd||1);
+    });
+  }
+  if (tipoProd) {
+    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoProd.id).limit(5000);
+    prodRows = (data||[]).map(r=>parseProdRow(r.colunas))
+      .filter(r=>r.produto && r.data && r.data >= ini && r.data <= fim);
+  }
+
+  const fatSrv    = srvRows.reduce((s,r)=>s+r.total,0);
+  const nClientes = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
+  const nServicos = srvRows.length;
+  const nProd     = prodRows.reduce((s,r)=>s+(r.qtd||1),0);
+  const diasComMov= new Set(srvRows.map(r=>r.data_comanda?.substring(0,10)).filter(Boolean)).size;
+  const ticket    = diasComMov > 0 ? fatSrv/diasComMov : 0;
+  const ticketSrv = nServicos > 0 ? fatSrv/nServicos : 0;
+  const ocup      = diasComMov > 0 ? (diasComMov / (() => { const d=new Date(ini); const d2=new Date(fim); return Math.max(1,Math.round((d2-d)/(86400000))+1); })() * 100).toFixed(1) : 0;
+
+  if(el('m-fat'))       el('m-fat').textContent      = fmtBRL(fatSrv);
+  if(el('m-fat-d'))     el('m-fat-d').textContent    = 'faturamento de serviços';
+  if(el('m-cli'))       el('m-cli').textContent      = nClientes.toLocaleString('pt-BR');
+  if(el('m-cli-d'))     el('m-cli-d').textContent    = 'clientes únicos';
+  if(el('m-srv'))       el('m-srv').textContent      = nServicos.toLocaleString('pt-BR');
+  if(el('m-srv-d'))     el('m-srv-d').textContent    = 'atendimentos';
+  if(el('m-prod'))      el('m-prod').textContent     = nProd.toLocaleString('pt-BR');
+  if(el('m-prod-d'))    el('m-prod-d').textContent   = 'unidades vendidas';
+  if(el('m-ticket'))    el('m-ticket').textContent   = fmtBRL(ticketSrv);
+  if(el('m-ocup'))      el('m-ocup').textContent     = ocup + '%';
+  if(el('m-tick-ocup')) el('m-tick-ocup').textContent= fmtBRL(ticket);
+
+  // Meta financeira
+  if (mes) {
+    const { data: metaF } = await sb.from('metas_financeiras').select('*')
+      .eq('ano', ano).eq('mes', mes).maybeSingle();
+    const metaVal = Number(metaF?.meta_mensal||0);
+    const pct = metaVal > 0 ? (fatSrv/metaVal*100).toFixed(1) : null;
+    if(el('m-meta-pct'))  el('m-meta-pct').textContent  = pct ? pct + '%' : '—';
+    if(el('m-meta-sub'))  el('m-meta-sub').textContent  = metaVal > 0 ? `meta: ${fmtBRL(metaVal)}` : 'sem meta definida';
+    // Termômetro
+    const barPct = pct ? Math.min(100, parseFloat(pct)) : 0;
+    if(el('dash-termo-bar'))  el('dash-termo-bar').style.height  = barPct + '%';
+    if(el('dash-termo-pct'))  el('dash-termo-pct').textContent   = pct ? pct + '%' : '0%';
+    if(el('dash-termo-fat'))  el('dash-termo-fat').textContent   = fmtBRL(fatSrv);
+    if(el('dash-termo-meta')) el('dash-termo-meta').textContent  = metaVal > 0 ? fmtBRL(metaVal) : '—';
+    if(el('dash-termo-nec'))  el('dash-termo-nec').textContent   = metaVal > 0 ? fmtBRL(Math.max(0, metaVal - fatSrv)) : '—';
+  }
+
+  // ── 3. Gráfico faturamento diário ─────────────────────
+  const dailyMap = {};
+  srvRows.forEach(r => {
+    if (!r.data_comanda) return;
+    const d = parseInt(r.data_comanda.substring(8,10));
+    dailyMap[d] = (dailyMap[d]||0) + r.total;
   });
-  return match ? match.nome : '';
+  const maxDia = mes ? new Date(parseInt(ano), parseInt(mes), 0).getDate() : 365;
+  const dLabels = mes ? Array.from({length:maxDia},(_,i)=>i+1) : ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const dVals   = mes ? dLabels.map(d=>dailyMap[d]||0) : Array.from({length:12},(_,m)=>
+    srvRows.filter(r=>r.data_comanda?.substring(5,7)===String(m+1).padStart(2,'0')).reduce((s,r)=>s+r.total,0)
+  );
+
+  if (chartDaily) chartDaily.destroy();
+  const ctx1 = el('chart-daily')?.getContext('2d');
+  if (ctx1) {
+    chartDaily = new Chart(ctx1, {
+      type: 'line',
+      data: { labels:dLabels, datasets:[{
+        label:'Faturamento',
+        data:dVals, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.1)',
+        tension:0.4, fill:true, pointRadius:dLabels.length>15?0:3,
+        pointBackgroundColor:'#22c55e', borderWidth:2
+      }]},
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmtBRL(c.raw)}} },
+        scales: {
+          x:{ ticks:{font:{size:9},maxTicksLimit:15}, grid:{display:false} },
+          y:{ ticks:{font:{size:9},callback:v=>v>=1000?'R$'+(v/1000).toFixed(0)+'k':'R$'+v}, grid:{color:'rgba(0,0,0,0.04)'} }
+        }
+      }
+    });
+  }
+
+  // ── 4. Donut entradas por categoria ───────────────────
+  const entCatMap = {};
+  (lancs||[]).filter(l=>l.tipo==='ENTRADA'&&l.descricao!=='Saldo Inicial').forEach(l=>{
+    const k = l.categoria||l.categoria_dre||'Outros'; entCatMap[k]=(entCatMap[k]||0)+Number(l.entrada||l.valor||0);
+  });
+  const entEntries = Object.entries(entCatMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if (chartEntCat) chartEntCat.destroy();
+  const ctx3 = el('chart-ent-cat')?.getContext('2d');
+  if (ctx3 && entEntries.length) {
+    chartEntCat = new Chart(ctx3, { type:'doughnut',
+      data:{ labels:entEntries.map(([n])=>n), datasets:[{data:entEntries.map(([,v])=>v), backgroundColor:CORES_ENT, borderWidth:2, borderColor:'var(--bg2)'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'72%'}
+    });
+    if(el('dash-ent-legend')) el('dash-ent-legend').innerHTML = entEntries.map(([n,v],i)=>
+      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px">
+        <div style="display:flex;align-items:center;gap:4px;min-width:0">
+          <div style="width:8px;height:8px;border-radius:50%;background:${CORES_ENT[i]};flex-shrink:0"></div>
+          <span style="font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n}</span>
+        </div>
+        <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0">${fmtBRL(v)}</span>
+      </div>`).join('');
+    if(el('dash-ent-sub')) el('dash-ent-sub').textContent = `${entEntries.length} categorias · ${mesLabel}`;
+  }
+
+  // ── 5. Donut saídas por categoria ─────────────────────
+  const saiCatMap = {};
+  (lancs||[]).filter(l=>l.tipo==='SAIDA').forEach(l=>{
+    const k = l.categoria||l.categoria_dfc||'Outros'; saiCatMap[k]=(saiCatMap[k]||0)+Number(l.saida||l.valor||0);
+  });
+  const saiEntries = Object.entries(saiCatMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if (chartCat) chartCat.destroy();
+  const ctx2 = el('chart-sai-cat')?.getContext('2d');
+  if (ctx2 && saiEntries.length) {
+    chartCat = new Chart(ctx2, { type:'doughnut',
+      data:{ labels:saiEntries.map(([n])=>n), datasets:[{data:saiEntries.map(([,v])=>v), backgroundColor:CORES_SAI, borderWidth:2, borderColor:'var(--bg2)'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'72%'}
+    });
+    if(el('dash-sai-legend')) el('dash-sai-legend').innerHTML = saiEntries.map(([n,v],i)=>
+      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px">
+        <div style="display:flex;align-items:center;gap:4px;min-width:0">
+          <div style="width:8px;height:8px;border-radius:50%;background:${CORES_SAI[i]};flex-shrink:0"></div>
+          <span style="font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n}</span>
+        </div>
+        <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0">${fmtBRL(v)}</span>
+      </div>`).join('');
+    if(el('dash-sai-sub')) el('dash-sai-sub').textContent = `${saiEntries.length} categorias · ${mesLabel}`;
+  }
+
+  // ── 6. Top 5 Profissionais ────────────────────────────
+  const profMap = {};
+  srvRows.forEach(r=>{ const k=r.profissional||'—'; profMap[k]=(profMap[k]||0)+r.total; });
+  const topProf = Object.entries(profMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(el('dash-top-prof')) el('dash-top-prof').innerHTML = topProf.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:11px">${topProf.map(([n,v],i)=>`
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:${i<3?'13':'10'}px;width:28px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+          <td style="padding:7px 4px;font-weight:600">${n}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v)}</td>
+        </tr>`).join('')}</table>`
+    : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
+  if(topProf[0]) {
+    if(el('dash-top1-prof'))   el('dash-top1-prof').textContent   = topProf[0][0];
+    if(el('dash-top1-prof-d')) el('dash-top1-prof-d').textContent = fmtBRL(topProf[0][1]);
+  }
+
+  // ── 7. Top 5 Serviços ─────────────────────────────────
+  const srvMap = {};
+  srvRows.forEach(r=>{ const k=(r.servico||'—').replace(/\s*\(?\d+\/\d+\)?\s*$/,'').trim(); if(!srvMap[k])srvMap[k]={qtd:0,total:0}; srvMap[k].qtd++; srvMap[k].total+=r.total; });
+  const topSrv = Object.entries(srvMap).sort((a,b)=>b[1].qtd-a[1].qtd).slice(0,5);
+  if(el('dash-top-srv')) el('dash-top-srv').innerHTML = topSrv.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:11px">${topSrv.map(([n,v],i)=>`
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:${i<3?'13':'10'}px;width:28px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+          <td style="padding:7px 4px;font-weight:600;font-size:10px">${n}</td>
+          <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}x</td>
+        </tr>`).join('')}</table>`
+    : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
+  if(topSrv[0]) {
+    if(el('dash-top1-srv'))   el('dash-top1-srv').textContent   = topSrv[0][0];
+    if(el('dash-top1-srv-d')) el('dash-top1-srv-d').textContent = topSrv[0][1].qtd + 'x realizados';
+  }
+
+  // ── 8. Top 5 Clientes ─────────────────────────────────
+  const cliMap = {};
+  srvRows.forEach(r=>{ const k=r.cliente||'—'; cliMap[k]=(cliMap[k]||0)+r.total; });
+  const topCli = Object.entries(cliMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(el('dash-top-cli')) el('dash-top-cli').innerHTML = topCli.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:11px">${topCli.map(([n,v],i)=>`
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;font-size:${i<3?'13':'10'}px;width:28px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+          <td style="padding:7px 4px;font-weight:600">${n}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v)}</td>
+        </tr>`).join('')}</table>`
+    : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
+
+  // ── 9. Novos vs Recorrentes ───────────────────────────
+  const novos = _cliNovosData?.length || 0;
+  const totalCli = nClientes;
+  const rec = Math.max(0, totalCli - novos);
+  if(el('dash-novos-n'))     el('dash-novos-n').textContent     = novos;
+  if(el('dash-rec-n'))       el('dash-rec-n').textContent       = rec;
+  if(el('dash-novorec-sub')) el('dash-novorec-sub').textContent = `${totalCli} clientes únicos · ${mesLabel}`;
+  if (chartNovoRec) chartNovoRec.destroy();
+  const ctxNR = el('chart-novorec')?.getContext('2d');
+  if (ctxNR && (novos+rec)>0) {
+    chartNovoRec = new Chart(ctxNR, { type:'doughnut',
+      data:{ labels:['Novos','Recorrentes'], datasets:[{data:[novos,rec], backgroundColor:['#059669','#2563eb'], borderWidth:2, borderColor:'var(--bg2)'}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}
+    });
+  }
+
+  // ── 10. Canais de Aquisição ───────────────────────────
+  const canalMap = {};
+  (_cliNovosData||[]).forEach(c=>{ const k=c.canal||'Não informado'; canalMap[k]=(canalMap[k]||0)+1; });
+  const canalEntries = Object.entries(canalMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const totalCanal = canalEntries.reduce((s,[,v])=>s+v,0);
+  if(el('dash-canais')) el('dash-canais').innerHTML = canalEntries.length
+    ? canalEntries.map(([n,v])=>{
+        const pct = totalCanal>0?(v/totalCanal*100).toFixed(0):0;
+        return `<div style="padding:6px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+          <span style="font-size:11px;flex:1;font-weight:500">${n}</span>
+          <div style="width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:#db2777;border-radius:3px"></div>
+          </div>
+          <span style="font-size:10px;font-weight:700;color:#db2777;width:24px;text-align:right">${v}</span>
+        </div>`;
+      }).join('')
+    : '<div class="empty" style="padding:1rem;font-size:11px">Importe Clientes Novos</div>';
+
+  // ── 11. Tendência 6 meses ─────────────────────────────
+  const mesesTend = [];
+  const valsTend  = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(parseInt(ano), mes ? parseInt(mes)-1-i : new Date().getMonth()-i, 1);
+    const mT = String(d.getMonth()+1).padStart(2,'0');
+    const aT = String(d.getFullYear());
+    mesesTend.push(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]);
+    const { data: lT } = await sb.from('rel_servicos').select('total,valor,qtd')
+      .gte('data_comanda',`${aT}-${mT}-01`).lte('data_comanda',`${aT}-${mT}-31`).limit(5000);
+    valsTend.push((lT||[]).reduce((s,r)=>s+Number(r.total||0)||Number(r.valor||0)*Number(r.qtd||1),0));
+  }
+  if (chartTend) chartTend.destroy();
+  const ctxT = el('chart-tend')?.getContext('2d');
+  if (ctxT) {
+    chartTend = new Chart(ctxT, { type:'bar',
+      data:{ labels:mesesTend, datasets:[{
+        label:'Faturamento', data:valsTend,
+        backgroundColor: CORES_BAR, borderRadius:6, borderSkipped:false
+      }]},
+      options:{ responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmtBRL(c.raw)}} },
+        scales:{ x:{ticks:{font:{size:9}},grid:{display:false}}, y:{ticks:{font:{size:9},callback:v=>v>=1000?'R$'+(v/1000).toFixed(0)+'k':''},grid:{color:'rgba(0,0,0,0.04)'}} }
+      }
+    });
+  }
+
+  // ── 12. Maior faturamento dia ─────────────────────────
+  const topDia = Object.entries(dailyMap).sort((a,b)=>b[1]-a[1])[0];
+  if(el('dash-maior-fat'))   el('dash-maior-fat').textContent   = topDia ? fmtBRL(topDia[1]) : '—';
+  if(el('dash-maior-fat-d')) el('dash-maior-fat-d').textContent = topDia ? ('dia ' + topDia[0] + ' · ' + mesLabel) : 'sem dados';
+
+  // ── 13. Últimos lançamentos ───────────────────────────
+  const { data: recentes } = await sb.from('lancamentos')
+    .select('*').order('data_lancamento',{ascending:false}).limit(6);
+  renderLancTable(recentes||[], 'dash-lancamentos', true);
 }
 
 function parsePDVCSV(text) {
