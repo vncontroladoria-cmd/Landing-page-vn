@@ -1981,31 +1981,39 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- LINHA 1: 4 hcards topo -->
+          <!-- LINHA 1: 4 cards estilo da foto — ícone + valor grande -->
           <div class="hero-cards cols-4" style="margin-bottom:14px">
-            <div class="hcard green">
-              <div class="hcard-label">Clientes Totais</div>
-              <div class="hcard-value" id="cli-total">—</div>
-              <div class="hcard-sub" id="cli-total-sub">do relatório importado</div>
-              <div class="hcard-icon">👥</div>
+            <div class="hcard dark" style="display:flex;align-items:center;gap:12px;padding:16px">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">👥</div>
+              <div>
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px;margin-bottom:3px">Clientes Totais</div>
+                <div style="font-size:28px;font-weight:800;line-height:1;font-family:'DM Mono',monospace" id="cli-total">—</div>
+                <div style="font-size:10px;opacity:.65;margin-top:3px" id="cli-total-sub">do relatório importado</div>
+              </div>
             </div>
-            <div class="hcard blue">
-              <div class="hcard-label">Valor Consumido</div>
-              <div class="hcard-value sm" id="cli-consumido">—</div>
-              <div class="hcard-sub">total no período</div>
-              <div class="hcard-icon">💰</div>
+            <div class="hcard blue" style="display:flex;align-items:center;gap:12px;padding:16px">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💰</div>
+              <div>
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px;margin-bottom:3px">Valor Consumido</div>
+                <div style="font-size:20px;font-weight:800;line-height:1;font-family:'DM Mono',monospace" id="cli-consumido">—</div>
+                <div style="font-size:10px;opacity:.65;margin-top:3px">total no período</div>
+              </div>
             </div>
-            <div class="hcard purple">
-              <div class="hcard-label">Total de Visitas</div>
-              <div class="hcard-value" id="cli-visitas">—</div>
-              <div class="hcard-sub" id="cli-visitas-sub">atendimentos únicos</div>
-              <div class="hcard-icon">📅</div>
+            <div class="hcard purple" style="display:flex;align-items:center;gap:12px;padding:16px">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📅</div>
+              <div>
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px;margin-bottom:3px">Total de Visitas</div>
+                <div style="font-size:28px;font-weight:800;line-height:1;font-family:'DM Mono',monospace" id="cli-visitas">—</div>
+                <div style="font-size:10px;opacity:.65;margin-top:3px" id="cli-visitas-sub">atendimentos únicos</div>
+              </div>
             </div>
-            <div class="hcard amber">
-              <div class="hcard-label">Ticket Médio</div>
-              <div class="hcard-value sm" id="cli-ticket">—</div>
-              <div class="hcard-sub">por visita/cliente</div>
-              <div class="hcard-icon">🎫</div>
+            <div class="hcard amber" style="display:flex;align-items:center;gap:12px;padding:16px">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎫</div>
+              <div>
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px;margin-bottom:3px">Ticket Médio</div>
+                <div style="font-size:20px;font-weight:800;line-height:1;font-family:'DM Mono',monospace" id="cli-ticket">—</div>
+                <div style="font-size:10px;opacity:.65;margin-top:3px">por visita/cliente</div>
+              </div>
             </div>
           </div>
 
@@ -2024,7 +2032,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </div>
               <div class="section-card-body" style="padding:10px 12px 8px">
                 <div id="cli-dias-totais" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px"></div>
-                <div style="height:140px;position:relative">
+                <div style="height:180px;position:relative">
                   <canvas id="cli-chart-dia"></canvas>
                 </div>
               </div>
@@ -2035,15 +2043,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <span style="background:#ede9fe;color:#5b21b6;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🔗</span>
                   <div>
                     <div style="font-weight:600;font-size:13px">Como Conheceram o Salão</div>
-                    <div class="section-card-sub" id="cli-canal-sub" style="font-size:10px;color:var(--text2)">Canais de aquisição</div>
+                    <div id="cli-canal-sub" style="font-size:10px;color:var(--text2)">Canais de aquisição</div>
                   </div>
                 </div>
               </div>
-              <div class="section-card-body" style="display:flex;align-items:center;gap:14px;padding:12px">
-                <div style="width:160px;height:160px;flex-shrink:0;position:relative">
+              <div class="section-card-body" style="display:flex;align-items:center;gap:16px;padding:14px">
+                <div style="width:180px;height:180px;flex-shrink:0;position:relative">
                   <canvas id="cli-chart-canal"></canvas>
                 </div>
-                <div id="cli-canal-legenda" style="flex:1;display:flex;flex-direction:column;gap:6px;font-size:11px"></div>
+                <div id="cli-canal-legenda" style="flex:1;display:flex;flex-direction:column;gap:8px"></div>
               </div>
             </div>
           </div>
@@ -2060,8 +2068,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   </div>
                 </div>
               </div>
-              <div id="cli-periodo" style="max-height:360px;overflow-y:auto">
-                <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Sem dados — importe o relatório de Clientes</div>
+              <div id="cli-periodo" style="max-height:380px;overflow-y:auto">
+                <div class="empty" style="padding:2rem;text-align:center;font-size:12px;color:var(--text3)">Sem dados — importe o relatório de Clientes</div>
               </div>
             </div>
             <div class="section-card">
@@ -2075,51 +2083,45 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 </div>
                 <span id="cli-novos-badge" style="display:none" class="badge badge-green">✓ Cruzado</span>
               </div>
-              <div id="cli-novos-lista" style="max-height:360px;overflow-y:auto">
-                <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Importe o relatório de Clientes Novos para ver o cruzamento</div>
+              <div id="cli-novos-lista" style="max-height:380px;overflow-y:auto">
+                <div class="empty" style="padding:2rem;text-align:center;font-size:12px;color:var(--text3)">Importe o relatório de Clientes Novos para ver o cruzamento</div>
               </div>
             </div>
           </div>
 
-          <!-- LINHA 4: métricas rodapé -->
-          <div class="hero-cards cols-3" style="margin-bottom:10px">
-            <div class="hcard teal">
-              <div class="hcard-label">Novos Clientes</div>
-              <div class="hcard-value" id="cli-novos-count">—</div>
-              <div class="hcard-sub" id="cli-novos-pct"></div>
-              <div class="hcard-icon">✨</div>
+          <!-- LINHA 4: 6 métricas rodapé em grid 3+3 -->
+          <div class="fin-cards cols-3" style="margin-bottom:10px">
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">✨</span><span class="fcard-label">Novos Clientes</span></div>
+              <div class="fcard-value blue" id="cli-novos-count">—</div>
+              <div class="fcard-sub" id="cli-novos-pct"></div>
             </div>
-            <div class="hcard green">
-              <div class="hcard-label">Recorrentes</div>
-              <div class="hcard-value" id="cli-rec-count">—</div>
-              <div class="hcard-sub" id="cli-rec-pct"></div>
-              <div class="hcard-icon">🔄</div>
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">🔄</span><span class="fcard-label">Recorrentes</span></div>
+              <div class="fcard-value green" id="cli-rec-count">—</div>
+              <div class="fcard-sub" id="cli-rec-pct"></div>
             </div>
-            <div class="hcard amber">
-              <div class="hcard-label">Ticket Novos</div>
-              <div class="hcard-value sm" id="cli-ticket-novos">—</div>
-              <div class="hcard-sub">média clientes novos</div>
-              <div class="hcard-icon">🎫</div>
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">🎫</span><span class="fcard-label">Ticket Novos</span></div>
+              <div class="fcard-value" id="cli-ticket-novos">—</div>
+              <div class="fcard-sub">média novos clientes</div>
             </div>
           </div>
-          <div class="hero-cards cols-3" style="margin-bottom:14px">
-            <div class="hcard blue">
-              <div class="hcard-label">Ticket Recorrentes</div>
-              <div class="hcard-value sm" id="cli-ticket-rec">—</div>
-              <div class="hcard-sub">clientes que voltaram</div>
-              <div class="hcard-icon">💳</div>
+          <div class="fin-cards cols-3" style="margin-bottom:14px">
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">💳</span><span class="fcard-label">Ticket Recorrentes</span></div>
+              <div class="fcard-value" id="cli-ticket-rec">—</div>
+              <div class="fcard-sub">clientes que voltaram</div>
             </div>
-            <div class="hcard purple">
-              <div class="hcard-label">Pico de Visitas</div>
-              <div class="hcard-value" id="cli-pico-dia">—</div>
-              <div class="hcard-sub" id="cli-pico-visitas"></div>
-              <div class="hcard-icon">📈</div>
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">📈</span><span class="fcard-label">Pico de Visitas</span></div>
+              <div class="fcard-value blue" id="cli-pico-dia">—</div>
+              <div class="fcard-sub" id="cli-pico-visitas"></div>
             </div>
-            <div class="hcard red">
-              <div class="hcard-label">Canal Principal</div>
-              <div class="hcard-value sm" id="cli-canal-top">—</div>
-              <div class="hcard-sub" id="cli-canal-qtd"></div>
-              <div class="hcard-icon">📡</div>
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">📡</span><span class="fcard-label">Canal Principal</span></div>
+              <div class="fcard-value" id="cli-canal-top" style="font-size:13px">—</div>
+              <div class="fcard-sub" id="cli-canal-qtd"></div>
             </div>
           </div>
 
