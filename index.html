@@ -235,6 +235,118 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .metric-delta.up { color: var(--green); }
 .metric-delta.down { color: var(--red); }
 
+/* ═══════════════════════════════════════════════════
+   NOVO SISTEMA VISUAL — igual ao Dashboard
+   ═══════════════════════════════════════════════════ */
+
+/* Page header padrão */
+.pg-header {
+  display:flex; justify-content:space-between; align-items:flex-start;
+  margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;
+}
+.pg-header-title { font-size:18px; font-weight:700; color:var(--text); }
+.pg-header-sub { font-size:11px; color:var(--text2); margin-top:2px; }
+.pg-header-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+/* Cards hero coloridos (gradiente) */
+.hero-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
+.hero-cards.cols-5 { grid-template-columns:repeat(5,1fr); }
+.hero-cards.cols-3 { grid-template-columns:repeat(3,1fr); }
+.hero-cards.cols-2 { grid-template-columns:repeat(2,1fr); }
+
+.hcard {
+  border-radius:12px; padding:14px 16px; color:#fff;
+  position:relative; overflow:hidden;
+}
+.hcard-label { font-size:9px; font-weight:700; text-transform:uppercase; opacity:.8; letter-spacing:.5px; margin-bottom:6px; }
+.hcard-value { font-size:22px; font-weight:800; line-height:1.1; font-family:'DM Mono',monospace; }
+.hcard-value.sm { font-size:16px; }
+.hcard-sub { font-size:10px; opacity:.75; margin-top:4px; }
+.hcard-icon { position:absolute; right:-8px; bottom:-8px; font-size:44px; opacity:.12; pointer-events:none; }
+
+.hcard.green  { background:linear-gradient(135deg,#059669,#10b981); }
+.hcard.blue   { background:linear-gradient(135deg,#2563eb,#60a5fa); }
+.hcard.purple { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
+.hcard.amber  { background:linear-gradient(135deg,#d97706,#fbbf24); }
+.hcard.teal   { background:linear-gradient(135deg,#0891b2,#38bdf8); }
+.hcard.red    { background:linear-gradient(135deg,#dc2626,#f87171); }
+.hcard.pink   { background:linear-gradient(135deg,#db2777,#f472b6); }
+.hcard.indigo { background:linear-gradient(135deg,#4f46e5,#818cf8); }
+.hcard.gray   { background:linear-gradient(135deg,#374151,#6b7280); }
+.hcard.dark   { background:linear-gradient(135deg,#1a2332,#2d3e50); }
+
+/* Cards brancos financeiros */
+.fin-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px; }
+.fin-cards.cols-5 { grid-template-columns:repeat(5,1fr); }
+.fin-cards.cols-3 { grid-template-columns:repeat(3,1fr); }
+.fin-cards.cols-6 { grid-template-columns:repeat(6,1fr); }
+
+.fcard {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:12px; padding:12px 14px; box-shadow:var(--shadow);
+}
+.fcard.warn { border-color:#fde68a; background:#fffbeb; }
+.fcard.success { border-color:#bbf7d0; background:#f0fdf4; }
+.fcard.danger { border-color:#fecaca; background:#fff1f2; }
+.fcard-icon-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.fcard-icon { font-size:16px; }
+.fcard-label { font-size:9px; font-weight:700; text-transform:uppercase; color:var(--text2); }
+.fcard-value { font-size:15px; font-weight:800; font-family:'DM Mono',monospace; }
+.fcard-value.green { color:#059669; }
+.fcard-value.red   { color:#dc2626; }
+.fcard-value.blue  { color:#2563eb; }
+.fcard-value.amber { color:#d97706; }
+.fcard-value.purple{ color:#7c3aed; }
+.fcard-sub { font-size:10px; color:var(--text3); margin-top:3px; }
+
+/* Card genérico seção */
+.section-card {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:12px; overflow:hidden; margin-bottom:14px;
+  box-shadow:var(--shadow);
+}
+.section-card-header {
+  padding:10px 14px; background:var(--bg3);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;
+}
+.section-card-title {
+  display:flex; align-items:center; gap:6px;
+  font-weight:600; font-size:13px;
+}
+.section-card-badge {
+  border-radius:6px; padding:2px 7px; font-size:11px; font-weight:700;
+}
+.section-card-body { padding:14px; }
+
+/* Status badges */
+.badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; }
+.badge-green  { background:#dcfce7; color:#166534; }
+.badge-red    { background:#fee2e2; color:#991b1b; }
+.badge-amber  { background:#fef3c7; color:#92400e; }
+.badge-blue   { background:#dbeafe; color:#1e40af; }
+.badge-purple { background:#ede9fe; color:#5b21b6; }
+.badge-gray   { background:#f3f4f6; color:#374151; }
+
+/* Filtro row melhorado */
+.filter-row {
+  display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px;
+}
+.filter-group { display:flex; flex-direction:column; gap:3px; }
+.filter-label { font-size:9px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.4px; }
+.filter-select, .filter-input {
+  padding:5px 10px; font-size:12px; border:1.5px solid var(--border);
+  border-radius:8px; background:var(--bg2); color:var(--text);
+  font-family:'Outfit',sans-serif;
+}
+.filter-select:focus, .filter-input:focus { outline:none; border-color:var(--accent); }
+
+/* Grid 2/3 colunas */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:14px; }
+.grid-auto { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-bottom:14px; }
+
 /* CARDS GERAIS */
 .card {
   background: var(--bg2); border: 1px solid var(--border);
@@ -1065,8 +1177,26 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <!-- LANÇAMENTOS -->
         <div class="page" id="page-lancamentos">
           <div class="lanc-sticky">
+
+          <!-- PAGE HEADER -->
+          <div class="pg-header">
+            <div>
+              <div class="pg-header-title">💳 Lançamentos Financeiros</div>
+              <div class="pg-header-sub">Movimentações de entrada e saída · Extrato completo</div>
+            </div>
+          </div>
+
+          <!-- CARDS HERO -->
+          <div class="hero-cards cols-5" style="margin-bottom:10px">
+            <div class="hcard green"><div class="hcard-label">Entradas</div><div class="hcard-value sm" id="lanc-hero-ent">—</div><div class="hcard-sub">período filtrado</div><div class="hcard-icon">💵</div></div>
+            <div class="hcard red"><div class="hcard-label">Saídas</div><div class="hcard-value sm" id="lanc-hero-sai">—</div><div class="hcard-sub">período filtrado</div><div class="hcard-icon">💸</div></div>
+            <div class="hcard blue"><div class="hcard-label">Saldo Total</div><div class="hcard-value sm" id="lanc-hero-saldo">—</div><div class="hcard-sub">todos os bancos</div><div class="hcard-icon">🏦</div></div>
+            <div class="hcard purple"><div class="hcard-label">Lançamentos</div><div class="hcard-value" id="lanc-hero-n">—</div><div class="hcard-sub">no período</div><div class="hcard-icon">📋</div></div>
+            <div class="hcard amber"><div class="hcard-label">Resultado</div><div class="hcard-value sm" id="lanc-hero-res">—</div><div class="hcard-sub">entradas − saídas</div><div class="hcard-icon">📊</div></div>
+          </div>
+
           <!-- FILTROS E AÇÕES -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
             <div class="filters" style="margin-bottom:0">
               <select class="filter-select" id="lanc-tipo" onchange="loadLancamentos()">
                 <option value="">Todos os tipos</option>
@@ -1163,6 +1293,23 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- CONTAS A PAGAR -->
         <div class="page" id="page-contas-pagar">
+          <!-- PAGE HEADER -->
+          <div class="pg-header">
+            <div>
+              <div class="pg-header-title">📤 Contas a Pagar</div>
+              <div class="pg-header-sub">Vencimentos, status e controle de pagamentos</div>
+            </div>
+          </div>
+
+          <!-- CARDS HERO -->
+          <div class="hero-cards cols-5" style="margin-bottom:10px">
+            <div class="hcard red"><div class="hcard-label">A Pagar</div><div class="hcard-value sm" id="cp-hero-apagar">—</div><div class="hcard-sub">pendente</div><div class="hcard-icon">📤</div></div>
+            <div class="hcard amber"><div class="hcard-label">Enviado</div><div class="hcard-value sm" id="cp-hero-env">—</div><div class="hcard-sub">aguardando</div><div class="hcard-icon">📨</div></div>
+            <div class="hcard green"><div class="hcard-label">Pago</div><div class="hcard-value sm" id="cp-hero-pago">—</div><div class="hcard-sub">quitado</div><div class="hcard-icon">✅</div></div>
+            <div class="hcard purple"><div class="hcard-label">Não Pago</div><div class="hcard-value sm" id="cp-hero-npago">—</div><div class="hcard-sub">sem baixa</div><div class="hcard-icon">❌</div></div>
+            <div class="hcard dark"><div class="hcard-label">Total Mês</div><div class="hcard-value sm" id="cp-hero-total">—</div><div class="hcard-sub">soma do período</div><div class="hcard-icon">💰</div></div>
+          </div>
+
           <!-- FILTROS -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div class="filters" style="margin-bottom:0">
@@ -1192,32 +1339,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- MÉTRICAS -->
-          <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">A Pagar</div>
-              <div id="cp-total" style="font-size:13px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:#3b82f6;text-transform:uppercase">Enviado</div>
-              <div id="cp-enviado" style="font-size:13px;font-weight:700;color:#3b82f6;font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">Pago</div>
-              <div id="cp-pago" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Não Pago</div>
-              <div id="cp-naopago" style="font-size:13px;font-weight:700;color:var(--text2);font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:#ef4444;text-transform:uppercase">Atrasado</div>
-              <div id="cp-atrasado" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px;border:2px solid var(--accent)">
-              <div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase">Total Mês</div>
-              <div id="cp-total-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
-            </div>
-          </div>
 
           <!-- TABELAS LADO A LADO -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -1240,6 +1361,21 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- CONTAS A RECEBER -->
         <div class="page" id="page-contas-receber">
+          <div class="pg-header">
+            <div>
+              <div class="pg-header-title">📥 Contas a Receber</div>
+              <div class="pg-header-sub">Cobranças, recebimentos e inadimplência</div>
+            </div>
+          </div>
+
+          <div class="hero-cards cols-5" style="margin-bottom:10px">
+            <div class="hcard teal"><div class="hcard-label">A Receber</div><div class="hcard-value sm" id="cr-hero-arec">—</div><div class="hcard-sub">pendente</div><div class="hcard-icon">📥</div></div>
+            <div class="hcard blue"><div class="hcard-label">Enviado</div><div class="hcard-value sm" id="cr-hero-env">—</div><div class="hcard-sub">cobrado</div><div class="hcard-icon">📨</div></div>
+            <div class="hcard green"><div class="hcard-label">Recebido</div><div class="hcard-value sm" id="cr-hero-rec">—</div><div class="hcard-sub">quitado</div><div class="hcard-icon">✅</div></div>
+            <div class="hcard red"><div class="hcard-label">Não Recebido</div><div class="hcard-value sm" id="cr-hero-nrec">—</div><div class="hcard-sub">sem baixa</div><div class="hcard-icon">❌</div></div>
+            <div class="hcard dark"><div class="hcard-label">Total Mês</div><div class="hcard-value sm" id="cr-hero-total">—</div><div class="hcard-sub">soma do período</div><div class="hcard-icon">💰</div></div>
+          </div>
+
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div class="filters" style="margin-bottom:0">
               <select class="filter-select" id="cr-mes" onchange="loadContasReceber()">
@@ -1375,7 +1511,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- PDV / CAIXA -->
         <div class="page" id="page-pdv">
-          <!-- TOOLBAR -->
+          <div class="pg-header">
+            <div><div class="pg-header-title">🏷️ PDV · Ponto de Venda</div><div class="pg-header-sub">Entradas e saídas do caixa físico por categoria</div></div>
+          </div>
+          <div class="hero-cards cols-4" style="margin-bottom:10px">
+            <div class="hcard green"><div class="hcard-label">Entradas PDV</div><div class="hcard-value sm" id="pdv-hero-ent">—</div><div class="hcard-sub">total recebido</div><div class="hcard-icon">💵</div></div>
+            <div class="hcard red"><div class="hcard-label">Saídas PDV</div><div class="hcard-value sm" id="pdv-hero-sai">—</div><div class="hcard-sub">total pago</div><div class="hcard-icon">💸</div></div>
+            <div class="hcard blue"><div class="hcard-label">Lançamentos</div><div class="hcard-value" id="pdv-hero-n">—</div><div class="hcard-sub">registros</div><div class="hcard-icon">📋</div></div>
+            <div class="hcard amber"><div class="hcard-label">Saldo PDV</div><div class="hcard-value sm" id="pdv-hero-saldo">—</div><div class="hcard-sub">entradas − saídas</div><div class="hcard-icon">💰</div></div>
+          </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <select id="pdv-filtro-ano" onchange="loadPDV()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
@@ -1547,6 +1691,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- DFC -->
         <div class="page" id="page-dfc">
+          <div class="pg-header">
+            <div><div class="pg-header-title">📊 DFC · Demonstrativo de Fluxo de Caixa</div><div class="pg-header-sub">Entradas e saídas categorizadas por mês</div></div>
+          </div>
+
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div style="font-size:13px;color:var(--text2)">Demonstrativo de Fluxo de Caixa</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1568,6 +1716,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- DRE -->
         <div class="page" id="page-dre">
+          <div class="pg-header">
+            <div><div class="pg-header-title">📈 DRE · Demonstração do Resultado</div><div class="pg-header-sub">Receitas, custos, despesas e resultado líquido</div></div>
+          </div>
+
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div style="font-size:13px;color:var(--text2)">Demonstrativo de Resultado do Exercício</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1594,6 +1746,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- IMPORTAÇÃO DE RELATÓRIOS -->
         <div class="page" id="page-importacao">
+          <div class="pg-header">
+            <div><div class="pg-header-title">📥 Importação de Relatórios</div><div class="pg-header-sub">Importe dados do sistema de gestão por tipo de relatório</div></div>
+          </div>
+
 
           <!-- CABEÇALHO -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px">
@@ -1671,6 +1827,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- CONCILIAÇÃO BANCÁRIA -->
         <div class="page" id="page-conciliacao">
+          <div class="pg-header">
+            <div><div class="pg-header-title">🔗 Conciliação Bancária</div><div class="pg-header-sub">Cruzamento do extrato com lançamentos cadastrados</div></div>
+          </div>
+
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Importe o extrato do banco e concilie os lançamentos</div>
             <div style="display:flex;gap:8px">
@@ -1683,6 +1843,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- SERVIÇOS -->
         <div class="page" id="page-servicos">
+          <div class="pg-header">
+            <div><div class="pg-header-title">✂️ Relatório de Serviços</div><div class="pg-header-sub">Ranking, categorias e top serviços realizados</div></div>
+          </div>
+
           <!-- TOOLBAR -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1782,6 +1946,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- CLIENTES -->
         <div class="page" id="page-clientes">
+          <div class="pg-header">
+            <div><div class="pg-header-title">👥 Clientes · Recorrentes & Novos</div><div class="pg-header-sub">Análise da base de clientes, visitas e captação</div></div>
+          </div>
+
 
           <!-- TOOLBAR -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
@@ -1905,6 +2073,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- PRODUTOS -->
         <div class="page" id="page-produtos">
+          <div class="pg-header">
+            <div><div class="pg-header-title">📦 Relatório de Produtos</div><div class="pg-header-sub">Vendas, categorias e ranking de produtos</div></div>
+          </div>
+
 
           <!-- TOOLBAR -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
@@ -1999,6 +2171,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- PERFORMANCE -->
         <div class="page" id="page-performance">
+          <div class="pg-header">
+            <div><div class="pg-header-title">🏆 Performance Profissional</div><div class="pg-header-sub">Faturamento, comissões e metas por profissional</div></div>
+          </div>
+
 
           <!-- TOOLBAR -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
@@ -2108,6 +2284,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- FORNECEDORES -->
         <div class="page" id="page-metricas">
+          <div class="pg-header">
+            <div><div class="pg-header-title">🎯 Métricas & Metas</div><div class="pg-header-sub">Acompanhamento de metas e projeção DRE</div></div>
+          </div>
+
 
           <!-- FILTRO MÊS/ANO -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px">
@@ -2194,6 +2374,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- FORNECEDORES -->
         <div class="page" id="page-fornecedores">
+          <div class="pg-header">
+            <div><div class="pg-header-title">🏢 Fornecedores</div><div class="pg-header-sub">Cadastro e manutenção de fornecedores</div></div>
+          </div>
+
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
             <div style="display:flex;gap:8px">
@@ -2290,6 +2474,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- PLANO DE CONTAS -->
         <div class="page" id="page-plano-contas">
+          <div class="pg-header">
+            <div><div class="pg-header-title">📋 Plano de Contas</div><div class="pg-header-sub">Estrutura de categorias DFC/DRE</div></div>
+          </div>
+
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Grupos e categorias do DRE e DFC</div>
             <div style="display:flex;gap:8px">
@@ -2311,6 +2499,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- BANCOS -->
         <div class="page" id="page-bancos">
+          <div class="pg-header">
+            <div><div class="pg-header-title">🏦 Bancos Cadastrados</div><div class="pg-header-sub">Contas bancárias e saldos iniciais</div></div>
+          </div>
+
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Contas bancárias e caixas</div>
             <div style="display:flex;gap:8px">
@@ -3984,6 +4176,14 @@ async function loadPDV() {
       </div>`;
     });
     cardsDiv.innerHTML = html;
+    // hero cards
+    const _ps = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+    const totalEnt = todosItens.filter(i=>i.tipo==='ENTRADA').reduce((s,i)=>s+Number(i.valor||0),0);
+    const totalSai = todosItens.filter(i=>i.tipo==='SAIDA').reduce((s,i)=>s+Number(i.valor||0),0);
+    _ps('pdv-hero-ent',   fmtBRL(totalEnt));
+    _ps('pdv-hero-sai',   fmtBRL(totalSai));
+    _ps('pdv-hero-n',     (caixas||[]).length.toString());
+    _ps('pdv-hero-saldo', fmtBRL(totalEnt-totalSai));
   }
 
   if (!caixas?.length) {
@@ -5082,12 +5282,16 @@ async function loadLancamentos() {
     saldoTotal = calcSaldo(todos);
   }
 
-  if (document.getElementById('lanc-total-entrada')) {
-    document.getElementById('lanc-total-entrada').textContent = fmtBRL(totalEntrada);
-    document.getElementById('lanc-total-saida').textContent   = fmtBRL(totalSaida);
-    document.getElementById('lanc-saldo-mes').textContent     = fmtBRL(saldoTotal);
-    document.getElementById('lanc-saldo-mes').style.color     = saldoTotal >= 0 ? 'var(--green)' : 'var(--red)';
-  }
+  const _ls = (id,v,clr) => { const e=document.getElementById(id); if(e){ e.textContent=v; if(clr) e.style.color=clr; } };
+  _ls('lanc-total-entrada', fmtBRL(totalEntrada));
+  _ls('lanc-total-saida', fmtBRL(totalSaida));
+  _ls('lanc-saldo-mes', fmtBRL(saldoTotal), saldoTotal>=0?'var(--green)':'var(--red)');
+  // hero cards
+  _ls('lanc-hero-ent', fmtBRL(totalEntrada));
+  _ls('lanc-hero-sai', fmtBRL(totalSaida));
+  _ls('lanc-hero-saldo', fmtBRL(saldoTotal));
+  _ls('lanc-hero-n', lancs.length.toLocaleString('pt-BR'));
+  _ls('lanc-hero-res', fmtBRL(totalEntrada-totalSaida));
 
   if (!lancs.length) {
     el.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
@@ -5635,14 +5839,13 @@ async function loadContasPagar() {
   const naoPago   = contas.filter(c => c.status === 'não pago');
   const atrasados = contas.filter(c => c.status === 'atrasado' || ((c.status === 'pendente' || c.status === 'a pagar') && c.data_vencimento < hoje));
 
-  if (document.getElementById('cp-total')) {
-    document.getElementById('cp-total').textContent    = fmtBRL(soma(aPagar));
-    document.getElementById('cp-enviado').textContent  = fmtBRL(soma(enviados));
-    document.getElementById('cp-pago').textContent     = fmtBRL(soma(pagos));
-    document.getElementById('cp-naopago').textContent  = fmtBRL(soma(naoPago));
-    document.getElementById('cp-atrasado').textContent = fmtBRL(soma(atrasados));
-    document.getElementById('cp-total-mes').textContent= fmtBRL(soma(contas));
-  }
+  const _s = (id, val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
+  _s('cp-total', fmtBRL(soma(aPagar))); _s('cp-enviado', fmtBRL(soma(enviados)));
+  _s('cp-pago', fmtBRL(soma(pagos))); _s('cp-naopago', fmtBRL(soma(naoPago)));
+  _s('cp-atrasado', fmtBRL(soma(atrasados))); _s('cp-total-mes', fmtBRL(soma(contas)));
+  _s('cp-hero-apagar', fmtBRL(soma(aPagar))); _s('cp-hero-env', fmtBRL(soma(enviados)));
+  _s('cp-hero-pago', fmtBRL(soma(pagos))); _s('cp-hero-npago', fmtBRL(soma(naoPago)));
+  _s('cp-hero-total', fmtBRL(soma(contas)));
 
   const fixas = contas.filter(c => c.tipo === 'fixa' || c.recorrente);
   const variaveis = contas.filter(c => c.tipo !== 'fixa' && !c.recorrente);
@@ -9300,14 +9503,13 @@ async function loadContasReceber() {
   const naoRecebidos = contas.filter(c => c.status === 'não recebido');
   const atrasadosR = contas.filter(c => c.status === 'atrasado' || (c.status === 'pendente' && c.data_vencimento < hoje));
 
-  if (document.getElementById('cr-total')) {
-    document.getElementById('cr-total').textContent = fmtBRL(soma(aReceber));
-    document.getElementById('cr-enviado').textContent = fmtBRL(soma(enviadosR));
-    document.getElementById('cr-recebido').textContent = fmtBRL(soma(recebidos));
-    document.getElementById('cr-naorecebido').textContent = fmtBRL(soma(naoRecebidos));
-    document.getElementById('cr-atrasado').textContent = fmtBRL(soma(atrasadosR));
-    document.getElementById('cr-total-mes').textContent = fmtBRL(soma(contas));
-  }
+  const _rs = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  _rs('cr-total', fmtBRL(soma(aReceber))); _rs('cr-enviado', fmtBRL(soma(enviadosR)));
+  _rs('cr-recebido', fmtBRL(soma(recebidos))); _rs('cr-naorecebido', fmtBRL(soma(naoRecebidos)));
+  _rs('cr-atrasado', fmtBRL(soma(atrasadosR))); _rs('cr-total-mes', fmtBRL(soma(contas)));
+  _rs('cr-hero-arec', fmtBRL(soma(aReceber))); _rs('cr-hero-env', fmtBRL(soma(enviadosR)));
+  _rs('cr-hero-rec', fmtBRL(soma(recebidos))); _rs('cr-hero-nrec', fmtBRL(soma(naoRecebidos)));
+  _rs('cr-hero-total', fmtBRL(soma(contas)));
 
   const fixas = contas.filter(c => c.tipo === 'fixa');
   const variaveis = contas.filter(c => c.tipo !== 'fixa');
