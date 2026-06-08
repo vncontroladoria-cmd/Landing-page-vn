@@ -3802,11 +3802,15 @@ async function excluirSelecionadosImport() {
   if (!ids.length) return;
   if (!confirm(`Excluir ${ids.length} registro(s) selecionado(s)?`)) return;
 
-  const { error } = await sb.from('rel_dados_brutos').delete().in('id', ids);
-  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  // Deleta em lotes de 50 para evitar Bad Request do Supabase
+  const LOTE = 50;
+  for (let i = 0; i < ids.length; i += LOTE) {
+    const lote = ids.slice(i, i + LOTE);
+    const { error } = await sb.from('rel_dados_brutos').delete().in('id', lote);
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  }
 
   showToast(`${ids.length} registro(s) excluído(s).`, 'success');
-  // Remove linhas da tela e da lista
   ids.forEach(id => {
     document.getElementById('imp-row-' + id)?.remove();
     _impDadosCarregados = _impDadosCarregados.filter(r => r.id !== id);
@@ -10723,9 +10727,15 @@ async function excluirSelecionados() {
   const selecionados = Array.from(document.querySelectorAll('.lanc-check:checked')).map(cb => cb.dataset.id);
   if (!selecionados.length) return;
   if (!confirm(`Excluir ${selecionados.length} lançamento${selecionados.length > 1 ? 's' : ''}?`)) return;
-  for (const id of selecionados) {
-    await sb.from('lancamentos').delete().eq('id', id);
+
+  // Deleta em lotes de 50 para evitar Bad Request do Supabase
+  const LOTE = 50;
+  for (let i = 0; i < selecionados.length; i += LOTE) {
+    const lote = selecionados.slice(i, i + LOTE);
+    const { error } = await sb.from('lancamentos').delete().in('id', lote);
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   }
+
   showToast(`${selecionados.length} lançamentos excluídos!`, 'success');
   limparSelecao();
   loadLancamentos();
