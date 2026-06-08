@@ -8263,8 +8263,8 @@ async function loadProjecaoDRE() {
 
   container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
 
-  // Carrega categorias do plano de contas
-  const { data: cats, error: errCats } = await sb.from('plano_contas').select('*').order('codigo');
+  // Carrega apenas categorias do DRE
+  const { data: cats, error: errCats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
   if (errCats || !cats?.length) {
     container.innerHTML = '<div class="empty" style="padding:1.5rem">Nenhuma categoria cadastrada no Plano de Contas.</div>';
     return;
