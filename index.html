@@ -1952,34 +1952,53 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- CLIENTES -->
         <div class="page" id="page-clientes">
+
+          <!-- PAGE HEADER -->
           <div class="pg-header">
-            <div><div class="pg-header-title">👥 Clientes · Recorrentes & Novos</div><div class="pg-header-sub">Análise da base de clientes, visitas e captação</div></div>
+            <div>
+              <div class="pg-header-title">👥 Clientes · Recorrentes &amp; Novos</div>
+              <div class="pg-header-sub">Análise da base de clientes — visitas, gastos e captação</div>
+            </div>
+            <div class="pg-header-actions">
+              <div class="filter-group">
+                <span class="filter-label">ANO</span>
+                <select class="filter-select" id="cli-ano" onchange="loadClientes()">
+                  <option value="2026">2026</option><option value="2025">2025</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">MÊS</span>
+                <select class="filter-select" id="cli-mes" onchange="loadClientes()">
+                  <option value="">Todos</option>
+                  <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
+                  <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
+                  <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
+                  <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+                </select>
+              </div>
+              <button class="btn" onclick="loadClientes()">↻ Atualizar</button>
+              <button class="btn btn-primary" onclick="showPage('importacao',document.querySelector('[data-page=importacao]'))">📥 Importar</button>
+            </div>
           </div>
 
-
-          <!-- TOOLBAR -->
-          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
-            <button class="btn" onclick="loadClientes()">↻ Atualizar</button>
-          </div>
-
-          <!-- CARDS HERO LINHA 1 -->
+          <!-- LINHA 1: 4 hcards topo -->
           <div class="hero-cards cols-4" style="margin-bottom:14px">
             <div class="hcard green">
               <div class="hcard-label">Clientes Totais</div>
               <div class="hcard-value" id="cli-total">—</div>
-              <div class="hcard-sub" id="cli-total-sub"></div>
+              <div class="hcard-sub" id="cli-total-sub">do relatório importado</div>
               <div class="hcard-icon">👥</div>
             </div>
             <div class="hcard blue">
               <div class="hcard-label">Valor Consumido</div>
               <div class="hcard-value sm" id="cli-consumido">—</div>
-              <div class="hcard-sub">Total no período</div>
+              <div class="hcard-sub">total no período</div>
               <div class="hcard-icon">💰</div>
             </div>
             <div class="hcard purple">
               <div class="hcard-label">Total de Visitas</div>
               <div class="hcard-value" id="cli-visitas">—</div>
-              <div class="hcard-sub" id="cli-visitas-sub"></div>
+              <div class="hcard-sub" id="cli-visitas-sub">atendimentos únicos</div>
               <div class="hcard-icon">📅</div>
             </div>
             <div class="hcard amber">
@@ -1990,56 +2009,79 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- LINHA 2: Gráfico por dia + Gráfico canal — mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
-                <div style="font-weight:600;font-size:13px">📅 Clientes por Dia do Mês</div>
-                <div style="font-size:11px;color:var(--text2);margin-top:2px">Clientes únicos atendidos em cada dia</div>
-              </div>
-              <!-- mini badges com totais por dia -->
-              <div id="cli-dias-totais" style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--border)"></div>
-              <div style="padding:12px;height:130px;position:relative">
-                <canvas id="cli-chart-dia"></canvas>
-              </div>
-            </div>
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
-                <div style="font-weight:600;font-size:13px">🔗 Como Conheceram o Salão</div>
-                <div style="font-size:11px;color:var(--text2);margin-top:2px" id="cli-canal-sub">Canais de aquisição</div>
-              </div>
-              <div style="padding:12px;height:180px;position:relative">
-                <canvas id="cli-chart-canal"></canvas>
-              </div>
-            </div>
-          </div>
-
-          <!-- LINHA 3: Clientes do período + Clientes novos -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
-                <div style="font-weight:600;font-size:13px">👥 Clientes do Período</div>
-                <div style="font-size:11px;color:var(--text2);margin-top:1px" id="cli-periodo-sub"></div>
-              </div>
-              <div id="cli-periodo" style="max-height:340px;overflow-y:auto">
-                <div class="empty">Sem dados</div>
-              </div>
-            </div>
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <div style="font-weight:600;font-size:13px">✨ Clientes Novos</div>
-                  <div style="font-size:11px;color:var(--text2);margin-top:1px" id="cli-novos-sub"></div>
+          <!-- LINHA 2: Gráfico barras por dia + Rosca canal -->
+          <div class="grid-2" style="margin-bottom:14px;align-items:start">
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📅</span>
+                  <div>
+                    <div style="font-weight:600;font-size:13px">Clientes por Dia do Mês</div>
+                    <div style="font-size:10px;color:var(--text2)">Clientes únicos atendidos em cada dia</div>
+                  </div>
                 </div>
-                <span id="cli-novos-badge" style="display:none;background:#059669;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">Cruzado</span>
+                <span id="cli-fonte-label" style="font-size:10px;color:var(--text3)"></span>
               </div>
-              <div id="cli-novos-lista" style="max-height:340px;overflow-y:auto">
-                <div class="empty">Importe o relatório de Clientes Novos para ver o cruzamento</div>
+              <div class="section-card-body" style="padding:10px 12px 8px">
+                <div id="cli-dias-totais" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px"></div>
+                <div style="height:140px;position:relative">
+                  <canvas id="cli-chart-dia"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#ede9fe;color:#5b21b6;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🔗</span>
+                  <div>
+                    <div style="font-weight:600;font-size:13px">Como Conheceram o Salão</div>
+                    <div class="section-card-sub" id="cli-canal-sub" style="font-size:10px;color:var(--text2)">Canais de aquisição</div>
+                  </div>
+                </div>
+              </div>
+              <div class="section-card-body" style="display:flex;align-items:center;gap:14px;padding:12px">
+                <div style="width:160px;height:160px;flex-shrink:0;position:relative">
+                  <canvas id="cli-chart-canal"></canvas>
+                </div>
+                <div id="cli-canal-legenda" style="flex:1;display:flex;flex-direction:column;gap:6px;font-size:11px"></div>
               </div>
             </div>
           </div>
 
-          <!-- CARDS HERO LINHA 2 -->
+          <!-- LINHA 3: Tabela Clientes + Tabela Novos -->
+          <div class="grid-2" style="margin-bottom:14px">
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">👥</span>
+                  <div>
+                    <div style="font-weight:600;font-size:13px">Clientes do Período</div>
+                    <div style="font-size:10px;color:var(--text2)" id="cli-periodo-sub"></div>
+                  </div>
+                </div>
+              </div>
+              <div id="cli-periodo" style="max-height:360px;overflow-y:auto">
+                <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Sem dados — importe o relatório de Clientes</div>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#fce7f3;color:#9d174d;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">✨</span>
+                  <div>
+                    <div style="font-weight:600;font-size:13px">Clientes Novos</div>
+                    <div style="font-size:10px;color:var(--text2)" id="cli-novos-sub"></div>
+                  </div>
+                </div>
+                <span id="cli-novos-badge" style="display:none" class="badge badge-green">✓ Cruzado</span>
+              </div>
+              <div id="cli-novos-lista" style="max-height:360px;overflow-y:auto">
+                <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Importe o relatório de Clientes Novos para ver o cruzamento</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LINHA 4: métricas rodapé -->
           <div class="hero-cards cols-3" style="margin-bottom:10px">
             <div class="hcard teal">
               <div class="hcard-label">Novos Clientes</div>
@@ -2056,7 +2098,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard amber">
               <div class="hcard-label">Ticket Novos</div>
               <div class="hcard-value sm" id="cli-ticket-novos">—</div>
-              <div class="hcard-sub">ticket de novos clientes</div>
+              <div class="hcard-sub">média clientes novos</div>
               <div class="hcard-icon">🎫</div>
             </div>
           </div>
@@ -6315,11 +6357,25 @@ function renderClientes(linhas, ano, mes) {
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend:{ position:'right', labels:{font:{size:9},padding:5,boxWidth:10} },
+          legend:{ display: false },
           tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} (${(ctx.raw/totalClientes*100).toFixed(1)}%)` } }
         }
       }
     });
+  }
+  // Legenda lateral da rosca
+  const legEl = el('cli-canal-legenda');
+  if (legEl) {
+    legEl.innerHTML = canalRank.map(([nome, qtd], i) => {
+      const pct = totalClientes > 0 ? (qtd/totalClientes*100).toFixed(1) : '0';
+      return `<div style="display:flex;align-items:center;gap:6px">
+        <div style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:${CORES[i%CORES.length]}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</div>
+          <div style="font-size:10px;color:var(--text3)">${qtd} clientes · ${pct}%</div>
+        </div>
+      </div>`;
+    }).join('');
   }
 
   // ── Clientes do período (ordenado por total) ────────────
