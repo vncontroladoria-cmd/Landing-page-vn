@@ -1874,25 +1874,31 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- CARDS -->
-          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
-            <div class="metric-card c-green">
-              <div class="metric-label">Faturamento Total</div>
-              <div class="metric-val" id="srv-fat">—</div>
-              <div class="metric-delta" id="srv-fat-d"></div>
+          <!-- CARDS HERO -->
+          <div class="hero-cards cols-4" style="margin-bottom:14px">
+            <div class="hcard green">
+              <div class="hcard-label">Faturamento Total</div>
+              <div class="hcard-value sm" id="srv-fat">—</div>
+              <div class="hcard-sub" id="srv-fat-d"></div>
+              <div class="hcard-icon">💰</div>
             </div>
-            <div class="metric-card c-blue">
-              <div class="metric-label">Atendimentos</div>
-              <div class="metric-val" id="srv-qtd">—</div>
-              <div class="metric-delta" id="srv-qtd-d"></div>
+            <div class="hcard blue">
+              <div class="hcard-label">Atendimentos</div>
+              <div class="hcard-value" id="srv-qtd">—</div>
+              <div class="hcard-sub" id="srv-qtd-d"></div>
+              <div class="hcard-icon">✂️</div>
             </div>
-            <div class="metric-card c-amber">
-              <div class="metric-label">Ticket Médio</div>
-              <div class="metric-val" id="srv-ticket">—</div>
+            <div class="hcard amber">
+              <div class="hcard-label">Ticket Médio</div>
+              <div class="hcard-value sm" id="srv-ticket">—</div>
+              <div class="hcard-sub">por atendimento</div>
+              <div class="hcard-icon">🎫</div>
             </div>
-            <div class="metric-card c-purple">
-              <div class="metric-label">Profissionais Ativos</div>
-              <div class="metric-val" id="srv-profs">—</div>
+            <div class="hcard purple">
+              <div class="hcard-label">Profissionais Ativos</div>
+              <div class="hcard-value" id="srv-profs">—</div>
+              <div class="hcard-sub">com serviços no período</div>
+              <div class="hcard-icon">👩‍💼</div>
             </div>
           </div>
 
@@ -1952,35 +1958,35 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
 
           <!-- TOOLBAR -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
-            <div>
-              <div style="font-size:18px;font-weight:700">Clientes · Recorrentes &amp; Novos</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:2px">Análise da base de clientes — visitas, gastos e captação</div>
-            </div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
             <button class="btn" onclick="loadClientes()">↻ Atualizar</button>
           </div>
 
-          <!-- CARDS LINHA 1 -->
-          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
-            <div class="metric-card c-green">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:4px">Clientes Totais</div>
-              <div style="font-size:28px;font-weight:800" id="cli-total">—</div>
-              <div style="font-size:11px;opacity:.7;margin-top:2px" id="cli-total-sub"></div>
+          <!-- CARDS HERO LINHA 1 -->
+          <div class="hero-cards cols-4" style="margin-bottom:14px">
+            <div class="hcard green">
+              <div class="hcard-label">Clientes Totais</div>
+              <div class="hcard-value" id="cli-total">—</div>
+              <div class="hcard-sub" id="cli-total-sub"></div>
+              <div class="hcard-icon">👥</div>
             </div>
-            <div class="metric-card c-blue">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:4px">Valor Consumido</div>
-              <div style="font-size:22px;font-weight:800" id="cli-consumido">—</div>
-              <div style="font-size:11px;opacity:.7;margin-top:2px">Total no período</div>
+            <div class="hcard blue">
+              <div class="hcard-label">Valor Consumido</div>
+              <div class="hcard-value sm" id="cli-consumido">—</div>
+              <div class="hcard-sub">Total no período</div>
+              <div class="hcard-icon">💰</div>
             </div>
-            <div class="metric-card c-purple">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:4px">Total de Visitas</div>
-              <div style="font-size:28px;font-weight:800" id="cli-visitas">—</div>
-              <div style="font-size:11px;opacity:.7;margin-top:2px" id="cli-visitas-sub"></div>
+            <div class="hcard purple">
+              <div class="hcard-label">Total de Visitas</div>
+              <div class="hcard-value" id="cli-visitas">—</div>
+              <div class="hcard-sub" id="cli-visitas-sub"></div>
+              <div class="hcard-icon">📅</div>
             </div>
-            <div class="metric-card c-amber">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:4px">Ticket Médio</div>
-              <div style="font-size:22px;font-weight:800" id="cli-ticket">—</div>
-              <div style="font-size:11px;opacity:.7;margin-top:2px">Por visita/cliente</div>
+            <div class="hcard amber">
+              <div class="hcard-label">Ticket Médio</div>
+              <div class="hcard-value sm" id="cli-ticket">—</div>
+              <div class="hcard-sub">por visita/cliente</div>
+              <div class="hcard-icon">🎫</div>
             </div>
           </div>
 
@@ -2033,39 +2039,45 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- CARDS LINHA 4 (métricas extras) -->
-          <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
-            <div class="metric-card c-teal">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Novos Clientes</div>
-              <div style="font-size:24px;font-weight:800" id="cli-novos-count">—</div>
-              <div style="font-size:11px;opacity:.7" id="cli-novos-pct"></div>
+          <!-- CARDS HERO LINHA 2 -->
+          <div class="hero-cards cols-3" style="margin-bottom:10px">
+            <div class="hcard teal">
+              <div class="hcard-label">Novos Clientes</div>
+              <div class="hcard-value" id="cli-novos-count">—</div>
+              <div class="hcard-sub" id="cli-novos-pct"></div>
+              <div class="hcard-icon">✨</div>
             </div>
-            <div class="metric-card c-green">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Recorrentes</div>
-              <div style="font-size:24px;font-weight:800" id="cli-rec-count">—</div>
-              <div style="font-size:11px;opacity:.7" id="cli-rec-pct"></div>
+            <div class="hcard green">
+              <div class="hcard-label">Recorrentes</div>
+              <div class="hcard-value" id="cli-rec-count">—</div>
+              <div class="hcard-sub" id="cli-rec-pct"></div>
+              <div class="hcard-icon">🔄</div>
             </div>
-            <div class="metric-card c-amber">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Ticket Novos</div>
-              <div style="font-size:22px;font-weight:800" id="cli-ticket-novos">—</div>
-              <div style="font-size:11px;opacity:.7">↓ abaixo dos recorrentes</div>
+            <div class="hcard amber">
+              <div class="hcard-label">Ticket Novos</div>
+              <div class="hcard-value sm" id="cli-ticket-novos">—</div>
+              <div class="hcard-sub">ticket de novos clientes</div>
+              <div class="hcard-icon">🎫</div>
             </div>
           </div>
-          <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
-            <div class="metric-card c-blue">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Ticket Recorrentes</div>
-              <div style="font-size:22px;font-weight:800" id="cli-ticket-rec">—</div>
-              <div style="font-size:11px;opacity:.7">Clientes que voltaram</div>
+          <div class="hero-cards cols-3" style="margin-bottom:14px">
+            <div class="hcard blue">
+              <div class="hcard-label">Ticket Recorrentes</div>
+              <div class="hcard-value sm" id="cli-ticket-rec">—</div>
+              <div class="hcard-sub">clientes que voltaram</div>
+              <div class="hcard-icon">💳</div>
             </div>
-            <div class="metric-card c-purple">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Pico de Visitas</div>
-              <div style="font-size:24px;font-weight:800" id="cli-pico-dia">—</div>
-              <div style="font-size:11px;opacity:.7" id="cli-pico-visitas"></div>
+            <div class="hcard purple">
+              <div class="hcard-label">Pico de Visitas</div>
+              <div class="hcard-value" id="cli-pico-dia">—</div>
+              <div class="hcard-sub" id="cli-pico-visitas"></div>
+              <div class="hcard-icon">📈</div>
             </div>
-            <div class="metric-card c-red">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Canal Principal</div>
-              <div style="font-size:15px;font-weight:700;margin-top:4px" id="cli-canal-top">—</div>
-              <div style="font-size:11px;opacity:.7" id="cli-canal-qtd"></div>
+            <div class="hcard red">
+              <div class="hcard-label">Canal Principal</div>
+              <div class="hcard-value sm" id="cli-canal-top">—</div>
+              <div class="hcard-sub" id="cli-canal-qtd"></div>
+              <div class="hcard-icon">📡</div>
             </div>
           </div>
 
@@ -2099,27 +2111,31 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <button class="btn btn-primary" onclick="showPage('importacao',document.querySelector('[data-page=importacao]'))">📥 Ir para Importação</button>
           </div>
 
-          <!-- CARDS -->
-          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
-            <div class="metric-card c-green">
-              <div class="metric-label">Faturamento</div>
-              <div class="metric-val" id="prod-fat">—</div>
-              <div class="metric-delta" id="prod-fat-d"></div>
+          <!-- CARDS HERO -->
+          <div class="hero-cards cols-4" style="margin-bottom:14px">
+            <div class="hcard green">
+              <div class="hcard-label">Faturamento</div>
+              <div class="hcard-value sm" id="prod-fat">—</div>
+              <div class="hcard-sub" id="prod-fat-d"></div>
+              <div class="hcard-icon">💰</div>
             </div>
-            <div class="metric-card c-blue">
-              <div class="metric-label">Produtos Vendidos</div>
-              <div class="metric-val" id="prod-qtd">—</div>
-              <div class="metric-delta" style="font-size:11px;color:var(--text2)">Total de unidades</div>
+            <div class="hcard blue">
+              <div class="hcard-label">Produtos Vendidos</div>
+              <div class="hcard-value" id="prod-qtd">—</div>
+              <div class="hcard-sub">total de unidades</div>
+              <div class="hcard-icon">📦</div>
             </div>
-            <div class="metric-card c-red">
-              <div class="metric-label">Custo do Produto</div>
-              <div class="metric-val" id="prod-custo">—</div>
-              <div class="metric-delta" id="prod-margem"></div>
+            <div class="hcard red">
+              <div class="hcard-label">Custo do Produto</div>
+              <div class="hcard-value sm" id="prod-custo">—</div>
+              <div class="hcard-sub" id="prod-margem"></div>
+              <div class="hcard-icon">🏷️</div>
             </div>
-            <div class="metric-card c-amber">
-              <div class="metric-label">Ticket Médio</div>
-              <div class="metric-val" id="prod-ticket">—</div>
-              <div class="metric-delta" style="font-size:11px;color:var(--text2)">Valor médio por unidade</div>
+            <div class="hcard amber">
+              <div class="hcard-label">Ticket Médio</div>
+              <div class="hcard-value sm" id="prod-ticket">—</div>
+              <div class="hcard-sub">valor médio por unidade</div>
+              <div class="hcard-icon">🎫</div>
             </div>
           </div>
 
@@ -2176,12 +2192,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
 
-          <!-- TOOLBAR -->
+          <!-- FILTROS PERFORMANCE -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
-            <div>
-              <div style="font-size:18px;font-weight:700">Performance Operacional</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:2px">Profissionais · Serviços · Clientes</div>
-            </div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
             <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
               <div style="display:flex;flex-direction:column;gap:2px">
                 <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">ANO</span>
@@ -2209,27 +2222,31 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- CARDS -->
-          <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem">
-            <div class="metric-card c-green">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Faturamento</div>
-              <div style="font-size:22px;font-weight:800" id="perf-fat">—</div>
-              <div style="font-size:11px;opacity:.7">Total de serviços vendidos</div>
+          <!-- CARDS HERO -->
+          <div class="hero-cards cols-4" style="margin-bottom:14px">
+            <div class="hcard green">
+              <div class="hcard-label">Faturamento</div>
+              <div class="hcard-value sm" id="perf-fat">—</div>
+              <div class="hcard-sub">total de serviços vendidos</div>
+              <div class="hcard-icon">💰</div>
             </div>
-            <div class="metric-card c-blue">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Atendimentos</div>
-              <div style="font-size:28px;font-weight:800" id="perf-atend">—</div>
-              <div style="font-size:11px;opacity:.7">Comandas únicas no período</div>
+            <div class="hcard blue">
+              <div class="hcard-label">Atendimentos</div>
+              <div class="hcard-value" id="perf-atend">—</div>
+              <div class="hcard-sub">comandas únicas no período</div>
+              <div class="hcard-icon">📋</div>
             </div>
-            <div class="metric-card c-purple">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Comissão Profissional</div>
-              <div style="font-size:22px;font-weight:800" id="perf-comissao">—</div>
-              <div style="font-size:11px;opacity:.7">Total pago aos profissionais</div>
+            <div class="hcard purple">
+              <div class="hcard-label">Comissão Profissional</div>
+              <div class="hcard-value sm" id="perf-comissao">—</div>
+              <div class="hcard-sub">total pago aos profissionais</div>
+              <div class="hcard-icon">💼</div>
             </div>
-            <div class="metric-card c-amber">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.7;margin-bottom:4px">Ticket Médio</div>
-              <div style="font-size:22px;font-weight:800" id="perf-ticket">—</div>
-              <div style="font-size:11px;opacity:.7">Faturamento ÷ atendimentos</div>
+            <div class="hcard amber">
+              <div class="hcard-label">Ticket Médio</div>
+              <div class="hcard-value sm" id="perf-ticket">—</div>
+              <div class="hcard-sub">faturamento ÷ atendimentos</div>
+              <div class="hcard-icon">🎫</div>
             </div>
           </div>
 
@@ -2311,27 +2328,33 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- CARDS META FINANCEIRA -->
-          <div id="met-cards-financeiro" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem">
-            <div class="metric-card" style="padding:1.25rem">
-              <div class="metric-label">Meta do Mês</div>
-              <div id="met-meta-mes" class="metric-val">—</div>
+          <!-- CARDS HERO META FINANCEIRA -->
+          <div class="hero-cards cols-4" id="met-cards-financeiro" style="margin-bottom:14px">
+            <div class="hcard dark">
+              <div class="hcard-label">Meta do Mês</div>
+              <div class="hcard-value sm" id="met-meta-mes">—</div>
+              <div class="hcard-sub">faturamento previsto</div>
+              <div class="hcard-icon">🎯</div>
             </div>
-            <div class="metric-card" style="padding:1.25rem">
-              <div class="metric-label">Realizado</div>
-              <div id="met-realizado" class="metric-val green">—</div>
+            <div class="hcard green">
+              <div class="hcard-label">Realizado</div>
+              <div class="hcard-value sm" id="met-realizado">—</div>
+              <div class="hcard-sub">faturamento atual</div>
+              <div class="hcard-icon">✅</div>
             </div>
-
-            <div class="metric-card" style="padding:1.25rem">
-              <div class="metric-label">% Atingido</div>
-              <div id="met-pct" class="metric-val">—</div>
-              <div style="margin-top:8px;height:4px;background:var(--bg4);border-radius:4px;overflow:hidden">
-                <div id="met-barra" style="height:100%;background:var(--green);border-radius:4px;width:0%;transition:width 0.5s"></div>
+            <div class="hcard blue">
+              <div class="hcard-label">% Atingido</div>
+              <div class="hcard-value" id="met-pct">—</div>
+              <div style="margin-top:6px;height:4px;background:rgba(255,255,255,.3);border-radius:4px;overflow:hidden">
+                <div id="met-barra" style="height:100%;background:#fff;border-radius:4px;width:0%;transition:width 0.5s"></div>
               </div>
+              <div class="hcard-icon">📊</div>
             </div>
-            <div class="metric-card" style="padding:1.25rem">
-              <div class="metric-label">Meta/dia</div>
-              <div id="met-meta-dia-card" class="metric-val amber">—</div>
+            <div class="hcard amber">
+              <div class="hcard-label">Meta/dia</div>
+              <div class="hcard-value sm" id="met-meta-dia-card">—</div>
+              <div class="hcard-sub">necessário por dia</div>
+              <div class="hcard-icon">📅</div>
             </div>
           </div>
 
