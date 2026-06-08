@@ -2032,7 +2032,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </div>
               <div class="section-card-body" style="padding:10px 12px 8px">
                 <div id="cli-dias-totais" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px"></div>
-                <div style="height:180px;position:relative">
+                <div style="height:280px;position:relative">
                   <canvas id="cli-chart-dia"></canvas>
                 </div>
               </div>
@@ -2048,10 +2048,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 </div>
               </div>
               <div class="section-card-body" style="display:flex;align-items:center;gap:16px;padding:14px">
-                <div style="width:180px;height:180px;flex-shrink:0;position:relative">
+                <div style="width:220px;height:220px;flex-shrink:0;position:relative">
                   <canvas id="cli-chart-canal"></canvas>
                 </div>
-                <div id="cli-canal-legenda" style="flex:1;display:flex;flex-direction:column;gap:8px"></div>
+                <div id="cli-canal-legenda" style="flex:1;display:flex;flex-direction:column;gap:10px"></div>
               </div>
             </div>
           </div>
@@ -6256,7 +6256,6 @@ function renderClientesPage() {
     if (!_cliNovosData.length) {
       novosEl.innerHTML = '<div class="empty">Importe o relatório de Clientes Novos para ver o cruzamento.</div>';
     } else {
-      // Clientes novos com valor (cruzado) + sem valor (só cadastro)
       const novosComValor = novos.sort((a,b) => b.total - a.total);
       const novosSemServico = _cliNovosData.filter(c =>
         !todos.some(t => _normCli(t.nome) === _normCli(c.nome))
@@ -6300,6 +6299,105 @@ function renderClientesPage() {
         </tbody>
       </table>`);
     }
+  }
+
+  // ── GRÁFICO 1: Atendimentos por dia do mês (usa ultimaVisita de _cliTodosData) ──
+  const CORES_CLI = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a','#9333ea'];
+  const diasMap = {};
+  _cliTodosData.forEach(c => {
+    if (!c.ultimaVisita) return;
+    const dia = parseInt(c.ultimaVisita.substring(8,10));
+    if (!diasMap[dia]) diasMap[dia] = 0;
+    diasMap[dia]++;
+  });
+
+  const maxDia = 31;
+  const diasLabels = Array.from({length: maxDia}, (_, i) => i + 1);
+  const diasVals   = diasLabels.map(d => diasMap[d] || 0);
+
+  // Pico
+  const picoDia = Object.entries(diasMap).sort((a,b) => b[1]-a[1])[0];
+  if (picoDia) {
+    if(el('cli-pico-dia'))    el('cli-pico-dia').textContent    = `Dia ${picoDia[0]}`;
+    if(el('cli-pico-visitas')) el('cli-pico-visitas').textContent = `${picoDia[1]} clientes`;
+  }
+
+  // Mini badges top dias
+  const diasTotaisEl = el('cli-dias-totais');
+  if (diasTotaisEl) {
+    const top8 = Object.entries(diasMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    diasTotaisEl.innerHTML = top8.map(([d,n]) =>
+      `<span style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600">
+        Dia ${d}: <span style="color:var(--green)">${n}</span>
+      </span>`
+    ).join('');
+  }
+
+  const ctxDia = el('cli-chart-dia')?.getContext('2d');
+  if (ctxDia) {
+    if (_cliChartDia) _cliChartDia.destroy();
+    _cliChartDia = new Chart(ctxDia, {
+      type: 'bar',
+      data: {
+        labels: diasLabels,
+        datasets: [{ data: diasVals, backgroundColor: '#22c55e', borderRadius: 4, borderSkipped: false }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{display:false}, tooltip:{ callbacks:{label:ctx=>`${ctx.raw} cliente(s)`} } },
+        scales: {
+          x: { ticks:{font:{size:8}}, grid:{display:false} },
+          y: { ticks:{font:{size:9},stepSize:1}, grid:{color:'var(--border)'} }
+        }
+      }
+    });
+  }
+
+  // ── GRÁFICO 2: Como Conheceram o Salão (usa canal de _cliNovosData) ──
+  const canalMap = {};
+  _cliNovosData.forEach(c => {
+    const k = (c.canal && c.canal !== '—' && c.canal !== '') ? c.canal : 'Não informado';
+    canalMap[k] = (canalMap[k]||0) + 1;
+  });
+  const canalRank = Object.entries(canalMap).sort((a,b) => b[1]-a[1]);
+  const totalNovos = _cliNovosData.length;
+
+  if(el('cli-canal-sub')) el('cli-canal-sub').textContent = `${canalRank.length} canais · ${totalNovos} clientes novos`;
+  if(el('cli-canal-top')) el('cli-canal-top').textContent = canalRank[0]?.[0] || '—';
+  if(el('cli-canal-qtd')) el('cli-canal-qtd').textContent = canalRank[0] ? `${canalRank[0][1]} clientes` : '';
+
+  const ctxCanal = el('cli-chart-canal')?.getContext('2d');
+  if (ctxCanal) {
+    if (_cliChartCanal) _cliChartCanal.destroy();
+    _cliChartCanal = new Chart(ctxCanal, {
+      type: 'doughnut',
+      data: {
+        labels: canalRank.map(([n])=>n),
+        datasets: [{ data: canalRank.map(([,v])=>v), backgroundColor: CORES_CLI, borderWidth: 2, borderColor:'var(--bg2)' }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend:{ display: false },
+          tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} (${totalNovos>0?(ctx.raw/totalNovos*100).toFixed(1):0}%)` } }
+        }
+      }
+    });
+  }
+
+  // Legenda lateral da rosca
+  const legEl = el('cli-canal-legenda');
+  if (legEl) {
+    legEl.innerHTML = canalRank.map(([nome, qtd], i) => {
+      const pct = totalNovos > 0 ? (qtd/totalNovos*100).toFixed(1) : '0';
+      return `<div style="display:flex;align-items:center;gap:8px">
+        <div style="width:12px;height:12px;border-radius:3px;flex-shrink:0;background:${CORES_CLI[i%CORES_CLI.length]}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600">${nome}</div>
+          <div style="font-size:11px;color:var(--text3)">${qtd} clientes · ${pct}%</div>
+        </div>
+      </div>`;
+    }).join('');
   }
 }
 
