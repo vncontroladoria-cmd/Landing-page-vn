@@ -1935,12 +1935,37 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <!-- TABELA DE PROFISSIONAIS -->
           <div id="met-dias-uteis" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
           <div id="met-tabela-dias"></div>
-          <div class="card" style="padding:0;overflow:hidden">
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
             <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
               <span>👥 Metas por Profissional</span>
               <span style="font-size:11px;color:var(--text2);font-weight:400">Previsto × Realizado</span>
             </div>
             <div id="met-profissionais-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+          </div>
+
+          <!-- PROJEÇÃO DRE -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div>
+                <div style="font-weight:600;font-size:13px">📊 Projeção DRE por Categoria</div>
+                <div style="font-size:11px;color:var(--text2);margin-top:2px">Defina o valor projetado para cada categoria do Plano de Contas</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="proj-ano" onchange="loadProjecaoDRE()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                  <option value="2026">2026</option><option value="2027">2027</option><option value="2025">2025</option>
+                </select>
+                <button class="btn btn-primary" onclick="salvarProjecaoToda()">💾 Salvar tudo</button>
+              </div>
+            </div>
+
+            <!-- Instrução -->
+            <div style="padding:10px 16px;background:#fffbeb;border-bottom:1px solid #fde68a;font-size:12px;color:#92400e">
+              💡 Digite o valor para um mês específico ou clique em <strong>"Replicar para todos"</strong> para copiar o mesmo valor para o ano inteiro.
+            </div>
+
+            <div id="proj-dre-container" style="overflow-x:auto">
+              <div class="loading"><div class="spin"></div> Carregando categorias...</div>
+            </div>
           </div>
         </div>
 
@@ -8227,6 +8252,155 @@ async function preencherFiltrosServicos() {
 
 let _cliNovosImportados = []; // lista de nomes de clientes novos importados
 
+
+// ─── PROJEÇÃO DRE ─────────────────────────────────────────
+const MESES_PROJ = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+async function loadProjecaoDRE() {
+  const ano = document.getElementById('proj-ano')?.value || '2026';
+  const container = document.getElementById('proj-dre-container');
+  if (!container) return;
+
+  container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
+
+  // Carrega categorias do plano de contas
+  const { data: cats, error: errCats } = await sb.from('plano_contas').select('*').order('codigo');
+  if (errCats || !cats?.length) {
+    container.innerHTML = '<div class="empty" style="padding:1.5rem">Nenhuma categoria cadastrada no Plano de Contas.</div>';
+    return;
+  }
+
+  // Carrega projeções salvas para o ano
+  const { data: projs } = await sb.from('projecoes_dre')
+    .select('*').eq('ano', ano);
+
+  // Monta mapa: categoria_id + mes -> valor
+  const projMap = {};
+  (projs || []).forEach(p => {
+    projMap[`${p.categoria_id}_${p.mes}`] = p.valor;
+  });
+
+  // Monta tabela
+  container.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px">
+      <thead style="position:sticky;top:0;z-index:10;background:var(--bg3)">
+        <tr>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);min-width:200px;border-bottom:1px solid var(--border)">CATEGORIA</th>
+          ${MESES_PROJ.map(m => `<th style="padding:8px 6px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);min-width:80px">${m}</th>`).join('')}
+          <th style="padding:8px 6px;text-align:center;font-size:10px;font-weight:700;color:var(--accent);border-bottom:1px solid var(--border);min-width:90px">REPLICAR</th>
+          <th style="padding:8px 6px;text-align:right;font-size:10px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);min-width:90px">TOTAL ANO</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${cats.map((cat, ci) => {
+          const totalAno = MESES_PROJ.reduce((s, _, mi) => {
+            const v = projMap[`${cat.id}_${mi+1}`] || 0;
+            return s + Number(v);
+          }, 0);
+          return `<tr style="border-bottom:1px solid var(--border);${ci%2===1?'background:var(--bg3)':''}">
+            <td style="padding:7px 12px;font-size:11px;font-weight:600">${cat.nome}
+              <div style="font-size:10px;color:var(--text3);font-weight:400">${cat.codigo || ''}</div>
+            </td>
+            ${MESES_PROJ.map((_, mi) => {
+              const val = projMap[`${cat.id}_${mi+1}`] || '';
+              return `<td style="padding:4px 4px;text-align:center">
+                <input type="number" step="0.01" min="0"
+                  id="proj-${cat.id}-${mi+1}"
+                  value="${val}"
+                  placeholder="0"
+                  onchange="recalcTotalAno('${cat.id}')"
+                  style="width:74px;padding:4px 6px;font-size:11px;text-align:right;border:1.5px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-family:'DM Mono',monospace">
+              </td>`;
+            }).join('')}
+            <td style="padding:4px 6px;text-align:center">
+              <button onclick="replicarParaTodos('${cat.id}')" 
+                style="padding:4px 10px;font-size:10px;font-weight:600;border:1.5px solid var(--accent);color:var(--accent);background:var(--bg2);border-radius:6px;cursor:pointer;white-space:nowrap"
+                title="Pega o valor do 1º mês preenchido e replica para todos">
+                ↦ Todos
+              </button>
+            </td>
+            <td style="padding:7px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--green)" id="proj-total-${cat.id}">
+              ${totalAno > 0 ? fmtBRL(totalAno) : '—'}
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function recalcTotalAno(catId) {
+  let total = 0;
+  for (let m = 1; m <= 12; m++) {
+    const v = parseFloat(document.getElementById(`proj-${catId}-${m}`)?.value) || 0;
+    total += v;
+  }
+  const el = document.getElementById(`proj-total-${catId}`);
+  if (el) el.textContent = total > 0 ? fmtBRL(total) : '—';
+}
+
+function replicarParaTodos(catId) {
+  // Pega o valor do primeiro campo preenchido
+  let valor = 0;
+  for (let m = 1; m <= 12; m++) {
+    const v = parseFloat(document.getElementById(`proj-${catId}-${m}`)?.value) || 0;
+    if (v > 0) { valor = v; break; }
+  }
+  if (!valor) {
+    showToast('Digite um valor em algum mês primeiro.', 'error');
+    return;
+  }
+  for (let m = 1; m <= 12; m++) {
+    const el = document.getElementById(`proj-${catId}-${m}`);
+    if (el) el.value = valor;
+  }
+  recalcTotalAno(catId);
+  showToast(`Valor ${fmtBRL(valor)} replicado para todos os meses.`, 'success');
+}
+
+async function salvarProjecaoToda() {
+  const ano = document.getElementById('proj-ano')?.value || '2026';
+  const btn = document.querySelector('[onclick="salvarProjecaoToda()"]');
+  if (btn) { btn.textContent = '⏳ Salvando...'; btn.disabled = true; }
+
+  // Coleta todos os inputs de projeção
+  const rows = [];
+  document.querySelectorAll('[id^="proj-"][id*="-"]').forEach(el => {
+    const parts = el.id.split('-');
+    if (parts.length < 3) return;
+    const catId = parts[1];
+    const mes   = parseInt(parts[2]);
+    const valor = parseFloat(el.value) || 0;
+    if (!isNaN(mes) && mes >= 1 && mes <= 12) {
+      rows.push({ categoria_id: catId, mes, ano: parseInt(ano), valor });
+    }
+  });
+
+  if (!rows.length) {
+    showToast('Nenhum valor para salvar.', 'error');
+    if (btn) { btn.textContent = '💾 Salvar tudo'; btn.disabled = false; }
+    return;
+  }
+
+  try {
+    // Apaga projeções do ano e recria
+    await sb.from('projecoes_dre').delete().eq('ano', ano);
+    const comValor = rows.filter(r => r.valor > 0);
+    if (comValor.length) {
+      const lote = 500;
+      for (let i = 0; i < comValor.length; i += lote) {
+        const { error } = await sb.from('projecoes_dre').insert(comValor.slice(i, i+lote));
+        if (error) throw new Error(error.message);
+      }
+    }
+    showToast(`✅ ${comValor.length} projeções salvas para ${ano}!`, 'success');
+  } catch(e) {
+    showToast('Erro: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.textContent = '💾 Salvar tudo'; btn.disabled = false; }
+  }
+}
+
 // ─── DFC ─────────────────────────────────────────────────
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -8957,6 +9131,7 @@ function filtrarTabela(tbodyId, termo) {
 const MESES_NOMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 async function loadMetricas() {
+  loadProjecaoDRE();
   const mes = document.getElementById('met-mes')?.value || '06';
   const ano = document.getElementById('met-ano')?.value || '2026';
   const mesIdx = parseInt(mes) - 1;
