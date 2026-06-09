@@ -1137,8 +1137,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:10px;color:var(--text2)" id="dash-ent-sub">lançamentos do período</div>
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;padding:12px 14px;align-items:center">
-                <div style="position:relative;height:130px"><canvas id="chart-ent-cat"></canvas></div>
+              <div style="display:grid;grid-template-columns:200px 1fr;gap:8px;padding:12px 14px;align-items:center">
+                <div style="position:relative;height:200px"><canvas id="chart-ent-cat"></canvas></div>
                 <div id="dash-ent-legend" style="font-size:11px"></div>
               </div>
             </div>
@@ -1150,8 +1150,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:10px;color:var(--text2)" id="dash-sai-sub">lançamentos do período</div>
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;padding:12px 14px;align-items:center">
-                <div style="position:relative;height:130px"><canvas id="chart-sai-cat"></canvas></div>
+              <div style="display:grid;grid-template-columns:200px 1fr;gap:8px;padding:12px 14px;align-items:center">
+                <div style="position:relative;height:200px"><canvas id="chart-sai-cat"></canvas></div>
                 <div id="dash-sai-legend" style="font-size:11px"></div>
               </div>
             </div>
@@ -4776,31 +4776,76 @@ async function loadDashboard() {
       .filter(r=>r.produto && r.data && r.data >= ini && r.data <= fim);
   }
 
+  // ── Faturamento = soma PDV (Comanda + Crédito + Débito + Pix) ──
+  // pdvDiario e pdvTotCat são calculados mais abaixo; precisamos calculá-los agora
+  // Busca PDV antecipado para preencher cards linha 1
+  const hoje0 = new Date();
+  const hojeStr0 = hoje0.toISOString().substring(0,10);
+  let pdvDiarioEarly = {}, pdvTotCatEarly = {}, pdvHojeEarly = 0;
+  try {
+    const { data: cxE } = await sb.from('pdv_caixas').select('id,data_caixa')
+      .gte('data_caixa', ini).lte('data_caixa', fim);
+    if (cxE?.length) {
+      const cxDataE = {}; cxE.forEach(c => { cxDataE[c.id] = c.data_caixa; });
+      const idsE = cxE.map(c => c.id);
+      let itE = [];
+      for(let i=0;i<idsE.length;i+=200){
+        const {data:l} = await sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id',idsE.slice(i,i+200));
+        if(l?.length) itE = itE.concat(l);
+      }
+      const normE = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      const isFatE = n => { const s=normE(n); return s.includes('comanda')||s.includes('credito')||s.includes('debito')||s.includes('pix'); };
+      itE.filter(it => it.tipo==='ENTRADA' && isFatE(it.forma_pagamento)).forEach(it => {
+        const data = cxDataE[it.caixa_id]; if(!data) return;
+        const dia = parseInt(data.substring(8,10));
+        const val = Number(it.valor||0);
+        pdvDiarioEarly[dia] = (pdvDiarioEarly[dia]||0) + val;
+        const cat = (it.forma_pagamento||'').replace(/\s+(MASTER\s*CARD|VISA|ELO|AMEX|HIPERCARD|HIPER).*/i,'').trim();
+        pdvTotCatEarly[cat] = (pdvTotCatEarly[cat]||0) + val;
+        if(data===hojeStr0) pdvHojeEarly += val;
+      });
+    }
+  } catch(e){}
+
+  const fatPDV   = Object.values(pdvTotCatEarly).reduce((s,v)=>s+v, 0); // faturamento = soma PDV
+  const diasPDV  = Object.keys(pdvDiarioEarly).length;                   // dias com movimento PDV
+
+  // Serviços: atendimentos de rel_servicos
   const fatSrv    = srvRows.reduce((s,r)=>s+r.total,0);
-  const nClientes = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
   const nServicos = srvRows.length;
   const nProd     = prodRows.reduce((s,r)=>s+(r.qtd||1),0);
   const diasComMov= new Set(srvRows.map(r=>r.data_comanda?.substring(0,10)).filter(Boolean)).size;
-  const ticket    = diasComMov > 0 ? fatSrv/diasComMov : 0;
-  const ticketSrv = nServicos > 0 ? fatSrv/nServicos : 0;
-  const ocup      = diasComMov > 0 ? (diasComMov / (() => { const d=new Date(ini); const d2=new Date(fim); return Math.max(1,Math.round((d2-d)/(86400000))+1); })() * 100).toFixed(1) : 0;
 
-  if(el('m-fat'))       el('m-fat').textContent      = fmtBRL(fatSrv);
-  if(el('m-fat-d'))     el('m-fat-d').textContent    = 'faturamento de serviços';
+  // Clientes: usa relatório importado se disponível, senão rel_servicos
+  const nClientesRel = _cliTodosData?.length || 0;
+  const nClientesSrv = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
+  const nClientes    = nClientesRel > 0 ? nClientesRel : nClientesSrv;
+  const nClientesSub = nClientesRel > 0 ? 'relatório clientes' : 'rel. serviços';
+
+  // Novos clientes: do relatório de clientes novos
+  const nNovos = _cliNovosData?.length || 0;
+
+  // Ticket médio = faturamento PDV / atendimentos (serviços)
+  const ticketSrv = nServicos > 0 ? fatPDV / nServicos : 0;
+  const ocup      = diasComMov > 0 ? (diasComMov / (() => { const d=new Date(ini); const d2=new Date(fim); return Math.max(1,Math.round((d2-d)/(86400000))+1); })() * 100).toFixed(1) : 0;
+  const ticket    = diasPDV > 0 ? fatPDV / diasPDV : 0;
+
+  // Média faturamento = faturamento PDV / dias trabalhados (PDV)
+  const mediaDia = diasPDV > 0 ? fatPDV / diasPDV : (diasComMov > 0 ? fatSrv / diasComMov : 0);
+
+  if(el('m-fat'))       el('m-fat').textContent      = fmtBRL(fatPDV);
+  if(el('m-fat-d'))     el('m-fat-d').textContent    = 'comanda + crédito + débito + pix';
   if(el('m-cli'))       el('m-cli').textContent      = nClientes.toLocaleString('pt-BR');
-  if(el('m-cli-d'))     el('m-cli-d').textContent    = 'clientes únicos';
+  if(el('m-cli-d'))     el('m-cli-d').textContent    = nClientesSub;
   if(el('m-srv'))       el('m-srv').textContent      = nServicos.toLocaleString('pt-BR');
-  if(el('m-srv-d'))     el('m-srv-d').textContent    = 'atendimentos';
+  if(el('m-srv-d'))     el('m-srv-d').textContent    = 'atendimentos · rel. serviços';
   if(el('m-prod'))      el('m-prod').textContent     = nProd.toLocaleString('pt-BR');
   if(el('m-prod-d'))    el('m-prod-d').textContent   = 'unidades vendidas';
   if(el('m-ticket'))    el('m-ticket').textContent   = fmtBRL(ticketSrv);
   if(el('m-ocup'))      el('m-ocup').textContent     = ocup + '%';
   if(el('m-tick-ocup')) el('m-tick-ocup').textContent= fmtBRL(ticket);
-
-  // Média de faturamento por dia trabalhado
-  const mediaDia = diasComMov > 0 ? fatSrv / diasComMov : 0;
-  if(el('m-media-fat'))   el('m-media-fat').textContent = fmtBRL(mediaDia);
-  if(el('m-media-fat-d')) el('m-media-fat-d').textContent = diasComMov + ' dias trabalhados';
+  if(el('m-media-fat'))   el('m-media-fat').textContent   = fmtBRL(mediaDia);
+  if(el('m-media-fat-d')) el('m-media-fat-d').textContent = diasPDV + ' dias trabalhados';
 
   // ── Indicadores do DRE (mesma lógica do relatório DRE) ────
   // Busca grupos e categorias do DRE para o mês/período atual
@@ -5231,18 +5276,17 @@ async function loadDashboard() {
         </tr>`).join('')}</table>`
     : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
 
-  // ── 9. Novos vs Recorrentes ───────────────────────────
-  const novos = _cliNovosData?.length || 0;
-  const totalCli = nClientes;
-  const rec = Math.max(0, totalCli - novos);
-  if(el('dash-novos-n'))     el('dash-novos-n').textContent     = novos;
-  if(el('dash-rec-n'))       el('dash-rec-n').textContent       = rec;
-  if(el('dash-novorec-sub')) el('dash-novorec-sub').textContent = `${totalCli} clientes únicos · ${mesLabel}`;
+  // ── 9. Novos vs Recorrentes ─── usa relatório clientes novos e todos ──
+  const novosCount = nNovos; // de _cliNovosData (relatório clientes novos)
+  const recCount   = Math.max(0, nClientes - novosCount);
+  if(el('dash-novos-n'))     el('dash-novos-n').textContent     = novosCount;
+  if(el('dash-rec-n'))       el('dash-rec-n').textContent       = recCount;
+  if(el('dash-novorec-sub')) el('dash-novorec-sub').textContent = nClientes + ' clientes · ' + mesLabel;
   if (chartNovoRec) chartNovoRec.destroy();
   const ctxNR = el('chart-novorec')?.getContext('2d');
-  if (ctxNR && (novos+rec)>0) {
+  if (ctxNR && (novosCount+recCount)>0) {
     chartNovoRec = new Chart(ctxNR, { type:'doughnut',
-      data:{ labels:['Novos','Recorrentes'], datasets:[{data:[novos,rec], backgroundColor:['#059669','#2563eb'], borderWidth:2, borderColor:'var(--bg2)'}]},
+      data:{ labels:['Novos','Recorrentes'], datasets:[{data:[novosCount,recCount], backgroundColor:['#059669','#2563eb'], borderWidth:2, borderColor:'var(--bg2)'}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}
     });
   }
@@ -5265,17 +5309,29 @@ async function loadDashboard() {
       }).join('')
     : '<div class="empty" style="padding:1rem;font-size:11px">Importe Clientes Novos</div>';
 
-  // ── 11. Tendência 6 meses ─────────────────────────────
+  // ── 11. Tendência 6 meses — soma PDV (Comanda+Crédito+Débito+Pix) ──
   const mesesTend = [];
   const valsTend  = [];
+  const normTend = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const isFatTend = n => { const s=normTend(n); return s.includes('comanda')||s.includes('credito')||s.includes('debito')||s.includes('pix'); };
   for (let i = 5; i >= 0; i--) {
     const d = new Date(parseInt(ano), mes ? parseInt(mes)-1-i : new Date().getMonth()-i, 1);
     const mT = String(d.getMonth()+1).padStart(2,'0');
     const aT = String(d.getFullYear());
     mesesTend.push(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]);
-    const { data: lT } = await sb.from('rel_servicos').select('total,valor,qtd')
-      .gte('data_comanda',`${aT}-${mT}-01`).lte('data_comanda',`${aT}-${mT}-31`).limit(5000);
-    valsTend.push((lT||[]).reduce((s,r)=>s+Number(r.total||0)||Number(r.valor||0)*Number(r.qtd||1),0));
+    // busca caixas PDV do mês e soma itens de faturamento
+    const iniT = aT+'-'+mT+'-01';
+    const fimT = aT+'-'+mT+'-31';
+    const { data: cxT } = await sb.from('pdv_caixas').select('id').gte('data_caixa',iniT).lte('data_caixa',fimT);
+    let vT = 0;
+    if (cxT?.length) {
+      const idxT = cxT.map(c=>c.id);
+      for(let j=0;j<idxT.length;j+=200){
+        const {data:itT} = await sb.from('pdv_itens').select('valor,tipo,forma_pagamento').in('caixa_id',idxT.slice(j,j+200));
+        (itT||[]).filter(it=>it.tipo==='ENTRADA'&&isFatTend(it.forma_pagamento)).forEach(it=>{ vT+=Number(it.valor||0); });
+      }
+    }
+    valsTend.push(vT);
   }
   if (chartTend) chartTend.destroy();
   const ctxT = el('chart-tend')?.getContext('2d');
