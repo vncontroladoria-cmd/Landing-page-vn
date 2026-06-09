@@ -10766,20 +10766,6 @@ function parsePDFConta(texto) {
   return result;
 }
 
-function parseValorBR(v) {
-  if (!v) return 0;
-  const s = String(v).trim();
-  if (s.includes(',') && s.includes('.')) return parseFloat(s.replace(/\./g,'').replace(',','.')) || 0;
-  if (s.includes(',')) return parseFloat(s.replace(',','.')) || 0;
-  return parseFloat(s) || 0;
-}
-
-function parseDateBR(s) {
-  if (!s) return null;
-  const m = String(s).match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
-  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-  return s;
-}
 
 // Processa múltiplos arquivos (NF-e + boletos)
 let _contaParcelas = []; // parcelas detectadas
@@ -11011,7 +10997,6 @@ async function salvarConta() {
   let salvos = 0;
   for (let i = 0; i < meses.length; i++) {
     const m = meses[i];
-    const descricao = m.total ? `${nome} (${m.parcela}/${m.total})` : nome;
     const descricao = m.total ? `${nome} (${m.parcela}/${m.total})${numeroNF?' - NF '+numeroNF:''}` : `${nome}${numeroNF?' - NF '+numeroNF:''}`;
     const payload = {
       descricao, valor: m.valor_parcela || valor, cnpj, categoria, tipo,
