@@ -6006,14 +6006,19 @@ async function loadLancamentos() {
   // 1 query só — busca todos os lançamentos do ano para cards e tabela
   let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: true}).order('created_at', {ascending: true}).limit(500);
   if (tipo) q = q.eq('tipo', tipo);
-  if (bancoFilter) {
-    const bancoNomeFiltro = _bancos.find(b => b.id === bancoFilter)?.nome || '';
-    if (bancoNomeFiltro) q = q.or(`banco_id.eq.${bancoFilter},banco_nome.ilike.${bancoNomeFiltro}`);
-    else q = q.eq('banco_id', bancoFilter);
-  }
+  // banco será filtrado no JS após busca (mais confiável)
 
   const { data } = await q;
-  const lancs = data || [];
+  let lancs = data || [];
+  // Filtra por banco no JS — mais confiável que filtro Supabase com or()
+  if (bancoFilter) {
+    const bancoFiltrado = _bancos.find(b => b.id === bancoFilter);
+    const bancoNome = (bancoFiltrado?.nome || '').toLowerCase();
+    lancs = lancs.filter(l =>
+      l.banco_id === bancoFilter ||
+      (l.banco_nome||'').toLowerCase() === bancoNome
+    );
+  }
 
   // ── SALDOS ──────────────────────────────────────────────
   // Busca TODOS os lançamentos (sem filtro de período) para saldo acumulado real
