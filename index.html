@@ -6964,10 +6964,10 @@ async function loadLucratividade() {
   });
   const rankArr = Object.entries(rankProf).sort((a,b) => b[1].fat - a[1].fat);
   if(el('luc-rank-sub')) el('luc-rank-sub').textContent = rankArr.length + ' profissional(is)';
-  const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 8px;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text2)';
+  const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 8px;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text2);cursor:pointer;user-select:none';
   if(el('luc-rank-prof')) {
     const maxFat = rankArr[0]?.[1].fat || 1;
-    el('luc-rank-prof').innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(el('luc-rank-prof'), `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th style="${TH};text-align:left;width:28px">#</th>
         <th style="${TH};text-align:left">PROFISSIONAL</th>
@@ -7034,7 +7034,7 @@ async function loadLucratividade() {
 
   // Tabela por categoria
   if(el('luc-tab-cat')) {
-    el('luc-tab-cat').innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    _setTable(el('luc-tab-cat'), `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th style="${TH};text-align:left">CATEGORIA</th>
         <th style="${TH};text-align:right">FATURADO</th>
@@ -7109,8 +7109,8 @@ async function loadLucratividade() {
         </tr>`).join('')}
       </tbody></table>`;
 
-  if(el('luc-top-lucro'))  el('luc-top-lucro').innerHTML  = renderTopTable(topLucro,  d=>d.lucro, maxLucro,  'Lucro', '#22c55e');
-  if(el('luc-top-margem')) el('luc-top-margem').innerHTML = renderTopTable(topMargem, d=>d.mg,    maxMargem, 'Margem', '#f59e0b');
+  if(el('luc-top-lucro'))  _setTable(el('luc-top-lucro'), renderTopTable(topLucro,  d=>d.lucro, maxLucro,  'Lucro', '#22c55e');
+  if(el('luc-top-margem')) _setTable(el('luc-top-margem'), renderTopTable(topMargem, d=>d.mg,    maxMargem, 'Margem', '#f59e0b');
 
   // ── Destaques rodapé ──
   const bestProf = rankArr[0];
