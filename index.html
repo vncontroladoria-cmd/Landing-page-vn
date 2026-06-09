@@ -6042,8 +6042,9 @@ async function loadLancamentos() {
       const lancsB = todos.filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
       const saldoB = calcSaldo(lancsB);
       const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
-      cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer" onclick="filtrarPorBanco('${b.id}')">
-        <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">${b.nome}</div>
+      const isSelected = bancoFilter === b.id;
+      cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer;${isSelected?'border:2px solid var(--accent);background:var(--bg3)':'border:1.5px solid var(--border)'}" onclick="filtrarPorBanco('${b.id}')">
+        <div style="font-size:10px;font-weight:600;color:${isSelected?'var(--accent)':'var(--text2)'};text-transform:uppercase;letter-spacing:0.04em">${b.nome}${isSelected?' ✓':''}</div>
         <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
       </div>`;
     });
@@ -11803,7 +11804,10 @@ function aplicarIgual(idx) {
 
 function filtrarPorBanco(bancoId) {
   const sel = document.getElementById('lanc-banco-filter');
-  if (sel) { sel.value = bancoId; loadLancamentos(); }
+  if (!sel) return;
+  // Toggle: clicou no mesmo banco já selecionado → limpa filtro
+  sel.value = (sel.value === bancoId) ? '' : bancoId;
+  loadLancamentos();
 }
 
 function filtrarLancamentos(termo) {
