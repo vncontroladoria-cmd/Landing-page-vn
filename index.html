@@ -949,7 +949,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Lucro Líquido</span>
               </div>
               <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace" id="m-luc">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-luc-d">entradas − saídas</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-luc-d">resultado líquido DRE</div>
             </div>
             <!-- Margem de Contribuição -->
             <div class="card" style="padding:12px 14px;border-left:3px solid #d97706">
@@ -4948,7 +4948,7 @@ async function loadDashboard() {
         const card = document.getElementById('m-luc-card');
         if(card) card.style.borderLeftColor = resLiqV >= 0 ? '#059669' : '#dc2626';
       }
-      if(el('m-luc-d')) el('m-luc-d').textContent = resLiqV >= 0 ? '↑ resultado positivo' : '↓ resultado negativo';
+      if(el('m-luc-d')) el('m-luc-d').textContent = resLiqV >= 0 ? '↑ resultado líquido DRE' : '↓ resultado líquido DRE';
 
       if(el('m-margem')) el('m-margem').textContent = margemPct.toFixed(1) + '%';
       if(el('m-margem-d')) el('m-margem-d').textContent = margemPct >= 20 ? 'Saudável' : margemPct >= 0 ? 'Atenção · sobra para fixos' : 'Negativo';
@@ -4967,45 +4967,61 @@ async function loadDashboard() {
     if(el('m-luc')) el('m-luc').textContent = fmtBRL(Math.abs(lucro));
   }
 
-  // A Vencer e Total a Pagar (contas_pagar)
+  // ── Total a Pagar: somente contas do mês selecionado, pendentes ou atrasadas ──
   try {
     const hoje2 = new Date();
-    const proxDom = new Date(hoje2);
-    proxDom.setDate(hoje2.getDate() + (7 - hoje2.getDay()));
-    const proxDomStr = proxDom.toISOString().substring(0,10);
-    const hojeStr = hoje2.toISOString().substring(0,10);
-    const { data: cpAVencer } = await sb.from('contas_pagar').select('valor,status,data_vencimento')
-      .gte('data_vencimento', hojeStr).lte('data_vencimento', proxDomStr);
-    const { data: cpTotal } = await sb.from('contas_pagar').select('valor,status')
-      .in('status', ['a pagar','pendente','enviado','atrasado']);
-    const somaAVencer = (cpAVencer||[]).reduce((s,c)=>s+Number(c.valor||0),0);
-    const somaTotal   = (cpTotal||[]).reduce((s,c)=>s+Number(c.valor||0),0);
+    const hojeStr2 = hoje2.toISOString().substring(0,10);
+    // A Vencer: contas do período ini–fim com status pendente/atrasado
+    const { data: cpAVencer } = await sb.from('contas_pagar')
+      .select('valor,status,data_vencimento')
+      .gte('data_vencimento', ini).lte('data_vencimento', fim)
+      .in('status', ['a pagar','pendente','atrasado','enviado']);
+    // Total a Pagar: contas do mês, pendentes ou atrasadas (excluindo pagas)
+    const { data: cpMes } = await sb.from('contas_pagar')
+      .select('valor,status,data_vencimento')
+      .gte('data_vencimento', ini).lte('data_vencimento', fim)
+      .not('status', 'in', '("pago","Pago","paga","Paga","recebido","Recebido")');
+    const somaAVencer = (cpAVencer||[]).reduce((s,c) => s + Number(c.valor||0), 0);
+    const somaMes     = (cpMes||[]).reduce((s,c) => s + Number(c.valor||0), 0);
     if(el('m-avencer'))   el('m-avencer').textContent   = fmtBRL(somaAVencer);
-    if(el('m-avencer-d')) el('m-avencer-d').textContent = (cpAVencer||[]).length + ' contas até domingo';
-    if(el('m-total-pagar'))   el('m-total-pagar').textContent   = fmtBRL(somaTotal);
-    if(el('m-total-pagar-d')) el('m-total-pagar-d').textContent = somaTotal > 0 ? (cpTotal||[]).length + ' pendências' : 'sem pendências';
-  } catch(e) {}
+    if(el('m-avencer-d')) el('m-avencer-d').textContent = (cpAVencer||[]).length + ' conta(s) no período';
+    if(el('m-total-pagar'))   el('m-total-pagar').textContent   = somaMes > 0 ? fmtBRL(somaMes) : 'R$ 0,00';
+    if(el('m-total-pagar-d')) el('m-total-pagar-d').textContent = somaMes > 0 ? (cpMes||[]).length + ' pendente(s)' : 'sem pendências';
+  } catch(e) { console.warn('contas_pagar:', e); }
 
-  // Saldo em Caixa (PDV do período)
+  // ── Saldo em Caixa: saldo do último dia com movimento no período ──
   try {
-    const { data: caixas } = await sb.from('pdv_caixas').select('id').gte('data_caixa',ini).lte('data_caixa',fim);
-    if (caixas?.length) {
-      const ids = caixas.map(c=>c.id);
-      let saldoPDV = 0;
-      for(let i=0;i<ids.length;i+=200){
-        const {data:its} = await sb.from('pdv_itens').select('valor,tipo').in('caixa_id',ids.slice(i,i+200));
-        (its||[]).forEach(it=>{ saldoPDV += it.tipo==='ENTRADA'?Number(it.valor||0):-Number(it.valor||0); });
+    // Busca o último caixa do período (data mais recente)
+    const { data: ultimoCx } = await sb.from('pdv_caixas')
+      .select('id,data_caixa')
+      .gte('data_caixa', ini).lte('data_caixa', fim)
+      .order('data_caixa', { ascending: false })
+      .limit(1);
+    if (ultimoCx?.length) {
+      const ultimaData = ultimoCx[0].data_caixa;
+      // Pega todos os caixas do último dia
+      const { data: cxUltDia } = await sb.from('pdv_caixas')
+        .select('id').eq('data_caixa', ultimaData);
+      const idsUlt = (cxUltDia||[]).map(c => c.id);
+      let saldoUlt = 0;
+      for (let i = 0; i < idsUlt.length; i += 200) {
+        const { data: its } = await sb.from('pdv_itens')
+          .select('valor,tipo').in('caixa_id', idsUlt.slice(i, i+200));
+        (its||[]).forEach(it => {
+          saldoUlt += it.tipo === 'ENTRADA' ? Number(it.valor||0) : -Number(it.valor||0);
+        });
       }
       if(el('m-saldo-caixa')) {
-        el('m-saldo-caixa').textContent = fmtBRL(Math.abs(saldoPDV));
-        el('m-saldo-caixa').style.color = saldoPDV >= 0 ? '#0891b2' : '#dc2626';
+        el('m-saldo-caixa').textContent = fmtBRL(Math.abs(saldoUlt));
+        el('m-saldo-caixa').style.color = saldoUlt >= 0 ? '#0891b2' : '#dc2626';
       }
-      if(el('m-saldo-caixa-d')) el('m-saldo-caixa-d').textContent = saldoPDV >= 0 ? 'saldo PDV do período' : 'saldo negativo';
+      const dLabel = ultimaData.split('-').reverse().slice(0,2).join('/');
+      if(el('m-saldo-caixa-d')) el('m-saldo-caixa-d').textContent = 'saldo do dia ' + dLabel;
     } else {
-      if(el('m-saldo-caixa'))   el('m-saldo-caixa').textContent   = fmtBRL(0);
-      if(el('m-saldo-caixa-d')) el('m-saldo-caixa-d').textContent = 'sem movimentação PDV';
+      if(el('m-saldo-caixa'))   el('m-saldo-caixa').textContent   = 'R$ 0,00';
+      if(el('m-saldo-caixa-d')) el('m-saldo-caixa-d').textContent = 'sem caixa no período';
     }
-  } catch(e) {}
+  } catch(e) { console.warn('saldo_caixa:', e); }
 
   // ── PDV: soma Comanda + Crédito + Débito + Pix por dia ──────
   const hoje3 = new Date();
