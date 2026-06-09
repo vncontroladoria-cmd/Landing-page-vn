@@ -9397,6 +9397,19 @@ async function loadDRE() {
   const { data: cats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
   const { data: lancs } = await sb.from('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
 
+  // Busca rel_servicos do ano (para categoria "Serviços" do DRE)
+  let srvPorMes = {}; // { "MM": total }
+  try {
+    const { data: srvs } = await sb.from('rel_servicos').select('total,valor,qtd,data_comanda')
+      .gte('data_comanda',`${ano}-01-01`).lte('data_comanda',`${ano}-12-31`);
+    (srvs||[]).forEach(r => {
+      const mes = (r.data_comanda||'').substring(5,7);
+      if (!mes) return;
+      const v = Number(r.total||0) || Number(r.valor||0)*Number(r.qtd||1);
+      srvPorMes[mes] = (srvPorMes[mes]||0) + v;
+    });
+  } catch(e) { console.warn('rel_servicos DRE:', e); }
+
   // Busca PDV itens do ano para cruzar com categorias de ENTRADA do DRE
   // pdv_caixas tem data_caixa; pdv_itens tem caixa_id, forma_pagamento, valor, tipo
   let pdvPorCatMes = {}; // { "NomeCategoria_MM": valor }
@@ -9448,31 +9461,48 @@ async function loadDRE() {
   // Normaliza nome para comparação (sem acento, lowercase, sem espaço duplo)
   const normDRE = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/,' ').trim();
 
-  function calcReal(catNome, catTipo, mes) {
-    // 1. Busca nos lançamentos pelo nome da categoria
-    const doLanc = (lancs||[])
-      .filter(l => l.data_lancamento?.substring(5,7) === mes &&
-        (normDRE(l.categoria) === normDRE(catNome) || normDRE(l.categoria_dre) === normDRE(catNome)))
-      .reduce((s,l) => {
-        const ent = Number(l.entrada||0), sai = Number(l.saida||0);
-        return s + (ent > 0 || sai > 0 ? ent - sai : (l.tipo==='ENTRADA'?1:-1)*Number(l.valor||0));
-      }, 0);
+  // Normaliza para comparação de nome de categoria
+  const normCatKey = s => normDRE(s).replace(/s$/, ''); // remove plural simples
 
-    // 2. Se é ENTRADA e tem dados no PDV, soma também
+  function calcReal(catNome, catTipo, mes) {
+    const normNome = normDRE(catNome);
+
+    // ── 1. rel_servicos → categoria "serviço*" ──────────────
+    // Se o nome da categoria contém "servi", soma de rel_servicos
+    let doSrv = 0;
+    if (normNome.includes('servi')) {
+      doSrv = srvPorMes[mes] || 0;
+    }
+
+    // ── 2. PDV → categorias de ENTRADA que existem no PDV ──
+    // Match pelo nome da categoria com a forma_pagamento dos itens
     let doPDV = 0;
     if (catTipo === 'ENTRADA') {
-      // tenta match exato, depois normalizado
+      // match exato primeiro
       doPDV = pdvPorCatMes[catNome + '_' + mes] || 0;
       if (!doPDV) {
-        // match por nome normalizado
-        const normCat = normDRE(catNome);
+        // match normalizado
         for (const [chave, val] of Object.entries(pdvPorCatMes)) {
-          const [nPDV, mPDV] = chave.split('_');
-          if (mPDV === mes && normDRE(nPDV) === normCat) { doPDV = val; break; }
+          const lastUnd = chave.lastIndexOf('_');
+          const nPDV = chave.substring(0, lastUnd);
+          const mPDV = chave.substring(lastUnd + 1);
+          if (mPDV === mes && normDRE(nPDV) === normNome) { doPDV += val; }
         }
       }
     }
-    return doLanc + doPDV;
+
+    // ── 3. Lançamentos → campo categoria_dre ───────────────
+    const doLanc = (lancs||[])
+      .filter(l => l.data_lancamento?.substring(5,7) === mes &&
+        (normDRE(l.categoria_dre) === normNome || normDRE(l.categoria_dfc) === normNome ||
+         normDRE(l.categoria) === normNome))
+      .reduce((s,l) => {
+        const ent = Number(l.entrada||0), sai = Number(l.saida||0);
+        if (ent > 0 || sai > 0) return s + ent - sai;
+        return s + (l.tipo==='ENTRADA' ? 1 : -1) * Number(l.valor||0);
+      }, 0);
+
+    return doSrv + doPDV + doLanc;
   }
   function calcProj(catNome, mes) { return metasMap[catNome+'_'+mes] || 0; }
 
