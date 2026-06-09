@@ -1346,17 +1346,83 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="pg-header">
             <div>
               <div class="pg-header-title">📤 Contas a Pagar</div>
-              <div class="pg-header-sub">Vencimentos, status e controle de pagamentos</div>
+              <div class="pg-header-sub">Vencimentos · Categorias · Status · Pagamento</div>
+            </div>
+            <div class="pg-header-actions">
+              <div class="filter-group">
+                <span class="filter-label">ANO</span>
+                <select class="filter-select" id="cp-ano" onchange="loadContasPagar()">
+                  <option value="2026">2026</option><option value="2025">2025</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">MÊS</span>
+                <select class="filter-select" id="cp-mes" onchange="loadContasPagar()">
+                  <option value="">Ano todo</option>
+                  <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                  <option value="03">Março</option><option value="04">Abril</option>
+                  <option value="05">Maio</option><option value="06" selected>Junho</option>
+                  <option value="07">Julho</option><option value="08">Agosto</option>
+                  <option value="09">Setembro</option><option value="10">Outubro</option>
+                  <option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">STATUS</span>
+                <select class="filter-select" id="cp-status" onchange="loadContasPagar()">
+                  <option value="">Todos</option>
+                  <option value="pendente">Pendentes</option>
+                  <option value="pago">Pagos</option>
+                  <option value="atrasado">Atrasados</option>
+                </select>
+              </div>
+              <button class="btn" onclick="loadContasPagar()">↻ Atualizar</button>
+              <button class="btn btn-primary" onclick="abrirModalConta('pagar')">+ Nova conta a pagar</button>
             </div>
           </div>
 
           <!-- CARDS HERO -->
-          <div class="hero-cards cols-5" style="margin-bottom:10px">
+          <div class="hero-cards cols-5" style="margin-bottom:14px">
             <div class="hcard red"><div class="hcard-label">A Pagar</div><div class="hcard-value sm" id="cp-hero-apagar">—</div><div class="hcard-sub">pendente</div><div class="hcard-icon">📤</div></div>
             <div class="hcard amber"><div class="hcard-label">Enviado</div><div class="hcard-value sm" id="cp-hero-env">—</div><div class="hcard-sub">aguardando</div><div class="hcard-icon">📨</div></div>
             <div class="hcard green"><div class="hcard-label">Pago</div><div class="hcard-value sm" id="cp-hero-pago">—</div><div class="hcard-sub">quitado</div><div class="hcard-icon">✅</div></div>
             <div class="hcard purple"><div class="hcard-label">Não Pago</div><div class="hcard-value sm" id="cp-hero-npago">—</div><div class="hcard-sub">sem baixa</div><div class="hcard-icon">❌</div></div>
             <div class="hcard dark"><div class="hcard-label">Total Mês</div><div class="hcard-value sm" id="cp-hero-total">—</div><div class="hcard-sub">soma do período</div><div class="hcard-icon">💰</div></div>
+          </div>
+
+          <!-- LINHA 2: Gráfico vencimentos por dia + Donut por categoria -->
+          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px">
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📅</span>
+                  <div>
+                    <div style="font-weight:600;font-size:13px">Vencimentos por Dia</div>
+                    <div style="font-size:10px;color:var(--text2)" id="cp-chart-sub">valores a vencer no mês</div>
+                  </div>
+                </div>
+              </div>
+              <div class="section-card-body" style="padding:12px;height:200px;position:relative">
+                <canvas id="cp-chart-dias"></canvas>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#ede9fe;color:#5b21b6;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🍩</span>
+                  <div>
+                    <div style="font-weight:600;font-size:13px">Por Categoria</div>
+                    <div style="font-size:10px;color:var(--text2)" id="cp-cat-sub">distribuição de despesas</div>
+                  </div>
+                </div>
+              </div>
+              <div class="section-card-body" style="display:flex;align-items:center;gap:12px;padding:12px">
+                <div id="cp-cat-legend" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
+                <div style="position:relative;height:160px;width:160px;flex-shrink:0">
+                  <canvas id="cp-chart-cat"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- PASTA DE DOCUMENTOS -->
@@ -1366,7 +1432,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📁</span>
                 <div>
                   <div style="font-weight:600;font-size:13px">Pasta de Documentos</div>
-                  <div style="font-size:10px;color:var(--text2)" id="doc-breadcrumb-sub">NF-e · Boletos · Holerites · Contratos</div>
+                  <div style="font-size:10px;color:var(--text2)">NF-e · Boletos · Holerites · Contratos</div>
                 </div>
               </div>
               <div style="display:flex;gap:8px;align-items:center">
@@ -1378,63 +1444,31 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </div>
             </div>
             <div class="section-card-body" style="padding:10px 14px">
-              <!-- Breadcrumb -->
               <div id="doc-breadcrumb" style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:8px;flex-wrap:wrap"></div>
-              <!-- Status upload -->
               <div id="doc-upload-status" style="font-size:11px;color:var(--text2);margin-bottom:6px;display:none"></div>
-              <!-- Lista de pastas e arquivos -->
               <div id="doc-grid"></div>
             </div>
           </div>
 
-          <!-- FILTROS -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
-            <div class="filters" style="margin-bottom:0">
-              <select class="filter-select" id="cp-mes" onchange="loadContasPagar()">
-                <option value="">Todos os meses</option>
-                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
-                <option value="03">Março</option><option value="04">Abril</option>
-                <option value="05">Maio</option><option value="06" selected>Junho</option>
-                <option value="07">Julho</option><option value="08">Agosto</option>
-                <option value="09">Setembro</option><option value="10">Outubro</option>
-                <option value="11">Novembro</option><option value="12">Dezembro</option>
-              </select>
-              <select class="filter-select" id="cp-ano" onchange="loadContasPagar()">
-                <option value="2026">2026</option><option value="2025">2025</option>
-              </select>
-              <select class="filter-select" id="cp-status" onchange="loadContasPagar()">
-                <option value="">Todos</option>
-                <option value="pendente">Pendentes</option>
-                <option value="pago">Pagos</option>
-                <option value="atrasado">Atrasados</option>
-              </select>
-              <input type="text" id="cp-busca" placeholder="🔍 Buscar..." oninput="filtrarTabela('cp-tbody',this.value)"
-                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:160px">
-              <button class="btn" onclick="loadContasPagar()">↻ Atualizar</button>
-            </div>
-            <button class="btn btn-primary" onclick="abrirModalConta('pagar')">+ Nova conta a pagar</button>
-          </div>
-
-          <!-- MÉTRICAS -->
-
-          <!-- TABELAS LADO A LADO -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
-                <span>📌 Contas Fixas</span>
-                <span id="cp-fixas-total" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)"></span>
+          <!-- TABELA COMPLETA -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <div class="section-card-title">
+                <span style="background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📋</span>
+                <div>
+                  <div style="font-weight:600;font-size:13px">Detalhamento</div>
+                  <div style="font-size:10px;color:var(--text2)">Todas as contas do período</div>
+                </div>
               </div>
-              <div id="cp-fixas-table"><div class="loading"><div class="spin"></div></div></div>
-            </div>
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
-                <span>📊 Contas Variáveis</span>
-                <span id="cp-variaveis-total" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)"></span>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="cp-busca" placeholder="🔍 Buscar..." oninput="filtrarTabela('cp-det-tbody',this.value)"
+                  style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);width:180px">
               </div>
-              <div id="cp-variaveis-table"><div class="loading"><div class="spin"></div></div></div>
+            </div>
+            <div id="cp-det-table" style="overflow-x:auto">
+              <div class="loading" style="padding:1.5rem;text-align:center"><div class="spin" style="margin:0 auto"></div></div>
             </div>
           </div>
-
 
         </div>
 
@@ -6870,14 +6904,110 @@ async function loadContasPagar() {
   _s('cp-hero-pago', fmtBRL(soma(pagos))); _s('cp-hero-npago', fmtBRL(soma(naoPago)));
   _s('cp-hero-total', fmtBRL(soma(contas)));
 
-  const fixas = contas.filter(c => c.tipo === 'fixa' || c.recorrente);
-  const variaveis = contas.filter(c => c.tipo !== 'fixa' && !c.recorrente);
+  // ── Gráfico: vencimentos por dia ──────────────────────
+  const diasMap = {};
+  contas.filter(c => c.status !== 'pago').forEach(c => {
+    const dia = parseInt((c.data_vencimento||'').substring(8,10));
+    if (dia) diasMap[dia] = (diasMap[dia]||0) + Number(c.valor||0);
+  });
+  const maxDia = mes ? new Date(parseInt(ano), parseInt(mes), 0).getDate() : 31;
+  const dLabels = Array.from({length:maxDia},(_,i)=>i+1);
+  const dVals   = dLabels.map(d => diasMap[d]||0);
 
-  if (document.getElementById('cp-fixas-total')) document.getElementById('cp-fixas-total').textContent = fmtBRL(soma(fixas));
-  if (document.getElementById('cp-variaveis-total')) document.getElementById('cp-variaveis-total').textContent = fmtBRL(soma(variaveis));
+  if (!window._cpChartDias) window._cpChartDias = null;
+  const ctxDias = document.getElementById('cp-chart-dias')?.getContext('2d');
+  if (ctxDias) {
+    if (window._cpChartDias) window._cpChartDias.destroy();
+    window._cpChartDias = new Chart(ctxDias, {
+      type: 'bar',
+      data: { labels: dLabels, datasets:[{ data: dVals, backgroundColor:'#dc2626', borderRadius:3 }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmtBRL(c.raw)}} },
+        scales:{ x:{ticks:{font:{size:8}},grid:{display:false}}, y:{ticks:{font:{size:9},callback:v=>v>=1000?'R$'+(v/1000).toFixed(0)+'k':''},grid:{color:'rgba(0,0,0,0.04)'}} }
+      }
+    });
+  }
 
-  renderTabelaConta('cp-fixas-table', fixas, 'pagar', hoje);
-  renderTabelaConta('cp-variaveis-table', variaveis, 'pagar', hoje);
+  // ── Donut: por categoria ───────────────────────────────
+  const catMap = {};
+  contas.forEach(c => {
+    const cat = c.categoria || 'Outros';
+    catMap[cat] = (catMap[cat]||0) + Number(c.valor||0);
+  });
+  const catArr = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const CORES_CP = ['#7c3aed','#dc2626','#d97706','#2563eb','#059669','#0891b2','#9333ea','#db2777'];
+  const totalCat = catArr.reduce((s,[,v])=>s+v,0);
+
+  if (!window._cpChartCat) window._cpChartCat = null;
+  const ctxCat = document.getElementById('cp-chart-cat')?.getContext('2d');
+  if (ctxCat && catArr.length) {
+    if (window._cpChartCat) window._cpChartCat.destroy();
+    window._cpChartCat = new Chart(ctxCat, donutOpts(catArr.map(([n])=>n), catArr.map(([,v])=>v), CORES_CP, fmtBRL));
+    renderDonutLegend('cp-cat-legend', catArr.map(([cat,val],i)=>({
+      label: cat, value: fmtBRL(val), color: CORES_CP[i%CORES_CP.length],
+      pct: totalCat>0?val/totalCat*100:0
+    })));
+    if(document.getElementById('cp-cat-sub')) document.getElementById('cp-cat-sub').textContent = catArr.length+' categorias';
+  }
+
+  // ── Tabela detalhada única ─────────────────────────────
+  const detEl = document.getElementById('cp-det-table');
+  if (detEl) {
+    if (!contas.length) {
+      detEl.innerHTML = '<div class="empty" style="padding:2rem;text-align:center;color:var(--text3)">Nenhuma conta no período</div>';
+    } else {
+      const statusCor = { 'pago':'#059669','recebido':'#059669','enviado':'#2563eb','atrasado':'#dc2626','não pago':'#6b7280','a pagar':'#6b7280','pendente':'#6b7280' };
+      const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2);text-align:left';
+      let rows = contas.map((c,i) => {
+        const vencido = c.data_vencimento < hoje && c.status !== 'pago';
+        const statusAtual = c.status || 'pendente';
+        const cor = statusCor[statusAtual] || '#6b7280';
+        const parcLabel = c.total_parcelas ? `${c.parcela_atual||1}/${c.total_parcelas}` : '1/1';
+        const statusOpcoes = ['a pagar','enviado','pago','não pago','atrasado'];
+        const rowBg = vencido ? 'background:#fff5f5' : '';
+        return `<tr id="cp-row-${c.id}" style="border-bottom:1px solid var(--border);${rowBg}">
+          <td style="padding:7px 10px;color:var(--text2);white-space:nowrap;font-size:11px">${fmtDate(c.data_vencimento)}</td>
+          <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${c.cnpj||'—'}</td>
+          <td style="padding:7px 10px;font-size:11px;color:var(--text2)">${c.categoria||'—'}</td>
+          <td style="padding:7px 10px">
+            <div style="font-size:12px;font-weight:600">${c.descricao||'—'}</div>
+            ${c.palavra_chave?`<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>`:''}
+          </td>
+          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--red);white-space:nowrap">${fmtBRL(c.valor)}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:11px;font-family:'DM Mono',monospace;color:${c.total_parcelas>1?'#7c3aed':'var(--text3)'};font-weight:${c.total_parcelas>1?'700':'400'}">${parcLabel}</td>
+          <td style="padding:7px 10px;text-align:center">
+            <select onchange="atualizarStatusConta('${c.id}','pagar',this.value,this)"
+              style="padding:3px 7px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid ${cor};color:${cor};background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;outline:none">
+              ${statusOpcoes.map(s=>`<option value="${s}" ${statusAtual===s||((statusAtual==='pendente')&&s==='a pagar')?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+            </select>
+          </td>
+          <td style="padding:7px 10px;text-align:center;color:var(--text3);font-size:11px">${c.data_pagamento?fmtDate(c.data_pagamento):'—'}</td>
+          <td style="padding:7px 10px" onclick="event.stopPropagation()">
+            <div style="display:flex;gap:3px;justify-content:center">
+              ${c.arquivo_url?`<button class="btn btn-sm" style="padding:2px 6px;font-size:10px;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="verDocumento('${c.arquivo_url}','${(c.descricao||'').replace(/'/g,'')}')">📎</button>`:''}
+              <button class="btn btn-sm" style="padding:2px 6px;font-size:10px" onclick="editarConta('${c.id}','pagar')">✏️</button>
+              <button class="btn btn-sm" style="padding:2px 6px;font-size:10px;color:var(--red);border-color:var(--red)" onclick="excluirConta('${c.id}','pagar')">🗑️</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+
+      detEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>
+          <th style="${TH}">DATA VENC</th>
+          <th style="${TH}">FORNECEDOR</th>
+          <th style="${TH}">CATEGORIA</th>
+          <th style="${TH}">DESCRIÇÃO</th>
+          <th style="${TH};text-align:right">VALOR</th>
+          <th style="${TH};text-align:center">PARCELA</th>
+          <th style="${TH};text-align:center">STATUS</th>
+          <th style="${TH};text-align:center">PAGAMENTO</th>
+          <th style="${TH};text-align:center">AÇÕES</th>
+        </tr></thead>
+        <tbody id="cp-det-tbody">${rows}</tbody>
+      </table>`;
+    }
+  }
 }
 
 async function darBaixaCP(id) {
