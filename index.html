@@ -5002,41 +5002,49 @@ async function loadDashboard() {
     </div>`;
   }
 
-  // Meta financeira: busca do Supabase (metas_financeiras)
+  // Meta financeira: busca do Supabase — campo correto é "meta" (não meta_mensal)
   let metaMes = 0, diasAbertos = 0, metaDia = 0;
   try {
-    const { data: metaF } = await sb.from('metas_financeiras').select('meta_mensal,dias_abertos')
-      .eq('ano', ano).eq('mes', mes || String(hoje3.getMonth()+1).padStart(2,'0')).maybeSingle();
-    metaMes    = Number(metaF?.meta_mensal || 0);
-    diasAbertos= Number(metaF?.dias_abertos || 0);
+    // mes filtrado, ou mês atual se não houver filtro
+    const mesParaMeta = mes || String(hoje3.getMonth() + 1).padStart(2, '0');
+    const { data: metaF } = await sb.from('metas_financeiras')
+      .select('meta, meta_mensal, dias_abertos')
+      .eq('ano', ano)
+      .eq('mes', mesParaMeta)
+      .maybeSingle();
+    // aceita tanto "meta" quanto "meta_mensal" (compatibilidade)
+    metaMes    = Number(metaF?.meta || metaF?.meta_mensal || 0);
+    diasAbertos = Number(metaF?.dias_abertos || 0);
     metaDia    = diasAbertos > 0 ? metaMes / diasAbertos : 0;
-  } catch(e) {}
+  } catch(e) { console.warn('meta financeira:', e); }
 
-  // Termômetro — % do mês baseado em PDV total vs meta mensal
-  const pctMesTotal = metaMes > 0 ? totalPDV / metaMes * 100 : 0;
-  // % do dia: PDV hoje vs meta diária
-  const pctDiaHoje  = metaDia > 0 ? Math.min(150, pdvHoje / metaDia * 100) : 0;
+  // % PDV do período vs meta do mês
+  const pctMesTotal = metaMes > 0 ? Math.min(150, totalPDV / metaMes * 100) : 0;
+  // PDV hoje vs meta do dia
+  const fatHojeDisplay = pdvHoje > 0 ? pdvHoje : (mes === String(hoje3.getMonth()+1).padStart(2,'0') ? 0 : totalPDV);
+  const faltaHoje = metaDia > 0 ? Math.max(0, metaDia - pdvHoje) : 0;
 
+  // ── Barra do termômetro sobe conforme % do mês ──
   if(el('dash-termo-bar'))   el('dash-termo-bar').style.height = Math.min(100, pctMesTotal) + '%';
   if(el('dash-termo-pct'))   el('dash-termo-pct').textContent  = pctMesTotal.toFixed(1) + '%';
-  if(el('dash-termo-label')) el('dash-termo-label').textContent = pctMesTotal >= 100 ? '✅ Meta do mês atingida!' : 'da meta do mês';
-  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent   = fmtBRL(pdvHoje);
+  if(el('dash-termo-label')) el('dash-termo-label').textContent = pctMesTotal >= 100 ? '✅ Meta atingida!' : 'da meta do mês';
+  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent   = fmtBRL(pdvHoje || 0);
   if(el('dash-termo-meta'))  el('dash-termo-meta').textContent  = metaDia > 0 ? fmtBRL(metaDia) : '—';
-  if(el('dash-termo-nec'))   el('dash-termo-nec').textContent   = metaDia > 0 ? fmtBRL(Math.max(0, metaDia - pdvHoje)) : '—';
+  if(el('dash-termo-nec'))   el('dash-termo-nec').textContent   = faltaHoje > 0 ? fmtBRL(faltaHoje) : metaDia > 0 ? '✅ Meta atingida' : '—';
   if(el('dash-termo-mes'))   el('dash-termo-mes').textContent   = metaMes > 0 ? fmtBRL(metaMes) : '—';
 
   // Card atingimento meta (linha 2)
   if(el('m-meta-pct')) el('m-meta-pct').textContent = metaMes > 0 ? pctMesTotal.toFixed(1) + '%' : '—';
   if(el('m-meta-sub')) el('m-meta-sub').textContent = metaMes > 0 ? 'meta: ' + fmtBRL(metaMes) : 'sem meta definida';
 
-  // Status da meta abaixo do gráfico
+  // Faixa de status abaixo do gráfico
   const statusEl = el('dash-meta-status');
   if (statusEl) {
     if (!metaMes) {
       statusEl.style.display = 'none';
     } else if (pctMesTotal >= 100) {
       statusEl.style.cssText = 'margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;background:#dcfce7;color:#166534;border:1px solid #bbf7d0';
-      statusEl.textContent = '🏆 Meta do mês atingida! ' + pctMesTotal.toFixed(1) + '% — ' + fmtBRL(totalPDV) + ' de ' + fmtBRL(metaMes);
+      statusEl.textContent = '🏆 Meta atingida! ' + pctMesTotal.toFixed(1) + '% — ' + fmtBRL(totalPDV) + ' de ' + fmtBRL(metaMes);
     } else {
       statusEl.style.cssText = 'margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;background:var(--bg3);color:var(--text2);border:1px solid var(--border)';
       statusEl.textContent = pctMesTotal.toFixed(1) + '% da meta — falta ' + fmtBRL(metaMes - totalPDV) + ' para ' + fmtBRL(metaMes);
