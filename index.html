@@ -7763,18 +7763,20 @@ async function moverCategoria(id, dir, grupo, demo) {
 async function salvarCategoriaInline(id, rowId) {
   const row = document.getElementById(rowId);
   const inputs = row.querySelectorAll('.cell-edit');
-  const payload = {
-    codigo: inputs[0].value.trim(),
-    nome: inputs[1].value.trim(),
-    tipo: inputs[2].value,
-    demonstrativo: inputs[3].value,
-  };
-  if (!payload.nome) { showToast('Nome obrigatório','error'); return; }
+  // O HTML só tem 2 inputs: [0]=codigo, [1]=nome
+  // btn de salvar também é .cell-edit, então pega só os <input>
+  const inpArr = Array.from(inputs).filter(el => el.tagName === 'INPUT');
+  const novoCodigo = inpArr[0]?.value.trim() || '';
+  const novoNome   = inpArr[1]?.value.trim() || '';
+  if (!novoNome) { showToast('Nome obrigatório','error'); return; }
+  const payload = { codigo: novoCodigo, nome: novoNome };
   const { data: ant } = await sb.from('plano_contas').select('nome').eq('id', id).single();
   const { error } = await sb.from('plano_contas').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
-  if (ant?.nome && ant.nome !== payload.nome) {
-    await sb.from('lancamentos').update({ categoria: payload.nome }).eq('categoria', ant.nome);
+  // Atualiza lançamentos que usam o nome antigo
+  if (ant?.nome && ant.nome !== novoNome) {
+    await sb.from('lancamentos').update({ categoria: novoNome }).eq('categoria', ant.nome);
+    await sb.from('lancamentos').update({ categoria_dre: novoNome }).eq('categoria_dre', ant.nome);
   }
   showToast('Salvo!','success');
   loadPlanoContas();
@@ -9394,7 +9396,41 @@ async function loadDRE() {
   const { data: grupos } = await sb.from('grupos_plano').select('*').eq('demonstrativo','DRE').order('ordem');
   const { data: cats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
   const { data: lancs } = await sb.from('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
-  // Busca metas projetadas por categoria/mês (tabela metas_dre se existir, senão usa zeros)
+
+  // Busca PDV itens do ano para cruzar com categorias de ENTRADA do DRE
+  // pdv_caixas tem data_caixa; pdv_itens tem caixa_id, forma_pagamento, valor, tipo
+  let pdvPorCatMes = {}; // { "NomeCategoria_MM": valor }
+  try {
+    const { data: caixas } = await sb.from('pdv_caixas').select('id,data_caixa')
+      .gte('data_caixa',`${ano}-01-01`).lte('data_caixa',`${ano}-12-31`);
+    if (caixas?.length) {
+      const caixaIds = caixas.map(c => c.id);
+      const caixaMes = {}; // caixaId → mes "MM"
+      caixas.forEach(c => { caixaMes[c.id] = c.data_caixa?.substring(5,7); });
+      // Busca itens em lotes
+      let pdvItens = [];
+      for (let i = 0; i < caixaIds.length; i += 200) {
+        const { data: lote } = await sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
+          .in('caixa_id', caixaIds.slice(i, i+200));
+        if (lote?.length) pdvItens = pdvItens.concat(lote);
+      }
+      // pdv_itens: forma_pagamento = nome da categoria PDV, tipo = ENTRADA/SAIDA
+      // Agrupa por categoria-normalizada + mês
+      pdvItens.filter(it => it.tipo === 'ENTRADA').forEach(it => {
+        const mes = caixaMes[it.caixa_id];
+        if (!mes) return;
+        // normaliza nome do PDV (ex: "Cartão Crédito MASTER CARD" → "Cartão Crédito")
+        const nomeBase = (it.forma_pagamento||'').replace(/\s+(MASTER CARD|VISA|ELO|AMEX|HIPERCARD|HIPER).*/i,'').trim();
+        const chave = nomeBase + '_' + mes;
+        pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + Number(it.valor||0);
+        // também guarda pelo nome completo para match exato
+        const chaveExata = (it.forma_pagamento||'').trim() + '_' + mes;
+        pdvPorCatMes[chaveExata] = (pdvPorCatMes[chaveExata]||0) + Number(it.valor||0);
+      });
+    }
+  } catch(e) { console.warn('PDV DRE:', e); }
+
+  // Busca metas projetadas
   let metasMap = {};
   try {
     const { data: metas } = await sb.from('metas_dre').select('*').eq('ano', ano);
@@ -9409,9 +9445,34 @@ async function loadDRE() {
   const mostrarProj = modo === 'projetado' || modo === 'ambos';
   const mostrarReal = modo === 'realizado' || modo === 'ambos';
 
-  function calcReal(fn, mes) {
-    return (lancs||[]).filter(l => l.data_lancamento?.substring(5,7) === mes && fn(l))
-      .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
+  // Normaliza nome para comparação (sem acento, lowercase, sem espaço duplo)
+  const normDRE = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/,' ').trim();
+
+  function calcReal(catNome, catTipo, mes) {
+    // 1. Busca nos lançamentos pelo nome da categoria
+    const doLanc = (lancs||[])
+      .filter(l => l.data_lancamento?.substring(5,7) === mes &&
+        (normDRE(l.categoria) === normDRE(catNome) || normDRE(l.categoria_dre) === normDRE(catNome)))
+      .reduce((s,l) => {
+        const ent = Number(l.entrada||0), sai = Number(l.saida||0);
+        return s + (ent > 0 || sai > 0 ? ent - sai : (l.tipo==='ENTRADA'?1:-1)*Number(l.valor||0));
+      }, 0);
+
+    // 2. Se é ENTRADA e tem dados no PDV, soma também
+    let doPDV = 0;
+    if (catTipo === 'ENTRADA') {
+      // tenta match exato, depois normalizado
+      doPDV = pdvPorCatMes[catNome + '_' + mes] || 0;
+      if (!doPDV) {
+        // match por nome normalizado
+        const normCat = normDRE(catNome);
+        for (const [chave, val] of Object.entries(pdvPorCatMes)) {
+          const [nPDV, mPDV] = chave.split('_');
+          if (mPDV === mes && normDRE(nPDV) === normCat) { doPDV = val; break; }
+        }
+      }
+    }
+    return doLanc + doPDV;
   }
   function calcProj(catNome, mes) { return metasMap[catNome+'_'+mes] || 0; }
 
@@ -9419,7 +9480,7 @@ async function loadDRE() {
   const gruposData = (grupos||[]).map(g => {
     const gCats = (cats||[]).filter(c => c.grupo === g.nome);
     const sinal = g.sinal === '(+)' ? 1 : -1;
-    const realizado = mCols.map(m => gCats.reduce((s,c) => s + calcReal(l => (l.categoria||l.categoria_dre||'') === c.nome, m), 0));
+    const realizado = mCols.map(m => gCats.reduce((s,c) => s + calcReal(c.nome, c.tipo, m), 0));
     const projetado = mCols.map(m => gCats.reduce((s,c) => s + calcProj(c.nome, m), 0));
     return { ...g, gCats, realizado, projetado, sinal };
   });
