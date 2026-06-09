@@ -1903,7 +1903,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- LINHA 1: Ranking (top10 fixo + rolagem) + Donut mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
+          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
                 🏆 Ranking de Serviços
@@ -2018,7 +2018,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- LINHA 2: Gráfico barras por dia + Rosca canal -->
-          <div class="grid-2" style="margin-bottom:14px;align-items:start">
+          <div style="display:grid;grid-template-columns:70% 1fr;gap:14px;margin-bottom:14px;align-items:stretch">
             <div class="section-card">
               <div class="section-card-header">
                 <div class="section-card-title">
@@ -2057,7 +2057,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- LINHA 3: Tabela Clientes + Tabela Novos -->
-          <div class="grid-2" style="margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:70% 1fr;gap:14px;margin-bottom:14px">
             <div class="section-card">
               <div class="section-card-header">
                 <div class="section-card-title">
@@ -2184,7 +2184,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- LINHA 1: Ranking top10 + Donut mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
+          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
                 <span>🏆 Ranking de Produtos</span>
@@ -2206,7 +2206,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- LINHA 2: Vendas por profissional + Clientes que compraram -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center">
                 <span>👩‍💼 Vendas por Profissional</span>
@@ -2297,7 +2297,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div style="font-size:11px;color:var(--text2);margin-bottom:1rem" id="perf-info-bar"></div>
 
           <!-- LINHA 1: Ranking + Donut mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;align-items:start">
+          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
                 <div style="font-weight:600;font-size:13px">🏆 Ranking de Profissionais</div>
@@ -2319,7 +2319,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- LINHA 2: Serviços + Clientes atendidos -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
                 <div style="font-weight:600;font-size:13px">💇 Serviços Mais Vendidos</div>
@@ -6336,19 +6336,40 @@ function renderClientesPage() {
   const ctxDia = el('cli-chart-dia')?.getContext('2d');
   if (ctxDia) {
     if (_cliChartDia) _cliChartDia.destroy();
+    // Plugin inline para números acima das barras
+    const labelsPlugin = {
+      id: 'topLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx, data } = chart;
+        ctx.save();
+        ctx.font = 'bold 9px Outfit, sans-serif';
+        ctx.fillStyle = '#059669';
+        ctx.textAlign = 'center';
+        chart.getDatasetMeta(0).data.forEach((bar, i) => {
+          const val = data.datasets[0].data[i];
+          if (val > 0) ctx.fillText(val, bar.x, bar.y - 4);
+        });
+        ctx.restore();
+      }
+    };
     _cliChartDia = new Chart(ctxDia, {
       type: 'bar',
       data: {
         labels: diasLabels,
         datasets: [{ data: diasVals, backgroundColor: '#22c55e', borderRadius: 4, borderSkipped: false }]
       },
+      plugins: [labelsPlugin],
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{ callbacks:{label:ctx=>`${ctx.raw} cliente(s)`} } },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => `${ctx.raw} cliente(s)` } }
+        },
         scales: {
-          x: { ticks:{font:{size:8}}, grid:{display:false} },
-          y: { ticks:{font:{size:9},stepSize:1}, grid:{color:'var(--border)'} }
-        }
+          x: { ticks: { font: { size: 8 } }, grid: { display: false } },
+          y: { ticks: { font: { size: 9 }, stepSize: 5 }, grid: { color: 'var(--border)' } }
+        },
+        layout: { padding: { top: 18 } }
       }
     });
   }
