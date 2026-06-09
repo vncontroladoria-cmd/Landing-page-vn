@@ -2495,11 +2495,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:10px;color:var(--text2)">Faturado · Custo · Lucro Líquido</div></div>
                 </div>
               </div>
-              <div class="section-card-body" style="display:flex;flex-direction:column;align-items:center;padding:14px">
-                <div style="position:relative;height:180px;width:180px">
+              <div class="section-card-body" style="display:flex;align-items:center;gap:16px;padding:14px">
+                <div id="luc-comp-legend" style="flex:1;display:flex;flex-direction:column;gap:8px;font-size:11px"></div>
+                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
                   <canvas id="luc-chart-comp"></canvas>
                 </div>
-                <div id="luc-comp-legend" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;width:100%;font-size:11px"></div>
               </div>
             </div>
 
@@ -2528,11 +2528,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div><div style="font-weight:600;font-size:13px">Distribuição do Lucro por Categoria</div></div>
                 </div>
               </div>
-              <div class="section-card-body" style="display:flex;flex-direction:column;align-items:center;padding:14px">
-                <div style="position:relative;height:180px;width:180px">
+              <div class="section-card-body" style="display:flex;align-items:center;gap:16px;padding:14px">
+                <div id="luc-cat-legend" style="flex:1;display:flex;flex-direction:column;gap:8px;font-size:11px"></div>
+                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
                   <canvas id="luc-chart-cat"></canvas>
                 </div>
-                <div id="luc-cat-legend" style="margin-top:10px;width:100%;font-size:11px;display:flex;flex-direction:column;gap:5px"></div>
               </div>
             </div>
 
@@ -6959,10 +6959,10 @@ async function loadLucratividade() {
     el('luc-comp-legend').innerHTML = items.map(([l,v,c]) =>
       `<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:10px;height:10px;border-radius:3px;background:${c};flex-shrink:0"></div>
-          <span style="color:var(--text2)">${l}</span>
+          <div style="width:12px;height:12px;border-radius:3px;background:${c};flex-shrink:0"></div>
+          <span style="font-size:12px">${l}</span>
         </div>
-        <strong style="font-family:'DM Mono',monospace">${fmtBRL(v)}</strong>
+        <strong style="font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(v)}</strong>
       </div>`
     ).join('');
   }
@@ -7049,12 +7049,12 @@ async function loadLucratividade() {
   if(el('luc-cat-legend')) {
     el('luc-cat-legend').innerHTML = catArr.map(([cat,d],i) => {
       const mg = d.fat>0?(d.lucro/d.fat*100):0;
-      return `<div style="display:flex;align-items:center;gap:6px;justify-content:space-between">
+      return `<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:10px;height:10px;border-radius:3px;background:${CORES[i%CORES.length]};flex-shrink:0"></div>
-          <span style="color:var(--text2);font-size:11px">${cat}</span>
+          <div style="width:12px;height:12px;border-radius:3px;background:${CORES[i%CORES.length]};flex-shrink:0"></div>
+          <span style="font-size:12px">${cat}</span>
         </div>
-        <span style="font-size:11px;font-weight:700">${mg.toFixed(1)}%</span>
+        <span style="font-size:12px;font-weight:700">${mg.toFixed(1)}%</span>
       </div>`;
     }).join('');
   }
