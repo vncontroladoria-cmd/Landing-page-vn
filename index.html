@@ -7004,7 +7004,7 @@ async function loadLucratividade() {
           <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#059669">${fmtBRL(totalLucro)}</td>
           <td style="padding:7px 8px;text-align:right;font-weight:700">${margemGeral.toFixed(1)}%</td>
         </tr>
-      </tbody></table>`;
+      </tbody></table>`);
   }
 
   // ── Lucratividade por Categoria ──
@@ -7061,7 +7061,7 @@ async function loadLucratividade() {
           <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#059669">${fmtBRL(totalLucro)}</td>
           <td style="padding:7px 8px;text-align:right;font-weight:700">${margemGeral.toFixed(1)}%</td>
         </tr>
-      </tbody></table>`;
+      </tbody></table>`);
   }
 
   // ── Top Serviços por Lucro Absoluto ──
@@ -7107,10 +7107,10 @@ async function loadLucratividade() {
           <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#059669">${fmtBRL(d.lucro)}</td>
           <td style="padding:6px 8px;text-align:right;font-weight:700;color:${d.mg>=50?'#059669':d.mg>=30?'#d97706':'#dc2626'}">${d.mg.toFixed(1)}%</td>
         </tr>`).join('')}
-      </tbody></table>`;
+      </tbody></table>`);
 
-  if(el('luc-top-lucro'))  _setTable(el('luc-top-lucro'), renderTopTable(topLucro,  d=>d.lucro, maxLucro,  'Lucro', '#22c55e');
-  if(el('luc-top-margem')) _setTable(el('luc-top-margem'), renderTopTable(topMargem, d=>d.mg,    maxMargem, 'Margem', '#f59e0b');
+  if(el('luc-top-lucro'))  _setTable(el('luc-top-lucro'),  renderTopTable(topLucro,  d=>d.lucro, maxLucro,  'Lucro', '#22c55e'));
+  if(el('luc-top-margem')) _setTable(el('luc-top-margem'), renderTopTable(topMargem, d=>d.mg,    maxMargem, 'Margem', '#f59e0b'));
 
   // ── Destaques rodapé ──
   const bestProf = rankArr[0];
