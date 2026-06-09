@@ -1359,6 +1359,34 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard dark"><div class="hcard-label">Total Mês</div><div class="hcard-value sm" id="cp-hero-total">—</div><div class="hcard-sub">soma do período</div><div class="hcard-icon">💰</div></div>
           </div>
 
+          <!-- PASTA DE DOCUMENTOS -->
+          <div class="section-card" style="margin-bottom:14px">
+            <div class="section-card-header">
+              <div class="section-card-title">
+                <span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📁</span>
+                <div>
+                  <div style="font-weight:600;font-size:13px">Pasta de Documentos</div>
+                  <div style="font-size:10px;color:var(--text2)" id="doc-breadcrumb-sub">NF-e · Boletos · Holerites · Contratos</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="doc-pasta-nova" placeholder="Nova pasta..." style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);width:160px">
+                <button class="btn" onclick="criarPastaDoc()" style="font-size:12px">+ Pasta</button>
+                <input type="file" id="doc-upload-input" multiple accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="uploadDocumentos(this.files);this.value=''">
+                <button class="btn" onclick="document.getElementById('doc-upload-input').click()" style="font-size:12px">📤 Enviar</button>
+                <button class="btn" onclick="loadDocumentos()" style="font-size:12px">↻</button>
+              </div>
+            </div>
+            <div class="section-card-body" style="padding:10px 14px">
+              <!-- Breadcrumb -->
+              <div id="doc-breadcrumb" style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:8px;flex-wrap:wrap"></div>
+              <!-- Status upload -->
+              <div id="doc-upload-status" style="font-size:11px;color:var(--text2);margin-bottom:6px;display:none"></div>
+              <!-- Lista de pastas e arquivos -->
+              <div id="doc-grid"></div>
+            </div>
+          </div>
+
           <!-- FILTROS -->
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
             <div class="filters" style="margin-bottom:0">
@@ -1407,41 +1435,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- PASTA DE DOCUMENTOS -->
-          <div class="section-card" style="margin-top:14px">
-            <div class="section-card-header">
-              <div class="section-card-title">
-                <span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📁</span>
-                <div>
-                  <div style="font-weight:600;font-size:13px">Pasta de Documentos</div>
-                  <div style="font-size:10px;color:var(--text2)">NF-e · Boletos · Holerites · Contratos · PDF · Excel</div>
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <input type="text" id="doc-pasta-nova" placeholder="Nome da pasta..." style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2)">
-                <button class="btn btn-primary" onclick="criarPastaDoc()" style="font-size:12px">+ Pasta</button>
-                <button class="btn" onclick="loadDocumentos()" style="font-size:12px">↻</button>
-              </div>
-            </div>
-            <div class="section-card-body" style="padding:14px">
-              <!-- Breadcrumb -->
-              <div id="doc-breadcrumb" style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:10px;flex-wrap:wrap"></div>
-              <!-- Grid de pastas e arquivos -->
-              <div id="doc-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
-                <div class="empty" style="grid-column:1/-1;text-align:center;padding:2rem;font-size:12px;color:var(--text3)">Carregando...</div>
-              </div>
-              <!-- Upload na pasta atual -->
-              <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;border:1.5px dashed var(--border)">
-                <input type="file" id="doc-upload-input" multiple accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="uploadDocumentos(this.files);this.value=''">
-                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                  <button class="btn" onclick="document.getElementById('doc-upload-input').click()" style="font-size:12px">
-                    📤 Enviar arquivos
-                  </button>
-                  <span id="doc-upload-status" style="font-size:11px;color:var(--text2)">Selecione arquivos para enviar para a pasta atual</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
         </div>
 
@@ -3172,6 +3165,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
     </div>
 
 
+
+    <div class="form-group" style="margin-bottom:12px">
+      <label>📁 Arquivar na pasta</label>
+      <select id="ct-pasta-sel" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+        <option value="">— Não arquivar —</option>
+      </select>
+    </div>
 
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-conta')">Cancelar</button>
@@ -6660,11 +6660,10 @@ async function loadDocumentos() {
   const breadcrumb = document.getElementById('doc-breadcrumb');
   if (!grid) return;
 
-  grid.innerHTML = '<div class="empty" style="grid-column:1/-1;text-align:center;padding:2rem;font-size:12px;color:var(--text3)"><div class="spin" style="margin:0 auto 8px"></div>Carregando...</div>';
+  grid.innerHTML = '<div style="padding:1rem;text-align:center;font-size:12px;color:var(--text3)"><div class="spin" style="margin:0 auto 8px"></div></div>';
 
-  // Busca pastas e arquivos da pasta atual
-  let qPastas = sb.from('documentos_fiscais').select('*').eq('tipo', 'pasta').order('fornecedor');
-  let qArqs   = sb.from('documentos_fiscais').select('*').neq('tipo', 'pasta').order('created_at', {ascending: false});
+  let qPastas = sb.from('documentos_fiscais').select('*').eq('tipo','pasta').order('fornecedor');
+  let qArqs   = sb.from('documentos_fiscais').select('*').neq('tipo','pasta').order('created_at',{ascending:false});
 
   if (_docPastaAtual) {
     qPastas = qPastas.eq('conta_pagar_id', _docPastaAtual);
@@ -6678,48 +6677,88 @@ async function loadDocumentos() {
 
   // Breadcrumb
   if (breadcrumb) {
-    let html = `<span style="cursor:pointer;color:var(--accent);font-weight:600" onclick="_docPastaAtual=null;loadDocumentos()">🏠 Documentos</span>`;
+    let html = `<span style="cursor:pointer;color:var(--accent);font-weight:600" onclick="_docPastaAtual=null;loadDocumentos()">🏠 Raiz</span>`;
     if (_docPastaAtual) {
-      const pasta = (pastas||[]).find(p => p.id === _docPastaAtual) || { fornecedor: '...' };
-      html += `<span style="color:var(--text3)"> / </span><span style="font-weight:600">${pasta.fornecedor}</span>`;
+      const nome = _docNomePastaAtual || '...';
+      html += `<span style="color:var(--text3)"> / </span><span style="font-weight:600">${nome}</span>`;
     }
     breadcrumb.innerHTML = html;
   }
 
-  const items = [...(pastas||[]).map(p=>({...p, isPasta:true})), ...(arqs||[])];
-
-  if (!items.length) {
-    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;text-align:center;padding:2rem;font-size:12px;color:var(--text3)">Pasta vazia — envie arquivos ou crie subpastas</div>';
-    return;
+  // ── Pastas em cima (grid pequeno) ──
+  let pastaHtml = '';
+  if ((pastas||[]).length) {
+    pastaHtml = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      ${pastas.map(p => `
+        <div onclick="abrirPastaDoc('${p.id}','${(p.fornecedor||'').replace(/'/g,'')}')"
+          style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600"
+          onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span>📁</span> ${p.fornecedor}
+          <button onclick="event.stopPropagation();deletarDocumento('${p.id}',true)"
+            style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;margin-left:4px">✕</button>
+        </div>`).join('')}
+    </div>`;
   }
 
-  const iconArq = nome => {
-    const ext = (nome||'').split('.').pop().toLowerCase();
-    if (ext==='pdf') return '📄';
-    if (['xlsx','xls','csv'].includes(ext)) return '📊';
-    if (['jpg','jpeg','png','gif'].includes(ext)) return '🖼️';
-    if (['doc','docx'].includes(ext)) return '📝';
-    return '📎';
-  };
+  // ── Arquivos em lista com colunas ──
+  let arqHtml = '';
+  if ((arqs||[]).length) {
+    const iconArq = nome => {
+      const ext = (nome||'').split('.').pop().toLowerCase();
+      if (ext==='pdf') return '📄';
+      if (['xlsx','xls','csv'].includes(ext)) return '📊';
+      if (['jpg','jpeg','png','gif'].includes(ext)) return '🖼️';
+      if (['doc','docx'].includes(ext)) return '📝';
+      return '📎';
+    };
+    const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2);text-align:left';
+    arqHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="${TH};width:30px"></th>
+        <th style="${TH}">Nome</th>
+        <th style="${TH}">Fornecedor / Descrição</th>
+        <th style="${TH}">Nº Documento</th>
+        <th style="${TH}">Data</th>
+        <th style="${TH}">Tipo</th>
+        <th style="${TH};width:60px">Ações</th>
+      </tr></thead>
+      <tbody>
+        ${arqs.map(a => {
+          const nome = a.fornecedor || a.numero_nf || 'arquivo';
+          const data = a.data_emissao ? new Date(a.data_emissao+'T12:00:00').toLocaleDateString('pt-BR') :
+                       a.created_at  ? new Date(a.created_at).toLocaleDateString('pt-BR') : '—';
+          return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="abrirDocumento('${a.arquivo_url||''}')">
+            <td style="padding:7px 10px;text-align:center;font-size:16px">${iconArq(nome)}</td>
+            <td style="padding:7px 10px;font-weight:600;color:var(--accent)">${nome}</td>
+            <td style="padding:7px 10px;color:var(--text2)">${a.cnpj||'—'}</td>
+            <td style="padding:7px 10px;font-family:'DM Mono',monospace">${a.numero_nf||'—'}</td>
+            <td style="padding:7px 10px;color:var(--text2)">${data}</td>
+            <td style="padding:7px 10px"><span style="background:var(--bg3);border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600">${(a.tipo||'').toUpperCase()}</span></td>
+            <td style="padding:7px 10px" onclick="event.stopPropagation()">
+              <button onclick="deletarDocumento('${a.id}',false)" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">🗑</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
 
-  grid.innerHTML = items.map(item => {
-    if (item.isPasta) {
-      return `<div onclick="abrirPastaDoc('${item.id}')" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:var(--bg3);border-radius:10px;border:1.5px solid var(--border);cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-        <div style="font-size:32px">📁</div>
-        <div style="font-size:11px;font-weight:600;word-break:break-word;line-height:1.3">${item.fornecedor}</div>
-        <button onclick="event.stopPropagation();deletarDocumento('${item.id}',true)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;margin-top:2px">🗑</button>
-      </div>`;
-    } else {
-      const nome = item.numero_nf || item.fornecedor || 'arquivo';
-      const data = item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '';
-      return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:var(--bg2);border-radius:10px;border:1.5px solid var(--border);text-align:center">
-        <div style="font-size:32px;cursor:pointer" onclick="abrirDocumento('${item.arquivo_url||''}')">${iconArq(nome)}</div>
-        <div style="font-size:10px;font-weight:600;word-break:break-word;line-height:1.3;cursor:pointer" onclick="abrirDocumento('${item.arquivo_url||''}')">${nome}</div>
-        <div style="font-size:9px;color:var(--text3)">${data}</div>
-        <button onclick="deletarDocumento('${item.id}',false)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px">🗑</button>
-      </div>`;
-    }
-  }).join('');
+  if (!pastaHtml && !arqHtml) {
+    grid.innerHTML = '<div style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Pasta vazia — crie subpastas ou envie arquivos</div>';
+  } else {
+    grid.innerHTML = pastaHtml + arqHtml;
+  }
+
+  // Atualiza select de pasta no modal
+  atualizarSelectPastaModal(pastas||[]);
+}
+
+// Atualiza o select de pasta no modal conta
+function atualizarSelectPastaModal(pastas) {
+  const sel = document.getElementById('ct-pasta-sel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Não arquivar —</option>' +
+    pastas.map(p => `<option value="${p.id}">${p.fornecedor}</option>`).join('');
 }
 
 async function criarPastaDoc() {
@@ -6736,8 +6775,10 @@ async function criarPastaDoc() {
   loadDocumentos();
 }
 
-function abrirPastaDoc(id) {
+let _docNomePastaAtual = '';
+function abrirPastaDoc(id, nome) {
   _docPastaAtual = id;
+  _docNomePastaAtual = nome || '';
   loadDocumentos();
 }
 
@@ -10821,6 +10862,15 @@ function abrirModalConta(tipo) {
   if (lancPreview) lancPreview.style.display = 'none';
   _contaParcelas = [];
   document.getElementById('modal-conta').dataset.editId = '';
+  // Popula select de pasta
+  const selPasta = document.getElementById('ct-pasta-sel');
+  if (selPasta) {
+    sb.from('documentos_fiscais').select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id',null).order('fornecedor')
+      .then(({data}) => {
+        selPasta.innerHTML = '<option value="">— Não arquivar —</option>' +
+          (data||[]).map(p=>`<option value="${p.id}">${p.fornecedor}</option>`).join('');
+      });
+  }
   document.getElementById('modal-conta').classList.add('open');
   if (!_categorias.length) {
     sb.from('plano_contas').select('*').order('codigo').then(({data}) => { _categorias = data || []; });
@@ -11190,8 +11240,33 @@ async function salvarConta() {
     : recorrente === 'sim' ? `Conta recorrente criada para ${salvos} meses!`
     : 'Conta salva!';
   showToast(msg, 'success');
+
+  // Arquiva documento na pasta selecionada
+  const pastaId = document.getElementById('ct-pasta-sel')?.value;
+  const fileAnex = document.getElementById('ct-arquivo')?.files[0];
+  if (pastaId && fileAnex) {
+    try {
+      const path = `documentos/pasta-${pastaId}/${Date.now()}_${fileAnex.name.replace(/\s/g,'_')}`;
+      const { error: upErr } = await sb.storage.from('documentos').upload(path, fileAnex, {upsert:true});
+      if (!upErr) {
+        const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+        const ext = fileAnex.name.split('.').pop().toLowerCase();
+        await sb.from('documentos_fiscais').insert({
+          tipo: ext === 'pdf' ? 'pdf' : ext,
+          fornecedor: fileAnex.name,
+          numero_nf: numeroNF || null,
+          cnpj: cnpj || null,
+          arquivo_url: urlData?.publicUrl || '',
+          conta_pagar_id: pastaId,
+          data_emissao: new Date().toISOString().substring(0,10)
+        });
+        showToast('Documento arquivado na pasta!', 'success');
+      }
+    } catch(e) { console.warn('arquivar:', e); }
+  }
+
   closeModal('modal-conta');
-  if (_tipoContaModal === 'pagar') loadContasPagar();
+  if (_tipoContaModal === 'pagar') { loadContasPagar(); loadDocumentos(); }
   else loadContasReceber();
 }
 
