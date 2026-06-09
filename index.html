@@ -1021,32 +1021,42 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </div>
             </div>
             <!-- Termômetro meta mensal -->
-            <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;align-items:center">
-              <div style="font-weight:700;font-size:13px;margin-bottom:10px;align-self:flex-start">🌡️ Meta do Mês</div>
-              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%">
-                <div style="position:relative;width:28px;height:120px;background:var(--border);border-radius:14px;overflow:hidden;margin-bottom:8px">
-                  <div id="dash-termo-bar" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#dc2626,#f59e0b,#22c55e);border-radius:14px;transition:height .5s ease;height:0%"></div>
+            <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-weight:700;font-size:13px">🌡️ Meta do Mês</div>
+
+              <!-- Linha: Meta -->
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Meta</span>
+                <strong style="font-family:'DM Mono',monospace;font-size:13px" id="dash-termo-mes">—</strong>
+              </div>
+
+              <!-- Linha: Realizado -->
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Realizado</span>
+                <strong style="font-family:'DM Mono',monospace;font-size:13px;color:var(--green)" id="dash-termo-fat">—</strong>
+              </div>
+
+              <!-- Barra de progresso horizontal + % -->
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                  <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase" id="dash-termo-label">% Atingido</span>
+                  <strong style="font-size:18px;font-weight:800" id="dash-termo-pct">0%</strong>
                 </div>
-                <div style="font-size:22px;font-weight:800" id="dash-termo-pct">0%</div>
-                <div style="font-size:10px;color:var(--text2);text-align:center;margin-top:4px" id="dash-termo-label">da meta do mês</div>
-                <div style="width:100%;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px">
-                    <span style="color:var(--text2)">PDV hoje</span>
-                    <strong style="font-family:'DM Mono',monospace" id="dash-termo-fat">—</strong>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px">
-                    <span style="color:var(--text2)">Meta/dia</span>
-                    <strong style="font-family:'DM Mono',monospace" id="dash-termo-meta">—</strong>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px">
-                    <span style="color:var(--text2)">Falta hoje</span>
-                    <strong style="font-family:'DM Mono',monospace" id="dash-termo-nec">—</strong>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;font-size:10px;border-top:1px solid var(--border);padding-top:5px;margin-top:2px">
-                    <span style="color:var(--text2)">Meta mês</span>
-                    <strong style="font-family:'DM Mono',monospace" id="dash-termo-mes">—</strong>
-                  </div>
+                <div style="position:relative;width:100%;height:12px;background:var(--border);border-radius:6px;overflow:hidden">
+                  <div id="dash-termo-bar" style="position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,#dc2626,#f59e0b,#22c55e);border-radius:6px;transition:width .6s ease;width:0%"></div>
                 </div>
+              </div>
+
+              <!-- Linha: Meta/dia -->
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid var(--border)">
+                <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Meta/dia</span>
+                <strong style="font-family:'DM Mono',monospace;font-size:12px" id="dash-termo-meta">—</strong>
+              </div>
+
+              <!-- Linha: Falta -->
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Falta no mês</span>
+                <strong style="font-family:'DM Mono',monospace;font-size:12px" id="dash-termo-nec">—</strong>
               </div>
             </div>
           </div>
@@ -5069,14 +5079,16 @@ async function loadDashboard() {
   const fatHojeDisplay = pdvHoje > 0 ? pdvHoje : (mes === String(hoje3.getMonth()+1).padStart(2,'0') ? 0 : totalPDV);
   const faltaHoje = metaDia > 0 ? Math.max(0, metaDia - pdvHoje) : 0;
 
-  // ── Barra do termômetro sobe conforme % do mês ──
-  if(el('dash-termo-bar'))   el('dash-termo-bar').style.height = Math.min(100, pctMesTotal) + '%';
+  // ── Termômetro: barra horizontal — PDV total do mês vs meta ──
+  const faltaMes = metaMes > 0 ? Math.max(0, metaMes - totalPDV) : 0;
+  // barra usa width (horizontal)
+  if(el('dash-termo-bar'))   el('dash-termo-bar').style.width  = Math.min(100, pctMesTotal) + '%';
   if(el('dash-termo-pct'))   el('dash-termo-pct').textContent  = pctMesTotal.toFixed(1) + '%';
-  if(el('dash-termo-label')) el('dash-termo-label').textContent = pctMesTotal >= 100 ? '✅ Meta atingida!' : 'da meta do mês';
-  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent   = fmtBRL(pdvHoje || 0);
-  if(el('dash-termo-meta'))  el('dash-termo-meta').textContent  = metaDia > 0 ? fmtBRL(metaDia) : '—';
-  if(el('dash-termo-nec'))   el('dash-termo-nec').textContent   = faltaHoje > 0 ? fmtBRL(faltaHoje) : metaDia > 0 ? '✅ Meta atingida' : '—';
-  if(el('dash-termo-mes'))   el('dash-termo-mes').textContent   = metaMes > 0 ? fmtBRL(metaMes) : '—';
+  if(el('dash-termo-label')) el('dash-termo-label').textContent = pctMesTotal >= 100 ? '✅ Meta atingida!' : '% Atingido';
+  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent  = fmtBRL(totalPDV);   // realizado = PDV total do período
+  if(el('dash-termo-meta'))  el('dash-termo-meta').textContent = metaDia > 0 ? fmtBRL(metaDia) : '—';
+  if(el('dash-termo-nec'))   el('dash-termo-nec').textContent  = faltaMes > 0 ? fmtBRL(faltaMes) : metaMes > 0 ? '✅ Atingida' : '—';
+  if(el('dash-termo-mes'))   el('dash-termo-mes').textContent  = metaMes > 0 ? fmtBRL(metaMes) : '—';
 
   // Card atingimento meta (linha 2)
   if(el('m-meta-pct')) el('m-meta-pct').textContent = metaMes > 0 ? pctMesTotal.toFixed(1) + '%' : '—';
