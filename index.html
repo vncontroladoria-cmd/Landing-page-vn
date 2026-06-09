@@ -3042,10 +3042,30 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
 <!-- MODAL NOVA CONTA -->
 <div class="modal-overlay" id="modal-conta">
-  <div class="modal" style="max-width:620px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+  <div class="modal" style="max-width:680px;max-height:92vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
       <div class="modal-title" style="margin:0" id="modal-conta-title">Nova conta a pagar</div>
       <button onclick="closeModal('modal-conta')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+
+    <!-- LEITOR DE DOCUMENTO (NF-e / Boleto) -->
+    <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px dashed #22c55e;border-radius:12px;padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:18px">📄</span>
+        <div>
+          <div style="font-weight:700;font-size:13px">Importar NF-e ou Boleto</div>
+          <div style="font-size:11px;color:var(--text2)">O sistema lê automaticamente e preenche os campos abaixo</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="file" id="ct-pdf-import" accept=".pdf,application/pdf" multiple style="display:none" onchange="lerDocumentoConta(this.files);this.value=''">
+        <button class="btn btn-primary" onclick="const i=document.getElementById('ct-pdf-import');i.value='';i.click()" style="font-size:12px">
+          📂 Escolher NF-e / Boleto(s) (vários)
+        </button>
+        <span id="ct-pdf-status" style="font-size:11px;color:var(--text2)">Nenhum arquivo selecionado</span>
+      </div>
+      <!-- Preview das parcelas lidas -->
+      <div id="ct-parcelas-preview" style="display:none;margin-top:10px;padding:10px;background:#fff;border-radius:8px;border:1px solid #bbf7d0"></div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
@@ -3058,6 +3078,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <input type="text" id="ct-cnpj" placeholder="00.000.000/0001-00">
       </div>
       <div class="form-group">
+        <label>Nº da Nota Fiscal</label>
+        <input type="text" id="ct-numero-nf" placeholder="Ex: 122.785">
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group">
         <label>Categoria</label>
         <div style="position:relative">
           <input type="text" id="ct-cat-busca" placeholder="Buscar categoria..." autocomplete="off"
@@ -3067,23 +3094,27 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div id="ct-cat-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:500;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
         </div>
       </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
-      <div class="form-group">
-        <label>Valor <span style="color:var(--red)">*</span></label>
-        <input type="number" id="ct-valor" placeholder="0,00" step="0.01">
-      </div>
-      <div class="form-group">
-        <label>Vencimento <span style="color:var(--red)">*</span></label>
-        <input type="date" id="ct-vencimento">
-      </div>
       <div class="form-group">
         <label>Tipo</label>
         <select id="ct-tipo">
           <option value="fixa">Fixa</option>
           <option value="variavel">Variável</option>
         </select>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group">
+        <label>Valor Total <span style="color:var(--red)">*</span></label>
+        <input type="number" id="ct-valor" placeholder="0,00" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Vencimento 1ª parcela <span style="color:var(--red)">*</span></label>
+        <input type="date" id="ct-vencimento">
+      </div>
+      <div class="form-group">
+        <label>Nº de Parcelas</label>
+        <input type="number" id="ct-parcelas" placeholder="1" min="1" max="60" value="1" onchange="atualizarPreviewParcelas()">
       </div>
     </div>
 
@@ -3100,23 +3131,19 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <label>Dia do vencimento</label>
         <input type="number" id="ct-dia-venc" placeholder="Ex: 10" min="1" max="31">
       </div>
-      <div class="form-group" id="ct-parcelas-group" style="display:none">
-        <label>Nº de parcelas</label>
-        <input type="number" id="ct-parcelas" placeholder="Ex: 6" min="2" max="60">
+      <div class="form-group">
+        <label>Chave PIX / Dados pgto</label>
+        <input type="text" id="ct-pix" placeholder="CPF, CNPJ, email ou chave">
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
-      <div class="form-group">
-        <label>Chave PIX / Dados pagamento</label>
-        <input type="text" id="ct-pix" placeholder="CPF, CNPJ, email ou chave">
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="form-group">
         <label>Palavra-chave (reconhecimento)</label>
         <input type="text" id="ct-palavra-chave" placeholder="Ex: ALUGUEL, CEMIG">
       </div>
       <div class="form-group">
-        <label>Anexar documento</label>
+        <label>Anexar documento (opcional)</label>
         <input type="file" id="ct-arquivo" accept=".pdf,.jpg,.jpeg,.png" style="padding:6px">
       </div>
     </div>
@@ -3124,6 +3151,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
     <div class="form-group" style="margin-bottom:1rem">
       <label>Observação</label>
       <textarea id="ct-obs" rows="2" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical" placeholder="Observações..."></textarea>
+    </div>
+
+    <!-- Preview parcelas geradas -->
+    <div id="ct-preview-lancamentos" style="display:none;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase">📋 Lançamentos que serão criados:</div>
+      <div id="ct-preview-lista" style="display:flex;flex-direction:column;gap:4px"></div>
     </div>
 
     <div class="modal-footer">
@@ -10628,6 +10661,274 @@ function abrirModalConta(tipo) {
   }
 }
 
+// ════════════════════════════════════════════════════════
+// LEITURA AUTOMÁTICA DE NF-e E BOLETO
+// ════════════════════════════════════════════════════════
+
+// Extrai texto de um PDF usando pdf.js
+async function extrairTextoPDF(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const arr = new Uint8Array(e.target.result);
+        const pdf = await pdfjsLib.getDocument({data: arr}).promise;
+        let texto = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const pg = await pdf.getPage(i);
+          const tc = await pg.getTextContent();
+          texto += tc.items.map(t => t.str).join(' ') + '
+';
+        }
+        resolve(texto);
+      } catch(err) { resolve(''); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Identifica se o PDF é NF-e ou Boleto e extrai dados
+function parsePDFConta(texto) {
+  const t = texto.replace(/\s+/g, ' ');
+  const result = {};
+
+  // ── NF-e: detecta pela chave de acesso ou DANFE ──
+  const isNFe = /DANFE|NOTA FISCAL ELETR|NF-e|Chave de Acesso/i.test(t);
+  if (isNFe) {
+    result.tipo = 'nfe';
+
+    // Número da NF
+    const nfMatch = t.match(/(?:N[Úú]MERO|N[Oo]\.?\s*(?:NF|NF-e)?)[:\s]*(\d{1,6}[\.\d]*)/i)
+      || t.match(/(\d{3}[\.,]\d{3})\s*(?:S[ÉE]RIE|FOLHA)/i)
+      || t.match(/NF-e\s+N[oº]?\s*(\d+[\.\d]*)/i);
+    if (nfMatch) result.numero_nf = nfMatch[1].replace(/\./g, '');
+
+    // Fornecedor (emitente)
+    const emitMatch = t.match(/(?:EMITENTE|Benefici[áa]rio|RAZÃO SOCIAL)[:\s]+([A-Z][A-Z0-9 ]+(?:LTDA|SA|ME|EIRELI|DISTRIBUIDORA|COSMETICOS|COMERCIO)[A-Z0-9 ]*)/i);
+    if (emitMatch) result.fornecedor = emitMatch[1].trim();
+
+    // CNPJ do emitente
+    const cnpjMatch = t.match(/CNPJ[:\s\/]*([\d]{2}[\.\d]{3}[\.\d]{3}\/[\d]{4}-[\d]{2})/);
+    if (cnpjMatch) result.cnpj = cnpjMatch[1];
+
+    // Total da nota
+    const totalMatch = t.match(/TOTAL DA NOTA[:\s]+([\d]{1,3}(?:[.,]\d{3})*[.,]\d{2})/i)
+      || t.match(/VALOR TOTAL[:\s]+([\d]{1,3}(?:[.,]\d{3})*[.,]\d{2})/i)
+      || t.match(/Total da Nota\s+([\d,.]+)/i);
+    if (totalMatch) result.valor_total = parseValorBR(totalMatch[1]);
+
+    // Parcelas da NF-e (FATURA/DUPLICATA)
+    const parcelasNFe = [];
+    const parcelRegex = /(\d{3})\s+(\d{2}\/\d{2}\/\d{4})\s+([\d,\.]+)/g;
+    let m;
+    while ((m = parcelRegex.exec(t)) !== null) {
+      parcelasNFe.push({
+        numero: m[1],
+        vencimento: parseDateBR(m[2]),
+        valor: parseValorBR(m[3])
+      });
+    }
+    if (parcelasNFe.length) result.parcelas = parcelasNFe;
+
+    result.data_emissao = (() => {
+      const dm = t.match(/DATA DA EMISSÃO[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+      return dm ? parseDateBR(dm[1]) : null;
+    })();
+  } else {
+    // ── Boleto ──
+    result.tipo = 'boleto';
+
+    // Beneficiário
+    const benMatch = t.match(/Benefici[áa]rio\s+([A-Z][A-Z\s]+(?:LTDA|SA|ME|EIRELI|DISTRIBUIDORA|COSMETICOS)[A-Z\s]*)/i);
+    if (benMatch) result.fornecedor = benMatch[1].trim().replace(/\s{2,}/g, ' ');
+
+    // CNPJ beneficiário
+    const cnpjB = t.match(/CPF\/CNPJ do benefici[áa]rio[:\s]*([\d.\/\-]+)/i);
+    if (cnpjB) result.cnpj = cnpjB[1].trim();
+
+    // Valor do documento
+    const valMatch = t.match(/Valor do Documento[:\s]+([\d,\.]+)/i)
+      || t.match(/VALOR DO DOCUMENTO[:\s]+([\d,\.]+)/i);
+    if (valMatch) result.valor_total = parseValorBR(valMatch[1]);
+
+    // Vencimento
+    const vencMatch = t.match(/Vencimento[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+    if (vencMatch) result.vencimento = parseDateBR(vencMatch[1]);
+
+    // Número do documento/parcela
+    const numMatch = t.match(/N[úu]mero do Documento[:\s]+([\w\/]+)/i);
+    if (numMatch) result.numero_doc = numMatch[1].trim();
+
+    // Nosso número (identifica a parcela: 122785/01, /02, /03)
+    const nNMatch = t.match(/Nosso N[úu]mero[:\s]+([\w\/\-]+)/i);
+    if (nNMatch) result.nosso_numero = nNMatch[1].trim();
+  }
+
+  return result;
+}
+
+function parseValorBR(v) {
+  if (!v) return 0;
+  const s = String(v).trim();
+  if (s.includes(',') && s.includes('.')) return parseFloat(s.replace(/\./g,'').replace(',','.')) || 0;
+  if (s.includes(',')) return parseFloat(s.replace(',','.')) || 0;
+  return parseFloat(s) || 0;
+}
+
+function parseDateBR(s) {
+  if (!s) return null;
+  const m = String(s).match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return s;
+}
+
+// Processa múltiplos arquivos (NF-e + boletos)
+let _contaParcelas = []; // parcelas detectadas
+
+async function lerDocumentoConta(files) {
+  if (!files?.length) return;
+  const statusEl = document.getElementById('ct-pdf-status');
+  const previewEl = document.getElementById('ct-parcelas-preview');
+  if (statusEl) statusEl.textContent = '⏳ Lendo...';
+
+  _contaParcelas = [];
+  let dadosNFe = null;
+  const boletos = [];
+
+  for (const file of files) {
+    const texto = await extrairTextoPDF(file);
+    const dados = parsePDFConta(texto);
+
+    if (dados.tipo === 'nfe') {
+      dadosNFe = dados;
+    } else if (dados.tipo === 'boleto') {
+      boletos.push(dados);
+    }
+  }
+
+  // Prioriza NF-e para dados gerais; boletos para parcelas específicas
+  const base = dadosNFe || boletos[0] || {};
+
+  // Preenche campos do modal
+  const set = (id, val) => { const e = document.getElementById(id); if (e && val) e.value = val; };
+
+  if (base.fornecedor) set('ct-nome', base.fornecedor);
+  if (base.cnpj)       set('ct-cnpj', base.cnpj);
+  if (base.numero_nf)  set('ct-numero-nf', base.numero_nf);
+  if (base.valor_total) set('ct-valor', base.valor_total);
+
+  // Monta parcelas
+  if (dadosNFe?.parcelas?.length) {
+    // Parcelas da NF-e
+    _contaParcelas = dadosNFe.parcelas;
+  } else if (boletos.length) {
+    // Parcelas dos boletos
+    _contaParcelas = boletos.map((b, i) => ({
+      numero: String(i+1).padStart(3,'0'),
+      vencimento: b.vencimento,
+      valor: b.valor_total,
+      numero_doc: b.numero_doc
+    })).sort((a,b) => (a.vencimento||'').localeCompare(b.vencimento||''));
+  }
+
+  // Preenche 1ª parcela
+  if (_contaParcelas.length) {
+    set('ct-vencimento', _contaParcelas[0].vencimento);
+    document.getElementById('ct-parcelas').value = _contaParcelas.length;
+    // recalcula valor por parcela (usa da NF)
+    if (base.valor_total && _contaParcelas.length > 0) {
+      // mantém valor total da NF
+    }
+  } else if (boletos[0]?.vencimento) {
+    set('ct-vencimento', boletos[0].vencimento);
+  }
+
+  // Mostra preview
+  if (previewEl) {
+    previewEl.style.display = 'block';
+    previewEl.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:6px">
+        📄 ${files.length} arquivo(s) lido(s) · ${_contaParcelas.length || 1} parcela(s) detectada(s)
+      </div>
+      ${_contaParcelas.map((p,i) => `
+        <div style="display:flex;gap:8px;align-items:center;font-size:11px;padding:3px 0;border-bottom:1px solid #dcfce7">
+          <span style="font-weight:700;color:#166534">Parcela ${i+1}/${_contaParcelas.length}</span>
+          <span>${p.vencimento ? p.vencimento.split('-').reverse().join('/') : '—'}</span>
+          <span style="font-family:'DM Mono',monospace;font-weight:700">${p.valor ? 'R$ ' + p.valor.toFixed(2).replace('.',',') : '—'}</span>
+          ${p.numero_doc ? `<span style="color:#6b7280">Doc: ${p.numero_doc}</span>` : ''}
+        </div>
+      `).join('')}
+    `;
+  }
+
+  // Atualiza preview de lançamentos
+  atualizarPreviewParcelas();
+
+  if (statusEl) statusEl.textContent = `✅ ${files.length} arquivo(s) processado(s)`;
+
+  // Upload para Supabase Storage — pasta notas-fiscais/
+  try {
+    for (const file of files) {
+      const pasta = dadosNFe ? 'notas-fiscais' : 'boletos';
+      const nf = dadosNFe?.numero_nf || base.numero_nf || '';
+      const nome_arquivo = `${pasta}/${nf ? nf+'_' : ''}${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+      await sb.storage.from('documentos').upload(nome_arquivo, file, { upsert: true });
+    }
+    if (statusEl) statusEl.textContent = `✅ ${files.length} arquivo(s) lido(s) e salvos`;
+  } catch(e) {
+    // Storage pode não estar configurado — não bloqueia o fluxo
+    console.warn('Upload storage:', e);
+  }
+}
+
+function atualizarPreviewParcelas() {
+  const previewDiv = document.getElementById('ct-preview-lancamentos');
+  const lista = document.getElementById('ct-preview-lista');
+  if (!previewDiv || !lista) return;
+
+  const nParcelas = parseInt(document.getElementById('ct-parcelas')?.value || '1');
+  const venc1 = document.getElementById('ct-vencimento')?.value;
+  const valorTotal = parseFloat(document.getElementById('ct-valor')?.value || '0');
+  const nome = document.getElementById('ct-nome')?.value || '—';
+
+  if (!venc1 || !valorTotal) { previewDiv.style.display = 'none'; return; }
+
+  previewDiv.style.display = 'block';
+  const lancamentos = [];
+
+  if (_contaParcelas.length === nParcelas) {
+    // Usa parcelas detectadas do PDF
+    _contaParcelas.forEach((p, i) => {
+      lancamentos.push({
+        n: i+1, total: nParcelas,
+        venc: p.vencimento ? p.vencimento.split('-').reverse().join('/') : '—',
+        valor: p.valor || (valorTotal / nParcelas)
+      });
+    });
+  } else {
+    // Gera automaticamente
+    const valorParcela = valorTotal / nParcelas;
+    for (let i = 0; i < nParcelas; i++) {
+      const d = new Date(venc1);
+      d.setMonth(d.getMonth() + i);
+      lancamentos.push({
+        n: i+1, total: nParcelas,
+        venc: `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`,
+        valor: valorParcela
+      });
+    }
+  }
+
+  lista.innerHTML = lancamentos.map(l => `
+    <div style="display:flex;align-items:center;gap:10px;padding:5px 8px;background:var(--bg3);border-radius:6px;font-size:11px">
+      <span style="background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700;font-size:10px">${l.n}/${l.total}</span>
+      <span style="font-weight:600">${nome}</span>
+      <span style="color:var(--text2)">Venc: ${l.venc}</span>
+      <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red);margin-left:auto">R$ ${l.valor.toFixed(2).replace('.',',')}</span>
+    </div>
+  `).join('');
+}
+
 function toggleParcelamento() {
   const rec = document.getElementById('ct-recorrente').value;
   document.getElementById('ct-parcelas-group').style.display = rec === 'parcelado' ? '' : 'none';
@@ -10675,42 +10976,55 @@ async function salvarConta() {
 
   const [anoBase, mesBase, diaBase] = venc.split('-').map(Number);
   const dia = diaVenc || diaBase;
+  const numeroNF = document.getElementById('ct-numero-nf')?.value.trim() || '';
 
   // Monta lista de meses a criar
   let meses = [];
-  if (recorrente === 'parcelado') {
+
+  // Se tem parcelas do PDF, usa elas diretamente
+  if (_contaParcelas.length > 0 && _contaParcelas.length === parcelas) {
+    _contaParcelas.forEach((p, i) => {
+      meses.push({
+        data: p.vencimento || venc,
+        valor_parcela: p.valor || (valor / parcelas),
+        parcela: i+1,
+        total: parcelas,
+        numero_doc: p.numero_doc || null
+      });
+    });
+  } else if (recorrente === 'parcelado' || parcelas > 1) {
     for (let i = 0; i < parcelas; i++) {
       const d = new Date(anoBase, mesBase - 1 + i, dia);
-      meses.push({ data: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`, parcela: i+1, total: parcelas });
+      meses.push({ data: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`, valor_parcela: valor/parcelas, parcela: i+1, total: parcelas });
     }
   } else if (recorrente === 'sim') {
-    // Cria do mês atual até dezembro
     const mesInicio = mesBase - 1;
     for (let i = 0; i <= 11 - mesInicio; i++) {
       const anoAtual = anoBase + Math.floor((mesInicio + i) / 12);
       const mesAtual = (mesInicio + i) % 12;
       const dataStr = `${anoAtual}-${String(mesAtual+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-      meses.push({ data: dataStr, parcela: null, total: null });
+      meses.push({ data: dataStr, valor_parcela: valor, parcela: null, total: null });
     }
   } else {
-    meses.push({ data: venc, parcela: null, total: null });
+    meses.push({ data: venc, valor_parcela: valor, parcela: null, total: null });
   }
 
   let salvos = 0;
   for (let i = 0; i < meses.length; i++) {
     const m = meses[i];
     const descricao = m.total ? `${nome} (${m.parcela}/${m.total})` : nome;
+    const descricao = m.total ? `${nome} (${m.parcela}/${m.total})${numeroNF?' - NF '+numeroNF:''}` : `${nome}${numeroNF?' - NF '+numeroNF:''}`;
     const payload = {
-      descricao, valor, cnpj, categoria, tipo,
+      descricao, valor: m.valor_parcela || valor, cnpj, categoria, tipo,
       data_vencimento: m.data,
       recorrente: recorrente === 'sim',
       dia_vencimento: dia,
       parcela_atual: m.parcela,
       total_parcelas: m.total,
       chave_pix: pix || null,
-      palavra_chave: palavraChave || null,
+      palavra_chave: palavraChave || (numeroNF ? 'NF '+numeroNF : null) || null,
       arquivo_url: arquivoUrl || null,
-      observacao: obs || null,
+      observacao: (obs || '') + (m.numero_doc ? ' | Boleto: '+m.numero_doc : '') + (numeroNF ? ' | NF: '+numeroNF : '') || null,
       status: 'pendente',
     };
 
