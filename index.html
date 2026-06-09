@@ -1406,6 +1406,43 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div id="cp-variaveis-table"><div class="loading"><div class="spin"></div></div></div>
             </div>
           </div>
+
+          <!-- PASTA DE DOCUMENTOS -->
+          <div class="section-card" style="margin-top:14px">
+            <div class="section-card-header">
+              <div class="section-card-title">
+                <span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📁</span>
+                <div>
+                  <div style="font-weight:600;font-size:13px">Pasta de Documentos</div>
+                  <div style="font-size:10px;color:var(--text2)">NF-e · Boletos · Holerites · Contratos · PDF · Excel</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="doc-pasta-nova" placeholder="Nome da pasta..." style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2)">
+                <button class="btn btn-primary" onclick="criarPastaDoc()" style="font-size:12px">+ Pasta</button>
+                <button class="btn" onclick="loadDocumentos()" style="font-size:12px">↻</button>
+              </div>
+            </div>
+            <div class="section-card-body" style="padding:14px">
+              <!-- Breadcrumb -->
+              <div id="doc-breadcrumb" style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:10px;flex-wrap:wrap"></div>
+              <!-- Grid de pastas e arquivos -->
+              <div id="doc-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+                <div class="empty" style="grid-column:1/-1;text-align:center;padding:2rem;font-size:12px;color:var(--text3)">Carregando...</div>
+              </div>
+              <!-- Upload na pasta atual -->
+              <div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;border:1.5px dashed var(--border)">
+                <input type="file" id="doc-upload-input" multiple accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="uploadDocumentos(this.files);this.value=''">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                  <button class="btn" onclick="document.getElementById('doc-upload-input').click()" style="font-size:12px">
+                    📤 Enviar arquivos
+                  </button>
+                  <span id="doc-upload-status" style="font-size:11px;color:var(--text2)">Selecione arquivos para enviar para a pasta atual</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- CONTAS A RECEBER -->
@@ -3048,25 +3085,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <button onclick="closeModal('modal-conta')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
     </div>
 
-    <!-- LEITOR DE DOCUMENTO (NF-e / Boleto) -->
-    <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px dashed #22c55e;border-radius:12px;padding:14px 16px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:18px">📄</span>
-        <div>
-          <div style="font-weight:700;font-size:13px">Importar NF-e ou Boleto</div>
-          <div style="font-size:11px;color:var(--text2)">O sistema lê automaticamente e preenche os campos abaixo</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input type="file" id="ct-pdf-import" accept=".pdf,application/pdf" multiple style="display:none" onchange="lerDocumentoConta(this.files);this.value=''">
-        <button class="btn btn-primary" onclick="const i=document.getElementById('ct-pdf-import');i.value='';i.click()" style="font-size:12px">
-          📂 Escolher NF-e / Boleto(s) (vários)
-        </button>
-        <span id="ct-pdf-status" style="font-size:11px;color:var(--text2)">Nenhum arquivo selecionado</span>
-      </div>
-      <!-- Preview das parcelas lidas -->
-      <div id="ct-parcelas-preview" style="display:none;margin-top:10px;padding:10px;background:#fff;border-radius:8px;border:1px solid #bbf7d0"></div>
-    </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="form-group" style="grid-column:1/-1">
@@ -3153,11 +3171,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <textarea id="ct-obs" rows="2" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical" placeholder="Observações..."></textarea>
     </div>
 
-    <!-- Preview parcelas geradas -->
-    <div id="ct-preview-lancamentos" style="display:none;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase">📋 Lançamentos que serão criados:</div>
-      <div id="ct-preview-lista" style="display:flex;flex-direction:column;gap:4px"></div>
-    </div>
+
 
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-conta')">Cancelar</button>
@@ -3665,7 +3679,7 @@ function showPage(id, el) {
   if (id === 'dfc') loadDFC();
   if (id === 'dre') loadDRE();
   if (id === 'lancamentos') loadLancamentos();
-  if (id === 'contas-pagar') loadContasPagar();
+  if (id === 'contas-pagar') { loadContasPagar(); loadDocumentos(); }
   if (id === 'contas-receber') loadContasReceber();
   if (id === 'metricas') loadMetricas();
   if (id === 'lucratividade') loadLucratividade();
@@ -6636,6 +6650,147 @@ function renderLancTable(data, targetId, mini) {
 }
 
 // ─── CONTAS A PAGAR ────────────────────────────────────────
+// ════════════════════════════════════════════════════════
+// PASTA DE DOCUMENTOS
+// ════════════════════════════════════════════════════════
+let _docPastaAtual = null; // null = raiz
+
+async function loadDocumentos() {
+  const grid = document.getElementById('doc-grid');
+  const breadcrumb = document.getElementById('doc-breadcrumb');
+  if (!grid) return;
+
+  grid.innerHTML = '<div class="empty" style="grid-column:1/-1;text-align:center;padding:2rem;font-size:12px;color:var(--text3)"><div class="spin" style="margin:0 auto 8px"></div>Carregando...</div>';
+
+  // Busca pastas e arquivos da pasta atual
+  let qPastas = sb.from('documentos_fiscais').select('*').eq('tipo', 'pasta').order('fornecedor');
+  let qArqs   = sb.from('documentos_fiscais').select('*').neq('tipo', 'pasta').order('created_at', {ascending: false});
+
+  if (_docPastaAtual) {
+    qPastas = qPastas.eq('conta_pagar_id', _docPastaAtual);
+    qArqs   = qArqs.eq('conta_pagar_id', _docPastaAtual);
+  } else {
+    qPastas = qPastas.is('conta_pagar_id', null);
+    qArqs   = qArqs.is('conta_pagar_id', null);
+  }
+
+  const [{ data: pastas }, { data: arqs }] = await Promise.all([qPastas, qArqs]);
+
+  // Breadcrumb
+  if (breadcrumb) {
+    let html = `<span style="cursor:pointer;color:var(--accent);font-weight:600" onclick="_docPastaAtual=null;loadDocumentos()">🏠 Documentos</span>`;
+    if (_docPastaAtual) {
+      const pasta = (pastas||[]).find(p => p.id === _docPastaAtual) || { fornecedor: '...' };
+      html += `<span style="color:var(--text3)"> / </span><span style="font-weight:600">${pasta.fornecedor}</span>`;
+    }
+    breadcrumb.innerHTML = html;
+  }
+
+  const items = [...(pastas||[]).map(p=>({...p, isPasta:true})), ...(arqs||[])];
+
+  if (!items.length) {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1;text-align:center;padding:2rem;font-size:12px;color:var(--text3)">Pasta vazia — envie arquivos ou crie subpastas</div>';
+    return;
+  }
+
+  const iconArq = nome => {
+    const ext = (nome||'').split('.').pop().toLowerCase();
+    if (ext==='pdf') return '📄';
+    if (['xlsx','xls','csv'].includes(ext)) return '📊';
+    if (['jpg','jpeg','png','gif'].includes(ext)) return '🖼️';
+    if (['doc','docx'].includes(ext)) return '📝';
+    return '📎';
+  };
+
+  grid.innerHTML = items.map(item => {
+    if (item.isPasta) {
+      return `<div onclick="abrirPastaDoc('${item.id}')" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:var(--bg3);border-radius:10px;border:1.5px solid var(--border);cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:32px">📁</div>
+        <div style="font-size:11px;font-weight:600;word-break:break-word;line-height:1.3">${item.fornecedor}</div>
+        <button onclick="event.stopPropagation();deletarDocumento('${item.id}',true)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;margin-top:2px">🗑</button>
+      </div>`;
+    } else {
+      const nome = item.numero_nf || item.fornecedor || 'arquivo';
+      const data = item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '';
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:var(--bg2);border-radius:10px;border:1.5px solid var(--border);text-align:center">
+        <div style="font-size:32px;cursor:pointer" onclick="abrirDocumento('${item.arquivo_url||''}')">${iconArq(nome)}</div>
+        <div style="font-size:10px;font-weight:600;word-break:break-word;line-height:1.3;cursor:pointer" onclick="abrirDocumento('${item.arquivo_url||''}')">${nome}</div>
+        <div style="font-size:9px;color:var(--text3)">${data}</div>
+        <button onclick="deletarDocumento('${item.id}',false)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px">🗑</button>
+      </div>`;
+    }
+  }).join('');
+}
+
+async function criarPastaDoc() {
+  const nomePasta = document.getElementById('doc-pasta-nova')?.value.trim();
+  if (!nomePasta) { showToast('Digite o nome da pasta','error'); return; }
+  const { error } = await sb.from('documentos_fiscais').insert({
+    tipo: 'pasta',
+    fornecedor: nomePasta,
+    conta_pagar_id: _docPastaAtual || null
+  });
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+  document.getElementById('doc-pasta-nova').value = '';
+  showToast('Pasta criada!','success');
+  loadDocumentos();
+}
+
+function abrirPastaDoc(id) {
+  _docPastaAtual = id;
+  loadDocumentos();
+}
+
+function abrirDocumento(url) {
+  if (!url) { showToast('Arquivo sem URL','error'); return; }
+  window.open(url, '_blank');
+}
+
+async function deletarDocumento(id, isPasta) {
+  if (!confirm(isPasta ? 'Excluir esta pasta e todo o conteúdo?' : 'Excluir este arquivo?')) return;
+  const { error } = await sb.from('documentos_fiscais').delete().eq('id', id);
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
+  showToast('Excluído!','success');
+  loadDocumentos();
+}
+
+async function uploadDocumentos(files) {
+  if (!files?.length) return;
+  const statusEl = document.getElementById('doc-upload-status');
+  if (statusEl) statusEl.textContent = `⏳ Enviando ${files.length} arquivo(s)...`;
+
+  let ok = 0;
+  for (const file of files) {
+    try {
+      // Upload para Supabase Storage
+      const pasta = _docPastaAtual ? `pasta-${_docPastaAtual}` : 'raiz';
+      const path = `documentos/${pasta}/${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+      const { error: upErr } = await sb.storage.from('documentos').upload(path, file, { upsert: true });
+      if (upErr) { console.warn('upload:', upErr.message); continue; }
+      const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+      const url = urlData?.publicUrl || '';
+
+      // Determina o tipo pelo nome
+      const ext = file.name.split('.').pop().toLowerCase();
+      const tipo = ext === 'pdf' ? (file.name.toLowerCase().includes('nf') || file.name.toLowerCase().includes('nota') ? 'nfe' : 'boleto') : ext;
+
+      // Salva metadado no banco
+      await sb.from('documentos_fiscais').insert({
+        tipo,
+        numero_nf: file.name.replace(/\.[^.]+$/, ''), // nome sem extensão
+        fornecedor: file.name,
+        arquivo_url: url,
+        conta_pagar_id: _docPastaAtual || null,
+        data_emissao: new Date().toISOString().substring(0,10)
+      });
+      ok++;
+    } catch(e) { console.warn(e); }
+  }
+
+  if (statusEl) statusEl.textContent = `✅ ${ok} arquivo(s) enviado(s)`;
+  loadDocumentos();
+}
+
 async function loadContasPagar() {
   const mes = document.getElementById('cp-mes')?.value || '';
   const ano = document.getElementById('cp-ano')?.value || '2026';
