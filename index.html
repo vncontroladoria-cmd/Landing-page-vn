@@ -1020,31 +1020,31 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div id="dash-meta-status" style="margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;text-align:center"></div>
               </div>
             </div>
-            <!-- Termômetro meta diária -->
+            <!-- Termômetro meta mensal -->
             <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;align-items:center">
-              <div style="font-weight:600;font-size:12px;margin-bottom:8px;align-self:flex-start">🌡️ Meta do Dia</div>
+              <div style="font-weight:700;font-size:13px;margin-bottom:10px;align-self:flex-start">🌡️ Meta do Mês</div>
               <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%">
                 <div style="position:relative;width:28px;height:120px;background:var(--border);border-radius:14px;overflow:hidden;margin-bottom:8px">
                   <div id="dash-termo-bar" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#dc2626,#f59e0b,#22c55e);border-radius:14px;transition:height .5s ease;height:0%"></div>
                 </div>
-                <div style="font-size:22px;font-weight:800;color:var(--accent)" id="dash-termo-pct">0%</div>
-                <div style="font-size:10px;color:var(--text2);text-align:center;margin-top:4px" id="dash-termo-label">da meta do dia</div>
+                <div style="font-size:22px;font-weight:800" id="dash-termo-pct">0%</div>
+                <div style="font-size:10px;color:var(--text2);text-align:center;margin-top:4px" id="dash-termo-label">da meta do mês</div>
                 <div style="width:100%;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px">
-                    <span style="color:var(--text2)">Hoje PDV</span>
-                    <span style="font-weight:700;font-family:'DM Mono',monospace;color:var(--green)" id="dash-termo-fat">—</span>
+                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px">
+                    <span style="color:var(--text2)">PDV hoje</span>
+                    <strong style="font-family:'DM Mono',monospace" id="dash-termo-fat">—</strong>
                   </div>
-                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px">
+                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px">
                     <span style="color:var(--text2)">Meta/dia</span>
-                    <span style="font-weight:700;font-family:'DM Mono',monospace" id="dash-termo-meta">—</span>
+                    <strong style="font-family:'DM Mono',monospace" id="dash-termo-meta">—</strong>
                   </div>
-                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px">
-                    <span style="color:var(--text2)">Falta</span>
-                    <span style="font-weight:700;font-family:'DM Mono',monospace;color:#dc2626" id="dash-termo-nec">—</span>
+                  <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px">
+                    <span style="color:var(--text2)">Falta hoje</span>
+                    <strong style="font-family:'DM Mono',monospace" id="dash-termo-nec">—</strong>
                   </div>
-                  <div style="display:flex;justify-content:space-between;font-size:10px">
+                  <div style="display:flex;justify-content:space-between;font-size:10px;border-top:1px solid var(--border);padding-top:5px;margin-top:2px">
                     <span style="color:var(--text2)">Meta mês</span>
-                    <span style="font-weight:700;font-family:'DM Mono',monospace;color:var(--text2)" id="dash-termo-mes">—</span>
+                    <strong style="font-family:'DM Mono',monospace" id="dash-termo-mes">—</strong>
                   </div>
                 </div>
               </div>
@@ -4868,156 +4868,162 @@ async function loadDashboard() {
     }
   } catch(e) {}
 
-  // ── PDV: faturamento por dia + totais por categoria ──────
+  // ── PDV: soma Comanda + Crédito + Débito + Pix por dia ──────
   const hoje3 = new Date();
   const hojeStr3 = hoje3.toISOString().substring(0,10);
-  let pdvDiario = {}; // { dia: valor }
-  let pdvTotais = {}; // { catNome: total }
-  let pdvHoje = 0;
+  let pdvDiario = {}; // { dia(int): valor }
+  let pdvTotCat = {}; // { catNome: total_periodo }
+  let pdvHoje   = 0;  // soma PDV de hoje
+
   try {
     const { data: caixasPDV } = await sb.from('pdv_caixas').select('id,data_caixa')
       .gte('data_caixa', ini).lte('data_caixa', fim);
+
     if (caixasPDV?.length) {
-      const caixaMesDia = {};
-      caixasPDV.forEach(c => { caixaMesDia[c.id] = c.data_caixa; });
+      const caixaData = {}; // id → data_caixa
+      caixasPDV.forEach(c => { caixaData[c.id] = c.data_caixa; });
       const ids = caixasPDV.map(c => c.id);
-      let pdvItens2 = [];
-      for(let i=0;i<ids.length;i+=200){
-        const {data:its} = await sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
-          .in('caixa_id',ids.slice(i,i+200));
-        if(its?.length) pdvItens2 = pdvItens2.concat(its);
+      let itens = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data: lote } = await sb.from('pdv_itens')
+          .select('caixa_id,forma_pagamento,valor,tipo')
+          .in('caixa_id', ids.slice(i, i + 200));
+        if (lote?.length) itens = itens.concat(lote);
       }
-      // Filtra só ENTRADA e categorias de faturamento (Comanda, Crédito, Débito, Pix e similares)
-      const catsFat = ['comanda','credito','debito','pix','dinheiro','cartao'];
-      const isFat = nome => catsFat.some(c => (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(c));
-      pdvItens2.filter(it => it.tipo==='ENTRADA' && isFat(it.forma_pagamento)).forEach(it => {
-        const data = caixaMesDia[it.caixa_id];
+      // Só ENTRADA e apenas Comanda, Crédito, Débito, Pix
+      const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      const isFat = n => { const s = norm(n); return s.includes('comanda')||s.includes('credito')||s.includes('debito')||s.includes('pix'); };
+      itens.filter(it => it.tipo === 'ENTRADA' && isFat(it.forma_pagamento)).forEach(it => {
+        const data = caixaData[it.caixa_id];
         if (!data) return;
-        const dia = parseInt(data.substring(8,10));
-        const val = Number(it.valor||0);
-        pdvDiario[dia] = (pdvDiario[dia]||0) + val;
-        const nomeCat = (it.forma_pagamento||'').trim();
-        pdvTotais[nomeCat] = (pdvTotais[nomeCat]||0) + val;
+        const dia = parseInt(data.substring(8, 10));
+        const val = Number(it.valor || 0);
+        pdvDiario[dia] = (pdvDiario[dia] || 0) + val;
+        const cat = (it.forma_pagamento || '').trim();
+        // normaliza o nome da categoria para agrupar ex: "Cartão Crédito VISA" → "Cartão Crédito"
+        const catGrupo = cat.replace(/\s+(MASTER\s*CARD|VISA|ELO|AMEX|HIPERCARD|HIPER).*/i, '').trim();
+        pdvTotCat[catGrupo] = (pdvTotCat[catGrupo] || 0) + val;
         if (data === hojeStr3) pdvHoje += val;
       });
     }
   } catch(e) { console.warn('PDV dash:', e); }
 
-  // Linha de totais PDV
+  const totalPDV = Object.values(pdvTotCat).reduce((s, v) => s + v, 0);
+
+  // Linha de totais PDV — texto simples sem cores
   const pdvTotaisEl = el('dash-pdv-totais');
   if (pdvTotaisEl) {
-    const totalPDV = Object.values(pdvTotais).reduce((s,v)=>s+v,0);
-    const cores = {'comanda':'#22c55e','pix':'#2563eb','credito':'#7c3aed','debito':'#0891b2','dinheiro':'#d97706'};
-    const getCorCat = nome => {
-      const n = (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-      for(const [k,c] of Object.entries(cores)) if(n.includes(k)) return c;
-      return '#6b7280';
-    };
-    pdvTotaisEl.innerHTML = Object.entries(pdvTotais).sort((a,b)=>b[1]-a[1]).map(([nome,val]) =>
-      `<div style="display:flex;flex-direction:column;gap:1px">
-        <span style="font-size:9px;font-weight:700;color:${getCorCat(nome)};text-transform:uppercase">${nome}</span>
-        <span style="font-size:13px;font-weight:800;font-family:'DM Mono',monospace;color:${getCorCat(nome)}">${fmtBRL(val)}</span>
+    pdvTotaisEl.innerHTML = Object.entries(pdvTotCat).sort((a,b) => b[1]-a[1]).map(([cat, val]) =>
+      `<div style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-size:9px;font-weight:600;text-transform:uppercase;color:var(--text2)">${cat}</span>
+        <strong style="font-size:13px;font-family:'DM Mono',monospace">${fmtBRL(val)}</strong>
       </div>`
-    ).join('') + `<div style="display:flex;flex-direction:column;gap:1px;margin-left:auto;padding-left:16px;border-left:2px solid var(--border)">
-      <span style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase">TOTAL PDV</span>
-      <span style="font-size:13px;font-weight:800;font-family:'DM Mono',monospace;color:var(--green)">${fmtBRL(totalPDV)}</span>
+    ).join('') +
+    `<div style="display:flex;flex-direction:column;gap:2px;margin-left:auto;padding-left:14px;border-left:2px solid var(--border)">
+      <span style="font-size:9px;font-weight:600;text-transform:uppercase;color:var(--text2)">TOTAL</span>
+      <strong style="font-size:13px;font-family:'DM Mono',monospace">${fmtBRL(totalPDV)}</strong>
     </div>`;
   }
 
-  // Meta financeira + termômetro baseado na meta DIÁRIA
-  if (mes) {
-    const { data: metaF } = await sb.from('metas_financeiras').select('*')
-      .eq('ano', ano).eq('mes', mes).maybeSingle();
-    const metaMes   = Number(metaF?.meta_mensal||0);
-    const diasAbertos = Number(metaF?.dias_abertos||0);
-    const metaDia   = diasAbertos > 0 ? metaMes / diasAbertos : 0;
+  // Meta financeira: busca do Supabase (metas_financeiras)
+  let metaMes = 0, diasAbertos = 0, metaDia = 0;
+  try {
+    const { data: metaF } = await sb.from('metas_financeiras').select('meta_mensal,dias_abertos')
+      .eq('ano', ano).eq('mes', mes || String(hoje3.getMonth()+1).padStart(2,'0')).maybeSingle();
+    metaMes    = Number(metaF?.meta_mensal || 0);
+    diasAbertos= Number(metaF?.dias_abertos || 0);
+    metaDia    = diasAbertos > 0 ? metaMes / diasAbertos : 0;
+  } catch(e) {}
 
-    // Faturamento PDV de hoje para o termômetro
-    const fatDia = pdvHoje || Object.values(pdvDiario).slice(-1)[0] || 0;
-    const pctDia = metaDia > 0 ? Math.min(150, (fatDia / metaDia * 100)) : 0;
-    const pctMes = metaMes > 0 ? (fatSrv / metaMes * 100).toFixed(1) : null;
+  // Termômetro — % do mês baseado em PDV total vs meta mensal
+  const pctMesTotal = metaMes > 0 ? totalPDV / metaMes * 100 : 0;
+  // % do dia: PDV hoje vs meta diária
+  const pctDiaHoje  = metaDia > 0 ? Math.min(150, pdvHoje / metaDia * 100) : 0;
 
-    // Card atingimento meta (linha 2)
-    if(el('m-meta-pct')) el('m-meta-pct').textContent = pctMes ? pctMes + '%' : '—';
-    if(el('m-meta-sub')) el('m-meta-sub').textContent = metaMes > 0 ? `meta: ${fmtBRL(metaMes)}` : 'sem meta definida';
+  if(el('dash-termo-bar'))   el('dash-termo-bar').style.height = Math.min(100, pctMesTotal) + '%';
+  if(el('dash-termo-pct'))   el('dash-termo-pct').textContent  = pctMesTotal.toFixed(1) + '%';
+  if(el('dash-termo-label')) el('dash-termo-label').textContent = pctMesTotal >= 100 ? '✅ Meta do mês atingida!' : 'da meta do mês';
+  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent   = fmtBRL(pdvHoje);
+  if(el('dash-termo-meta'))  el('dash-termo-meta').textContent  = metaDia > 0 ? fmtBRL(metaDia) : '—';
+  if(el('dash-termo-nec'))   el('dash-termo-nec').textContent   = metaDia > 0 ? fmtBRL(Math.max(0, metaDia - pdvHoje)) : '—';
+  if(el('dash-termo-mes'))   el('dash-termo-mes').textContent   = metaMes > 0 ? fmtBRL(metaMes) : '—';
 
-    // Termômetro
-    if(el('dash-termo-bar'))   el('dash-termo-bar').style.height = Math.min(100, pctDia) + '%';
-    if(el('dash-termo-pct'))   el('dash-termo-pct').textContent  = pctDia.toFixed(1) + '%';
-    if(el('dash-termo-label')) el('dash-termo-label').textContent = fatDia >= metaDia ? '✅ meta do dia atingida!' : 'da meta do dia';
-    if(el('dash-termo-fat'))   el('dash-termo-fat').textContent   = fmtBRL(fatDia);
-    if(el('dash-termo-meta'))  el('dash-termo-meta').textContent  = metaDia > 0 ? fmtBRL(metaDia) : '—';
-    if(el('dash-termo-nec'))   el('dash-termo-nec').textContent   = metaDia > 0 ? fmtBRL(Math.max(0, metaDia - fatDia)) : '—';
-    if(el('dash-termo-mes'))   el('dash-termo-mes').textContent   = metaMes > 0 ? fmtBRL(metaMes) : '—';
+  // Card atingimento meta (linha 2)
+  if(el('m-meta-pct')) el('m-meta-pct').textContent = metaMes > 0 ? pctMesTotal.toFixed(1) + '%' : '—';
+  if(el('m-meta-sub')) el('m-meta-sub').textContent = metaMes > 0 ? 'meta: ' + fmtBRL(metaMes) : 'sem meta definida';
 
-    // Status da meta no gráfico
-    const statusEl = el('dash-meta-status');
-    if (statusEl) {
-      const totalPDV2 = Object.values(pdvDiario).reduce((s,v)=>s+v,0);
-      const pctMesNum = metaMes > 0 ? totalPDV2/metaMes*100 : 0;
-      if (metaMes <= 0) {
-        statusEl.style.display = 'none';
-      } else if (pctMesNum >= 100) {
-        statusEl.style.cssText = 'margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;background:#dcfce7;color:#166534;border:1px solid #bbf7d0';
-        statusEl.textContent = '🏆 Meta do mês atingida! ' + pctMesNum.toFixed(1) + '% — ' + fmtBRL(totalPDV2) + ' de ' + fmtBRL(metaMes);
-      } else {
-        statusEl.style.cssText = 'margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;background:#fef3c7;color:#92400e;border:1px solid #fde68a';
-        statusEl.textContent = '⚡ ' + pctMesNum.toFixed(1) + '% da meta — falta ' + fmtBRL(metaMes - totalPDV2) + ' para ' + fmtBRL(metaMes);
-      }
+  // Status da meta abaixo do gráfico
+  const statusEl = el('dash-meta-status');
+  if (statusEl) {
+    if (!metaMes) {
+      statusEl.style.display = 'none';
+    } else if (pctMesTotal >= 100) {
+      statusEl.style.cssText = 'margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;background:#dcfce7;color:#166534;border:1px solid #bbf7d0';
+      statusEl.textContent = '🏆 Meta do mês atingida! ' + pctMesTotal.toFixed(1) + '% — ' + fmtBRL(totalPDV) + ' de ' + fmtBRL(metaMes);
+    } else {
+      statusEl.style.cssText = 'margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;background:var(--bg3);color:var(--text2);border:1px solid var(--border)';
+      statusEl.textContent = pctMesTotal.toFixed(1) + '% da meta — falta ' + fmtBRL(metaMes - totalPDV) + ' para ' + fmtBRL(metaMes);
     }
   }
 
   // ── 3. Gráfico faturamento diário ─────────────────────
-  // Gráfico PDV diário (usa pdvDiario calculado acima)
+  // ── Gráfico PDV diário — barras + linha meta ─────────────
   const maxDia = mes ? new Date(parseInt(ano), parseInt(mes), 0).getDate() : 12;
-  const dLabels = mes ? Array.from({length:maxDia},(_,i)=>i+1)
-                      : ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-  // Valores PDV por dia (ou por mês se visão anual)
+  const dLabels = mes
+    ? Array.from({length: maxDia}, (_, i) => i + 1)
+    : ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const dVals = mes
-    ? dLabels.map(d => pdvDiario[d]||0)
-    : Array.from({length:12},(_,m)=>{
-        const mm = String(m+1).padStart(2,'0');
-        return Object.entries(pdvDiario).reduce((s,[d,v])=>s+v,0); // fallback anual
-      });
+    ? dLabels.map(d => pdvDiario[d] || 0)
+    : ['01','02','03','04','05','06','07','08','09','10','11','12'].map(mm =>
+        Object.entries(pdvDiario).filter(([d]) => String(d).padStart(2,'0')===mm).reduce((s,[,v])=>s+v,0)
+      );
 
-  // Linha de meta diária
-  const { data: metaFChart } = mes
-    ? await sb.from('metas_financeiras').select('meta_mensal,dias_abertos').eq('ano',ano).eq('mes',mes).maybeSingle()
-    : { data: null };
-  const metaMesChart = Number(metaFChart?.meta_mensal||0);
-  const diasAbChart  = Number(metaFChart?.dias_abertos||0);
-  const metaDiaChart = diasAbChart > 0 ? metaMesChart / diasAbChart : 0;
-  const metaLine = mes && metaDiaChart > 0
-    ? dLabels.map(() => metaDiaChart)
-    : null;
-
-  // Atualiza label periodo
+  // Atualiza subtítulo
   if(el('dash-pdv-period')) {
-    const totalPDVChart = Object.values(pdvDiario).reduce((s,v)=>s+v,0);
-    el('dash-pdv-period').textContent = `total: ${fmtBRL(totalPDVChart)}` + (metaDiaChart > 0 ? ` · meta/dia: ${fmtBRL(metaDiaChart)}` : '');
+    el('dash-pdv-period').textContent = 'total: ' + fmtBRL(totalPDV) + (metaDia > 0 ? ' · meta/dia: ' + fmtBRL(metaDia) : '');
   }
+
+  // Plugin para números acima das barras
+  const labelsTopPlugin = {
+    id: 'labelsTop',
+    afterDatasetsDraw(chart) {
+      const { ctx, data } = chart;
+      const ds = chart.getDatasetMeta(0);
+      ctx.save();
+      ctx.font = 'bold 8px Outfit,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#374151';
+      ds.data.forEach((bar, i) => {
+        const val = data.datasets[0].data[i];
+        if (val > 0) {
+          const label = val >= 1000 ? 'R$' + (val/1000).toFixed(1) + 'k' : 'R$' + val.toFixed(0);
+          ctx.fillText(label, bar.x, bar.y - 4);
+        }
+      });
+      ctx.restore();
+    }
+  };
 
   if (chartDaily) chartDaily.destroy();
   const ctx1 = el('chart-daily')?.getContext('2d');
   if (ctx1) {
     const datasets = [{
-      label:'PDV',
+      label: 'PDV',
       data: dVals,
-      backgroundColor: dVals.map((v,i) => metaDiaChart > 0 ? (v >= metaDiaChart ? 'rgba(34,197,94,0.85)' : 'rgba(251,146,60,0.75)') : 'rgba(34,197,94,0.85)'),
-      borderColor: dVals.map((v,i) => metaDiaChart > 0 ? (v >= metaDiaChart ? '#16a34a' : '#ea580c') : '#16a34a'),
-      borderWidth: 1.5,
-      borderRadius: 4,
+      backgroundColor: 'rgba(42,157,92,0.75)',
+      borderColor: '#2a9d5c',
+      borderWidth: 1,
+      borderRadius: 3,
       type: 'bar'
     }];
-    if (metaLine) {
+    if (metaDia > 0) {
       datasets.push({
-        label:'Meta/dia',
-        data: metaLine,
+        label: 'Meta/dia',
+        data: dLabels.map(() => metaDia),
         type: 'line',
         borderColor: '#f59e0b',
         borderWidth: 2,
-        borderDash: [5,3],
+        borderDash: [6, 3],
         pointRadius: 0,
         fill: false,
         tension: 0
@@ -5026,22 +5032,24 @@ async function loadDashboard() {
     chartDaily = new Chart(ctx1, {
       type: 'bar',
       data: { labels: dLabels, datasets },
+      plugins: [labelsTopPlugin],
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmtBRL(c.raw)}` } }
+          tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmtBRL(c.raw) } }
         },
         scales: {
           x: { ticks:{ font:{size:9} }, grid:{ display:false } },
-          y: { ticks:{ font:{size:9}, callback: v => v>=1000?'R$'+(v/1000).toFixed(0)+'k':'R$'+v }, grid:{ color:'rgba(0,0,0,0.04)' } }
-        }
+          y: { ticks:{ font:{size:9}, callback: v => v>=1000 ? 'R$'+(v/1000).toFixed(0)+'k' : 'R$'+v },
+               grid:{ color:'rgba(0,0,0,0.04)' } }
+        },
+        layout: { padding: { top: 18 } }
       }
     });
   }
 
-  // dailyMap para compatibilidade com o resto do código (top dia)
-  const dailyMap = pdvDiario;
+  const dailyMap = pdvDiario; // compatibilidade
 
   // ── 4. Donut entradas por categoria ───────────────────
   const entCatMap = {};
