@@ -1024,44 +1024,42 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div id="dash-meta-status" style="margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;text-align:center"></div>
               </div>
             </div>
-            <!-- Termômetro meta mensal — vertical igual à foto -->
-            <div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center">
-              <!-- Ícone + título + status -->
-              <div style="display:flex;align-items:center;gap:8px;align-self:flex-start;margin-bottom:4px">
-                <div style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🌡️</div>
+            <!-- Termômetro meta mensal -->
+            <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:0">
+              <!-- Título + status -->
+              <div style="display:flex;align-items:center;gap:6px;align-self:flex-start;margin-bottom:10px">
+                <span style="font-size:16px">🌡️</span>
                 <div>
-                  <div style="font-weight:700;font-size:13px">Termômetro de Meta</div>
-                  <div style="font-size:10px;font-weight:600;color:var(--green)" id="dash-termo-label">DA META</div>
+                  <div style="font-weight:700;font-size:12px">Termômetro de Meta</div>
+                  <div style="font-size:10px;color:var(--green);font-weight:600" id="dash-termo-label">DA META</div>
                 </div>
               </div>
 
-              <!-- Termômetro vertical SVG -->
-              <div style="position:relative;width:36px;margin:16px 0 8px">
-                <!-- Tubo -->
-                <div style="position:relative;width:20px;height:180px;background:#e5e7eb;border-radius:10px;overflow:visible;margin:0 auto">
-                  <!-- Preenchimento que sobe -->
-                  <div id="dash-termo-bar" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#16a34a,#4ade80);border-radius:10px;transition:height .8s ease;height:0%"></div>
+              <!-- Tubo vertical -->
+              <div style="position:relative;width:24px;margin-bottom:6px">
+                <div style="position:relative;width:16px;height:140px;background:var(--border);border-radius:8px;overflow:hidden;margin:0 auto">
+                  <div id="dash-termo-bar" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#059669,#4ade80);border-radius:8px;transition:height .8s ease;height:0%"></div>
                 </div>
-                <!-- Bolinha no fundo -->
-                <div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:36px;height:36px;background:#16a34a;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.15)"></div>
+                <!-- Bolinha -->
+                <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:24px;height:24px;background:#059669;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
               </div>
 
-              <!-- % -->
-              <div style="font-size:28px;font-weight:900;color:#16a34a;margin-top:18px;font-family:'DM Mono',monospace" id="dash-termo-pct">0%</div>
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2);letter-spacing:.5px;margin-bottom:14px">DA META</div>
+              <!-- % grande -->
+              <div style="font-size:24px;font-weight:900;margin-top:14px;font-family:'DM Mono',monospace" id="dash-termo-pct">0%</div>
+              <div style="font-size:9px;text-transform:uppercase;color:var(--text2);letter-spacing:.5px;margin-bottom:10px">da meta</div>
 
-              <!-- Detalhes -->
-              <div style="width:100%;border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:7px">
-                <div style="display:flex;justify-content:space-between;font-size:11px">
+              <!-- Linhas de detalhe -->
+              <div style="width:100%;border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between;font-size:10px">
                   <span style="color:var(--text2)">Realizado</span>
                   <strong style="font-family:'DM Mono',monospace" id="dash-termo-fat">—</strong>
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:11px">
-                  <span style="color:var(--text2)">Meta diária</span>
+                <div style="display:flex;justify-content:space-between;font-size:10px">
+                  <span style="color:var(--text2)">Meta/dia</span>
                   <strong style="font-family:'DM Mono',monospace" id="dash-termo-meta">—</strong>
                 </div>
-                <div style="display:flex;justify-content:space-between;font-size:11px">
-                  <span style="color:var(--text2)">Meta</span>
+                <div style="display:flex;justify-content:space-between;font-size:10px">
+                  <span style="color:var(--text2)">Meta mês</span>
                   <strong style="font-family:'DM Mono',monospace" id="dash-termo-mes">—</strong>
                 </div>
               </div>
@@ -4810,8 +4808,13 @@ async function loadDashboard() {
         const {data:l} = await sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id',idsE.slice(i,i+200));
         if(l?.length) itE = itE.concat(l);
       }
-      const normE = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-      const isFatE = n => { const s=normE(n); return s.includes('comanda')||s.includes('credito')||s.includes('debito')||s.includes('pix'); };
+      const normE = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      // Exclui "Crédito/Dívida", "Débito/Dívida" e similares — só Comanda, Cartão Crédito, Cartão Débito, Pix
+      const isFatE = n => {
+        const s = normE(n);
+        if (s.includes('divida') || s.includes('dívida')) return false;
+        return s.includes('comanda') || s.includes('credito') || s.includes('debito') || s.includes('pix');
+      };
       itE.filter(it => it.tipo==='ENTRADA' && isFatE(it.forma_pagamento)).forEach(it => {
         const data = cxDataE[it.caixa_id]; if(!data) return;
         const dia = parseInt(data.substring(8,10));
@@ -5045,9 +5048,13 @@ async function loadDashboard() {
           .in('caixa_id', ids.slice(i, i + 200));
         if (lote?.length) itens = itens.concat(lote);
       }
-      // Só ENTRADA e apenas Comanda, Crédito, Débito, Pix
-      const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-      const isFat = n => { const s = norm(n); return s.includes('comanda')||s.includes('credito')||s.includes('debito')||s.includes('pix'); };
+      // Só ENTRADA: Comanda, Cartão Crédito, Cartão Débito, Pix — exclui Crédito/Dívida
+      const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const isFat = n => {
+        const s = norm(n);
+        if (s.includes('divida')) return false;
+        return s.includes('comanda') || s.includes('credito') || s.includes('debito') || s.includes('pix');
+      };
       itens.filter(it => it.tipo === 'ENTRADA' && isFat(it.forma_pagamento)).forEach(it => {
         const data = caixaData[it.caixa_id];
         if (!data) return;
@@ -5097,9 +5104,9 @@ async function loadDashboard() {
   } catch(e) { console.warn('meta financeira:', e); }
 
   // % PDV do período vs meta do mês
-  const pctMesTotal = metaMes > 0 ? Math.min(150, totalPDV / metaMes * 100) : 0;
-  // PDV hoje vs meta do dia
-  const fatHojeDisplay = pdvHoje > 0 ? pdvHoje : (mes === String(hoje3.getMonth()+1).padStart(2,'0') ? 0 : totalPDV);
+  // Usa fatPDV (calculado no bloco Early, antes) para o termômetro
+  const realizado = fatPDV > 0 ? fatPDV : totalPDV;
+  const pctMesTotal = metaMes > 0 ? Math.min(150, realizado / metaMes * 100) : 0;
   const faltaHoje = metaDia > 0 ? Math.max(0, metaDia - pdvHoje) : 0;
 
   // ── Termômetro vertical: barra sobe com height ──
@@ -5116,10 +5123,10 @@ async function loadDashboard() {
   const pctEl = el('dash-termo-pct');
   if(pctEl) {
     pctEl.textContent = pctMesTotal.toFixed(1) + '%';
-    pctEl.style.color = barPct >= 100 ? '#16a34a' : barPct >= 70 ? '#d97706' : '#dc2626';
+    pctEl.style.color = barPct >= 100 ? '#16a34a' : 'var(--text)';
   }
   if(el('dash-termo-label')) el('dash-termo-label').textContent = pctMesTotal >= 100 ? '🏆 META ATINGIDA!' : 'DA META';
-  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent   = fmtBRL(totalPDV);
+  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent   = fmtBRL(realizado);
   if(el('dash-termo-meta'))  el('dash-termo-meta').textContent  = metaDia > 0 ? fmtBRL(metaDia) : '—';
   if(el('dash-termo-mes'))   el('dash-termo-mes').textContent   = metaMes > 0 ? fmtBRL(metaMes) : '—';
 
