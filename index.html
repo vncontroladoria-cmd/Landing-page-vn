@@ -10653,7 +10653,18 @@ function abrirModalConta(tipo) {
   document.getElementById('ct-obs').value = '';
   document.getElementById('ct-cat-busca').value = '';
   document.getElementById('ct-categoria').value = '';
-  document.getElementById('ct-parcelas-group').style.display = 'none';
+  // Reseta elementos opcionais (podem não existir no novo modal)
+  const parcelasGroup = document.getElementById('ct-parcelas-group');
+  if (parcelasGroup) parcelasGroup.style.display = 'none';
+  const nfInput = document.getElementById('ct-numero-nf');
+  if (nfInput) nfInput.value = '';
+  const pdfStatus = document.getElementById('ct-pdf-status');
+  if (pdfStatus) pdfStatus.textContent = 'Nenhum arquivo selecionado';
+  const pdfPreview = document.getElementById('ct-parcelas-preview');
+  if (pdfPreview) pdfPreview.style.display = 'none';
+  const lancPreview = document.getElementById('ct-preview-lancamentos');
+  if (lancPreview) lancPreview.style.display = 'none';
+  _contaParcelas = [];
   document.getElementById('modal-conta').dataset.editId = '';
   document.getElementById('modal-conta').classList.add('open');
   if (!_categorias.length) {
