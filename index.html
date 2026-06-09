@@ -894,86 +894,107 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- LINHA 1: 5 CARDS COLORIDOS PRINCIPAIS -->
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px">
+          <!-- LINHA 1: 6 CARDS COLORIDOS PRINCIPAIS -->
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:10px">
             <!-- Faturamento -->
             <div style="background:linear-gradient(135deg,#059669,#10b981);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
               <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">FATURAMENTO</div>
-              <div style="font-size:19px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-fat">—</div>
+              <div style="font-size:17px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-fat">—</div>
               <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-fat-d">faturamento de serviços</div>
               <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">💰</div>
             </div>
             <!-- Clientes -->
             <div style="background:linear-gradient(135deg,#2563eb,#60a5fa);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
               <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">CLIENTES</div>
-              <div style="font-size:28px;font-weight:800;line-height:1.1" id="m-cli">—</div>
+              <div style="font-size:26px;font-weight:800;line-height:1.1" id="m-cli">—</div>
               <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-cli-d">clientes únicos</div>
               <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">👥</div>
             </div>
             <!-- Serviços -->
             <div style="background:linear-gradient(135deg,#7c3aed,#a78bfa);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
               <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">SERVIÇOS</div>
-              <div style="font-size:28px;font-weight:800;line-height:1.1" id="m-srv">—</div>
+              <div style="font-size:26px;font-weight:800;line-height:1.1" id="m-srv">—</div>
               <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-srv-d">atendimentos</div>
               <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">✂️</div>
             </div>
             <!-- Produtos -->
             <div style="background:linear-gradient(135deg,#d97706,#fbbf24);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
               <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">PRODUTOS</div>
-              <div style="font-size:28px;font-weight:800;line-height:1.1" id="m-prod">—</div>
+              <div style="font-size:26px;font-weight:800;line-height:1.1" id="m-prod">—</div>
               <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-prod-d">unidades vendidas</div>
               <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">📦</div>
             </div>
             <!-- Ticket Médio -->
             <div style="background:linear-gradient(135deg,#0891b2,#38bdf8);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
               <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">TICKET MÉDIO</div>
-              <div style="font-size:19px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-ticket">—</div>
+              <div style="font-size:17px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-ticket">—</div>
               <div style="font-size:10px;opacity:.75;margin-top:4px">por atendimento</div>
               <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">🎯</div>
             </div>
+            <!-- Média de Faturamento/dia -->
+            <div style="background:linear-gradient(135deg,#4f46e5,#818cf8);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">MÉDIA DE FATURAMENTO</div>
+              <div style="font-size:17px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-media-fat">—</div>
+              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-media-fat-d">por dia trabalhado</div>
+              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">📅</div>
+            </div>
           </div>
 
-          <!-- LINHA 2: 5 CARDS FINANCEIROS BRANCOS -->
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">
-            <div class="card" style="padding:12px 14px">
+          <!-- LINHA 2: 6 CARDS FINANCEIROS BRANCOS -->
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px">
+            <!-- Lucro Líquido -->
+            <div class="card" style="padding:12px 14px;border-left:3px solid #dc2626" id="m-luc-card">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
                 <span style="font-size:16px">💵</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Entradas</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Lucro Líquido</span>
               </div>
-              <div style="font-size:15px;font-weight:800;color:#059669;font-family:'DM Mono',monospace" id="m-entrada">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px">lançamentos do período</div>
+              <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace" id="m-luc">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-luc-d">entradas − saídas</div>
             </div>
-            <div class="card" style="padding:12px 14px">
+            <!-- Margem de Contribuição -->
+            <div class="card" style="padding:12px 14px;border-left:3px solid #d97706">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
                 <span style="font-size:16px">📊</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Taxa de Ocupação</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Margem Contrib.</span>
               </div>
-              <div style="font-size:15px;font-weight:800;color:#2563eb;font-family:'DM Mono',monospace" id="m-ocup">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px">dias com movimentação</div>
+              <div style="font-size:14px;font-weight:800;color:#d97706;font-family:'DM Mono',monospace" id="m-margem">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-margem-d">% sobre faturamento</div>
             </div>
-            <div class="card" style="padding:12px 14px">
+            <!-- Ponto de Equilíbrio -->
+            <div class="card" style="padding:12px 14px;border-left:3px solid #059669">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:16px">📈</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Ticket Ocupação</span>
+                <span style="font-size:16px">⚖️</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Ponto de Equilíbrio</span>
               </div>
-              <div style="font-size:15px;font-weight:800;color:#7c3aed;font-family:'DM Mono',monospace" id="m-tick-ocup">R$ 0,00</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px">faturamento / dia com mov.</div>
+              <div style="font-size:14px;font-weight:800;color:#059669;font-family:'DM Mono',monospace" id="m-pe">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-pe-d">receita mínima necessária</div>
             </div>
-            <div class="card" style="padding:12px 14px;border:1.5px solid #fde68a;background:#fffbeb">
+            <!-- A Vencer -->
+            <div class="card" style="padding:12px 14px;border-left:3px solid #7c3aed">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:16px">🎯</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:#92400e">Atingimento Meta</span>
+                <span style="font-size:16px">📅</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">A Vencer</span>
               </div>
-              <div style="font-size:15px;font-weight:800;color:#d97706;font-family:'DM Mono',monospace" id="m-meta-pct">—</div>
-              <div style="font-size:10px;color:#92400e;margin-top:3px" id="m-meta-sub">meta do período</div>
+              <div style="font-size:14px;font-weight:800;color:#7c3aed;font-family:'DM Mono',monospace" id="m-avencer">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-avencer-d">contas a pagar</div>
             </div>
-            <div class="card" style="padding:12px 14px">
+            <!-- Total a Pagar -->
+            <div class="card" style="padding:12px 14px;border-left:3px solid #2563eb">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:16px">💸</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Saídas</span>
+                <span style="font-size:16px">💳</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Total a Pagar</span>
               </div>
-              <div style="font-size:15px;font-weight:800;color:#dc2626;font-family:'DM Mono',monospace" id="m-sai">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px">despesas do período</div>
+              <div style="font-size:14px;font-weight:800;color:#2563eb;font-family:'DM Mono',monospace" id="m-total-pagar">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-total-pagar-d">sem pendências</div>
+            </div>
+            <!-- Saldo em Caixa -->
+            <div class="card" style="padding:12px 14px;border-left:3px solid #0891b2">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span style="font-size:16px">🏦</span>
+                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Saldo em Caixa</span>
+              </div>
+              <div style="font-size:14px;font-weight:800;color:#0891b2;font-family:'DM Mono',monospace" id="m-saldo-caixa">—</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-saldo-caixa-d">saldo PDV do período</div>
             </div>
           </div>
 
@@ -4722,13 +4743,7 @@ async function loadDashboard() {
   const saidas   = (lancs||[]).filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
   const lucro    = entradas - saidas;
 
-  if(el('m-entrada')) el('m-entrada').textContent = fmtBRL(entradas);
-  if(el('m-sai'))     el('m-sai').textContent     = fmtBRL(saidas);
-  if(el('m-luc')) {
-    el('m-luc').textContent = fmtBRL(Math.abs(lucro));
-    el('m-luc').style.color = lucro >= 0 ? 'var(--green)' : 'var(--red)';
-    if(el('m-luc-d')) el('m-luc-d').textContent = lucro >= 0 ? '↑ resultado positivo' : '↓ resultado negativo';
-  }
+  // entradas/saidas preenchidos abaixo junto com os outros cards
 
   // ── 2. Dados de serviços ──────────────────────────────
   const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
@@ -4772,6 +4787,77 @@ async function loadDashboard() {
   if(el('m-ticket'))    el('m-ticket').textContent   = fmtBRL(ticketSrv);
   if(el('m-ocup'))      el('m-ocup').textContent     = ocup + '%';
   if(el('m-tick-ocup')) el('m-tick-ocup').textContent= fmtBRL(ticket);
+
+  // Média de faturamento por dia trabalhado
+  const mediaDia = diasComMov > 0 ? fatSrv / diasComMov : 0;
+  if(el('m-media-fat'))   el('m-media-fat').textContent = fmtBRL(mediaDia);
+  if(el('m-media-fat-d')) el('m-media-fat-d').textContent = diasComMov + ' dias trabalhados';
+
+  // Lucro Líquido (entradas - saídas dos lançamentos)
+  if(el('m-luc')) {
+    el('m-luc').textContent = fmtBRL(Math.abs(lucro));
+    el('m-luc').style.color = lucro >= 0 ? 'var(--green)' : 'var(--red)';
+    const card = document.getElementById('m-luc-card');
+    if(card) card.style.borderLeftColor = lucro >= 0 ? '#059669' : '#dc2626';
+  }
+  if(el('m-luc-d')) el('m-luc-d').textContent = lucro >= 0 ? '↑ resultado positivo' : '↓ resultado negativo';
+
+  // Margem de Contribuição = (faturamento - saídas) / faturamento
+  const margem = fatSrv > 0 ? ((fatSrv - saidas) / fatSrv * 100) : 0;
+  if(el('m-margem')) {
+    el('m-margem').textContent = margem.toFixed(1) + '%';
+    el('m-margem').style.color = margem >= 0 ? '#d97706' : '#dc2626';
+  }
+  if(el('m-margem-d')) el('m-margem-d').textContent = margem >= 20 ? 'Saudável' : margem >= 0 ? 'Atenção · sobra para fixos' : 'Negativo';
+
+  // Ponto de Equilíbrio = saídas / margem (se margem > 0)
+  const margemFrac = fatSrv > 0 ? (fatSrv - saidas) / fatSrv : 0;
+  const pe = margemFrac > 0 ? saidas / margemFrac : 0;
+  if(el('m-pe')) {
+    el('m-pe').textContent = pe > 0 ? fmtBRL(pe) : '—';
+    el('m-pe').style.color = fatSrv >= pe ? '#059669' : '#dc2626';
+  }
+  if(el('m-pe-d')) el('m-pe-d').textContent = pe > 0 ? (fatSrv >= pe ? 'Superado em ' + ((fatSrv/pe-1)*100).toFixed(0) + '%' : 'Falta ' + fmtBRL(pe - fatSrv)) : 'receita mínima necessária';
+
+  // A Vencer e Total a Pagar (contas_pagar)
+  try {
+    const hoje2 = new Date();
+    const proxDom = new Date(hoje2);
+    proxDom.setDate(hoje2.getDate() + (7 - hoje2.getDay()));
+    const proxDomStr = proxDom.toISOString().substring(0,10);
+    const hojeStr = hoje2.toISOString().substring(0,10);
+    const { data: cpAVencer } = await sb.from('contas_pagar').select('valor,status,data_vencimento')
+      .gte('data_vencimento', hojeStr).lte('data_vencimento', proxDomStr);
+    const { data: cpTotal } = await sb.from('contas_pagar').select('valor,status')
+      .in('status', ['a pagar','pendente','enviado','atrasado']);
+    const somaAVencer = (cpAVencer||[]).reduce((s,c)=>s+Number(c.valor||0),0);
+    const somaTotal   = (cpTotal||[]).reduce((s,c)=>s+Number(c.valor||0),0);
+    if(el('m-avencer'))   el('m-avencer').textContent   = fmtBRL(somaAVencer);
+    if(el('m-avencer-d')) el('m-avencer-d').textContent = (cpAVencer||[]).length + ' contas até domingo';
+    if(el('m-total-pagar'))   el('m-total-pagar').textContent   = fmtBRL(somaTotal);
+    if(el('m-total-pagar-d')) el('m-total-pagar-d').textContent = somaTotal > 0 ? (cpTotal||[]).length + ' pendências' : 'sem pendências';
+  } catch(e) {}
+
+  // Saldo em Caixa (PDV do período)
+  try {
+    const { data: caixas } = await sb.from('pdv_caixas').select('id').gte('data_caixa',ini).lte('data_caixa',fim);
+    if (caixas?.length) {
+      const ids = caixas.map(c=>c.id);
+      let saldoPDV = 0;
+      for(let i=0;i<ids.length;i+=200){
+        const {data:its} = await sb.from('pdv_itens').select('valor,tipo').in('caixa_id',ids.slice(i,i+200));
+        (its||[]).forEach(it=>{ saldoPDV += it.tipo==='ENTRADA'?Number(it.valor||0):-Number(it.valor||0); });
+      }
+      if(el('m-saldo-caixa')) {
+        el('m-saldo-caixa').textContent = fmtBRL(Math.abs(saldoPDV));
+        el('m-saldo-caixa').style.color = saldoPDV >= 0 ? '#0891b2' : '#dc2626';
+      }
+      if(el('m-saldo-caixa-d')) el('m-saldo-caixa-d').textContent = saldoPDV >= 0 ? 'saldo PDV do período' : 'saldo negativo';
+    } else {
+      if(el('m-saldo-caixa'))   el('m-saldo-caixa').textContent   = fmtBRL(0);
+      if(el('m-saldo-caixa-d')) el('m-saldo-caixa-d').textContent = 'sem movimentação PDV';
+    }
+  } catch(e) {}
 
   // Meta financeira
   if (mes) {
