@@ -1008,8 +1008,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:11px;color:var(--text2)" id="dash-pdv-period">comanda · crédito · débito · pix</div>
                 </div>
                 <div style="display:flex;gap:10px;font-size:10px;color:var(--text2);flex-wrap:wrap">
-                  <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:#22c55e;display:inline-block;border-radius:2px"></span>Faturado</span>
-                  <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;border:2px dashed #f59e0b;display:inline-block;border-radius:2px"></span>Meta/dia</span>
+                  <span style="display:flex;align-items:center;gap:4px">
+                    <span style="width:12px;height:3px;border-top:2px dashed #ef4444;display:inline-block"></span>Meta diária
+                  </span>
+                  <span style="display:flex;align-items:center;gap:4px">
+                    <span style="width:12px;height:10px;background:#1a5c38;display:inline-block;border-radius:2px"></span>Faturamento
+                  </span>
                 </div>
               </div>
               <!-- Linha de totais PDV -->
@@ -1020,43 +1024,46 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div id="dash-meta-status" style="margin-top:10px;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;text-align:center"></div>
               </div>
             </div>
-            <!-- Termômetro meta mensal -->
-            <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px">
-              <div style="font-weight:700;font-size:13px">🌡️ Meta do Mês</div>
-
-              <!-- Linha: Meta -->
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Meta</span>
-                <strong style="font-family:'DM Mono',monospace;font-size:13px" id="dash-termo-mes">—</strong>
-              </div>
-
-              <!-- Linha: Realizado -->
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Realizado</span>
-                <strong style="font-family:'DM Mono',monospace;font-size:13px;color:var(--green)" id="dash-termo-fat">—</strong>
-              </div>
-
-              <!-- Barra de progresso horizontal + % -->
-              <div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                  <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase" id="dash-termo-label">% Atingido</span>
-                  <strong style="font-size:18px;font-weight:800" id="dash-termo-pct">0%</strong>
-                </div>
-                <div style="position:relative;width:100%;height:12px;background:var(--border);border-radius:6px;overflow:hidden">
-                  <div id="dash-termo-bar" style="position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,#dc2626,#f59e0b,#22c55e);border-radius:6px;transition:width .6s ease;width:0%"></div>
+            <!-- Termômetro meta mensal — vertical igual à foto -->
+            <div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center">
+              <!-- Ícone + título + status -->
+              <div style="display:flex;align-items:center;gap:8px;align-self:flex-start;margin-bottom:4px">
+                <div style="width:32px;height:32px;background:#dcfce7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🌡️</div>
+                <div>
+                  <div style="font-weight:700;font-size:13px">Termômetro de Meta</div>
+                  <div style="font-size:10px;font-weight:600;color:var(--green)" id="dash-termo-label">DA META</div>
                 </div>
               </div>
 
-              <!-- Linha: Meta/dia -->
-              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:6px;border-top:1px solid var(--border)">
-                <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Meta/dia</span>
-                <strong style="font-family:'DM Mono',monospace;font-size:12px" id="dash-termo-meta">—</strong>
+              <!-- Termômetro vertical SVG -->
+              <div style="position:relative;width:36px;margin:16px 0 8px">
+                <!-- Tubo -->
+                <div style="position:relative;width:20px;height:180px;background:#e5e7eb;border-radius:10px;overflow:visible;margin:0 auto">
+                  <!-- Preenchimento que sobe -->
+                  <div id="dash-termo-bar" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,#16a34a,#4ade80);border-radius:10px;transition:height .8s ease;height:0%"></div>
+                </div>
+                <!-- Bolinha no fundo -->
+                <div style="position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);width:36px;height:36px;background:#16a34a;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.15)"></div>
               </div>
 
-              <!-- Linha: Falta -->
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Falta no mês</span>
-                <strong style="font-family:'DM Mono',monospace;font-size:12px" id="dash-termo-nec">—</strong>
+              <!-- % -->
+              <div style="font-size:28px;font-weight:900;color:#16a34a;margin-top:18px;font-family:'DM Mono',monospace" id="dash-termo-pct">0%</div>
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2);letter-spacing:.5px;margin-bottom:14px">DA META</div>
+
+              <!-- Detalhes -->
+              <div style="width:100%;border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;justify-content:space-between;font-size:11px">
+                  <span style="color:var(--text2)">Realizado</span>
+                  <strong style="font-family:'DM Mono',monospace" id="dash-termo-fat">—</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px">
+                  <span style="color:var(--text2)">Meta diária</span>
+                  <strong style="font-family:'DM Mono',monospace" id="dash-termo-meta">—</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px">
+                  <span style="color:var(--text2)">Meta</span>
+                  <strong style="font-family:'DM Mono',monospace" id="dash-termo-mes">—</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -5079,16 +5086,26 @@ async function loadDashboard() {
   const fatHojeDisplay = pdvHoje > 0 ? pdvHoje : (mes === String(hoje3.getMonth()+1).padStart(2,'0') ? 0 : totalPDV);
   const faltaHoje = metaDia > 0 ? Math.max(0, metaDia - pdvHoje) : 0;
 
-  // ── Termômetro: barra horizontal — PDV total do mês vs meta ──
+  // ── Termômetro vertical: barra sobe com height ──
   const faltaMes = metaMes > 0 ? Math.max(0, metaMes - totalPDV) : 0;
-  // barra usa width (horizontal)
-  if(el('dash-termo-bar'))   el('dash-termo-bar').style.width  = Math.min(100, pctMesTotal) + '%';
-  if(el('dash-termo-pct'))   el('dash-termo-pct').textContent  = pctMesTotal.toFixed(1) + '%';
-  if(el('dash-termo-label')) el('dash-termo-label').textContent = pctMesTotal >= 100 ? '✅ Meta atingida!' : '% Atingido';
-  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent  = fmtBRL(totalPDV);   // realizado = PDV total do período
-  if(el('dash-termo-meta'))  el('dash-termo-meta').textContent = metaDia > 0 ? fmtBRL(metaDia) : '—';
-  if(el('dash-termo-nec'))   el('dash-termo-nec').textContent  = faltaMes > 0 ? fmtBRL(faltaMes) : metaMes > 0 ? '✅ Atingida' : '—';
-  if(el('dash-termo-mes'))   el('dash-termo-mes').textContent  = metaMes > 0 ? fmtBRL(metaMes) : '—';
+  const barPct   = Math.min(100, pctMesTotal);
+  const barEl    = el('dash-termo-bar');
+  if (barEl) {
+    barEl.style.height = barPct + '%';
+    // verde quando >= 100%, gradiente vermelho→verde enquanto sobe
+    barEl.style.background = barPct >= 100
+      ? '#16a34a'
+      : `linear-gradient(0deg,#dc2626,#f59e0b ${Math.min(80,barPct)}%,#16a34a 100%)`;
+  }
+  const pctEl = el('dash-termo-pct');
+  if(pctEl) {
+    pctEl.textContent = pctMesTotal.toFixed(1) + '%';
+    pctEl.style.color = barPct >= 100 ? '#16a34a' : barPct >= 70 ? '#d97706' : '#dc2626';
+  }
+  if(el('dash-termo-label')) el('dash-termo-label').textContent = pctMesTotal >= 100 ? '🏆 META ATINGIDA!' : 'DA META';
+  if(el('dash-termo-fat'))   el('dash-termo-fat').textContent   = fmtBRL(totalPDV);
+  if(el('dash-termo-meta'))  el('dash-termo-meta').textContent  = metaDia > 0 ? fmtBRL(metaDia) : '—';
+  if(el('dash-termo-mes'))   el('dash-termo-mes').textContent   = metaMes > 0 ? fmtBRL(metaMes) : '—';
 
   // Card atingimento meta (linha 2)
   if(el('m-meta-pct')) el('m-meta-pct').textContent = metaMes > 0 ? pctMesTotal.toFixed(1) + '%' : '—';
@@ -5120,22 +5137,25 @@ async function loadDashboard() {
         Object.entries(pdvDiario).filter(([d]) => String(d).padStart(2,'0')===mm).reduce((s,[,v])=>s+v,0)
       );
 
-  // Atualiza subtítulo
+  // Subtítulo do gráfico
   if(el('dash-pdv-period')) {
-    el('dash-pdv-period').textContent = 'total: ' + fmtBRL(totalPDV) + (metaDia > 0 ? ' · meta/dia: ' + fmtBRL(metaDia) : '');
+    const mMesLabel = mes ? ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mes)-1] : ano;
+    el('dash-pdv-period').textContent = (mMesLabel + '/' + ano + ' · REALIZADO VS META').toUpperCase();
   }
+  // Título do card
+  const cardTitleEl = document.querySelector('#page-dashboard .card .section-card-title, #page-dashboard canvas#chart-daily')?.closest('.card')?.querySelector('[style*="font-weight:600;font-size:13px"]');
 
-  // Plugin para números acima das barras
+  // Plugin números acima das barras
   const labelsTopPlugin = {
     id: 'labelsTop',
     afterDatasetsDraw(chart) {
       const { ctx, data } = chart;
-      const ds = chart.getDatasetMeta(0);
+      const meta0 = chart.getDatasetMeta(0);
       ctx.save();
       ctx.font = 'bold 8px Outfit,sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#374151';
-      ds.data.forEach((bar, i) => {
+      ctx.fillStyle = '#1a5c38';
+      meta0.data.forEach((bar, i) => {
         const val = data.datasets[0].data[i];
         if (val > 0) {
           const label = val >= 1000 ? 'R$' + (val/1000).toFixed(1) + 'k' : 'R$' + val.toFixed(0);
@@ -5150,25 +5170,26 @@ async function loadDashboard() {
   const ctx1 = el('chart-daily')?.getContext('2d');
   if (ctx1) {
     const datasets = [{
-      label: 'PDV',
+      label: 'Faturamento',
       data: dVals,
-      backgroundColor: 'rgba(42,157,92,0.75)',
-      borderColor: '#2a9d5c',
-      borderWidth: 1,
+      backgroundColor: '#1a5c38',
+      borderColor: '#1a5c38',
+      borderWidth: 0,
       borderRadius: 3,
       type: 'bar'
     }];
     if (metaDia > 0) {
       datasets.push({
-        label: 'Meta/dia',
+        label: 'Meta diária',
         data: dLabels.map(() => metaDia),
         type: 'line',
-        borderColor: '#f59e0b',
-        borderWidth: 2,
-        borderDash: [6, 3],
+        borderColor: '#ef4444',
+        borderWidth: 1.5,
+        borderDash: [6, 4],
         pointRadius: 0,
         fill: false,
-        tension: 0
+        tension: 0,
+        order: 0
       });
     }
     chartDaily = new Chart(ctx1, {
@@ -5184,7 +5205,7 @@ async function loadDashboard() {
         scales: {
           x: { ticks:{ font:{size:9} }, grid:{ display:false } },
           y: { ticks:{ font:{size:9}, callback: v => v>=1000 ? 'R$'+(v/1000).toFixed(0)+'k' : 'R$'+v },
-               grid:{ color:'rgba(0,0,0,0.04)' } }
+               grid:{ color:'rgba(0,0,0,0.05)' } }
         },
         layout: { padding: { top: 18 } }
       }
@@ -5324,23 +5345,30 @@ async function loadDashboard() {
   // ── 11. Tendência 6 meses — soma PDV (Comanda+Crédito+Débito+Pix) ──
   const mesesTend = [];
   const valsTend  = [];
-  const normTend = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  const isFatTend = n => { const s=normTend(n); return s.includes('comanda')||s.includes('credito')||s.includes('debito')||s.includes('pix'); };
+  // Normalização correta com unicode range
+  const isFatTend = n => {
+    const s = (n||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    return s.includes('comanda') || s.includes('credito') || s.includes('debito') || s.includes('pix');
+  };
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(parseInt(ano), mes ? parseInt(mes)-1-i : new Date().getMonth()-i, 1);
+    const refMes = mes ? parseInt(mes) - 1 : new Date().getMonth();
+    const d = new Date(parseInt(ano), refMes - i, 1);
     const mT = String(d.getMonth()+1).padStart(2,'0');
     const aT = String(d.getFullYear());
     mesesTend.push(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]);
-    // busca caixas PDV do mês e soma itens de faturamento
-    const iniT = aT+'-'+mT+'-01';
-    const fimT = aT+'-'+mT+'-31';
-    const { data: cxT } = await sb.from('pdv_caixas').select('id').gte('data_caixa',iniT).lte('data_caixa',fimT);
+    const iniT = aT + '-' + mT + '-01';
+    const fimT = aT + '-' + mT + '-31';
+    const { data: cxT } = await sb.from('pdv_caixas').select('id')
+      .gte('data_caixa', iniT).lte('data_caixa', fimT);
     let vT = 0;
     if (cxT?.length) {
-      const idxT = cxT.map(c=>c.id);
-      for(let j=0;j<idxT.length;j+=200){
-        const {data:itT} = await sb.from('pdv_itens').select('valor,tipo,forma_pagamento').in('caixa_id',idxT.slice(j,j+200));
-        (itT||[]).filter(it=>it.tipo==='ENTRADA'&&isFatTend(it.forma_pagamento)).forEach(it=>{ vT+=Number(it.valor||0); });
+      const idxT = cxT.map(c => c.id);
+      for (let j = 0; j < idxT.length; j += 200) {
+        const { data: itT } = await sb.from('pdv_itens')
+          .select('valor,tipo,forma_pagamento')
+          .in('caixa_id', idxT.slice(j, j + 200));
+        (itT||[]).filter(it => it.tipo === 'ENTRADA' && isFatTend(it.forma_pagamento))
+          .forEach(it => { vT += Number(it.valor||0); });
       }
     }
     valsTend.push(vT);
@@ -5348,14 +5376,25 @@ async function loadDashboard() {
   if (chartTend) chartTend.destroy();
   const ctxT = el('chart-tend')?.getContext('2d');
   if (ctxT) {
-    chartTend = new Chart(ctxT, { type:'bar',
-      data:{ labels:mesesTend, datasets:[{
-        label:'Faturamento', data:valsTend,
-        backgroundColor: CORES_BAR, borderRadius:6, borderSkipped:false
+    chartTend = new Chart(ctxT, {
+      type: 'bar',
+      data: { labels: mesesTend, datasets:[{
+        label: 'Faturamento',
+        data: valsTend,
+        backgroundColor: '#1a5c38',
+        borderRadius: 6,
+        borderSkipped: false
       }]},
-      options:{ responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmtBRL(c.raw)}} },
-        scales:{ x:{ticks:{font:{size:9}},grid:{display:false}}, y:{ticks:{font:{size:9},callback:v=>v>=1000?'R$'+(v/1000).toFixed(0)+'k':''},grid:{color:'rgba(0,0,0,0.04)'}} }
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => ' ' + fmtBRL(c.raw) } }
+        },
+        scales: {
+          x: { ticks:{ font:{size:9} }, grid:{ display:false } },
+          y: { ticks:{ font:{size:9}, callback: v => v>=1000?'R$'+(v/1000).toFixed(0)+'k':'' }, grid:{ color:'rgba(0,0,0,0.04)' } }
+        }
       }
     });
   }
