@@ -5365,37 +5365,68 @@ async function loadDashboard() {
       }).join('')
     : '<div class="empty" style="padding:1rem;font-size:11px">Importe Clientes Novos</div>';
 
-  // ── 11. Tendência 6 meses — soma PDV (Comanda+Crédito+Débito+Pix) ──
+  // ── 11. Tendência 6 meses — 1 query só, soma por mês ──────────
   const mesesTend = [];
   const valsTend  = [];
-  // Normalização correta com unicode range
-  const isFatTend = n => {
-    const s = (n||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-    return s.includes('comanda') || s.includes('credito') || s.includes('debito') || s.includes('pix');
-  };
+
+  // Calcula o range dos 6 meses
+  const refMesBase = mes ? parseInt(mes) - 1 : new Date().getMonth();
+  const refAnoBase = parseInt(ano);
+  const d6inicio = new Date(refAnoBase, refMesBase - 5, 1);
+  const d6fim    = new Date(refAnoBase, refMesBase + 1, 0); // último dia do mês ref
+  const ini6 = d6inicio.getFullYear() + '-' + String(d6inicio.getMonth()+1).padStart(2,'0') + '-01';
+  const fim6 = d6fim.getFullYear()    + '-' + String(d6fim.getMonth()+1).padStart(2,'0')    + '-' + String(d6fim.getDate()).padStart(2,'0');
+
+  // Monta labels dos 6 meses
   for (let i = 5; i >= 0; i--) {
-    const refMes = mes ? parseInt(mes) - 1 : new Date().getMonth();
-    const d = new Date(parseInt(ano), refMes - i, 1);
-    const mT = String(d.getMonth()+1).padStart(2,'0');
-    const aT = String(d.getFullYear());
+    const d = new Date(refAnoBase, refMesBase - i, 1);
     mesesTend.push(['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][d.getMonth()]);
-    const iniT = aT + '-' + mT + '-01';
-    const fimT = aT + '-' + mT + '-31';
-    const { data: cxT } = await sb.from('pdv_caixas').select('id')
-      .gte('data_caixa', iniT).lte('data_caixa', fimT);
-    let vT = 0;
-    if (cxT?.length) {
-      const idxT = cxT.map(c => c.id);
-      for (let j = 0; j < idxT.length; j += 200) {
-        const { data: itT } = await sb.from('pdv_itens')
-          .select('valor,tipo,forma_pagamento')
-          .in('caixa_id', idxT.slice(j, j + 200));
-        (itT||[]).filter(it => it.tipo === 'ENTRADA' && isFatTend(it.forma_pagamento))
-          .forEach(it => { vT += Number(it.valor||0); });
-      }
-    }
-    valsTend.push(vT);
+    valsTend.push(0);
   }
+
+  try {
+    // 1 query: todos os caixas dos 6 meses
+    const { data: cxAll } = await sb.from('pdv_caixas').select('id,data_caixa')
+      .gte('data_caixa', ini6).lte('data_caixa', fim6);
+
+    if (cxAll?.length) {
+      // mapa caixaId → mês "MM/AAAA"
+      const cxMesMap = {};
+      cxAll.forEach(c => { cxMesMap[c.id] = c.data_caixa.substring(0, 7); }); // "AAAA-MM"
+
+      const idsAll = cxAll.map(c => c.id);
+      let itAll = [];
+      for (let j = 0; j < idsAll.length; j += 200) {
+        const { data: lote } = await sb.from('pdv_itens')
+          .select('caixa_id,forma_pagamento,valor,tipo')
+          .in('caixa_id', idsAll.slice(j, j + 200));
+        if (lote?.length) itAll = itAll.concat(lote);
+      }
+
+      // Filtro correto com unicode
+      const isFatT = n => {
+        const s = (n||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+        if (s.includes('divida')) return false;
+        return s.includes('comanda') || s.includes('credito') || s.includes('debito') || s.includes('pix');
+      };
+
+      itAll.filter(it => it.tipo === 'ENTRADA' && isFatT(it.forma_pagamento)).forEach(it => {
+        const anomes = cxMesMap[it.caixa_id]; // "AAAA-MM"
+        if (!anomes) return;
+        // encontra o índice do mês no array mesesTend
+        const [aT, mT] = anomes.split('-');
+        const dRef = new Date(parseInt(aT), parseInt(mT)-1, 1);
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(refAnoBase, refMesBase - i, 1);
+          if (d.getFullYear() === dRef.getFullYear() && d.getMonth() === dRef.getMonth()) {
+            valsTend[5 - i] += Number(it.valor || 0);
+            break;
+          }
+        }
+      });
+    }
+  } catch(e) { console.warn('tendencia:', e); }
+
   if (chartTend) chartTend.destroy();
   const ctxT = el('chart-tend')?.getContext('2d');
   if (ctxT) {
@@ -5405,7 +5436,7 @@ async function loadDashboard() {
         label: 'Faturamento',
         data: valsTend,
         backgroundColor: '#1a5c38',
-        borderRadius: 6,
+        borderRadius: 5,
         borderSkipped: false
       }]},
       options: {
