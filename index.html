@@ -5090,23 +5090,15 @@ async function loadDashboard() {
   // Meta financeira: busca do Supabase — campo correto é "meta" (não meta_mensal)
   let metaMes = 0, diasAbertos = 0, metaDia = 0;
   try {
-    // mês como número (sem zero à esquerda) — coluna mes no banco é integer
     const mesNumMeta = mes ? parseInt(mes) : hoje3.getMonth() + 1;
-    // busca todas as metas do ano e filtra pelo mês
+    // busca todas do ano — coluna mes é integer no banco
     const { data: todasMetas } = await sb.from('metas_financeiras')
-      .select('meta, meta_mensal, dias_abertos, mes')
-      .eq('ano', ano);
-    // compara tanto como número quanto como string
-    const metaF = (todasMetas||[]).find(m =>
-      Number(m.mes) === mesNumMeta ||
-      String(m.mes) === String(mesNumMeta) ||
-      String(m.mes) === String(mesNumMeta).padStart(2,'0')
-    );
-    metaMes     = Number(metaF?.meta || metaF?.meta_mensal || 0);
+      .select('meta, dias_abertos, mes').eq('ano', ano);
+    const metaF = (todasMetas||[]).find(m => Number(m.mes) === mesNumMeta);
+    metaMes     = Number(metaF?.meta || 0);
     diasAbertos = Number(metaF?.dias_abertos || 0);
     metaDia     = diasAbertos > 0 ? metaMes / diasAbertos : 0;
-    console.log('meta financeira:', mesNumMeta, metaF, '→ metaMes:', metaMes, 'diasAbertos:', diasAbertos);
-  } catch(e) { console.warn('meta financeira:', e); }
+  } catch(e) { console.warn('meta:', e); }
 
   // % PDV do período vs meta do mês
   // Usa fatPDV (calculado no bloco Early, antes) para o termômetro
@@ -10498,7 +10490,8 @@ async function loadMetricas() {
   const mesNome = MESES_NOMES[mesIdx];
 
   // Busca meta financeira do mês
-  const { data: metaFin } = await sb.from('metas_financeiras').select('*').eq('ano', ano).eq('mes', mes).single();
+  const { data: todasMetFin } = await sb.from('metas_financeiras').select('*').eq('ano', ano);
+  const metaFin = (todasMetFin||[]).find(m => Number(m.mes) === parseInt(mes));
   const metaMes = Number(metaFin?.meta || 0);
   const diasAbertos = Number(metaFin?.dias_abertos || 0);
 
