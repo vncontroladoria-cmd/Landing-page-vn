@@ -5090,17 +5090,22 @@ async function loadDashboard() {
   // Meta financeira: busca do Supabase — campo correto é "meta" (não meta_mensal)
   let metaMes = 0, diasAbertos = 0, metaDia = 0;
   try {
-    // mes filtrado, ou mês atual se não houver filtro
-    const mesParaMeta = mes || String(hoje3.getMonth() + 1).padStart(2, '0');
-    const { data: metaF } = await sb.from('metas_financeiras')
-      .select('meta, meta_mensal, dias_abertos')
-      .eq('ano', ano)
-      .eq('mes', mesParaMeta)
-      .maybeSingle();
-    // aceita tanto "meta" quanto "meta_mensal" (compatibilidade)
-    metaMes    = Number(metaF?.meta || metaF?.meta_mensal || 0);
+    // mês como número (sem zero à esquerda) — coluna mes no banco é integer
+    const mesNumMeta = mes ? parseInt(mes) : hoje3.getMonth() + 1;
+    // busca todas as metas do ano e filtra pelo mês
+    const { data: todasMetas } = await sb.from('metas_financeiras')
+      .select('meta, meta_mensal, dias_abertos, mes')
+      .eq('ano', ano);
+    // compara tanto como número quanto como string
+    const metaF = (todasMetas||[]).find(m =>
+      Number(m.mes) === mesNumMeta ||
+      String(m.mes) === String(mesNumMeta) ||
+      String(m.mes) === String(mesNumMeta).padStart(2,'0')
+    );
+    metaMes     = Number(metaF?.meta || metaF?.meta_mensal || 0);
     diasAbertos = Number(metaF?.dias_abertos || 0);
-    metaDia    = diasAbertos > 0 ? metaMes / diasAbertos : 0;
+    metaDia     = diasAbertos > 0 ? metaMes / diasAbertos : 0;
+    console.log('meta financeira:', mesNumMeta, metaF, '→ metaMes:', metaMes, 'diasAbertos:', diasAbertos);
   } catch(e) { console.warn('meta financeira:', e); }
 
   // % PDV do período vs meta do mês
