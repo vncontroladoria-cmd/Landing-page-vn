@@ -6003,21 +6003,30 @@ async function loadLancamentos() {
 
   el.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
 
-  // 1 query só — busca todos os lançamentos do ano para cards e tabela
-  let q = sb.from('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim).order('data_lancamento', {ascending: true}).order('created_at', {ascending: true}).limit(500);
-  if (tipo) q = q.eq('tipo', tipo);
-  // banco será filtrado no JS após busca (mais confiável)
+  // Busca lançamentos — filtra por banco direto no Supabase
+  let q = sb.from('lancamentos').select('*')
+    .gte('data_lancamento', ini)
+    .lte('data_lancamento', fim)
+    .order('data_lancamento', {ascending: false})
+    .order('created_at',      {ascending: false})
+    .limit(2000);
+  if (tipo)        q = q.eq('tipo', tipo);
+  if (bancoFilter) q = q.eq('banco_id', bancoFilter);
 
   const { data } = await q;
   let lancs = data || [];
-  // Filtra por banco no JS — mais confiável que filtro Supabase com or()
+
+  // Se filtro por banco ativo: também inclui lançamentos com banco_nome (sem banco_id)
   if (bancoFilter) {
-    const bancoFiltrado = _bancos.find(b => b.id === bancoFilter);
-    const bancoNome = (bancoFiltrado?.nome || '').toLowerCase();
-    lancs = lancs.filter(l =>
-      l.banco_id === bancoFilter ||
-      (l.banco_nome||'').toLowerCase() === bancoNome
-    );
+    const bancoNomeF = (_bancos.find(b => b.id === bancoFilter)?.nome || '').toLowerCase();
+    // busca os sem banco_id mas com banco_nome correspondente
+    const { data: porNome } = await sb.from('lancamentos').select('*')
+      .gte('data_lancamento', ini).lte('data_lancamento', fim)
+      .is('banco_id', null)
+      .ilike('banco_nome', bancoNomeF);
+    if (porNome?.length) lancs = [...lancs, ...porNome];
+    // ordena por data desc
+    lancs.sort((a,b) => (b.data_lancamento||'').localeCompare(a.data_lancamento||''));
   }
 
   // ── SALDOS ──────────────────────────────────────────────
@@ -11815,9 +11824,8 @@ function filtrarLancamentos(termo) {
   const rows = document.querySelectorAll('#lanc-tbody tr[id]');
   rows.forEach(row => {
     if (!t) { row.style.display = ''; return; }
-    // Pega texto de todas as células cell-view e células normais
-    const views = Array.from(row.querySelectorAll('.cell-view')).map(el => el.textContent).join(' ');
-    const allText = (row.textContent + ' ' + views).toLowerCase();
+    // Pega todo o texto da linha incluindo banco, categoria, descrição, extrato
+    const allText = row.textContent.toLowerCase();
     row.style.display = allText.includes(t) ? '' : 'none';
   });
 }
