@@ -783,6 +783,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span class="nav-label">Performance</span>
         </div>
+        <div class="nav-item nav-sub" data-page="lucratividade" onclick="showPage('lucratividade',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          <span class="nav-label">Lucratividade</span>
+        </div>
         <div class="nav-item nav-sub" data-page="metricas" onclick="showPage('metricas',this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
           <span class="nav-label">Métricas</span>
@@ -2387,6 +2391,218 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         </div>
 
+        <!-- LUCRATIVIDADE -->
+        <div class="page" id="page-lucratividade">
+          <div class="pg-header">
+            <div>
+              <div class="pg-header-title">💹 Lucratividade · Análise Financeira</div>
+              <div class="pg-header-sub">Faturamento · Custos · Lucro por serviço, profissional e categoria</div>
+            </div>
+            <div class="pg-header-actions">
+              <div class="filter-group">
+                <span class="filter-label">ANO</span>
+                <select class="filter-select" id="luc-ano" onchange="loadLucratividade()">
+                  <option value="2026">2026</option><option value="2025">2025</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">MÊS</span>
+                <select class="filter-select" id="luc-mes" onchange="loadLucratividade()">
+                  <option value="">Todos</option>
+                  <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
+                  <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
+                  <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
+                  <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">PROFISSIONAL</span>
+                <select class="filter-select" id="luc-prof" onchange="loadLucratividade()">
+                  <option value="">Todos</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">CATEGORIA</span>
+                <select class="filter-select" id="luc-cat" onchange="loadLucratividade()">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <button class="btn" onclick="loadLucratividade()">↻ Atualizar</button>
+              <button class="btn btn-primary" onclick="showPage('importacao',document.querySelector('[data-page=importacao]'))">📥 Importar</button>
+            </div>
+          </div>
+
+          <!-- CARDS HERO -->
+          <div class="hero-cards cols-4" style="margin-bottom:14px">
+            <div class="hcard green">
+              <div class="hcard-label">Faturamento</div>
+              <div class="hcard-value sm" id="luc-fat">—</div>
+              <div class="hcard-sub" id="luc-fat-sub">total faturado</div>
+              <div class="hcard-icon">💰</div>
+            </div>
+            <div class="hcard red">
+              <div class="hcard-label">Lucro Líquido</div>
+              <div class="hcard-value sm" id="luc-lucro">—</div>
+              <div class="hcard-sub" id="luc-lucro-sub">faturado − custos</div>
+              <div class="hcard-icon">📈</div>
+            </div>
+            <div class="hcard blue">
+              <div class="hcard-label">Lucratividade</div>
+              <div class="hcard-value" id="luc-pct">—</div>
+              <div class="hcard-sub">margem média</div>
+              <div class="hcard-icon">🎯</div>
+            </div>
+            <div class="hcard amber">
+              <div class="hcard-label">Custo Total</div>
+              <div class="hcard-value sm" id="luc-custo">—</div>
+              <div class="hcard-sub" id="luc-custo-sub">serviço + comissão</div>
+              <div class="hcard-icon">💸</div>
+            </div>
+          </div>
+
+          <!-- LINHA 2: cards extras -->
+          <div class="fin-cards cols-4" style="margin-bottom:14px">
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">✂️</span><span class="fcard-label">Atendimentos</span></div>
+              <div class="fcard-value blue" id="luc-atend">—</div>
+              <div class="fcard-sub">comandas únicas</div>
+            </div>
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">🎫</span><span class="fcard-label">Ticket Médio</span></div>
+              <div class="fcard-value" id="luc-ticket">—</div>
+              <div class="fcard-sub">faturado ÷ atendimentos</div>
+            </div>
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">💼</span><span class="fcard-label">Custo Comissão</span></div>
+              <div class="fcard-value" id="luc-comissao">—</div>
+              <div class="fcard-sub">total pago profissionais</div>
+            </div>
+            <div class="fcard">
+              <div class="fcard-icon-row"><span class="fcard-icon">🔧</span><span class="fcard-label">Custo Serviço</span></div>
+              <div class="fcard-value" id="luc-custoserv">—</div>
+              <div class="fcard-sub">insumos e produtos</div>
+            </div>
+          </div>
+
+          <!-- LINHA 3: Composição do faturamento + Ranking Profissionais -->
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px">
+            <!-- Donut composição -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📊</span>
+                  <div><div style="font-weight:600;font-size:13px">Composição do Faturamento</div>
+                  <div style="font-size:10px;color:var(--text2)">Faturado · Custo · Lucro Líquido</div></div>
+                </div>
+              </div>
+              <div class="section-card-body" style="display:flex;flex-direction:column;align-items:center;padding:14px">
+                <div style="position:relative;height:180px;width:180px">
+                  <canvas id="luc-chart-comp"></canvas>
+                </div>
+                <div id="luc-comp-legend" style="margin-top:10px;display:flex;flex-direction:column;gap:6px;width:100%;font-size:11px"></div>
+              </div>
+            </div>
+
+            <!-- Ranking Profissionais -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🏆</span>
+                  <div><div style="font-weight:600;font-size:13px">Ranking de Profissionais</div>
+                  <div style="font-size:10px;color:var(--text2)" id="luc-rank-sub">por faturamento</div></div>
+                </div>
+              </div>
+              <div id="luc-rank-prof" style="overflow-x:auto">
+                <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Importe o relatório de Lucratividade</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LINHA 4: Distribuição por Categoria + Lucratividade por Categoria -->
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px">
+            <!-- Donut categoria -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#ede9fe;color:#5b21b6;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🍩</span>
+                  <div><div style="font-weight:600;font-size:13px">Distribuição do Lucro por Categoria</div></div>
+                </div>
+              </div>
+              <div class="section-card-body" style="display:flex;flex-direction:column;align-items:center;padding:14px">
+                <div style="position:relative;height:180px;width:180px">
+                  <canvas id="luc-chart-cat"></canvas>
+                </div>
+                <div id="luc-cat-legend" style="margin-top:10px;width:100%;font-size:11px;display:flex;flex-direction:column;gap:5px"></div>
+              </div>
+            </div>
+
+            <!-- Tabela por categoria -->
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#fce7f3;color:#9d174d;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📋</span>
+                  <div><div style="font-weight:600;font-size:13px">Lucratividade por Categoria</div>
+                  <div style="font-size:10px;color:var(--text2)">Faturado · Custos · Lucro · Margem</div></div>
+                </div>
+              </div>
+              <div id="luc-tab-cat" style="overflow-x:auto">
+                <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Sem dados</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LINHA 5: Top Serviços Lucro + Top Serviços Margem -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#dcfce7;color:#166534;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🏅</span>
+                  <div><div style="font-weight:600;font-size:13px">Top Serviços · Lucro Absoluto</div>
+                  <div style="font-size:10px;color:var(--text2)">maior lucro total gerado</div></div>
+                </div>
+              </div>
+              <div id="luc-top-lucro" style="max-height:320px;overflow-y:auto">
+                <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Sem dados</div>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#fef3c7;color:#92400e;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">⭐</span>
+                  <div><div style="font-weight:600;font-size:13px">Top Serviços · Maior Margem%</div>
+                  <div style="font-size:10px;color:var(--text2)">maior lucratividade percentual</div></div>
+                </div>
+              </div>
+              <div id="luc-top-margem" style="max-height:320px;overflow-y:auto">
+                <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Sem dados</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LINHA 6: Destaques rodapé -->
+          <div class="hero-cards cols-3" style="margin-bottom:14px">
+            <div class="hcard dark">
+              <div class="hcard-label">Melhor Profissional</div>
+              <div class="hcard-value sm" id="luc-best-prof">—</div>
+              <div class="hcard-sub" id="luc-best-prof-d"></div>
+              <div class="hcard-icon">🥇</div>
+            </div>
+            <div class="hcard green">
+              <div class="hcard-label">Melhor Serviço</div>
+              <div class="hcard-value sm" id="luc-best-srv">—</div>
+              <div class="hcard-sub" id="luc-best-srv-d"></div>
+              <div class="hcard-icon">✂️</div>
+            </div>
+            <div class="hcard blue">
+              <div class="hcard-label">Lucratividade Geral</div>
+              <div class="hcard-value" id="luc-best-pct">—</div>
+              <div class="hcard-sub" id="luc-best-pct-d"></div>
+              <div class="hcard-icon">📊</div>
+            </div>
+          </div>
+
+        </div>
+
         <!-- MÉTRICAS -->
         <div class="page" id="page-metricas">
           <div class="pg-header">
@@ -3409,6 +3625,7 @@ function showPage(id, el) {
   if (id === 'contas-pagar') loadContasPagar();
   if (id === 'contas-receber') loadContasReceber();
   if (id === 'metricas') loadMetricas();
+  if (id === 'lucratividade') loadLucratividade();
   if (id === 'servicos') loadServicos();
   if (id === 'clientes') initClientes();
   if (id === 'produtos') initProdutos();
@@ -3689,6 +3906,32 @@ async function confirmarImportacaoGlobal() {
     } else if (nomeT.includes('cliente')) {
       // Clientes ou Clientes Novos → recarrega a memória
       await initClientes();
+    } else if (nomeT.includes('lucratividade')) {
+      // Lucratividade → salva em rel_lucratividade
+      const normLuc = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+      const parseD  = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
+      const parseN  = v => { if(v===null||v===undefined||v==='')return 0; if(typeof v==='number')return v; const s=String(v).replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
+      const getCol  = (row,ns) => { const keys=Object.keys(row); for(const n of ns){const k=keys.find(c=>normLuc(c).includes(normLuc(n)));if(k!==undefined&&row[k]!=null&&row[k]!=='')return row[k];} return null; };
+      const lucRows = _impArquivoRows.map(r => ({
+        data_comanda:      parseD(getCol(r,['data'])),
+        numero_comanda:    String(getCol(r,['numero comanda','comanda','numero'])||''),
+        profissional:      String(getCol(r,['profissional'])||''),
+        servico:           String(getCol(r,['servico','serviço'])||''),
+        categoria:         String(getCol(r,['categoria'])||''),
+        faturado:          parseN(getCol(r,['faturado'])),
+        qtd:               parseInt(getCol(r,['qtd','quantidade'])||1),
+        comissao_pct:      parseN(getCol(r,['comissao (%)','comissao','%'])),
+        custo_servico:     parseN(getCol(r,['custo servico','custo serviço'])),
+        custo_produtos:    parseN(getCol(r,['custo produtos','custo produto'])),
+        desconto_comissao: parseN(getCol(r,['desconto produto comissao','desconto'])),
+        custo_comissao:    parseN(getCol(r,['custo comissao','custo comissão'])),
+        lucro:             parseN(getCol(r,['lucro'])),
+        lucratividade_pct: parseN(getCol(r,['lucratividade (%)','lucratividade'])),
+      })).filter(r => r.profissional || r.servico);
+      for (let i = 0; i < lucRows.length; i += lote) {
+        const { error } = await sb.from('rel_lucratividade').insert(lucRows.slice(i, i + lote));
+        if (error) console.warn('rel_lucratividade insert:', error.message);
+      }
     }
 
     closeModal('modal-preview-global');
@@ -6626,6 +6869,290 @@ async function initClientes() {
 }
 
 async function loadClientes() { await initClientes(); }
+
+// ════════════════════════════════════════════════════════
+// LUCRATIVIDADE
+// ════════════════════════════════════════════════════════
+let _lucChart1 = null, _lucChart2 = null;
+
+async function loadLucratividade() {
+  const el = id => document.getElementById(id);
+  const ano = el('luc-ano')?.value || '2026';
+  const mes = el('luc-mes')?.value || '';
+  const profFiltro = el('luc-prof')?.value || '';
+  const catFiltro  = el('luc-cat')?.value  || '';
+
+  // Busca dados
+  let q = sb.from('rel_lucratividade').select('*')
+    .gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
+  if (mes) {
+    const ultimo = new Date(parseInt(ano), parseInt(mes), 0).getDate();
+    q = sb.from('rel_lucratividade').select('*')
+      .gte('data_comanda', `${ano}-${mes}-01`)
+      .lte('data_comanda', `${ano}-${mes}-${String(ultimo).padStart(2,'0')}`);
+  }
+  let { data: rows } = await q.limit(10000);
+  if (!rows?.length) {
+    ['luc-fat','luc-lucro','luc-pct','luc-custo','luc-atend','luc-ticket','luc-comissao','luc-custoserv']
+      .forEach(id => { if(el(id)) el(id).textContent = '—'; });
+    ['luc-rank-prof','luc-tab-cat','luc-top-lucro','luc-top-margem']
+      .forEach(id => { if(el(id)) el(id).innerHTML = '<div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Importe o relatório de Lucratividade</div>'; });
+    return;
+  }
+
+  // Popula filtros de profissional e categoria
+  const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
+  const cats  = [...new Set(rows.map(r=>r.categoria).filter(Boolean))].sort();
+  if(el('luc-prof')) {
+    const cur = el('luc-prof').value;
+    el('luc-prof').innerHTML = '<option value="">Todos</option>' + profs.map(p=>`<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join('');
+  }
+  if(el('luc-cat')) {
+    const cur = el('luc-cat').value;
+    el('luc-cat').innerHTML = '<option value="">Todas</option>' + cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  }
+
+  // Aplica filtros
+  if (profFiltro) rows = rows.filter(r => r.profissional === profFiltro);
+  if (catFiltro)  rows = rows.filter(r => r.categoria === catFiltro);
+
+  const n = v => Number(v||0);
+  const totalFat      = rows.reduce((s,r) => s + n(r.faturado), 0);
+  const totalLucro    = rows.reduce((s,r) => s + n(r.lucro), 0);
+  const totalCusto    = rows.reduce((s,r) => s + n(r.custo_servico) + n(r.custo_comissao) + n(r.custo_produtos), 0);
+  const totalComissao = rows.reduce((s,r) => s + n(r.custo_comissao), 0);
+  const totalServico  = rows.reduce((s,r) => s + n(r.custo_servico) + n(r.custo_produtos), 0);
+  const nComandas     = new Set(rows.map(r=>r.numero_comanda).filter(Boolean)).size;
+  const ticket        = nComandas > 0 ? totalFat / nComandas : 0;
+  const margemGeral   = totalFat > 0 ? (totalLucro / totalFat * 100) : 0;
+
+  // Cards hero
+  if(el('luc-fat'))      el('luc-fat').textContent      = fmtBRL(totalFat);
+  if(el('luc-lucro'))    el('luc-lucro').textContent    = fmtBRL(totalLucro);
+  if(el('luc-pct'))      el('luc-pct').textContent      = margemGeral.toFixed(1) + '%';
+  if(el('luc-custo'))    el('luc-custo').textContent    = fmtBRL(totalCusto);
+  if(el('luc-atend'))    el('luc-atend').textContent    = nComandas.toLocaleString('pt-BR');
+  if(el('luc-ticket'))   el('luc-ticket').textContent   = fmtBRL(ticket);
+  if(el('luc-comissao')) el('luc-comissao').textContent = fmtBRL(totalComissao);
+  if(el('luc-custoserv'))el('luc-custoserv').textContent= fmtBRL(totalServico);
+
+  const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a','#9333ea','#ea580c','#0e7490'];
+
+  // ── Donut composição: Custo Serviço · Custo Comissão · Lucro ──
+  const ctxComp = el('luc-chart-comp')?.getContext('2d');
+  if (ctxComp) {
+    if (_lucChart1) _lucChart1.destroy();
+    _lucChart1 = new Chart(ctxComp, {
+      type: 'doughnut',
+      data: {
+        labels: ['Comissão', 'Custo Serviço', 'Lucro Líquido'],
+        datasets: [{ data: [totalComissao, totalServico, Math.max(0, totalLucro)],
+          backgroundColor: ['#f59e0b','#3b82f6','#22c55e'], borderWidth: 2, borderColor: 'var(--bg2)' }]
+      },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: c => ` ${c.label}: ${fmtBRL(c.raw)}` } } } }
+    });
+  }
+  if(el('luc-comp-legend')) {
+    const items = [['Comissão', totalComissao, '#f59e0b'], ['Custo Serviço', totalServico, '#3b82f6'], ['Lucro Líquido', Math.max(0,totalLucro), '#22c55e']];
+    el('luc-comp-legend').innerHTML = items.map(([l,v,c]) =>
+      `<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:10px;height:10px;border-radius:3px;background:${c};flex-shrink:0"></div>
+          <span style="color:var(--text2)">${l}</span>
+        </div>
+        <strong style="font-family:'DM Mono',monospace">${fmtBRL(v)}</strong>
+      </div>`
+    ).join('');
+  }
+
+  // ── Ranking Profissionais ──
+  const rankProf = {};
+  rows.forEach(r => {
+    const p = r.profissional || '(sem prof)';
+    if (!rankProf[p]) rankProf[p] = { fat:0, lucro:0, custo:0, atend:new Set(), n:0 };
+    rankProf[p].fat   += n(r.faturado);
+    rankProf[p].lucro += n(r.lucro);
+    rankProf[p].custo += n(r.custo_comissao);
+    rankProf[p].atend.add(r.numero_comanda);
+    rankProf[p].n     += 1;
+  });
+  const rankArr = Object.entries(rankProf).sort((a,b) => b[1].fat - a[1].fat);
+  if(el('luc-rank-sub')) el('luc-rank-sub').textContent = rankArr.length + ' profissional(is)';
+  const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 8px;background:var(--bg3);border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text2)';
+  if(el('luc-rank-prof')) {
+    const maxFat = rankArr[0]?.[1].fat || 1;
+    el('luc-rank-prof').innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="${TH};text-align:left;width:28px">#</th>
+        <th style="${TH};text-align:left">PROFISSIONAL</th>
+        <th style="${TH};text-align:right">ATEND.</th>
+        <th style="${TH};text-align:right">FATURADO</th>
+        <th style="${TH};text-align:right">COMISSÃO</th>
+        <th style="${TH};text-align:right">LUCRO</th>
+        <th style="${TH};text-align:right">MARGEM</th>
+      </tr></thead>
+      <tbody>
+        ${rankArr.map(([prof,d],i) => {
+          const mg = d.fat > 0 ? (d.lucro/d.fat*100) : 0;
+          const mgColor = mg >= 50 ? '#059669' : mg >= 30 ? '#d97706' : '#dc2626';
+          return `<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:6px 8px;text-align:center;font-size:${i<3?'14':'11'}px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+            <td style="padding:6px 8px">
+              <div style="font-size:11px;font-weight:${i<3?'700':'600'}">${prof}</div>
+              <div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px;overflow:hidden">
+                <div style="height:100%;width:${(d.fat/maxFat*100).toFixed(1)}%;background:${CORES[i%CORES.length]};border-radius:2px"></div>
+              </div>
+            </td>
+            <td style="padding:6px 8px;text-align:right;color:var(--text2)">${d.atend.size}</td>
+            <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(d.fat)}</td>
+            <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(d.custo)}</td>
+            <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${d.lucro>=0?'#059669':'#dc2626'}">${fmtBRL(d.lucro)}</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:700;color:${mgColor}">${mg.toFixed(1)}%</td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:var(--bg3);font-weight:700;border-top:2px solid var(--border)">
+          <td colspan="2" style="padding:7px 8px;font-size:11px">TOTAL</td>
+          <td style="padding:7px 8px;text-align:right">${nComandas}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(totalFat)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(totalComissao)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#059669">${fmtBRL(totalLucro)}</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:700">${margemGeral.toFixed(1)}%</td>
+        </tr>
+      </tbody></table>`;
+  }
+
+  // ── Lucratividade por Categoria ──
+  const byCat = {};
+  rows.forEach(r => {
+    const c = r.categoria || 'Outros';
+    if (!byCat[c]) byCat[c] = { fat:0, lucro:0, custo:0 };
+    byCat[c].fat   += n(r.faturado);
+    byCat[c].lucro += n(r.lucro);
+    byCat[c].custo += n(r.custo_servico) + n(r.custo_comissao) + n(r.custo_produtos);
+  });
+  const catArr = Object.entries(byCat).sort((a,b) => b[1].fat - a[1].fat);
+
+  // Donut categorias
+  const ctxCat = el('luc-chart-cat')?.getContext('2d');
+  if (ctxCat) {
+    if (_lucChart2) _lucChart2.destroy();
+    _lucChart2 = new Chart(ctxCat, {
+      type: 'doughnut',
+      data: { labels: catArr.map(([c])=>c), datasets:[{ data: catArr.map(([,d])=>d.fat),
+        backgroundColor: CORES, borderWidth: 2, borderColor: 'var(--bg2)' }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` ${c.label}: ${fmtBRL(c.raw)}` } } } }
+    });
+  }
+  if(el('luc-cat-legend')) {
+    el('luc-cat-legend').innerHTML = catArr.map(([cat,d],i) => {
+      const mg = d.fat>0?(d.lucro/d.fat*100):0;
+      return `<div style="display:flex;align-items:center;gap:6px;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:10px;height:10px;border-radius:3px;background:${CORES[i%CORES.length]};flex-shrink:0"></div>
+          <span style="color:var(--text2);font-size:11px">${cat}</span>
+        </div>
+        <span style="font-size:11px;font-weight:700">${mg.toFixed(1)}%</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Tabela por categoria
+  if(el('luc-tab-cat')) {
+    el('luc-tab-cat').innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="${TH};text-align:left">CATEGORIA</th>
+        <th style="${TH};text-align:right">FATURADO</th>
+        <th style="${TH};text-align:right">CUSTOS</th>
+        <th style="${TH};text-align:right">LUCRO</th>
+        <th style="${TH};text-align:right">MARGEM</th>
+      </tr></thead>
+      <tbody>
+        ${catArr.map(([cat,d]) => {
+          const mg = d.fat>0?(d.lucro/d.fat*100):0;
+          const mgColor = mg>=50?'#059669':mg>=30?'#d97706':'#dc2626';
+          return `<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:7px 8px;font-weight:600">${cat}</td>
+            <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(d.fat)}</td>
+            <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#dc2626">${fmtBRL(d.custo)}</td>
+            <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#059669">${fmtBRL(d.lucro)}</td>
+            <td style="padding:7px 8px;text-align:right;font-weight:700;color:${mgColor}">${mg.toFixed(1)}%</td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:var(--bg3);font-weight:700;border-top:2px solid var(--border)">
+          <td style="padding:7px 8px">TOTAL</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(totalFat)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#dc2626">${fmtBRL(totalCusto)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#059669">${fmtBRL(totalLucro)}</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:700">${margemGeral.toFixed(1)}%</td>
+        </tr>
+      </tbody></table>`;
+  }
+
+  // ── Top Serviços por Lucro Absoluto ──
+  const bySrv = {};
+  rows.forEach(r => {
+    const s = r.servico || 'Outros';
+    if (!bySrv[s]) bySrv[s] = { fat:0, lucro:0, n:0, pcts:[] };
+    bySrv[s].fat   += n(r.faturado);
+    bySrv[s].lucro += n(r.lucro);
+    bySrv[s].n     += n(r.qtd)||1;
+    bySrv[s].pcts.push(n(r.lucratividade_pct));
+  });
+  const srvArr = Object.entries(bySrv).map(([s,d]) => ({
+    s, fat:d.fat, lucro:d.lucro, n:d.n,
+    mg: d.fat>0?(d.lucro/d.fat*100):0
+  }));
+  const topLucro  = [...srvArr].sort((a,b)=>b.lucro-a.lucro).slice(0,15);
+  const topMargem = [...srvArr].sort((a,b)=>b.mg-a.mg).slice(0,15);
+  const maxLucro  = topLucro[0]?.lucro || 1;
+  const maxMargem = topMargem[0]?.mg || 1;
+
+  const renderTopTable = (arr, keyFn, valFn, label, cor) => `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="${TH};text-align:left;width:28px">#</th>
+        <th style="${TH};text-align:left">SERVIÇO</th>
+        <th style="${TH};text-align:right">QTD</th>
+        <th style="${TH};text-align:right">FATURADO</th>
+        <th style="${TH};text-align:right">LUCRO</th>
+        <th style="${TH};text-align:right">MARGEM</th>
+      </tr></thead>
+      <tbody>
+        ${arr.map((d,i)=>`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:6px 8px;text-align:center">${i+1}</td>
+          <td style="padding:6px 8px">
+            <div style="font-size:11px;font-weight:600">${d.s}</div>
+            <div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px;overflow:hidden">
+              <div style="height:100%;width:${(keyFn(d)/valFn*100).toFixed(1)}%;background:${cor};border-radius:2px"></div>
+            </div>
+          </td>
+          <td style="padding:6px 8px;text-align:right;color:var(--text2)">${d.n}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(d.fat)}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#059669">${fmtBRL(d.lucro)}</td>
+          <td style="padding:6px 8px;text-align:right;font-weight:700;color:${d.mg>=50?'#059669':d.mg>=30?'#d97706':'#dc2626'}">${d.mg.toFixed(1)}%</td>
+        </tr>`).join('')}
+      </tbody></table>`;
+
+  if(el('luc-top-lucro'))  el('luc-top-lucro').innerHTML  = renderTopTable(topLucro,  d=>d.lucro, maxLucro,  'Lucro', '#22c55e');
+  if(el('luc-top-margem')) el('luc-top-margem').innerHTML = renderTopTable(topMargem, d=>d.mg,    maxMargem, 'Margem', '#f59e0b');
+
+  // ── Destaques rodapé ──
+  const bestProf = rankArr[0];
+  if(bestProf && el('luc-best-prof')) {
+    el('luc-best-prof').textContent = bestProf[0];
+    if(el('luc-best-prof-d')) el('luc-best-prof-d').textContent = fmtBRL(bestProf[1].fat) + ' · margem ' + (bestProf[1].fat>0?(bestProf[1].lucro/bestProf[1].fat*100).toFixed(1):0) + '%';
+  }
+  const bestSrv = topLucro[0];
+  if(bestSrv && el('luc-best-srv')) {
+    el('luc-best-srv').textContent = bestSrv.s;
+    if(el('luc-best-srv-d')) el('luc-best-srv-d').textContent = fmtBRL(bestSrv.fat) + ' · margem ' + bestSrv.mg.toFixed(1) + '%';
+  }
+  if(el('luc-best-pct'))   el('luc-best-pct').textContent   = margemGeral.toFixed(1) + '%';
+  if(el('luc-best-pct-d')) el('luc-best-pct-d').textContent = fmtBRL(totalLucro) + ' lucro total';
+}
 
 // ── Renderiza a página com os dois relatórios cruzados ─────
 function renderClientesPage() {
