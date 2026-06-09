@@ -1474,14 +1474,47 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- CONTAS A RECEBER -->
         <div class="page" id="page-contas-receber">
+          <!-- PAGE HEADER -->
           <div class="pg-header">
             <div>
               <div class="pg-header-title">📥 Contas a Receber</div>
-              <div class="pg-header-sub">Cobranças, recebimentos e inadimplência</div>
+              <div class="pg-header-sub">Cobranças · Recebimentos · Inadimplência</div>
+            </div>
+            <div class="pg-header-actions">
+              <div class="filter-group">
+                <span class="filter-label">ANO</span>
+                <select class="filter-select" id="cr-ano" onchange="loadContasReceber()">
+                  <option value="2026">2026</option><option value="2025">2025</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">MÊS</span>
+                <select class="filter-select" id="cr-mes" onchange="loadContasReceber()">
+                  <option value="">Ano todo</option>
+                  <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                  <option value="03">Março</option><option value="04">Abril</option>
+                  <option value="05">Maio</option><option value="06" selected>Junho</option>
+                  <option value="07">Julho</option><option value="08">Agosto</option>
+                  <option value="09">Setembro</option><option value="10">Outubro</option>
+                  <option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <span class="filter-label">STATUS</span>
+                <select class="filter-select" id="cr-status" onchange="loadContasReceber()">
+                  <option value="">Todos</option>
+                  <option value="a receber">A Receber</option>
+                  <option value="recebido">Recebidos</option>
+                  <option value="atrasado">Atrasados</option>
+                </select>
+              </div>
+              <button class="btn" onclick="loadContasReceber()">↻ Atualizar</button>
+              <button class="btn btn-primary" onclick="abrirModalConta('receber')">+ Nova conta a receber</button>
             </div>
           </div>
 
-          <div class="hero-cards cols-5" style="margin-bottom:10px">
+          <!-- CARDS HERO -->
+          <div class="hero-cards cols-5" style="margin-bottom:14px">
             <div class="hcard teal"><div class="hcard-label">A Receber</div><div class="hcard-value sm" id="cr-hero-arec">—</div><div class="hcard-sub">pendente</div><div class="hcard-icon">📥</div></div>
             <div class="hcard blue"><div class="hcard-label">Enviado</div><div class="hcard-value sm" id="cr-hero-env">—</div><div class="hcard-sub">cobrado</div><div class="hcard-icon">📨</div></div>
             <div class="hcard green"><div class="hcard-label">Recebido</div><div class="hcard-value sm" id="cr-hero-rec">—</div><div class="hcard-sub">quitado</div><div class="hcard-icon">✅</div></div>
@@ -1489,138 +1522,62 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard dark"><div class="hcard-label">Total Mês</div><div class="hcard-value sm" id="cr-hero-total">—</div><div class="hcard-sub">soma do período</div><div class="hcard-icon">💰</div></div>
           </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
-            <div class="filters" style="margin-bottom:0">
-              <select class="filter-select" id="cr-mes" onchange="loadContasReceber()">
-                <option value="">Todos os meses</option>
-                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
-                <option value="03">Março</option><option value="04">Abril</option>
-                <option value="05">Maio</option><option value="06" selected>Junho</option>
-                <option value="07">Julho</option><option value="08">Agosto</option>
-                <option value="09">Setembro</option><option value="10">Outubro</option>
-                <option value="11">Novembro</option><option value="12">Dezembro</option>
-              </select>
-              <select class="filter-select" id="cr-ano" onchange="loadContasReceber()">
-                <option value="2026">2026</option><option value="2025">2025</option>
-              </select>
-              <select class="filter-select" id="cr-status" onchange="loadContasReceber()">
-                <option value="">Todos</option>
-                <option value="pendente">Pendentes</option>
-                <option value="recebido">Recebidos</option>
-                <option value="atrasado">Atrasados</option>
-              </select>
-              <input type="text" placeholder="🔍 Buscar..." oninput="filtrarTabela('cr-tbody',this.value)"
-                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:160px">
-              <button class="btn" onclick="loadContasReceber()">↻ Atualizar</button>
+          <!-- LINHA 2: Gráfico vencimentos por dia + Donut por categoria -->
+          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px">
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#d1fae5;color:#065f46;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📅</span>
+                  <div>
+                    <div style="font-weight:600;font-size:13px">Recebimentos por Dia</div>
+                    <div style="font-size:10px;color:var(--text2)" id="cr-chart-sub">valores a receber no mês</div>
+                  </div>
+                </div>
+              </div>
+              <div class="section-card-body" style="padding:12px;height:200px;position:relative">
+                <canvas id="cr-chart-dias"></canvas>
+              </div>
             </div>
-            <button class="btn btn-primary" onclick="abrirModalConta('receber')">+ Nova conta a receber</button>
-          </div>
-
-          <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">A Receber</div>
-              <div id="cr-total" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:#3b82f6;text-transform:uppercase">Enviado</div>
-              <div id="cr-enviado" style="font-size:13px;font-weight:700;color:#3b82f6;font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:var(--green);text-transform:uppercase">Recebido</div>
-              <div id="cr-recebido" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Não Recebido</div>
-              <div id="cr-naorecebido" style="font-size:13px;font-weight:700;color:var(--text2);font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px">
-              <div style="font-size:10px;font-weight:600;color:#ef4444;text-transform:uppercase">Atrasado</div>
-              <div id="cr-atrasado" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'DM Mono',monospace">—</div>
-            </div>
-            <div class="metric-card" style="flex:1;padding:10px 14px;min-width:100px;border:2px solid var(--accent)">
-              <div style="font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase">Total Mês</div>
-              <div id="cr-total-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
+            <div class="section-card">
+              <div class="section-card-header">
+                <div class="section-card-title">
+                  <span style="background:#d1fae5;color:#065f46;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🍩</span>
+                  <div>
+                    <div style="font-weight:600;font-size:13px">Por Categoria</div>
+                    <div style="font-size:10px;color:var(--text2)" id="cr-cat-sub">distribuição de receitas</div>
+                  </div>
+                </div>
+              </div>
+              <div class="section-card-body" style="display:flex;align-items:center;gap:12px;padding:12px">
+                <div id="cr-cat-legend" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
+                <div style="position:relative;height:160px;width:160px;flex-shrink:0">
+                  <canvas id="cr-chart-cat"></canvas>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">📌 Recebimentos Fixos</div>
-              <div id="cr-fixas-table"><div class="loading"><div class="spin"></div></div></div>
+          <!-- TABELA COMPLETA -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <div class="section-card-title">
+                <span style="background:#d1fae5;color:#065f46;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📋</span>
+                <div>
+                  <div style="font-weight:600;font-size:13px">Detalhamento</div>
+                  <div style="font-size:10px;color:var(--text2)">Todas as contas do período</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="cr-busca" placeholder="🔍 Buscar..." oninput="filtrarTabela('cr-det-tbody',this.value)"
+                  style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);width:180px">
+              </div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">📊 Recebimentos Variáveis</div>
-              <div id="cr-variaveis-table"><div class="loading"><div class="spin"></div></div></div>
+            <div id="cr-det-table" style="overflow-x:auto">
+              <div class="loading" style="padding:1.5rem;text-align:center"><div class="spin" style="margin:0 auto"></div></div>
             </div>
           </div>
+
         </div>
-
-        <!-- IMPORTAR -->
-        <div class="page" id="page-importar">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div class="card">
-              <div class="card-header"><div class="card-title">Relatório de Serviços</div></div>
-              <div class="import-zone" onclick="triggerImport('servicos')">
-                <div class="import-icon">💅</div>
-                <div>Clique para selecionar o Excel</div>
-                <div style="font-size:11px;margin-top:4px;color:var(--text3)">Colunas: Profissional, Data, Serviço, Cliente, Valor...</div>
-                <input type="file" id="imp-servicos" accept=".xlsx,.xls,.csv" onchange="importFile('servicos',this)">
-              </div>
-              <div id="imp-servicos-status"></div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Relatório de Produtos</div></div>
-              <div class="import-zone" onclick="triggerImport('produtos')">
-                <div class="import-icon">🛍️</div>
-                <div>Clique para selecionar o Excel</div>
-                <div style="font-size:11px;margin-top:4px;color:var(--text3)">Colunas: Profissional, Produto, Marca, Valor...</div>
-                <input type="file" id="imp-produtos" accept=".xlsx,.xls,.csv" onchange="importFile('produtos',this)">
-              </div>
-              <div id="imp-produtos-status"></div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Clientes Atendidos</div></div>
-              <div class="import-zone" onclick="triggerImport('clientes-atend')">
-                <div class="import-icon">👥</div>
-                <div>Clique para selecionar o Excel</div>
-                <div style="font-size:11px;margin-top:4px;color:var(--text3)">Colunas: Cliente, Última Visita, Total, Visitas...</div>
-                <input type="file" id="imp-clientes-atend" accept=".xlsx,.xls,.csv" onchange="importFile('clientes-atend',this)">
-              </div>
-              <div id="imp-clientes-atend-status"></div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Clientes Novos</div></div>
-              <div class="import-zone" onclick="triggerImport('clientes-novos')">
-                <div class="import-icon">✨</div>
-                <div>Clique para selecionar o Excel</div>
-                <div style="font-size:11px;margin-top:4px;color:var(--text3)">Colunas: Cliente, Data Cadastro, Como Conheceu...</div>
-                <input type="file" id="imp-clientes-novos" accept=".xlsx,.xls,.csv" onchange="importFile('clientes-novos',this)">
-              </div>
-              <div id="imp-clientes-novos-status"></div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Lucratividade</div></div>
-              <div class="import-zone" onclick="triggerImport('lucratividade')">
-                <div class="import-icon">📊</div>
-                <div>Clique para selecionar o Excel</div>
-                <div style="font-size:11px;margin-top:4px;color:var(--text3)">Colunas: Data, Profissional, Faturado, Lucro, %...</div>
-                <input type="file" id="imp-lucratividade" accept=".xlsx,.xls,.csv" onchange="importFile('lucratividade',this)">
-              </div>
-              <div id="imp-lucratividade-status"></div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Relatório por Profissional</div></div>
-              <div class="import-zone" onclick="triggerImport('profissional')">
-                <div class="import-icon">💇</div>
-                <div>Clique para selecionar o Excel</div>
-                <div style="font-size:11px;margin-top:4px;color:var(--text3)">Colunas: Comanda, Data, Serviço, Cliente, Comissão...</div>
-                <input type="file" id="imp-profissional" accept=".xlsx,.xls,.csv" onchange="importFile('profissional',this)">
-              </div>
-              <div id="imp-profissional-status"></div>
-            </div>
-          </div>
-        </div>
-
 
         <!-- PDV / CAIXA -->
         <div class="page" id="page-pdv">
@@ -11440,10 +11397,105 @@ async function loadContasReceber() {
   _rs('cr-hero-rec', fmtBRL(soma(recebidos))); _rs('cr-hero-nrec', fmtBRL(soma(naoRecebidos)));
   _rs('cr-hero-total', fmtBRL(soma(contas)));
 
-  const fixas = contas.filter(c => c.tipo === 'fixa');
-  const variaveis = contas.filter(c => c.tipo !== 'fixa');
-  renderTabelaConta('cr-fixas-table', fixas, 'receber', hoje);
-  renderTabelaConta('cr-variaveis-table', variaveis, 'receber', hoje);
+  // ── Gráfico vencimentos por dia ──
+  const diasMapR = {};
+  contas.filter(c => c.status !== 'recebido').forEach(c => {
+    const dia = parseInt((c.data_vencimento||'').substring(8,10));
+    if (dia) diasMapR[dia] = (diasMapR[dia]||0) + Number(c.valor||0);
+  });
+  const maxDiaR = mes ? new Date(parseInt(ano), parseInt(mes), 0).getDate() : 31;
+  const dLabelsR = Array.from({length:maxDiaR},(_,i)=>i+1);
+  const dValsR   = dLabelsR.map(d => diasMapR[d]||0);
+
+  if (!window._crChartDias) window._crChartDias = null;
+  const ctxDiasR = document.getElementById('cr-chart-dias')?.getContext('2d');
+  if (ctxDiasR) {
+    if (window._crChartDias) window._crChartDias.destroy();
+    window._crChartDias = new Chart(ctxDiasR, {
+      type: 'bar',
+      data: { labels: dLabelsR, datasets:[{ data: dValsR, backgroundColor:'#059669', borderRadius:3 }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmtBRL(c.raw)}} },
+        scales:{ x:{ticks:{font:{size:8}},grid:{display:false}}, y:{ticks:{font:{size:9},callback:v=>v>=1000?'R$'+(v/1000).toFixed(0)+'k':''},grid:{color:'rgba(0,0,0,0.04)'}} }
+      }
+    });
+  }
+
+  // ── Donut por categoria ──
+  const catMapR = {};
+  contas.forEach(c => { const cat = c.categoria||'Outros'; catMapR[cat]=(catMapR[cat]||0)+Number(c.valor||0); });
+  const catArrR = Object.entries(catMapR).sort((a,b)=>b[1]-a[1]);
+  const CORES_CR = ['#059669','#2563eb','#7c3aed','#0891b2','#d97706','#dc2626','#16a34a','#9333ea'];
+  const totalCatR = catArrR.reduce((s,[,v])=>s+v,0);
+
+  if (!window._crChartCat) window._crChartCat = null;
+  const ctxCatR = document.getElementById('cr-chart-cat')?.getContext('2d');
+  if (ctxCatR && catArrR.length) {
+    if (window._crChartCat) window._crChartCat.destroy();
+    window._crChartCat = new Chart(ctxCatR, donutOpts(catArrR.map(([n])=>n), catArrR.map(([,v])=>v), CORES_CR, fmtBRL));
+    renderDonutLegend('cr-cat-legend', catArrR.map(([cat,val],i)=>({
+      label:cat, value:fmtBRL(val), color:CORES_CR[i%CORES_CR.length], pct:totalCatR>0?val/totalCatR*100:0
+    })));
+    if(document.getElementById('cr-cat-sub')) document.getElementById('cr-cat-sub').textContent = catArrR.length+' categorias';
+  }
+
+  // ── Tabela detalhada ──
+  const detElR = document.getElementById('cr-det-table');
+  if (detElR) {
+    if (!contas.length) {
+      detElR.innerHTML = '<div class="empty" style="padding:2rem;text-align:center;color:var(--text3)">Nenhuma conta no período</div>';
+    } else {
+      const statusCorR = { 'recebido':'#059669','enviado':'#2563eb','atrasado':'#dc2626','não recebido':'#6b7280','a receber':'#6b7280','pendente':'#6b7280' };
+      const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2);text-align:left';
+      const statusOpcoes = ['a receber','enviado','recebido','não recebido','atrasado'];
+      const rows = contas.map((c,i) => {
+        const vencido = c.data_vencimento < hoje && c.status !== 'recebido';
+        const statusAtual = c.status || 'pendente';
+        const cor = statusCorR[statusAtual] || '#6b7280';
+        const parcLabel = c.total_parcelas ? `${c.parcela_atual||1}/${c.total_parcelas}` : '1/1';
+        const rowBg = vencido ? 'background:#fff5f5' : '';
+        return `<tr id="cr-row-${c.id}" style="border-bottom:1px solid var(--border);${rowBg}">
+          <td style="padding:7px 10px;color:var(--text2);white-space:nowrap;font-size:11px">${fmtDate(c.data_vencimento)}</td>
+          <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${c.cnpj||'—'}</td>
+          <td style="padding:7px 10px;font-size:11px;color:var(--text2)">${c.categoria||'—'}</td>
+          <td style="padding:7px 10px">
+            <div style="font-size:12px;font-weight:600">${c.descricao||'—'}</div>
+            ${c.palavra_chave?`<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>`:''}
+          </td>
+          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green);white-space:nowrap">${fmtBRL(c.valor)}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:11px;font-family:'DM Mono',monospace;color:${c.total_parcelas>1?'#7c3aed':'var(--text3)'};font-weight:${c.total_parcelas>1?'700':'400'}">${parcLabel}</td>
+          <td style="padding:7px 10px;text-align:center">
+            <select onchange="atualizarStatusConta('${c.id}','receber',this.value,this)"
+              style="padding:3px 7px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid ${cor};color:${cor};background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;outline:none">
+              ${statusOpcoes.map(s=>`<option value="${s}" ${statusAtual===s||((statusAtual==='pendente')&&s==='a receber')?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+            </select>
+          </td>
+          <td style="padding:7px 10px;text-align:center;color:var(--text3);font-size:11px">${c.data_pagamento?fmtDate(c.data_pagamento):'—'}</td>
+          <td style="padding:7px 10px" onclick="event.stopPropagation()">
+            <div style="display:flex;gap:3px;justify-content:center">
+              <button class="btn btn-sm" style="padding:2px 6px;font-size:10px" onclick="editarConta('${c.id}','receber')">✏️</button>
+              <button class="btn btn-sm" style="padding:2px 6px;font-size:10px;color:var(--red);border-color:var(--red)" onclick="excluirConta('${c.id}','receber')">🗑️</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+
+      detElR.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>
+          <th style="${TH}">DATA VENC</th>
+          <th style="${TH}">CLIENTE/CNPJ</th>
+          <th style="${TH}">CATEGORIA</th>
+          <th style="${TH}">DESCRIÇÃO</th>
+          <th style="${TH};text-align:right">VALOR</th>
+          <th style="${TH};text-align:center">PARCELA</th>
+          <th style="${TH};text-align:center">STATUS</th>
+          <th style="${TH};text-align:center">RECEBIMENTO</th>
+          <th style="${TH};text-align:center">AÇÕES</th>
+        </tr></thead>
+        <tbody id="cr-det-tbody">${rows}</tbody>
+      </table>`;
+    }
+  }
 }
 
 function renderTabelaConta(targetId, contas, tipo, hoje) {
