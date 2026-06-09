@@ -1965,8 +1965,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
                 📂 Distribuição por Categoria
               </div>
-              <div style="padding:1rem;height:200px;position:relative">
-                <canvas id="srv-chart-cat"></canvas>
+              <div style="display:flex;align-items:center;gap:14px;padding:12px">
+                <div id="srv-cat-legend" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
+                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
+                  <canvas id="srv-chart-cat"></canvas>
+                </div>
               </div>
               <!-- mantém por-cat e chart-prof ocultos mas funcionais -->
               <div id="srv-por-cat" style="display:none"></div>
@@ -2248,8 +2251,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <span>📂 Faturamento por Categoria</span>
                 <span id="prod-cat-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
               </div>
-              <div style="padding:1rem;height:200px;position:relative">
-                <canvas id="prod-chart-cat"></canvas>
+              <div style="display:flex;align-items:center;gap:14px;padding:12px">
+                <div id="prod-cat-legend" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
+                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
+                  <canvas id="prod-chart-cat"></canvas>
+                </div>
               </div>
             </div>
           </div>
@@ -2361,8 +2367,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div style="font-weight:600;font-size:13px">Faturamento por Profissional</div>
                 <div style="font-size:11px;color:var(--text2);margin-top:1px">Distribuição percentual</div>
               </div>
-              <div style="padding:1rem;height:200px;position:relative">
-                <canvas id="perf-chart-prof"></canvas>
+              <div style="display:flex;align-items:center;gap:14px;padding:12px">
+                <div id="perf-prof-legend" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
+                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
+                  <canvas id="perf-chart-prof"></canvas>
+                </div>
               </div>
             </div>
           </div>
@@ -5487,18 +5496,12 @@ async function loadDashboard() {
   if (chartEntCat) chartEntCat.destroy();
   const ctx3 = el('chart-ent-cat')?.getContext('2d');
   if (ctx3 && entEntries.length) {
-    chartEntCat = new Chart(ctx3, { type:'doughnut',
-      data:{ labels:entEntries.map(([n])=>n), datasets:[{data:entEntries.map(([,v])=>v), backgroundColor:CORES_ENT, borderWidth:2, borderColor:'var(--bg2)'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'72%'}
-    });
-    if(el('dash-ent-legend')) el('dash-ent-legend').innerHTML = entEntries.map(([n,v],i)=>
-      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px">
-        <div style="display:flex;align-items:center;gap:4px;min-width:0">
-          <div style="width:8px;height:8px;border-radius:50%;background:${CORES_ENT[i]};flex-shrink:0"></div>
-          <span style="font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n}</span>
-        </div>
-        <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0">${fmtBRL(v)}</span>
-      </div>`).join('');
+    if(chartEntCat) chartEntCat.destroy();
+    const totalEnt = entEntries.reduce((s,[,v])=>s+v,0);
+    chartEntCat = new Chart(ctx3, donutOpts(entEntries.map(([n])=>n), entEntries.map(([,v])=>v), CORES_ENT, fmtBRL));
+    renderDonutLegend('dash-ent-legend', entEntries.map(([n,v],i)=>({
+      label:n, value:fmtBRL(v), color:CORES_ENT[i], pct:totalEnt>0?v/totalEnt*100:0
+    })));
     if(el('dash-ent-sub')) el('dash-ent-sub').textContent = `${entEntries.length} categorias · ${mesLabel}`;
   }
 
@@ -5511,18 +5514,12 @@ async function loadDashboard() {
   if (chartCat) chartCat.destroy();
   const ctx2 = el('chart-sai-cat')?.getContext('2d');
   if (ctx2 && saiEntries.length) {
-    chartCat = new Chart(ctx2, { type:'doughnut',
-      data:{ labels:saiEntries.map(([n])=>n), datasets:[{data:saiEntries.map(([,v])=>v), backgroundColor:CORES_SAI, borderWidth:2, borderColor:'var(--bg2)'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'72%'}
-    });
-    if(el('dash-sai-legend')) el('dash-sai-legend').innerHTML = saiEntries.map(([n,v],i)=>
-      `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px">
-        <div style="display:flex;align-items:center;gap:4px;min-width:0">
-          <div style="width:8px;height:8px;border-radius:50%;background:${CORES_SAI[i]};flex-shrink:0"></div>
-          <span style="font-size:10px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${n}</span>
-        </div>
-        <span style="font-size:10px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0">${fmtBRL(v)}</span>
-      </div>`).join('');
+    if(chartCat) chartCat.destroy();
+    const totalSai2 = saiEntries.reduce((s,[,v])=>s+v,0);
+    chartCat = new Chart(ctx2, donutOpts(saiEntries.map(([n])=>n), saiEntries.map(([,v])=>v), CORES_SAI, fmtBRL));
+    renderDonutLegend('dash-sai-legend', saiEntries.map(([n,v],i)=>({
+      label:n, value:fmtBRL(v), color:CORES_SAI[i], pct:totalSai2>0?v/totalSai2*100:0
+    })));
     if(el('dash-sai-sub')) el('dash-sai-sub').textContent = `${saiEntries.length} categorias · ${mesLabel}`;
   }
 
@@ -5582,10 +5579,8 @@ async function loadDashboard() {
   if (chartNovoRec) chartNovoRec.destroy();
   const ctxNR = el('chart-novorec')?.getContext('2d');
   if (ctxNR && (novosCount+recCount)>0) {
-    chartNovoRec = new Chart(ctxNR, { type:'doughnut',
-      data:{ labels:['Novos','Recorrentes'], datasets:[{data:[novosCount,recCount], backgroundColor:['#059669','#2563eb'], borderWidth:2, borderColor:'var(--bg2)'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'65%'}
-    });
+    if(chartNovoRec) chartNovoRec.destroy();
+    chartNovoRec = new Chart(ctxNR, donutOpts(['Novos','Recorrentes'],[novosCount,recCount],['#059669','#2563eb']));
   }
 
   // ── 10. Canais de Aquisição ───────────────────────────
@@ -6943,30 +6938,18 @@ async function loadLucratividade() {
   const ctxComp = el('luc-chart-comp')?.getContext('2d');
   if (ctxComp) {
     if (_lucChart1) _lucChart1.destroy();
-    _lucChart1 = new Chart(ctxComp, {
-      type: 'doughnut',
-      data: {
-        labels: ['Comissão', 'Custo Serviço', 'Lucro Líquido'],
-        datasets: [{ data: [totalComissao, totalServico, Math.max(0, totalLucro)],
-          backgroundColor: ['#f59e0b','#3b82f6','#22c55e'], borderWidth: 2, borderColor: 'var(--bg2)' }]
-      },
-      options: { responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false },
-          tooltip: { callbacks: { label: c => ` ${c.label}: ${fmtBRL(c.raw)}` } } } }
-    });
+    _lucChart1 = new Chart(ctxComp, donutOpts(
+      ['Comissão','Custo Serviço','Lucro Líquido'],
+      [totalComissao, totalServico, Math.max(0,totalLucro)],
+      ['#f59e0b','#3b82f6','#22c55e'], fmtBRL
+    ));
   }
-  if(el('luc-comp-legend')) {
-    const items = [['Comissão', totalComissao, '#f59e0b'], ['Custo Serviço', totalServico, '#3b82f6'], ['Lucro Líquido', Math.max(0,totalLucro), '#22c55e']];
-    el('luc-comp-legend').innerHTML = items.map(([l,v,c]) =>
-      `<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:12px;height:12px;border-radius:3px;background:${c};flex-shrink:0"></div>
-          <span style="font-size:12px">${l}</span>
-        </div>
-        <strong style="font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(v)}</strong>
-      </div>`
-    ).join('');
-  }
+  const totalCompGeral = totalComissao + totalServico + Math.max(0,totalLucro);
+  renderDonutLegend('luc-comp-legend', [
+    {label:'Comissão',     value:fmtBRL(totalComissao),           color:'#f59e0b', pct:totalCompGeral>0?totalComissao/totalCompGeral*100:0},
+    {label:'Custo Serviço',value:fmtBRL(totalServico),            color:'#3b82f6', pct:totalCompGeral>0?totalServico/totalCompGeral*100:0},
+    {label:'Lucro Líquido',value:fmtBRL(Math.max(0,totalLucro)), color:'#22c55e', pct:totalCompGeral>0?Math.max(0,totalLucro)/totalCompGeral*100:0}
+  ]);
 
   // ── Ranking Profissionais ──
   const rankProf = {};
@@ -7039,26 +7022,15 @@ async function loadLucratividade() {
   const ctxCat = el('luc-chart-cat')?.getContext('2d');
   if (ctxCat) {
     if (_lucChart2) _lucChart2.destroy();
-    _lucChart2 = new Chart(ctxCat, {
-      type: 'doughnut',
-      data: { labels: catArr.map(([c])=>c), datasets:[{ data: catArr.map(([,d])=>d.fat),
-        backgroundColor: CORES, borderWidth: 2, borderColor: 'var(--bg2)' }] },
-      options: { responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` ${c.label}: ${fmtBRL(c.raw)}` } } } }
-    });
+    _lucChart2 = new Chart(ctxCat, donutOpts(
+      catArr.map(([c])=>c), catArr.map(([,d])=>d.fat), CORES, fmtBRL
+    ));
   }
-  if(el('luc-cat-legend')) {
-    el('luc-cat-legend').innerHTML = catArr.map(([cat,d],i) => {
-      const mg = d.fat>0?(d.lucro/d.fat*100):0;
-      return `<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:6px">
-          <div style="width:12px;height:12px;border-radius:3px;background:${CORES[i%CORES.length]};flex-shrink:0"></div>
-          <span style="font-size:12px">${cat}</span>
-        </div>
-        <span style="font-size:12px;font-weight:700">${mg.toFixed(1)}%</span>
-      </div>`;
-    }).join('');
-  }
+  const totalCatFat = catArr.reduce((s,[,d])=>s+d.fat,0);
+  renderDonutLegend('luc-cat-legend', catArr.map(([cat,d],i) => ({
+    label: cat, value: fmtBRL(d.fat), color: CORES[i%CORES.length],
+    pct: totalCatFat>0?d.fat/totalCatFat*100:0
+  })));
 
   // Tabela por categoria
   if(el('luc-tab-cat')) {
@@ -7387,36 +7359,16 @@ function renderClientesPage() {
   const ctxCanal = el('cli-chart-canal')?.getContext('2d');
   if (ctxCanal) {
     if (_cliChartCanal) _cliChartCanal.destroy();
-    _cliChartCanal = new Chart(ctxCanal, {
-      type: 'doughnut',
-      data: {
-        labels: canalRank.map(([n])=>n),
-        datasets: [{ data: canalRank.map(([,v])=>v), backgroundColor: CORES_CLI, borderWidth: 2, borderColor:'var(--bg2)' }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend:{ display: false },
-          tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} (${totalNovos>0?(ctx.raw/totalNovos*100).toFixed(1):0}%)` } }
-        }
-      }
-    });
+    _cliChartCanal = new Chart(ctxCanal, donutOpts(
+      canalRank.map(([n])=>n), canalRank.map(([,v])=>v), CORES_CLI
+    ));
   }
+  renderDonutLegend('cli-canal-legenda', canalRank.map(([nome,qtd],i) => ({
+    label: nome, value: qtd + ' clientes', color: CORES_CLI[i%CORES_CLI.length],
+    pct: totalNovos>0?qtd/totalNovos*100:0
+  })));
+}
 
-  // Legenda lateral da rosca
-  const legEl = el('cli-canal-legenda');
-  if (legEl) {
-    legEl.innerHTML = canalRank.map(([nome, qtd], i) => {
-      const pct = totalNovos > 0 ? (qtd/totalNovos*100).toFixed(1) : '0';
-      return `<div style="display:flex;align-items:center;gap:8px">
-        <div style="width:12px;height:12px;border-radius:3px;flex-shrink:0;background:${CORES_CLI[i%CORES_CLI.length]}"></div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600">${nome}</div>
-          <div style="font-size:11px;color:var(--text3)">${qtd} clientes · ${pct}%</div>
-        </div>
-      </div>`;
-    }).join('');
-  }
 }
 
 
@@ -7792,21 +7744,10 @@ function renderProdutos(rows) {
   const ctxCat = el('prod-chart-cat')?.getContext('2d');
   if (ctxCat) {
     if (_prodChartCat) _prodChartCat.destroy();
-    _prodChartCat = new Chart(ctxCat, {
-      type: 'doughnut',
-      data: {
-        labels: catRank.map(([n])=>n),
-        datasets: [{ data: catRank.map(([,v])=>v), backgroundColor: CORES, borderWidth: 2, borderColor: 'var(--bg2)' }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'right', labels: { font:{size:9}, padding:5, boxWidth:10 } },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtBRL(ctx.raw)} (${(ctx.raw/total*100).toFixed(1)}%)` } }
-        }
-      }
-    });
+    _prodChartCat = new Chart(ctxCat, donutOpts(catRank.map(([n])=>n), catRank.map(([,v])=>v), CORES, fmtBRL));
   }
+  const totalProdCat = catRank.reduce((s,[,v])=>s+v,0);
+  renderDonutLegend('prod-cat-legend', catRank.map(([cat,v],i) => ({label:cat, value:fmtBRL(v), color:CORES[i%CORES.length], pct:totalProdCat>0?v/totalProdCat*100:0})));
 
   // ── Vendas por profissional ─────────────────────────────
   const profMap = {};
@@ -8016,21 +7957,10 @@ async function loadPerformance() {
   const ctxProf = el('perf-chart-prof')?.getContext('2d');
   if (ctxProf) {
     if (_perfChartProf) _perfChartProf.destroy();
-    _perfChartProf = new Chart(ctxProf, {
-      type: 'doughnut',
-      data: {
-        labels: profRank.map(([n])=>n),
-        datasets: [{ data: profRank.map(([,v])=>v.fat), backgroundColor: CORES, borderWidth:2, borderColor:'var(--bg2)' }]
-      },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        plugins: {
-          legend:{ position:'right', labels:{font:{size:9},padding:5,boxWidth:10} },
-          tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${fmtBRL(ctx.raw)} (${(ctx.raw/totalFat*100).toFixed(1)}%)` } }
-        }
-      }
-    });
-  }
+     _perfChartProf = new Chart(ctxProf, donutOpts(profRank.map(([n])=>n), profRank.map(([,v])=>v.fat), CORES, fmtBRL));
+   }
+   const totalPerfFat = profRank.reduce((s,[,v])=>s+v.fat,0);
+   renderDonutLegend('perf-prof-legend', profRank.map(([prof,v],i) => ({label:prof.split(' ')[0], value:fmtBRL(v.fat), color:CORES[i%CORES.length], pct:totalPerfFat>0?v.fat/totalPerfFat*100:0})));
 
   // ── Serviços mais vendidos (sem duplicar 1/2) ──────────
   const cleanSrv = n => String(n||'').replace(/\s*\(?\s*\d+\s*\/\s*\d+\s*\)?\s*$/i,'').trim();
@@ -9796,15 +9726,10 @@ function renderSrvCharts(catRanking, profRanking) {
   const ctxCat = document.getElementById('srv-chart-cat')?.getContext('2d');
   if (ctxCat) {
     if (_srvChartCat) _srvChartCat.destroy();
-    _srvChartCat = new Chart(ctxCat, {
-      type: 'doughnut',
-      data: {
-        labels: catRanking.map(([n]) => n),
-        datasets: [{ data: catRanking.map(([,v]) => v.total), backgroundColor: CORES, borderWidth: 2, borderColor: '#fff' }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 9 }, padding: 5, boxWidth: 10 } } } }
-    });
-  }
+     _srvChartCat = new Chart(ctxCat, donutOpts(catRanking.map(([n])=>n), catRanking.map(([,v])=>v.total), CORES, fmtBRL));
+   }
+   const totalSrvCat = catRanking.reduce((s,[,v])=>s+v.total,0);
+   renderDonutLegend('srv-cat-legend', catRanking.map(([cat,v],i) => ({label:cat, value:fmtBRL(v.total), color:CORES[i%CORES.length], pct:totalSrvCat>0?v.total/totalSrvCat*100:0})));
 
   // Gráfico profissional (barras horizontais)
   const ctxProf = document.getElementById('srv-chart-prof')?.getContext('2d');
@@ -12014,6 +11939,39 @@ function fornecedorBate(f, extrato) {
     if (palavras.length > 0 && achou.length >= Math.min(2, palavras.length)) return true;
   }
   return false;
+}
+
+// ─── CONFIG PADRÃO DONUTS ────────────────────────────
+function renderDonutLegend(elId, items) {
+  // items = [{label, value, color, pct}]
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = items.map(it => `
+    <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;padding:2px 0">
+      <div style="display:flex;align-items:center;gap:7px;min-width:0">
+        <div style="width:11px;height:11px;border-radius:3px;background:${it.color};flex-shrink:0"></div>
+        <span style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.label}</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+        ${it.pct !== undefined ? `<span style="font-size:11px;font-weight:700;min-width:38px;text-align:right">${Number(it.pct).toFixed(1)}%</span>` : ''}
+        ${it.value !== undefined ? `<span style="font-size:11px;font-family:'DM Mono',monospace;min-width:80px;text-align:right">${it.value}</span>` : ''}
+      </div>
+    </div>`
+  ).join('');
+}
+
+function donutOpts(labels, data, cores, fmtFn) {
+  return {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data, backgroundColor: cores, borderWidth: 1, borderColor: '#fff', hoverOffset: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${fmtFn ? fmtFn(c.raw) : c.raw}` } }
+      }
+    }
+  };
 }
 
 // ─── INIT ────────────────────────────────────────────
