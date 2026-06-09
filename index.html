@@ -9618,7 +9618,7 @@ async function loadDRE() {
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
-      const vals = mCols.map(m => calcReal(l => (l.categoria||l.categoria_dre||'') === c.nome, m));
+      const vals = mCols.map(m => calcReal(c.nome, c.tipo, m));
       const projVals = mCols.map(m => calcProj(c.nome, m));
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr class="dre-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
