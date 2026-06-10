@@ -4813,7 +4813,7 @@ async function confirmarImportacaoGlobal() {
       await initClientes();
     } else if (nomeT.includes('lucratividade')) {
       // Lucratividade → salva em rel_lucratividade
-      const normLuc = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+      const normLuc = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
       const parseD  = v => { if(!v)return null; const s=String(v).trim(); if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.substring(0,10); const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; return null; };
       const parseN  = v => { if(v===null||v===undefined||v==='')return 0; if(typeof v==='number')return v; const s=String(v).replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
       const getCol  = (row,ns) => { const keys=Object.keys(row); for(const n of ns){const k=keys.find(c=>normLuc(c).includes(normLuc(n)));if(k!==undefined&&row[k]!=null&&row[k]!=='')return row[k];} return null; };
@@ -5140,7 +5140,7 @@ async function importarExcelPDV(input) {
     }
 
     // Normaliza string para comparação
-    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 
     // Função para parsear valor monetário BR
     const parseVal = v => {
@@ -6041,7 +6041,7 @@ async function loadDashboard() {
         }
       } catch(e){}
 
-      const normD = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+      const normD = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
       const mCols2 = mes ? [mes] : ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
       // calcReal igual ao DRE
@@ -6538,7 +6538,7 @@ async function loadDashboard() {
 
       // Filtro correto com unicode
       const isFatT = n => {
-        const s = (n||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+        const s = (n||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
         if (s.includes('divida')) return false;
         return s.includes('comanda') || s.includes('credito') || s.includes('debito') || s.includes('pix');
       };
@@ -6951,7 +6951,7 @@ async function loadLancamentos() {
   // Saldo acumulado de um banco = soma de TODOS os lançamentos históricos (sem filtro de data)
   // Inclui variações de nome (ex: "C/C ITAU" e "ITAU" são o mesmo banco "Itaú")
   const normalizarBanco = (nome) => {
-    const n = (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+    const n = (nome||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
     if (n.includes('itau') || n.includes('itaú') || n === 'c/c itau') return 'itau';
     if (n.includes('pagbank') || n.includes('pag bank')) return 'pagbank';
     if (n.includes('stone')) return 'stone';
@@ -7757,7 +7757,7 @@ async function loadContasPagar() {
   let contas = data || [];
 
   // Filtro de status case-insensitive no JS
-  const normS = s => (s||'').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const normS = s => (s||'').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   if (status) {
     const normStatus = normS(status);
     contas = contas.filter(c => normS(c.status) === normStatus ||
@@ -7918,7 +7918,7 @@ let _cliChartDia = null, _cliChartCanal = null;
 // Parser: extrai campos de clientes do jsonb (tabela rel_servicos ou rel_dados_brutos)
 function parseCliRow(colunas) {
   const c = colunas || {};
-  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   const get = (...nomes) => {
     for (const n of nomes) {
       const k = Object.keys(c).find(k => norm(k).includes(norm(n)));
@@ -7945,7 +7945,7 @@ let _cliTodosData  = []; // todos os clientes do período (relatório 2)
 let _cliNovosData  = []; // clientes novos cadastrados (relatório 1)
 
 const _normCli = s => (s||'').toLowerCase()
-  .normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .replace(/\s+/g,' ').trim();
 
 // ── Importar relatório de TODOS os clientes ────────────────
@@ -8848,7 +8848,7 @@ function renderClientes(linhas, ano, mes) {
 // Converte linha jsonb para objeto padronizado de produtos
 function parseProdRow(colunas) {
   const c = colunas || {};
-  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+  const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   const get = (...nomes) => {
     for (const n of nomes) {
       const k = Object.keys(c).find(k => norm(k).includes(norm(n)));
@@ -11047,7 +11047,7 @@ async function importarRelServicos(input) {
     console.log('[Import] 1ª linha:', rows[0]);
 
     // Busca coluna por palavras-chave (sem acentos, case insensitive)
-    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
     const findCol = (...termos) => {
       for (const t of termos) {
         const k = colunas.find(c => norm(c) === norm(t) || norm(c).includes(norm(t)));
@@ -11623,7 +11623,7 @@ async function loadDRE() {
   const mostrarReal = modo === 'realizado' || modo === 'ambos';
 
   // Normaliza nome para comparação (sem acento, lowercase, sem espaço duplo)
-  const normDRE = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/,' ').trim();
+  const normDRE = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/,' ').trim();
 
   function calcReal(catNome, catTipo, mes) {
     const normNome = normDRE(catNome);
@@ -12261,11 +12261,11 @@ async function salvarConta() {
       arquivo_url: arquivoUrl || null,
       observacao: (obs || '') + (m.numero_doc ? ' | Boleto: '+m.numero_doc : '') + (numeroNF ? ' | NF: '+numeroNF : '') || null,
       status: 'pendente',
-      criado_por: _vnUser?.id || null,
-      criado_por_nome: _vnUser?.nome || _vnUser?.email || null,
-      criado_em: new Date().toISOString(),
-      pasta_id: document.getElementById('ct-pasta-sel')?.value || null,
     };
+    // Colunas de auditoria (adiciona só se existirem no banco)
+    try { payload.criado_por = _vnUser?.id || null; } catch(e){}
+    try { payload.criado_por_nome = _vnUser?.nome || _vnUser?.email || null; } catch(e){}
+    try { payload.pasta_id = document.getElementById('ct-pasta-sel')?.value || null; } catch(e){}
 
     const { error } = (editId && i === 0)
       ? await sb.from(tabela).update(payload).eq('id', editId)
@@ -12970,7 +12970,7 @@ async function lerColunaExcel() {
   document.getElementById('excel-col-cat').innerHTML      = optsNada;
 
   // Auto-detecta pelo nome da coluna
-  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   _excelColunas.forEach(c => {
     const n = norm(c.nome);
     if (/^data$|^date$/.test(n))                    document.getElementById('excel-col-data').value     = c.idx;
@@ -13177,7 +13177,7 @@ function renderConciliacao() {
 
     // 2. Se não achou por fornecedor, tenta pela coluna CATEGORIA do Excel
     if (!temSugestao && r._catExcel) {
-      const normCat = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+      const normCat = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
       const catMatch = _categorias.find(c =>
         normCat(c.nome) === normCat(r._catExcel) ||
         normCat(c.nome).includes(normCat(r._catExcel)) ||
@@ -15081,7 +15081,7 @@ async function buscarDocumentos(termo) {
 // ─── NORMALIZAÇÃO DE BANCO ───────────────────────────
 // Padroniza variações de nome de banco para comparação
 function normalizarBancoFiltro(nome) {
-  const n = (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  const n = (nome||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   if (n.includes('itau') || n === 'c/c itau') return 'itau';
   if (n.includes('pagbank') || n.includes('pag bank')) return 'pagbank';
   if (n.includes('stone')) return 'stone';
