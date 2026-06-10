@@ -1840,6 +1840,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 </select>
               </div>
               <button class="btn" onclick="loadContasPagar()">↻ Atualizar</button>
+              <button class="btn" onclick="abrirModalImportarNF()" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue)">📄 Importar NF / Boleto</button>
               <button class="btn btn-primary" onclick="abrirModalConta('pagar')">+ Nova conta a pagar</button>
             </div>
           </div>
@@ -14893,6 +14894,183 @@ async function verInfoPasta(id, nome) {
   alert(info);
 }
 
+// ─── MODAL IMPORTAR NF/BOLETO ────────────────────────
+let _nfArquivos = [];
+let _nfParcelas = [];
+
+async function abrirModalImportarNF() {
+  // Carrega pastas
+  const { data: pastas } = await qE('documentos_fiscais').select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id',null).order('fornecedor');
+  const sel = document.getElementById('nf-pasta');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Selecione a pasta —</option>' +
+      (pastas||[]).map(p => `<option value="${p.id}">${p.fornecedor}</option>`).join('');
+  }
+  // Reset
+  _nfArquivos = [];
+  _nfParcelas = [];
+  ['nf-nome','nf-cnpj','nf-numero','nf-valor','nf-categoria-busca'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('nf-categoria').value = '';
+  document.getElementById('nf-status').style.display = 'none';
+  document.getElementById('nf-preview').style.display = 'none';
+  document.getElementById('nf-footer').style.display = 'none';
+  document.getElementById('nf-parcelas-wrap').style.display = 'none';
+  document.getElementById('modal-importar-nf').style.display = 'flex';
+}
+
+function fecharModalImportarNF() {
+  document.getElementById('modal-importar-nf').style.display = 'none';
+}
+
+function handleNFDrop(event) {
+  event.preventDefault();
+  const el = document.getElementById('nf-drop-area');
+  if (el) { el.style.borderColor = 'var(--border)'; el.style.background = 'var(--bg3)'; }
+  processarArquivosNF(event.dataTransfer.files);
+}
+
+async function processarArquivosNF(files) {
+  if (!files?.length) return;
+  _nfArquivos = Array.from(files);
+
+  const statusEl = document.getElementById('nf-status');
+  statusEl.style.display = 'block';
+  statusEl.style.background = 'var(--amber-dim)';
+  statusEl.style.color = 'var(--amber)';
+  statusEl.style.borderColor = 'var(--amber)';
+  statusEl.textContent = `⏳ Lendo ${files.length} arquivo(s)...`;
+
+  // Usa o sistema existente de leitura de PDF
+  await lerDocumentoConta(files);
+
+  // Copia os dados preenchidos no modal antigo para o novo
+  const get = id => document.getElementById(id)?.value || '';
+  document.getElementById('nf-nome').value = get('ct-nome');
+  document.getElementById('nf-cnpj').value = get('ct-cnpj');
+  document.getElementById('nf-numero').value = get('ct-numero-nf');
+  document.getElementById('nf-valor').value = get('ct-valor');
+
+  // Parcelas
+  _nfParcelas = window._contaParcelas || [];
+  if (_nfParcelas.length > 1) {
+    document.getElementById('nf-parcelas-wrap').style.display = 'block';
+    document.getElementById('nf-parcelas-lista').innerHTML = _nfParcelas.map((p,i) => `
+      <div style="display:flex;gap:10px;align-items:center;padding:6px 10px;background:var(--bg2);border-radius:6px;font-size:12px">
+        <span style="font-weight:700;color:var(--accent);min-width:60px">Parcela ${i+1}/${_nfParcelas.length}</span>
+        <span>${p.vencimento ? p.vencimento.split('-').reverse().join('/') : '—'}</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${p.valor ? fmtBRL(p.valor) : '—'}</span>
+        ${p.numero_doc ? `<span style="color:var(--text2)">Doc: ${p.numero_doc}</span>` : ''}
+      </div>`).join('');
+  }
+
+  statusEl.style.background = 'var(--green-dim)';
+  statusEl.style.color = 'var(--green)';
+  statusEl.style.borderColor = 'var(--green)';
+  statusEl.textContent = `✅ ${files.length} arquivo(s) lido(s). Confira os dados abaixo e clique em Criar conta(s).`;
+
+  document.getElementById('nf-preview').style.display = 'block';
+  document.getElementById('nf-footer').style.display = 'flex';
+}
+
+function buscarCatNF(termo) {
+  const dd = document.getElementById('nf-cat-dd');
+  if (!dd) return;
+  const cats = (_categorias||[]).filter(c => !termo || c.nome?.toLowerCase().includes(termo.toLowerCase()));
+  if (!cats.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = cats.slice(0,8).map(c =>
+    `<div onclick="document.getElementById('nf-categoria').value='${c.nome}';document.getElementById('nf-categoria-busca').value='${c.nome}';document.getElementById('nf-cat-dd').style.display='none'"
+      style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">${c.nome}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+async function salvarContaDaImportacao() {
+  const nome = document.getElementById('nf-nome')?.value.trim();
+  const cnpj = document.getElementById('nf-cnpj')?.value.trim();
+  const numero = document.getElementById('nf-numero')?.value.trim();
+  const valor = parseFloat(document.getElementById('nf-valor')?.value) || 0;
+  const pasta = document.getElementById('nf-pasta')?.value;
+  const categoria = document.getElementById('nf-categoria')?.value || '';
+
+  if (!nome) { showToast('Preencha o nome do fornecedor','error'); return; }
+  if (!numero) { showToast('Preencha o Nº da NF ou boleto','error'); return; }
+  if (!valor) { showToast('Preencha o valor','error'); return; }
+  if (!pasta) { showToast('Selecione a pasta','error'); document.getElementById('nf-pasta').style.borderColor='var(--red)'; return; }
+  document.getElementById('nf-pasta').style.borderColor = '';
+
+  const hoje = new Date().toISOString().substring(0,10);
+  let salvos = 0;
+
+  if (_nfParcelas.length > 1) {
+    // Cria uma conta por parcela
+    for (let i = 0; i < _nfParcelas.length; i++) {
+      const p = _nfParcelas[i];
+      const payload = addEmpresaId({
+        descricao: `${nome} (${i+1}/${_nfParcelas.length}) - NF ${numero}`,
+        valor: p.valor || (valor / _nfParcelas.length),
+        cnpj, categoria,
+        data_vencimento: p.vencimento,
+        parcela_atual: i+1,
+        total_parcelas: _nfParcelas.length,
+        palavra_chave: nome.split(' ')[0].toUpperCase(),
+        status: 'pendente',
+        criado_por: _vnUser?.id || null,
+        criado_por_nome: _vnUser?.nome || _vnUser?.email || null,
+        criado_em: new Date().toISOString(),
+        pasta_id: pasta,
+      });
+      await sb.from('contas_pagar').insert(payload);
+      salvos++;
+    }
+  } else {
+    // Conta única
+    const venc = document.getElementById('nf-parcelas-lista')?.querySelector('span') || hoje;
+    const payload = addEmpresaId({
+      descricao: `${nome} - NF ${numero}`,
+      valor, cnpj, categoria,
+      data_vencimento: (_nfParcelas[0]?.vencimento) || hoje,
+      palavra_chave: nome.split(' ')[0].toUpperCase(),
+      status: 'pendente',
+      criado_por: _vnUser?.id || null,
+      criado_por_nome: _vnUser?.nome || _vnUser?.email || null,
+      criado_em: new Date().toISOString(),
+      pasta_id: pasta,
+    });
+    await sb.from('contas_pagar').insert(payload);
+    salvos++;
+  }
+
+  // Arquiva os arquivos na pasta
+  for (const file of _nfArquivos) {
+    try {
+      const path = `documentos/pasta-${pasta}/${numero}_${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+      const { error: upErr } = await sb.storage.from('documentos').upload(path, file, {upsert:true});
+      if (!upErr) {
+        const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+        await sb.from('documentos_fiscais').insert(addEmpresaId({
+          tipo: file.name.split('.').pop().toLowerCase(),
+          fornecedor: nome,
+          numero_nf: numero,
+          cnpj: cnpj || null,
+          valor: valor || null,
+          arquivo_url: urlData?.publicUrl || '',
+          conta_pagar_id: pasta,
+          data_emissao: hoje
+        }));
+      }
+    } catch(e) { console.warn('upload:', e); }
+  }
+
+  fecharModalImportarNF();
+  showToast(`${salvos} conta(s) criada(s) com sucesso!`, 'success');
+  loadContasPagar();
+  loadDocumentos();
+}
+
 // ─── INIT ────────────────────────────────────────────
 checkSession();
 document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
@@ -15442,6 +15620,86 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
     </div>
     <div id="hist-corpo">
       <!-- preenchido via JS -->
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL IMPORTAR NF / BOLETO -->
+<div id="modal-importar-nf" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:flex-start;justify-content:center;padding:2rem;overflow-y:auto">
+  <div style="background:var(--bg2);border-radius:16px;border:1px solid var(--border);padding:24px;width:640px;max-width:96vw;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--text)">📄 Importar NF / Boleto</div>
+        <div style="font-size:12px;color:var(--text2)">Arraste ou selecione PDF, JPG ou PNG — o sistema lê automaticamente</div>
+      </div>
+      <button onclick="fecharModalImportarNF()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+
+    <!-- Área de drop -->
+    <div id="nf-drop-area" 
+      style="border:2.5px dashed var(--border);border-radius:12px;padding:28px;text-align:center;background:var(--bg3);transition:all .2s;margin-bottom:16px;cursor:pointer"
+      ondragover="event.preventDefault();this.style.borderColor='var(--accent)';this.style.background='var(--green-dim)'"
+      ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--bg3)'"
+      ondrop="handleNFDrop(event)"
+      onclick="document.getElementById('nf-file-input').click()">
+      <input type="file" id="nf-file-input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="processarArquivosNF(this.files)">
+      <div style="font-size:36px;margin-bottom:8px">📄</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">Clique ou arraste aqui</div>
+      <div style="font-size:12px;color:var(--text2)">PDF, JPG, PNG — NF-e, boleto ou foto do boleto</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Pode selecionar vários arquivos (NF + boletos juntos)</div>
+    </div>
+
+    <!-- Status de leitura -->
+    <div id="nf-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:16px"></div>
+
+    <!-- Preview dos dados lidos -->
+    <div id="nf-preview" style="display:none;background:var(--bg3);border-radius:10px;border:1px solid var(--border);padding:16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px">📋 Dados identificados — confira e ajuste:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">Fornecedor *</div>
+          <input id="nf-nome" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif" placeholder="Nome do fornecedor">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">CNPJ</div>
+          <input id="nf-cnpj" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif" placeholder="00.000.000/0001-00">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">Nº NF / Boleto *</div>
+          <input id="nf-numero" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif" placeholder="Ex: 122.785">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">Valor Total *</div>
+          <input id="nf-valor" type="number" step="0.01" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif" placeholder="0,00">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">Categoria</div>
+          <input id="nf-categoria-busca" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif" placeholder="Buscar categoria..." 
+            oninput="buscarCatNF(this.value)" onfocus="buscarCatNF(this.value)"
+            onblur="setTimeout(()=>{const d=document.getElementById('nf-cat-dd');if(d)d.style.display='none'},200)">
+          <input type="hidden" id="nf-categoria">
+          <div id="nf-cat-dd" style="display:none;position:absolute;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:500;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">📁 Pasta *</div>
+          <select id="nf-pasta" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif">
+            <option value="">— Selecione a pasta —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Parcelas detectadas -->
+      <div id="nf-parcelas-wrap" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px;border-top:1px solid var(--border);padding-top:10px">Parcelas detectadas:</div>
+        <div id="nf-parcelas-lista" style="display:flex;flex-direction:column;gap:4px"></div>
+      </div>
+    </div>
+
+    <!-- Botões -->
+    <div id="nf-footer" style="display:none;justify-content:flex-end;gap:10px">
+      <button onclick="fecharModalImportarNF()" style="padding:9px 18px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif">Cancelar</button>
+      <button onclick="salvarContaDaImportacao()" style="padding:9px 20px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">💾 Criar conta(s) a pagar</button>
     </div>
   </div>
 </div>
