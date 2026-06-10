@@ -4323,8 +4323,7 @@ async function confirmarImportacaoGlobal() {
 
   try {
     // Verifica quantos registros já existem no Supabase para este tipo
-    const { count } = await sb.from('rel_dados_brutos')
-      .select('id', { count: 'exact', head: true })
+    const { count } = await qE('rel_dados_brutos').select('id', { count: 'exact', head: true })
       .eq('tipo_id', _impTipoEscolhido.id);
     
     if (count > 0) {
@@ -4422,8 +4421,7 @@ async function carregarDadosTipo(tipoId, tipoNome) {
   let from = 0;
   const pageSize = 1000;
   while (true) {
-    const { data: page, error } = await sb.from('rel_dados_brutos')
-      .select('id, linha_numero, colunas')
+    const { data: page, error } = await qE('rel_dados_brutos').select('id, linha_numero, colunas')
       .eq('tipo_id', tipoId)
       .order('linha_numero')
       .range(from, from + pageSize - 1);
@@ -5673,8 +5671,7 @@ async function loadDashboard() {
       .gte('data_vencimento', ini).lte('data_vencimento', fim)
       .in('status', ['a pagar','pendente','atrasado','enviado']);
     // Total a Pagar: contas do mês, pendentes ou atrasadas (excluindo pagas)
-    const { data: cpMes } = await sb.from('contas_pagar')
-      .select('valor,status,data_vencimento')
+    const { data: cpMes } = await qE('contas_pagar').select('valor,status,data_vencimento')
       .gte('data_vencimento', ini).lte('data_vencimento', fim)
       .not('status', 'in', '("pago","Pago","paga","Paga","recebido","Recebido")');
     const somaAVencer = (cpAVencer||[]).reduce((s,c) => s + Number(c.valor||0), 0);
@@ -5695,13 +5692,11 @@ async function loadDashboard() {
     if (ultimoCx?.length) {
       const ultimaData = ultimoCx[0].data_caixa;
       // Pega todos os caixas do último dia
-      const { data: cxUltDia } = await sb.from('pdv_caixas')
-        .select('id').eq('data_caixa', ultimaData);
+      const { data: cxUltDia } = await qE('pdv_caixas').select('id').eq('data_caixa', ultimaData);
       const idsUlt = (cxUltDia||[]).map(c => c.id);
       let saldoUlt = 0;
       for (let i = 0; i < idsUlt.length; i += 200) {
-        const { data: its } = await sb.from('pdv_itens')
-          .select('valor,tipo').in('caixa_id', idsUlt.slice(i, i+200));
+        const { data: its } = await qE('pdv_itens').select('valor,tipo').in('caixa_id', idsUlt.slice(i, i+200));
         (its||[]).forEach(it => {
           saldoUlt += it.tipo === 'ENTRADA' ? Number(it.valor||0) : -Number(it.valor||0);
         });
@@ -5735,8 +5730,7 @@ async function loadDashboard() {
       const ids = caixasPDV.map(c => c.id);
       let itens = [];
       for (let i = 0; i < ids.length; i += 200) {
-        const { data: lote } = await sb.from('pdv_itens')
-          .select('caixa_id,forma_pagamento,valor,tipo')
+        const { data: lote } = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
           .in('caixa_id', ids.slice(i, i + 200));
         if (lote?.length) itens = itens.concat(lote);
       }
@@ -5784,8 +5778,7 @@ async function loadDashboard() {
   try {
     const mesNumMeta = mes ? parseInt(mes) : hoje3.getMonth() + 1;
     // busca todas do ano — coluna mes é integer no banco
-    const { data: todasMetas } = await sb.from('metas_financeiras')
-      .select('meta, dias_abertos, mes').eq('ano', ano);
+    const { data: todasMetas } = await qE('metas_financeiras').select('meta, dias_abertos, mes').eq('ano', ano);
     const metaF = (todasMetas||[]).find(m => Number(m.mes) === mesNumMeta);
     metaMes     = Number(metaF?.meta || 0);
     diasAbertos = Number(metaF?.dias_abertos || 0);
@@ -6072,8 +6065,7 @@ async function loadDashboard() {
       const idsAll = cxAll.map(c => c.id);
       let itAll = [];
       for (let j = 0; j < idsAll.length; j += 200) {
-        const { data: lote } = await sb.from('pdv_itens')
-          .select('caixa_id,forma_pagamento,valor,tipo')
+        const { data: lote } = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
           .in('caixa_id', idsAll.slice(j, j + 200));
         if (lote?.length) itAll = itAll.concat(lote);
       }
@@ -8367,8 +8359,7 @@ async function loadProdutos() {
 
   let rows = [];
   if (tipoProd) {
-    const { data, error } = await sb.from('rel_dados_brutos')
-      .select('colunas').eq('tipo_id', tipoProd.id).limit(15000);
+    const { data, error } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoProd.id).limit(15000);
     if (!error) rows = (data||[]).map(r => parseProdRow(r.colunas)).filter(r => r.produto);
   }
 
@@ -9705,8 +9696,7 @@ async function saveBanco() {
   // Se editando, sincroniza o lançamento de saldo inicial
   if (editId && saldo > 0 && dataSaldo) {
     const descricao = `Saldo inicial — ${nome}`;
-    const { data: lancs } = await sb.from('lancamentos')
-      .select('id').eq('banco_id', editId).like('extrato', 'Saldo inicial%');
+    const { data: lancs } = await qE('lancamentos').select('id').eq('banco_id', editId).like('extrato', 'Saldo inicial%');
     if (lancs?.length) {
       await sb.from('lancamentos').update({
         entrada: saldo, valor: saldo,
@@ -10758,8 +10748,7 @@ async function loadProjecaoDRE() {
   }
 
   // Carrega projeções salvas para o ano
-  const { data: projs } = await sb.from('projecoes_dre')
-    .select('*').eq('ano', ano);
+  const { data: projs } = await qE('projecoes_dre').select('*').eq('ano', ano);
 
   // Monta mapa: categoria_id + mes -> valor
   const projMap = {};
@@ -11072,8 +11061,7 @@ async function loadDRE() {
       const ids = caixas.map(c => c.id);
       let pdvItens = [];
       for (let i = 0; i < ids.length; i += 200) {
-        const { data: lote } = await sb.from('pdv_itens')
-          .select('caixa_id,forma_pagamento,valor,tipo')
+        const { data: lote } = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
           .in('caixa_id', ids.slice(i, i+200));
         if (lote?.length) pdvItens = pdvItens.concat(lote);
       }
