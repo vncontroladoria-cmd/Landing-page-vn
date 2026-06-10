@@ -831,6 +831,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           <span class="nav-label">Usuários</span>
         </div>
+        <div class="nav-item nav-sub" data-page="empresas" onclick="showPage('empresas',this)" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="nav-label">Empresas & Usuários</span>
+        </div>
       </div>
 
       <!-- IMPORTAÇÃO (fora dos grupos) -->
@@ -868,7 +872,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <option value="2026-02">Fevereiro 2026</option>
             <option value="2026-01">Janeiro 2026</option>
           </select>
-          <span class="empresa-tag" id="empresa-tag">Salão</span>
+          <!-- Botão trocar empresa (visível para admin/operador com múltiplas empresas) -->
+          <button id="btn-trocar-empresa" onclick="abrirSeletorEmpresas()"
+            style="display:none;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;cursor:pointer;font-size:12px;font-weight:600;font-family:'Outfit',sans-serif">
+            <span id="topbar-empresa">—</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <span class="empresa-tag" id="empresa-tag" style="display:none">—</span>
         </div>
       </div>
 
@@ -2871,6 +2881,38 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         </div>
 
         <!-- BANCOS -->
+        <!-- EMPRESAS & USUÁRIOS -->
+        <div class="page" id="page-empresas">
+          <div class="pg-header">
+            <div>
+              <div class="pg-header-title">🏢 Empresas & Usuários</div>
+              <div class="pg-header-sub">Gestão multi-empresa · Acessos · Permissões</div>
+            </div>
+            <div class="pg-header-actions">
+              <button class="btn btn-primary" onclick="abrirModalNovaEmpresa()">+ Nova Empresa</button>
+              <button class="btn btn-primary" onclick="abrirModalNovoUsuario()">+ Novo Usuário</button>
+            </div>
+          </div>
+          <div class="section-card" style="margin-bottom:14px">
+            <div class="section-card-header">
+              <div class="section-card-title">
+                <span style="background:#dbeafe;color:#1e40af;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🏢</span>
+                <div><div style="font-weight:600;font-size:13px">Empresas Cadastradas</div></div>
+              </div>
+            </div>
+            <div id="emp-lista" style="padding:14px"><div class="empty">Carregando...</div></div>
+          </div>
+          <div class="section-card">
+            <div class="section-card-header">
+              <div class="section-card-title">
+                <span style="background:#ede9fe;color:#5b21b6;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">👥</span>
+                <div><div style="font-weight:600;font-size:13px">Usuários do Sistema</div></div>
+              </div>
+            </div>
+            <div id="usr-lista" style="padding:14px"><div class="empty">Carregando...</div></div>
+          </div>
+        </div>
+
         <div class="page" id="page-bancos">
           <div class="pg-header">
             <div><div class="pg-header-title">🏦 Bancos Cadastrados</div><div class="pg-header-sub">Contas bancárias e saldos iniciais</div></div>
@@ -3182,6 +3224,22 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-conta')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarConta()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SELETOR DE EMPRESA -->
+<div class="modal-overlay" id="modal-seletor-empresa" onclick="if(event.target===this)fecharSeletorEmpresas()">
+  <div class="modal" style="max-width:420px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div class="modal-title" style="margin:0">🏢 Selecionar Empresa</div>
+      <button onclick="fecharSeletorEmpresas()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div id="seletor-empresa-lista" style="display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto"></div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <button class="btn btn-primary" onclick="fecharSeletorEmpresas();showPage('empresas',document.querySelector('[data-page=empresas]'))" style="width:100%;font-size:12px">
+        ⚙️ Gerenciar Empresas & Usuários
+      </button>
     </div>
   </div>
 </div>
@@ -3528,6 +3586,9 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 let currentUser = null;
+let _vnUser = null;        // usuário da tabela vn_usuarios
+let _empresaAtual = null;  // empresa selecionada
+let _todasEmpresas = [];   // lista de empresas (admin vê todas)
 let currentTipo = 'ENTRADA';
 let chartDaily = null;
 let chartCat = null;
@@ -3558,50 +3619,166 @@ async function esqueceuSenha() {
 
 // ─── AUTH ────────────────────────────────────────────
 async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('login-pass').value.trim();
   document.getElementById('login-err').textContent = '';
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) { document.getElementById('login-err').textContent = 'E-mail ou senha incorretos'; return; }
-  currentUser = data.user;
-  showApp();
+
+  // Busca usuário na tabela vn_usuarios (login próprio do sistema)
+  const { data: usuarios } = await sb.from('vn_usuarios').select('*').eq('email', email).eq('ativo', true);
+  const usr = (usuarios||[]).find(u => u.senha_hash === pass);
+
+  if (!usr) {
+    document.getElementById('login-err').textContent = 'E-mail ou senha incorretos';
+    return;
+  }
+
+  _vnUser = usr;
+  currentUser = { email: usr.email, id: usr.id };
+  sessionStorage.setItem('vn_user_id', usr.id);
+  await iniciarSessaoMultiEmpresa();
 }
 
 async function doLogout() {
-  await sb.auth.signOut();
+  _vnUser = null; _empresaAtual = null; _todasEmpresas = [];
+  currentUser = null;
+  sessionStorage.removeItem('vn_user_id');
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
-  currentUser = null;
 }
 
 async function checkSession() {
-  const { data } = await sb.auth.getSession();
-  if (data.session) { currentUser = data.session.user; showApp(); }
+  const savedId = sessionStorage.getItem('vn_user_id');
+  if (!savedId) return;
+  const { data: usuarios } = await sb.from('vn_usuarios').select('*').eq('id', savedId).eq('ativo', true);
+  if (usuarios?.length) {
+    _vnUser = usuarios[0];
+    currentUser = { email: _vnUser.email, id: _vnUser.id };
+    await iniciarSessaoMultiEmpresa();
+  }
+}
+
+// Inicia sessão: carrega empresas e mostra app
+async function iniciarSessaoMultiEmpresa() {
+  // Carrega empresas disponíveis para este usuário
+  if (_vnUser.perfil === 'admin') {
+    const { data } = await sb.from('empresas').select('*').eq('ativo', true).order('nome');
+    _todasEmpresas = data || [];
+  } else {
+    const ids = _vnUser.empresa_ids || [];
+    if (ids.length) {
+      const { data } = await sb.from('empresas').select('*').in('id', ids).eq('ativo', true).order('nome');
+      _todasEmpresas = data || [];
+    }
+  }
+
+  // Define empresa padrão
+  if (_vnUser.empresa_padrao && _todasEmpresas.find(e => e.id === _vnUser.empresa_padrao)) {
+    _empresaAtual = _todasEmpresas.find(e => e.id === _vnUser.empresa_padrao);
+  } else if (_todasEmpresas.length) {
+    _empresaAtual = _todasEmpresas[0];
+  }
+
+  await showApp();
 }
 
 async function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  const email = currentUser?.email || '';
-  const initials = email.substring(0,2).toUpperCase();
-  document.getElementById('user-initials').textContent = initials;
-  document.getElementById('user-name').textContent = email;
 
-  // Busca perfil do usuário
-  const { data: perfil } = await sb.from('perfis_usuarios').select('*').eq('id', currentUser.id).single();
+  // Nome/iniciais do usuário
+  const nome = _vnUser?.nome || _vnUser?.email || '';
+  const initials = nome.substring(0,2).toUpperCase();
+  if(document.getElementById('user-initials')) document.getElementById('user-initials').textContent = initials;
+  if(document.getElementById('user-name')) document.getElementById('user-name').textContent = nome;
 
-  // Se admin OU se não encontrou perfil — mostra tudo
-  if (!perfil || perfil.perfil === 'admin') {
-    document.querySelectorAll('.nav-item[data-page]').forEach(item => item.style.display = '');
-  } else {
-    const perms = perfil.permissoes || _permissoesPadrao[perfil.perfil] || [];
-    document.querySelectorAll('.nav-item[data-page]').forEach(item => {
-      const page = item.dataset.page;
-      item.style.display = perms.includes(page) ? '' : 'none';
-    });
-  }
+  // Atualiza empresa no topbar
+  atualizarTopbarEmpresa();
+
+  // Controla visibilidade do menu conforme perfil
+  aplicarPermissoes();
 
   loadDashboard();
+
+  // Mostra/esconde botão de empresa no topbar
+  const btnEmp = document.getElementById('btn-trocar-empresa');
+  if (btnEmp) {
+    const mostrar = _todasEmpresas.length > 1 || _vnUser?.perfil === 'admin';
+    btnEmp.style.display = mostrar ? 'flex' : 'none';
+  }
+
+  // Mostra menu Empresas só para admin
+  const navEmp = document.querySelector('[data-page="empresas"]');
+  if (navEmp) navEmp.style.display = _vnUser?.perfil === 'admin' ? '' : 'none';
+}
+
+// Atualiza nome da empresa no topo
+function atualizarTopbarEmpresa() {
+  const el = document.getElementById('topbar-empresa');
+  if (!el) return;
+  el.textContent = _empresaAtual?.nome || 'Selecione uma empresa';
+}
+
+// Aplica permissões de menu conforme perfil
+function aplicarPermissoes() {
+  const perfil = _vnUser?.perfil || 'leitor';
+  const paginasLiberadas = _vnUser?.paginas_liberadas || [];
+
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    const page = item.dataset.page;
+    if (perfil === 'admin' || perfil === 'operador') {
+      item.style.display = '';
+    } else {
+      // leitor: só vê páginas liberadas
+      item.style.display = paginasLiberadas.includes(page) ? '' : 'none';
+    }
+  });
+
+  // Admin vê menu de configuração completo
+  const configItems = document.querySelectorAll('[data-page="usuarios"],[data-page="empresas"]');
+  configItems.forEach(el => {
+    el.style.display = perfil === 'admin' ? '' : 'none';
+  });
+}
+
+// Troca de empresa (admin/operador)
+function trocarEmpresa(empresaId) {
+  const emp = _todasEmpresas.find(e => e.id === empresaId);
+  if (!emp) return;
+  _empresaAtual = emp;
+  atualizarTopbarEmpresa();
+  fecharSeletorEmpresas();
+  // Recarrega página atual
+  const ativa = document.querySelector('.nav-item.active');
+  if (ativa) ativa.click();
+  else loadDashboard();
+  showToast('Empresa: ' + emp.nome, 'success');
+}
+
+function abrirSeletorEmpresas() {
+  const el = document.getElementById('modal-seletor-empresa');
+  if (!el) return;
+  const lista = document.getElementById('seletor-empresa-lista');
+  if (lista) {
+    lista.innerHTML = _todasEmpresas.map(e =>
+      `<div onclick="trocarEmpresa('${e.id}')"
+        style="padding:10px 14px;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:10px;
+               ${_empresaAtual?.id===e.id?'background:var(--bg3);font-weight:700':''}"
+        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='${_empresaAtual?.id===e.id?'var(--bg3)':''}'">
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">
+          ${(e.nome||'?').substring(0,2).toUpperCase()}
+        </div>
+        <div>
+          <div style="font-size:13px">${e.nome}</div>
+          <div style="font-size:11px;color:var(--text2)">${e.cnpj||''}</div>
+        </div>
+        ${_empresaAtual?.id===e.id?'<span style="margin-left:auto;color:var(--accent)">✓</span>':''}
+      </div>`
+    ).join('');
+  }
+  el.classList.add('open');
+}
+function fecharSeletorEmpresas() {
+  document.getElementById('modal-seletor-empresa')?.classList.remove('open');
 }
 
 // ─── NAVEGAÇÃO ────────────────────────────────────────
@@ -3688,6 +3865,7 @@ function showPage(id, el) {
   if (id === 'contas-pagar') { loadContasPagar(); loadDocumentos(); }
   if (id === 'contas-receber') loadContasReceber();
   if (id === 'metricas') loadMetricas();
+  if (id === 'empresas') loadEmpresas();
   if (id === 'lucratividade') loadLucratividade();
   if (id === 'servicos') loadServicos();
   if (id === 'clientes') initClientes();
@@ -12748,6 +12926,111 @@ function donutOpts(labels, data, cores, fmtFn) {
     }
   };
 }
+
+// ─── MULTI-EMPRESA ───────────────────────────────────
+
+// Filtra queries pelo empresa_id atual
+function qEmpresa(query) {
+  if (_empresaAtual?.id) return query.eq('empresa_id', _empresaAtual.id);
+  return query;
+}
+
+// Carrega página Empresas & Usuários
+async function loadEmpresas() {
+  const empEl = document.getElementById('emp-lista');
+  const usrEl = document.getElementById('usr-lista');
+
+  // Empresas
+  const { data: emps } = await sb.from('empresas').select('*').order('nome');
+  if (empEl) {
+    if (!emps?.length) { empEl.innerHTML = '<div class="empty">Nenhuma empresa cadastrada</div>'; }
+    else {
+      const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:7px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2)';
+      empEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr>
+          <th style="${TH}">Nome</th><th style="${TH}">CNPJ</th>
+          <th style="${TH}">Email</th><th style="${TH}">Status</th><th style="${TH}">Ações</th>
+        </tr></thead>
+        <tbody>${emps.map(e=>`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 10px;font-weight:600">${e.nome}</td>
+          <td style="padding:8px 10px;color:var(--text2)">${e.cnpj||'—'}</td>
+          <td style="padding:8px 10px;color:var(--text2)">${e.email||'—'}</td>
+          <td style="padding:8px 10px"><span class="badge ${e.ativo?'badge-green':'badge-gray'}">${e.ativo?'Ativa':'Inativa'}</span></td>
+          <td style="padding:8px 10px">
+            <button class="btn btn-sm" onclick="editarEmpresa('${e.id}')" style="font-size:11px">✏️</button>
+            <button class="btn btn-sm" onclick="alternarEmpresaAtiva('${e.id}',${!e.ativo})" style="font-size:11px">${e.ativo?'Desativar':'Ativar'}</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+  }
+
+  // Usuários
+  const { data: usrs } = await sb.from('vn_usuarios').select('*').order('nome');
+  if (usrEl) {
+    if (!usrs?.length) { usrEl.innerHTML = '<div class="empty">Nenhum usuário cadastrado</div>'; }
+    else {
+      const perfilCor = {admin:'badge-purple',operador:'badge-blue',leitor:'badge-gray'};
+      const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:7px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2)';
+      usrEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr>
+          <th style="${TH}">Nome</th><th style="${TH}">Email</th>
+          <th style="${TH}">Perfil</th><th style="${TH}">Empresas</th><th style="${TH}">Status</th><th style="${TH}">Ações</th>
+        </tr></thead>
+        <tbody>${usrs.map(u=>`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 10px;font-weight:600">${u.nome||'—'}</td>
+          <td style="padding:8px 10px;color:var(--text2)">${u.email}</td>
+          <td style="padding:8px 10px"><span class="badge ${perfilCor[u.perfil]||'badge-gray'}">${u.perfil}</span></td>
+          <td style="padding:8px 10px;color:var(--text2);font-size:11px">${u.perfil==='admin'?'Todas':(u.empresa_ids||[]).length+' empresa(s)'}</td>
+          <td style="padding:8px 10px"><span class="badge ${u.ativo?'badge-green':'badge-gray'}">${u.ativo?'Ativo':'Inativo'}</span></td>
+          <td style="padding:8px 10px">
+            <button class="btn btn-sm" onclick="editarUsuario('${u.id}')" style="font-size:11px">✏️</button>
+            <button class="btn btn-sm" onclick="alternarUsuarioAtivo('${u.id}',${!u.ativo})" style="font-size:11px">${u.ativo?'Desativar':'Ativar'}</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+  }
+}
+
+async function alternarEmpresaAtiva(id, ativo) {
+  await sb.from('empresas').update({ativo}).eq('id',id);
+  loadEmpresas();
+  await iniciarSessaoMultiEmpresa(); // recarrega lista
+}
+
+async function alternarUsuarioAtivo(id, ativo) {
+  await sb.from('vn_usuarios').update({ativo}).eq('id',id);
+  loadEmpresas();
+}
+
+function abrirModalNovaEmpresa() {
+  const nome = prompt('Nome da empresa:');
+  if (!nome?.trim()) return;
+  const cnpj = prompt('CNPJ (opcional):') || '';
+  const email = prompt('Email (opcional):') || '';
+  sb.from('empresas').insert({nome:nome.trim(),cnpj,email,ativo:true})
+    .then(() => { showToast('Empresa criada!','success'); loadEmpresas(); iniciarSessaoMultiEmpresa(); });
+}
+
+function abrirModalNovoUsuario() {
+  const nome = prompt('Nome do usuário:');
+  if (!nome?.trim()) return;
+  const email = prompt('Email de login:');
+  if (!email?.trim()) return;
+  const senha = prompt('Senha:');
+  if (!senha?.trim()) return;
+  const perfil = prompt('Perfil (admin/operador/leitor):') || 'leitor';
+  sb.from('vn_usuarios').insert({nome:nome.trim(),email:email.trim().toLowerCase(),senha_hash:senha.trim(),perfil,ativo:true,empresa_ids:[]})
+    .then(({error}) => {
+      if (error) { showToast('Erro: '+error.message,'error'); return; }
+      showToast('Usuário criado!','success');
+      loadEmpresas();
+    });
+}
+
+function editarEmpresa(id) { showToast('Em breve: edição de empresa','success'); }
+function editarUsuario(id) { showToast('Em breve: edição de usuário','success'); }
 
 // ─── INIT ────────────────────────────────────────────
 checkSession();
