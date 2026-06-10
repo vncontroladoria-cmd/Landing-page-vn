@@ -514,98 +514,123 @@ tbody tr:hover { background: var(--bg3); }
 
 /* ── MOBILE COMPLETO ─────────────────────────────────── */
 @media (max-width: 768px) {
-  /* Zoom desativado no mobile */
-  body { zoom: 1 !important; font-size: 14px; }
-  
-  /* Painel master ocupa tela toda */
+
+  /* Base */
+  body { zoom: 1 !important; font-size: 13px !important; }
   #painel-master { padding: 0 !important; }
 
-  /* Sidebar vira drawer — começa fechado */
-  .sidebar { transform: translateX(-100%); width: 260px !important; }
+  /* Sidebar drawer */
+  .sidebar { transform: translateX(-100%); width: 75vw !important; max-width: 280px; }
   .sidebar.open { transform: translateX(0); }
-
-  /* Main ocupa tela toda */
   .main { margin-left: 0 !important; width: 100% !important; }
 
-  /* Topbar mobile */
-  .topbar {
-    padding: 0 12px !important;
-    height: 52px !important;
-    gap: 8px !important;
+  /* Topbar compacta */
+  .topbar { padding: 0 10px !important; height: 48px !important; gap: 6px !important; }
+  .topbar-title { font-size: 14px !important; }
+  #topbar-empresa-tag { min-width: unset !important; padding: 4px 8px !important; gap: 5px !important; }
+  #topbar-empresa-id { display: none !important; }
+
+  /* Content */
+  .content { padding: 10px !important; }
+
+  /* Hero cards — 2 colunas, texto menor */
+  .hero-cards,
+  .hero-cards.cols-5,
+  .hero-cards.cols-6 { 
+    grid-template-columns: repeat(2, 1fr) !important; 
+    gap: 6px !important; 
   }
-  .topbar-title { font-size: 15px !important; }
-  #topbar-empresa-tag { min-width: unset !important; padding: 5px 10px !important; }
-  #topbar-empresa-tag span { font-size: 11px !important; }
-  #topbar-empresa-id { display: none; }
+  .hcard { padding: 10px !important; min-width: 0 !important; }
+  .hcard-label { font-size: 9px !important; letter-spacing: 0; white-space: normal !important; }
+  .hcard-value { font-size: 15px !important; white-space: normal !important; }
+  .hcard-value.sm { font-size: 13px !important; }
+  .hcard-sub { font-size: 9px !important; white-space: normal !important; }
+  .hcard-icon { font-size: 20px !important; opacity: .15 !important; }
 
-  /* Hamburguer — mostra no mobile */
-  #btn-hamburger { display: flex !important; }
+  /* Fin cards */
+  .fin-cards,
+  .fin-cards.cols-5,
+  .fin-cards.cols-6 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+  .fcard { padding: 10px !important; }
+  .fcard-value { font-size: 13px !important; }
 
-  /* Botão trocar empresa menor */
-  #btn-trocar-empresa { font-size: 10px; padding: 4px 8px; }
+  /* Filtros do dashboard — empilha tudo */
+  .dash-filters-row { 
+    flex-direction: column !important; 
+    gap: 8px !important; 
+    align-items: flex-start !important;
+  }
+  .dash-filters-row > div { flex-wrap: wrap !important; gap: 6px !important; }
+  #dash-ano, #dash-mes { width: calc(50% - 4px) !important; }
+  #dash-ini, #dash-fim { width: calc(50% - 4px) !important; }
 
-  /* Content padding menor */
-  .content { padding: 12px !important; }
+  /* Section cards */
+  .section-card { padding: 10px !important; }
+  .section-card-title { font-size: 12px !important; }
 
-  /* Cards hero em 2 colunas */
-  .hero-cards { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
-  .hcard { padding: 10px 12px !important; }
-  .hcard-value { font-size: 16px !important; }
-  .hcard-label { font-size: 10px !important; }
+  /* Tabelas scroll */
+  .card > div, .section-card > div { overflow-x: auto !important; }
+  table { font-size: 10px !important; min-width: 500px; }
+  thead th { padding: 5px 6px !important; font-size: 9px !important; }
+  tbody td { padding: 5px 6px !important; }
 
-  /* Metrics em 2 colunas */
-  .metrics-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
-  .metric-card { padding: 12px !important; }
-  .metric-val { font-size: 16px !important; }
-
-  /* Seção cards empilham */
-  .section-card { padding: 12px !important; }
-  .filter-row { flex-wrap: wrap !important; gap: 6px !important; }
-  .filter-group { flex-direction: column; gap: 2px; }
-  .filter-select, .filter-input { font-size: 12px !important; padding: 6px 8px !important; }
-
-  /* Tabelas com scroll horizontal */
-  .table-wrap, table { font-size: 11px !important; }
-  thead th { padding: 6px 8px !important; font-size: 10px !important; }
-  tbody td { padding: 6px 8px !important; font-size: 11px !important; }
-
-  /* Charts menores */
+  /* Charts */
   .charts-row { grid-template-columns: 1fr !important; }
-  .chart-box { padding: 12px !important; }
+  .chart-box { padding: 10px !important; }
 
-  /* Modais ocupam tela toda */
+  /* Modais */
   .modal { 
     zoom: 1 !important;
-    max-width: 100% !important; 
-    max-height: 95vh !important;
+    max-width: calc(100vw - 16px) !important; 
+    max-height: 92vh !important;
     border-radius: 12px !important;
-    padding: 16px !important;
-    margin: 4px !important;
+    padding: 14px !important;
+    margin: 8px !important;
   }
-  .modal-overlay { padding: 4px !important; align-items: flex-end !important; }
+  .modal-overlay { 
+    padding: 8px !important; 
+    align-items: center !important; 
+  }
 
-  /* Grids de 2 colunas viram 1 */
-  .form-grid { grid-template-columns: 1fr !important; }
+  /* Form grids */
+  .form-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
   
-  /* Botões maiores para toque */
-  .btn { min-height: 38px; padding: 8px 14px !important; font-size: 12px !important; }
-  .btn-primary { min-height: 38px; }
+  /* Botões touch-friendly */
+  .btn { min-height: 36px; padding: 7px 12px !important; font-size: 12px !important; }
+  .btn-primary { min-height: 36px; }
 
-  /* Painel master responsivo */
+  /* Filtros gerais */
+  .filter-row { flex-wrap: wrap !important; gap: 5px !important; }
+  .filter-select { font-size: 11px !important; padding: 5px 7px !important; }
+
+  /* Painel master */
   #painel-master .master-layout { flex-direction: column !important; }
-  #painel-master .master-nav { width: 100% !important; flex-direction: row !important; overflow-x: auto; padding: 8px !important; gap: 4px !important; flex-wrap: nowrap !important; }
-  #painel-master .master-nav-item { white-space: nowrap; padding: 7px 12px !important; font-size: 12px !important; }
-  #painel-master .master-content { padding: 12px !important; }
+  #painel-master nav { 
+    flex-direction: row !important; 
+    overflow-x: auto !important; 
+    padding: 6px !important; 
+    gap: 3px !important; 
+    flex-wrap: nowrap !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .master-nav-item { white-space: nowrap !important; padding: 6px 10px !important; font-size: 11px !important; }
+  .master-content { padding: 10px !important; }
 
-  /* DFC/DRE tabelas */
-  .dfc-table th, .dfc-table td { padding: 4px 6px !important; font-size: 10px !important; }
+  /* Metrics */
+  .metrics-grid { grid-template-columns: repeat(2,1fr) !important; gap: 6px !important; }
+  .metric-card { padding: 10px !important; }
+  .metric-val { font-size: 15px !important; }
 }
 
-/* Telas muito pequenas (iPhone SE etc) */
-@media (max-width: 390px) {
-  .hero-cards { grid-template-columns: 1fr 1fr !important; }
-  .hcard-value { font-size: 14px !important; }
-  body { font-size: 13px; }
+/* iPhone SE / muito pequenos */
+@media (max-width: 375px) {
+  .hero-cards, .fin-cards { grid-template-columns: 1fr 1fr !important; }
+  .hcard-value { font-size: 13px !important; }
+  .content { padding: 8px !important; }
 }
 
 /* ── RESPONSIVO TOTAL ───────────────────────────────── */
@@ -1426,7 +1451,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div style="font-size:18px;font-weight:700">Dashboard Executivo</div>
               <div style="font-size:11px;color:var(--text2);margin-top:2px">Visão consolidada da operação do salão</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="dash-filters-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
               <div style="display:flex;flex-direction:column;gap:2px">
                 <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">ANO</span>
                 <select id="dash-ano" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
@@ -1451,8 +1476,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">DATA FIM</span>
                 <input type="date" id="dash-fim" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
               </div>
-              <button class="btn" onclick="document.getElementById('dash-ini').value='';document.getElementById('dash-fim').value='';loadDashboard()" style="margin-top:14px">Limpar datas</button>
-              <button class="btn btn-primary" onclick="loadDashboard()" style="margin-top:14px">↻ Atualizar</button>
+              <button class="btn" onclick="document.getElementById('dash-ini').value='';document.getElementById('dash-fim').value='';loadDashboard()">Limpar</button>
+              <button class="btn btn-primary" onclick="loadDashboard()">↻ Atualizar</button>
             </div>
           </div>
 
