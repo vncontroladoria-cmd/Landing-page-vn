@@ -11863,12 +11863,10 @@ async function extrairTextoPDF(file) {
       try {
         const arr = new Uint8Array(e.target.result);
         const pdf = await pdfjsLib.getDocument({data: arr}).promise;
-        let texto = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const pg = await pdf.getPage(i);
-          const tc = await pg.getTextContent();
-          texto += tc.items.map(t => t.str).join(' ') + '\n';
-        }
+        // Lê só a primeira página — tem todas as infos necessárias (mais rápido)
+        const pg = await pdf.getPage(1);
+        const tc = await pg.getTextContent();
+        const texto = tc.items.map(t => t.str).join(' ');
         resolve(texto);
       } catch(err) { resolve(''); }
     };
@@ -14916,7 +14914,6 @@ async function abrirModalImportarNF() {
   document.getElementById('nf-categoria').value = '';
   document.getElementById('nf-status').style.display = 'none';
   document.getElementById('nf-preview').style.display = 'none';
-  document.getElementById('nf-footer').style.display = 'none';
   document.getElementById('nf-parcelas-wrap').style.display = 'none';
   document.getElementById('modal-importar-nf').style.display = 'flex';
 }
@@ -14952,6 +14949,7 @@ async function processarArquivosNF(files) {
   document.getElementById('nf-cnpj').value = get('ct-cnpj');
   document.getElementById('nf-numero').value = get('ct-numero-nf');
   document.getElementById('nf-valor').value = get('ct-valor');
+  document.getElementById('nf-vencimento').value = get('ct-vencimento');
 
   // Parcelas
   _nfParcelas = window._contaParcelas || [];
@@ -14972,7 +14970,6 @@ async function processarArquivosNF(files) {
   statusEl.textContent = `✅ ${files.length} arquivo(s) lido(s). Confira os dados abaixo e clique em Criar conta(s).`;
 
   document.getElementById('nf-preview').style.display = 'block';
-  document.getElementById('nf-footer').style.display = 'flex';
 }
 
 function buscarCatNF(termo) {
@@ -15653,6 +15650,14 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
     <!-- Status de leitura -->
     <div id="nf-status" style="display:none;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:16px"></div>
 
+    <!-- Pasta — sempre visível, antes de fazer upload -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;margin-bottom:6px">📁 Pasta onde vai arquivar *</div>
+      <select id="nf-pasta" style="width:100%;padding:10px 14px;font-size:14px;border:2px solid var(--accent);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif;font-weight:600">
+        <option value="">— Selecione a pasta primeiro —</option>
+      </select>
+    </div>
+
     <!-- Preview dos dados lidos -->
     <div id="nf-preview" style="display:none;background:var(--bg3);border-radius:10px;border:1px solid var(--border);padding:16px;margin-bottom:16px">
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px">📋 Dados identificados — confira e ajuste:</div>
@@ -15673,19 +15678,17 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
           <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">Valor Total *</div>
           <input id="nf-valor" type="number" step="0.01" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif" placeholder="0,00">
         </div>
-        <div>
+        <div style="position:relative">
           <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">Categoria</div>
-          <input id="nf-categoria-busca" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif" placeholder="Buscar categoria..." 
+          <input id="nf-categoria-busca" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif" placeholder="Buscar categoria..."
             oninput="buscarCatNF(this.value)" onfocus="buscarCatNF(this.value)"
             onblur="setTimeout(()=>{const d=document.getElementById('nf-cat-dd');if(d)d.style.display='none'},200)">
           <input type="hidden" id="nf-categoria">
-          <div id="nf-cat-dd" style="display:none;position:absolute;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:500;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+          <div id="nf-cat-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:500;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
         </div>
         <div>
-          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">📁 Pasta *</div>
-          <select id="nf-pasta" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif">
-            <option value="">— Selecione a pasta —</option>
-          </select>
+          <div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-bottom:4px">Vencimento</div>
+          <input id="nf-vencimento" type="date" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif">
         </div>
       </div>
 
@@ -15696,8 +15699,8 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
       </div>
     </div>
 
-    <!-- Botões -->
-    <div id="nf-footer" style="display:none;justify-content:flex-end;gap:10px">
+    <!-- Botões — sempre visíveis -->
+    <div style="display:flex;justify-content:flex-end;gap:10px">
       <button onclick="fecharModalImportarNF()" style="padding:9px 18px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif">Cancelar</button>
       <button onclick="salvarContaDaImportacao()" style="padding:9px 20px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">💾 Criar conta(s) a pagar</button>
     </div>
