@@ -4366,16 +4366,23 @@ function aplicarPermissoes() {
 }
 
 // Troca de empresa (admin/operador)
-function trocarEmpresa(empresaId) {
+async function trocarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
   _empresaAtual = emp;
   atualizarTopbarEmpresa();
   aplicarTemaEmpresa(emp);
-  aplicarPermissoes(); // reaplica abas da nova empresa
+  aplicarPermissoes();
   fecharSeletorEmpresas();
-  // Vai para dashboard ao trocar (evita ficar em aba sem permissão)
-  showPage('dashboard', document.querySelector('[data-page="dashboard"]'));
+  // Força navegação para dashboard e recarrega dados da nova empresa
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const dashPage = document.getElementById('page-dashboard');
+  if (dashPage) dashPage.classList.add('active');
+  const dashNav = document.querySelector('[data-page="dashboard"]');
+  if (dashNav) dashNav.classList.add('active');
+  document.getElementById('page-title').textContent = 'Dashboard';
+  await loadDashboard();
   showToast('Empresa: ' + emp.nome, 'success');
 }
 
