@@ -701,7 +701,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 <body>
 
 <div id="login-screen">
-  <div class="login-card">
+  <!-- TELA LOGIN -->
+  <div class="login-card" id="card-login">
     <div class="login-logo-wrap">
       <div class="login-logo-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -723,12 +724,74 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </button>
     </div>
 
-    <div style="text-align:right;margin-bottom:1.25rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
       <a href="#" onclick="esqueceuSenha()" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:500">Esqueci minha senha</a>
     </div>
 
     <button class="btn-login" onclick="doLogin()">Entrar no sistema</button>
     <div id="login-err" class="login-err"></div>
+
+    <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);text-align:center">
+      <span style="font-size:13px;color:var(--text2)">Não tem conta?</span>
+      <a href="#" onclick="mostrarCadastro()" style="font-size:13px;color:var(--accent);font-weight:600;margin-left:6px;text-decoration:none">Cadastrar empresa</a>
+    </div>
+  </div>
+
+  <!-- TELA CADASTRO -->
+  <div class="login-card" id="card-cadastro" style="display:none;max-width:480px">
+    <div class="login-logo-wrap">
+      <div class="login-logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div>
+        <div class="login-logo">Visão do <span>Negócio</span></div>
+      </div>
+    </div>
+    <div class="login-sub">Cadastrar nova empresa</div>
+
+    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:1rem">
+      ⏳ Após o cadastro, aguarde a <strong>ativação pelo administrador</strong> para acessar o sistema.
+    </div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:8px;letter-spacing:.5px">Dados da Empresa</div>
+
+    <label class="form-label">Nome da Empresa <span style="color:red">*</span></label>
+    <input type="text" id="cad-empresa-nome" class="form-input" placeholder="Ex: Salão Bella Rosa">
+
+    <label class="form-label">CNPJ</label>
+    <input type="text" id="cad-empresa-cnpj" class="form-input" placeholder="00.000.000/0001-00">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label class="form-label">Telefone</label>
+        <input type="text" id="cad-empresa-tel" class="form-input" placeholder="(11) 99999-9999">
+      </div>
+      <div>
+        <label class="form-label">Email da empresa</label>
+        <input type="email" id="cad-empresa-email" class="form-input" placeholder="contato@empresa.com">
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin:12px 0 8px;letter-spacing:.5px">Dados de Acesso</div>
+
+    <label class="form-label">Seu nome <span style="color:red">*</span></label>
+    <input type="text" id="cad-nome" class="form-input" placeholder="Nome completo">
+
+    <label class="form-label">E-mail de login <span style="color:red">*</span></label>
+    <input type="email" id="cad-email" class="form-input" placeholder="seu@email.com">
+
+    <label class="form-label">Senha <span style="color:red">*</span></label>
+    <input type="password" id="cad-senha" class="form-input" placeholder="Mínimo 6 caracteres">
+
+    <label class="form-label">Confirmar senha <span style="color:red">*</span></label>
+    <input type="password" id="cad-senha2" class="form-input" placeholder="Repita a senha">
+
+    <button class="btn-login" onclick="doCadastro()" style="margin-top:8px">Enviar cadastro</button>
+    <div id="cad-err" class="login-err"></div>
+
+    <div style="margin-top:1rem;text-align:center">
+      <a href="#" onclick="mostrarLogin()" style="font-size:13px;color:var(--accent);text-decoration:none">← Voltar para o login</a>
+    </div>
   </div>
 </div>
 
@@ -3618,6 +3681,73 @@ async function esqueceuSenha() {
 }
 
 // ─── AUTH ────────────────────────────────────────────
+// Alterna entre login e cadastro
+function mostrarCadastro() {
+  document.getElementById('card-login').style.display = 'none';
+  document.getElementById('card-cadastro').style.display = 'block';
+}
+function mostrarLogin() {
+  document.getElementById('card-cadastro').style.display = 'none';
+  document.getElementById('card-login').style.display = 'block';
+  document.getElementById('cad-err').textContent = '';
+}
+
+// Cadastro de nova empresa — fica INATIVA até admin ativar
+async function doCadastro() {
+  const errEl = document.getElementById('cad-err');
+  errEl.textContent = '';
+
+  const nomeEmp = document.getElementById('cad-empresa-nome').value.trim();
+  const cnpj    = document.getElementById('cad-empresa-cnpj').value.trim();
+  const tel     = document.getElementById('cad-empresa-tel').value.trim();
+  const emailEmp= document.getElementById('cad-empresa-email').value.trim();
+  const nome    = document.getElementById('cad-nome').value.trim();
+  const email   = document.getElementById('cad-email').value.trim().toLowerCase();
+  const senha   = document.getElementById('cad-senha').value.trim();
+  const senha2  = document.getElementById('cad-senha2').value.trim();
+
+  if (!nomeEmp) { errEl.textContent = 'Digite o nome da empresa'; return; }
+  if (!nome)    { errEl.textContent = 'Digite seu nome'; return; }
+  if (!email)   { errEl.textContent = 'Digite seu e-mail'; return; }
+  if (senha.length < 6) { errEl.textContent = 'Senha mínimo 6 caracteres'; return; }
+  if (senha !== senha2) { errEl.textContent = 'Senhas não conferem'; return; }
+
+  // Verifica se email já existe
+  const { data: existe } = await sb.from('vn_usuarios').select('id').eq('email', email);
+  if (existe?.length) { errEl.textContent = 'Este e-mail já está cadastrado'; return; }
+
+  errEl.style.color = 'var(--text2)';
+  errEl.textContent = '⏳ Cadastrando...';
+
+  // 1. Cria empresa INATIVA (aguarda ativação do admin)
+  const { data: emp, error: errEmp } = await sb.from('empresas').insert({
+    nome: nomeEmp, cnpj, telefone: tel, email: emailEmp, ativo: false
+  }).select().single();
+
+  if (errEmp) { errEl.style.color='red'; errEl.textContent = 'Erro: ' + errEmp.message; return; }
+
+  // 2. Cria usuário como operador, também inativo
+  const { error: errUsr } = await sb.from('vn_usuarios').insert({
+    nome, email, senha_hash: senha,
+    perfil: 'operador',
+    empresa_ids: [emp.id],
+    empresa_padrao: emp.id,
+    ativo: false
+  });
+
+  if (errUsr) { errEl.style.color='red'; errEl.textContent = 'Erro: ' + errUsr.message; return; }
+
+  errEl.style.color = '#059669';
+  errEl.textContent = '✅ Cadastro enviado! Aguarde a ativação pelo administrador.';
+
+  // Limpa campos
+  ['cad-empresa-nome','cad-empresa-cnpj','cad-empresa-tel','cad-empresa-email',
+   'cad-nome','cad-email','cad-senha','cad-senha2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const pass  = document.getElementById('login-pass').value.trim();
@@ -12963,16 +13093,26 @@ async function loadEmpresas() {
       empEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead><tr>
           <th style="${TH}">Nome</th><th style="${TH}">CNPJ</th>
-          <th style="${TH}">Email</th><th style="${TH}">Status</th><th style="${TH}">Ações</th>
+          <th style="${TH}">Email</th><th style="${TH}">Telefone</th>
+          <th style="${TH};text-align:center">Status</th><th style="${TH};text-align:center">Ações</th>
         </tr></thead>
-        <tbody>${emps.map(e=>`<tr style="border-bottom:1px solid var(--border)">
+        <tbody>${emps.map(e=>`<tr style="border-bottom:1px solid var(--border);${!e.ativo?'background:#fff8f8':''}">
           <td style="padding:8px 10px;font-weight:600">${e.nome}</td>
           <td style="padding:8px 10px;color:var(--text2)">${e.cnpj||'—'}</td>
           <td style="padding:8px 10px;color:var(--text2)">${e.email||'—'}</td>
-          <td style="padding:8px 10px"><span class="badge ${e.ativo?'badge-green':'badge-gray'}">${e.ativo?'Ativa':'Inativa'}</span></td>
-          <td style="padding:8px 10px">
-            <button class="btn btn-sm" onclick="editarEmpresa('${e.id}')" style="font-size:11px">✏️</button>
-            <button class="btn btn-sm" onclick="alternarEmpresaAtiva('${e.id}',${!e.ativo})" style="font-size:11px">${e.ativo?'Desativar':'Ativar'}</button>
+          <td style="padding:8px 10px;color:var(--text2)">${e.telefone||'—'}</td>
+          <td style="padding:8px 10px;text-align:center">
+            ${e.ativo
+              ? '<span style="background:#dcfce7;color:#166534;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">✅ Ativa</span>'
+              : '<span style="background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">⏳ Inativa</span>'
+            }
+          </td>
+          <td style="padding:8px 10px;text-align:center">
+            <button onclick="alternarEmpresaAtiva('${e.id}',${!e.ativo})"
+              style="padding:4px 12px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;border:none;
+                     background:${e.ativo?'#fee2e2':'#dcfce7'};color:${e.ativo?'#991b1b':'#166534'}">
+              ${e.ativo?'⛔ Desativar':'✅ Ativar'}
+            </button>
           </td>
         </tr>`).join('')}</tbody>
       </table>`;
@@ -13008,9 +13148,21 @@ async function loadEmpresas() {
 }
 
 async function alternarEmpresaAtiva(id, ativo) {
-  await sb.from('empresas').update({ativo}).eq('id',id);
+  // Ativa/desativa empresa
+  await sb.from('empresas').update({ativo}).eq('id', id);
+  // Ativa/desativa também os usuários vinculados (exceto admin)
+  const { data: usrs } = await sb.from('vn_usuarios')
+    .select('id, empresa_ids, perfil')
+    .neq('perfil', 'admin');
+  for (const u of (usrs||[])) {
+    if ((u.empresa_ids||[]).includes(id)) {
+      await sb.from('vn_usuarios').update({ativo}).eq('id', u.id);
+    }
+  }
+  showToast(ativo ? '✅ Empresa ativada!' : '⛔ Empresa desativada!', 'success');
   loadEmpresas();
-  await iniciarSessaoMultiEmpresa(); // recarrega lista
+  // Atualiza lista do admin também
+  if (_vnUser?.perfil === 'admin') await iniciarSessaoMultiEmpresa();
 }
 
 async function alternarUsuarioAtivo(id, ativo) {
