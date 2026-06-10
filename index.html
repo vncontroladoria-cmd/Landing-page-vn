@@ -829,6 +829,19 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
         Sistema Base
       </div>
+      <div style="height:1px;background:rgba(255,255,255,.06);margin:8px 6px"></div>
+      <div class="master-nav-item" onclick="masterPage('planos')" id="mnav-planos">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Planos
+      </div>
+      <div class="master-nav-item" onclick="masterPage('logs')" id="mnav-logs">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Logs de Acesso
+      </div>
+      <div class="master-nav-item" onclick="masterPage('notificacoes')" id="mnav-notificacoes">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        Notificações
+      </div>
     </nav>
 
     <!-- User + Sair -->
@@ -924,6 +937,203 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </div>
     </div>
 
+    <!-- PAGE: PLANOS -->
+    <div id="mpage-planos" style="display:none">
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Planos</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px">Gerencie os planos disponíveis no sistema</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px" id="master-planos-grid">
+        <!-- preenchido via JS -->
+      </div>
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;font-size:14px;color:#fff">Empresas por Plano</div>
+        </div>
+        <div id="master-planos-table" style="overflow-x:auto;padding:14px"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: LOGS -->
+    <div id="mpage-logs" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Logs de Acesso</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.4)">Histórico de acessos ao sistema</div>
+        </div>
+        <button onclick="masterLoadLogs()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.7);font-size:12px;padding:7px 14px;cursor:pointer;font-family:'Outfit',sans-serif">↻ Atualizar</button>
+      </div>
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+        <div id="master-logs-table" style="overflow-x:auto"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: NOTIFICAÇÕES -->
+    <div id="mpage-notificacoes" style="display:none">
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Notificações</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px">Envie avisos para empresas ou usuários</div>
+      <!-- Enviar nova -->
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:20px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:14px;color:#fff;margin-bottom:16px">Nova Notificação</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:6px;text-transform:uppercase">Destino</div>
+            <select id="notif-destino" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+              <option value="todas">Todas as empresas</option>
+              <option value="empresa">Empresa específica</option>
+            </select>
+          </div>
+          <div id="notif-empresa-wrap" style="display:none">
+            <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:6px;text-transform:uppercase">Empresa</div>
+            <select id="notif-empresa-sel" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px"></select>
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:6px;text-transform:uppercase">Título</div>
+          <input id="notif-titulo" placeholder="Ex: Atualização do sistema..." style="width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:6px;text-transform:uppercase">Mensagem</div>
+          <textarea id="notif-msg" rows="3" placeholder="Digite a mensagem..." style="width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <select id="notif-tipo" style="padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+            <option value="info">ℹ️ Informação</option>
+            <option value="aviso">⚠️ Aviso</option>
+            <option value="erro">🔴 Urgente</option>
+            <option value="sucesso">✅ Sucesso</option>
+          </select>
+          <button onclick="masterEnviarNotificacao()" style="background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:13px;padding:9px 20px;cursor:pointer;font-weight:600;font-family:'Outfit',sans-serif">Enviar Notificação</button>
+        </div>
+      </div>
+      <!-- Histórico -->
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)">
+          <div style="font-weight:700;font-size:14px;color:#fff">Histórico Enviado</div>
+        </div>
+        <div id="master-notif-lista" style="padding:14px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL TEMA EMPRESA -->
+<div id="modal-tema-empresa" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;display:none">
+  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#fff" id="modal-tema-nome">Tema da Empresa</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4)">Logo e cores do sistema</div>
+      </div>
+      <button onclick="fecharModalTema()" style="background:rgba(255,255,255,.08);border:none;border-radius:8px;color:rgba(255,255,255,.6);font-size:18px;width:32px;height:32px;cursor:pointer;line-height:1">✕</button>
+    </div>
+
+    <!-- Preview -->
+    <div style="background:#0f172a;border-radius:10px;padding:16px;margin-bottom:20px;border:1px solid rgba(255,255,255,.06)">
+      <div style="font-size:11px;color:rgba(255,255,255,.3);text-transform:uppercase;font-weight:600;margin-bottom:10px">Preview do Sistema</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div id="tema-preview-sidebar" style="width:40px;height:56px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#1e2d3d">
+          <div id="tema-preview-logo-mini" style="width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#2a9d5c;overflow:hidden">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div id="tema-preview-barra" style="height:28px;border-radius:8px;background:#2a9d5c;display:flex;align-items:center;padding:0 12px;margin-bottom:6px">
+            <span id="tema-preview-nome-emp" style="font-size:12px;font-weight:700;color:#fff">Nome da Empresa</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <div id="tema-preview-btn1" style="height:20px;border-radius:5px;flex:1;background:#2a9d5c;opacity:.8"></div>
+            <div id="tema-preview-btn2" style="height:20px;border-radius:5px;flex:1;background:#1e2d3d;border:1px solid rgba(255,255,255,.2)"></div>
+            <div id="tema-preview-btn3" style="height:20px;border-radius:5px;flex:1;background:#1e2d3d;border:1px solid rgba(255,255,255,.2)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logo -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">Logo da Empresa</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div id="tema-logo-preview" style="width:52px;height:52px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <div style="flex:1">
+          <input id="tema-logo-url" type="url" placeholder="Cole a URL da imagem do logo (https://...)" 
+            oninput="atualizarPreviewTema()"
+            style="width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;margin-bottom:6px">
+          <div style="font-size:11px;color:rgba(255,255,255,.3)">Use Imgur, Cloudinary ou qualquer URL pública de imagem</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cores -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">Cor Principal</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="tema-cor-primaria" value="#2a9d5c" oninput="atualizarPreviewTema()" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:6px;padding:2px">
+          <input id="tema-cor-primaria-hex" placeholder="#2a9d5c" oninput="sincronizarCorHex('primaria')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:12px">
+        </div>
+        <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap" id="presets-primaria">
+          <div onclick="aplicarPreset('primaria','#2a9d5c')" style="width:20px;height:20px;border-radius:4px;background:#2a9d5c;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('primaria','#3b82f6')" style="width:20px;height:20px;border-radius:4px;background:#3b82f6;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('primaria','#8b5cf6')" style="width:20px;height:20px;border-radius:4px;background:#8b5cf6;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('primaria','#f59e0b')" style="width:20px;height:20px;border-radius:4px;background:#f59e0b;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('primaria','#ef4444')" style="width:20px;height:20px;border-radius:4px;background:#ef4444;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('primaria','#ec4899')" style="width:20px;height:20px;border-radius:4px;background:#ec4899;cursor:pointer;border:2px solid transparent"></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">Sidebar</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="tema-cor-sidebar" value="#1e2d3d" oninput="atualizarPreviewTema()" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:6px;padding:2px">
+          <input id="tema-cor-sidebar-hex" placeholder="#1e2d3d" oninput="sincronizarCorHex('sidebar')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:12px">
+        </div>
+        <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+          <div onclick="aplicarPreset('sidebar','#1e2d3d')" style="width:20px;height:20px;border-radius:4px;background:#1e2d3d;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('sidebar','#1a1a2e')" style="width:20px;height:20px;border-radius:4px;background:#1a1a2e;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('sidebar','#0f172a')" style="width:20px;height:20px;border-radius:4px;background:#0f172a;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('sidebar','#1c1c1c')" style="width:20px;height:20px;border-radius:4px;background:#1c1c1c;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('sidebar','#2d1b69')" style="width:20px;height:20px;border-radius:4px;background:#2d1b69;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('sidebar','#1a3a2e')" style="width:20px;height:20px;border-radius:4px;background:#1a3a2e;cursor:pointer;border:2px solid transparent"></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">Botões Accent</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="tema-cor-accent" value="#2a9d5c" oninput="atualizarPreviewTema()" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:6px;padding:2px">
+          <input id="tema-cor-accent-hex" placeholder="#2a9d5c" oninput="sincronizarCorHex('accent')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:12px">
+        </div>
+        <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+          <div onclick="aplicarPreset('accent','#2a9d5c')" style="width:20px;height:20px;border-radius:4px;background:#2a9d5c;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('accent','#3b82f6')" style="width:20px;height:20px;border-radius:4px;background:#3b82f6;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('accent','#8b5cf6')" style="width:20px;height:20px;border-radius:4px;background:#8b5cf6;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('accent','#f59e0b')" style="width:20px;height:20px;border-radius:4px;background:#f59e0b;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('accent','#ef4444')" style="width:20px;height:20px;border-radius:4px;background:#ef4444;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="aplicarPreset('accent','#ec4899')" style="width:20px;height:20px;border-radius:4px;background:#ec4899;cursor:pointer;border:2px solid transparent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nome personalizado no sistema -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">Nome no Sistema (opcional)</div>
+      <input id="tema-nome-sistema" placeholder="Ex: Avec VIP — deixe vazio para usar o nome da empresa" 
+        style="width:100%;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+      <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">Aparece no sidebar e na tela de login</div>
+    </div>
+
+    <!-- Botões -->
+    <div style="display:flex;gap:10px">
+      <button onclick="masterSalvarTema()" style="flex:1;background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:14px;padding:11px;cursor:pointer;font-weight:700;font-family:'Outfit',sans-serif">
+        💾 Salvar Tema
+      </button>
+      <button onclick="masterResetarTema()" style="padding:11px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif">
+        Resetar
+      </button>
+      <button onclick="fecharModalTema()" style="padding:11px 16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif">
+        Cancelar
+      </button>
+    </div>
   </div>
 </div>
 
@@ -3982,10 +4192,16 @@ async function doLogin() {
   _vnUser = usr;
   currentUser = { email: usr.email, id: usr.id };
   sessionStorage.setItem('vn_user_id', usr.id);
+  // Registra log de login
+  sb.from('logs_acesso').insert({ usuario_id: usr.id, acao: 'login', criado_em: new Date().toISOString() }).then(()=>{});
   await iniciarSessaoMultiEmpresa();
 }
 
 async function doLogout() {
+  // Registra log de logout
+  if (_vnUser?.id) {
+    await sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: _empresaAtual?.id||null, acao: 'logout', criado_em: new Date().toISOString() });
+  }
   _vnUser = null; _empresaAtual = null; _todasEmpresas = [];
   currentUser = null;
   sessionStorage.removeItem('vn_user_id');
@@ -4034,6 +4250,9 @@ async function iniciarSessaoMultiEmpresa() {
 async function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+
+  // Aplica tema da empresa atual
+  if (_empresaAtual) aplicarTemaEmpresa(_empresaAtual);
 
   // Nome/iniciais do usuário
   const nome = _vnUser?.nome || _vnUser?.email || '';
@@ -13294,7 +13513,7 @@ async function showPainelMaster() {
 
 async function masterPage(page) {
   // Esconde todas as páginas
-  ['dashboard','empresas','usuarios','base'].forEach(p => {
+  ['dashboard','empresas','usuarios','base','planos','logs','notificacoes'].forEach(p => {
     const el = document.getElementById('mpage-'+p);
     if (el) el.style.display = 'none';
     const nav = document.getElementById('mnav-'+p);
@@ -13307,10 +13526,13 @@ async function masterPage(page) {
   const nav = document.getElementById('mnav-'+page);
   if (nav) nav.classList.add('active');
 
-  if (page === 'dashboard') await masterLoadDashboard();
-  if (page === 'empresas')  await masterLoadEmpresas();
-  if (page === 'usuarios')  await masterLoadUsuarios();
-  if (page === 'base')      await masterLoadBase();
+  if (page === 'dashboard')     await masterLoadDashboard();
+  if (page === 'empresas')      await masterLoadEmpresas();
+  if (page === 'usuarios')      await masterLoadUsuarios();
+  if (page === 'base')          await masterLoadBase();
+  if (page === 'planos')        await masterLoadPlanos();
+  if (page === 'logs')          await masterLoadLogs();
+  if (page === 'notificacoes')  { await masterLoadNotificacoes(); await masterCarregarEmpresasNotif(); }
 }
 
 async function masterLoadDashboard() {
@@ -13363,7 +13585,8 @@ async function masterLoadEmpresas() {
     <thead><tr>
       <th style="${TH}">Empresa</th>
       <th style="${TH}">CNPJ</th>
-      <th style="${TH}">ID</th>
+      <th style="${TH}">Plano</th>
+      <th style="${TH}">Tema</th>
       <th style="${TH}">Status</th>
       <th style="${TH}">Ações</th>
     </tr></thead>
@@ -13371,12 +13594,27 @@ async function masterLoadEmpresas() {
       ${(emps||[]).map(e => `
         <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
           <td style="padding:12px 14px">
-            <div style="font-weight:600;color:#fff">${e.nome}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.4)">${e.email||''}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              ${e.logo_url
+                ? `<img src="${e.logo_url}" style="width:32px;height:32px;border-radius:6px;object-fit:contain;background:rgba(255,255,255,.06);padding:2px" onerror="this.style.display='none'">`
+                : `<div style="width:32px;height:32px;border-radius:6px;background:${e.cor_primaria||'#2a9d5c'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff">${(e.nome||'?')[0].toUpperCase()}</div>`
+              }
+              <div>
+                <div style="font-weight:600;color:#fff">${e.nome}</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.4)">${e.email||''}</div>
+              </div>
+            </div>
           </td>
           <td style="padding:12px 14px;color:rgba(255,255,255,.5)">${e.cnpj||'—'}</td>
-          <td style="padding:12px 14px;font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.4)">
-            ${(e.id||'').replace(/-/g,'').substring(0,8).toUpperCase()}
+          <td style="padding:12px 14px">
+            <span style="padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6)">${e.plano||'—'}</span>
+          </td>
+          <td style="padding:12px 14px">
+            <div style="display:flex;gap:4px;align-items:center">
+              ${e.cor_primaria ? `<div style="width:14px;height:14px;border-radius:3px;background:${e.cor_primaria}" title="Cor primária"></div>` : ''}
+              ${e.cor_sidebar ? `<div style="width:14px;height:14px;border-radius:3px;background:${e.cor_sidebar}" title="Sidebar"></div>` : ''}
+              ${(!e.cor_primaria && !e.cor_sidebar) ? '<span style="font-size:11px;color:rgba(255,255,255,.3)">Padrão</span>' : ''}
+            </div>
           </td>
           <td style="padding:12px 14px">
             <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${e.ativo?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};color:${e.ativo?'#4ade80':'#f87171'}">
@@ -13384,16 +13622,20 @@ async function masterLoadEmpresas() {
             </span>
           </td>
           <td style="padding:12px 14px">
-            <div style="display:flex;gap:6px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
               <button onclick="masterAcessarEmpresa('${e.id}')"
                 style="padding:4px 10px;background:rgba(42,157,92,.2);border:none;border-radius:6px;color:#4ade80;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 Acessar
+              </button>
+              <button onclick="abrirModalTema('${e.id}')"
+                style="padding:4px 10px;background:rgba(139,92,246,.2);border:none;border-radius:6px;color:#a78bfa;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
+                🎨 Tema
               </button>
               <button onclick="masterAlternarEmpresa('${e.id}',${!e.ativo})"
                 style="padding:4px 10px;background:${e.ativo?'rgba(239,68,68,.15)':'rgba(34,197,94,.15)'};border:none;border-radius:6px;color:${e.ativo?'#f87171':'#4ade80'};font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 ${e.ativo?'Desativar':'Ativar'}
               </button>
-              <button onclick="masterExcluirEmpresa('${e.id}','${e.nome.replace(/'/g,"\'")}')"
+              <button onclick="masterExcluirEmpresa('${e.id}','${e.nome.replace(/'/g,String.fromCharCode(39))}')"
                 style="padding:4px 10px;background:rgba(239,68,68,.1);border:none;border-radius:6px;color:#f87171;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 Excluir
               </button>
@@ -13404,7 +13646,6 @@ async function masterLoadEmpresas() {
     </tbody>
   </table>`;
 }
-
 async function masterLoadUsuarios() {
   const { data: usrs } = await sb.from('vn_usuarios').select('*').order('nome');
   const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:10px 14px;color:rgba(255,255,255,.4);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)';
@@ -13504,6 +13745,10 @@ async function masterAcessarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
   _empresaAtual = emp;
+  // Registra log de acesso à empresa
+  if (_vnUser?.id) {
+    sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
+  }
   document.getElementById('painel-master').style.display = 'none';
   await showApp();
 }
@@ -13953,6 +14198,373 @@ async function salvarUsuario() {
 // ─── INIT ────────────────────────────────────────────
 checkSession();
 document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
+
+// ─── TEMA POR EMPRESA ────────────────────────────────
+let _temaEmpresaId = null;
+
+function abrirModalTema(empresaId) {
+  const emp = _todasEmpresas.find(e => e.id === empresaId);
+  if (!emp) return;
+  _temaEmpresaId = empresaId;
+
+  document.getElementById('modal-tema-nome').textContent = emp.nome;
+  document.getElementById('tema-logo-url').value = emp.logo_url || '';
+  document.getElementById('tema-cor-primaria').value = emp.cor_primaria || '#2a9d5c';
+  document.getElementById('tema-cor-primaria-hex').value = emp.cor_primaria || '#2a9d5c';
+  document.getElementById('tema-cor-sidebar').value = emp.cor_sidebar || '#1e2d3d';
+  document.getElementById('tema-cor-sidebar-hex').value = emp.cor_sidebar || '#1e2d3d';
+  document.getElementById('tema-cor-accent').value = emp.cor_accent || emp.cor_primaria || '#2a9d5c';
+  document.getElementById('tema-cor-accent-hex').value = emp.cor_accent || emp.cor_primaria || '#2a9d5c';
+  document.getElementById('tema-nome-sistema').value = emp.nome_sistema || '';
+  document.getElementById('tema-preview-nome-emp').textContent = emp.nome_sistema || emp.nome;
+
+  atualizarPreviewTema();
+  document.getElementById('modal-tema-empresa').style.display = 'flex';
+}
+
+function fecharModalTema() {
+  document.getElementById('modal-tema-empresa').style.display = 'none';
+  _temaEmpresaId = null;
+}
+
+function atualizarPreviewTema() {
+  const logoUrl = document.getElementById('tema-logo-url')?.value || '';
+  const corPrimaria = document.getElementById('tema-cor-primaria')?.value || '#2a9d5c';
+  const corSidebar = document.getElementById('tema-cor-sidebar')?.value || '#1e2d3d';
+  const corAccent = document.getElementById('tema-cor-accent')?.value || '#2a9d5c';
+  const nomeEmp = document.getElementById('tema-nome-sistema')?.value ||
+    (_todasEmpresas.find(e => e.id === _temaEmpresaId)?.nome || '');
+
+  // Atualiza preview
+  const ps = document.getElementById('tema-preview-sidebar');
+  if (ps) ps.style.background = corSidebar;
+
+  const pb = document.getElementById('tema-preview-barra');
+  if (pb) pb.style.background = corPrimaria;
+
+  const pb1 = document.getElementById('tema-preview-btn1');
+  if (pb1) pb1.style.background = corAccent;
+
+  const pn = document.getElementById('tema-preview-nome-emp');
+  if (pn) pn.textContent = nomeEmp || '—';
+
+  // Logo no preview
+  const logoMini = document.getElementById('tema-preview-logo-mini');
+  if (logoMini) {
+    logoMini.style.background = logoUrl ? 'transparent' : corPrimaria;
+    logoMini.innerHTML = logoUrl
+      ? `<img src="${logoUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:4px" onerror="this.parentNode.innerHTML='<svg width=14 height=14 viewBox=0_0_24_24 fill=none stroke=white stroke-width=2.5><polyline points=22_12_18_12_15_21_9_3_6_12_2_12/></svg>'">`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`;
+  }
+
+  // Logo preview grande
+  const lp = document.getElementById('tema-logo-preview');
+  if (lp) {
+    if (logoUrl) {
+      lp.innerHTML = `<img src="${logoUrl}" style="width:48px;height:48px;object-fit:contain;border-radius:8px" onerror="this.parentNode.innerHTML='<svg width=20 height=20 viewBox=0_0_24_24 fill=none stroke=rgba(255,255,255,.3) stroke-width=1.5><rect x=3 y=3 width=18 height=18 rx=3/><circle cx=8.5 cy=8.5 r=1.5/><polyline points=21_15_16_10_5_21/></svg>'">`;
+    } else {
+      lp.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+    }
+  }
+
+  // Sincroniza hex inputs
+  document.getElementById('tema-cor-primaria-hex').value = corPrimaria;
+  document.getElementById('tema-cor-sidebar-hex').value = corSidebar;
+  document.getElementById('tema-cor-accent-hex').value = corAccent;
+}
+
+function sincronizarCorHex(campo) {
+  const hexInput = document.getElementById(`tema-cor-${campo}-hex`);
+  const colorInput = document.getElementById(`tema-cor-${campo}`);
+  if (!hexInput || !colorInput) return;
+  const v = hexInput.value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+    colorInput.value = v;
+    atualizarPreviewTema();
+  }
+}
+
+function aplicarPreset(campo, cor) {
+  const colorInput = document.getElementById(`tema-cor-${campo}`);
+  const hexInput = document.getElementById(`tema-cor-${campo}-hex`);
+  if (colorInput) colorInput.value = cor;
+  if (hexInput) hexInput.value = cor;
+  atualizarPreviewTema();
+}
+
+async function masterSalvarTema() {
+  if (!_temaEmpresaId) return;
+  const logoUrl = document.getElementById('tema-logo-url').value.trim();
+  const corPrimaria = document.getElementById('tema-cor-primaria').value;
+  const corSidebar = document.getElementById('tema-cor-sidebar').value;
+  const corAccent = document.getElementById('tema-cor-accent').value;
+  const nomeSistema = document.getElementById('tema-nome-sistema').value.trim();
+
+  const { error } = await sb.from('empresas').update({
+    logo_url: logoUrl || null,
+    cor_primaria: corPrimaria,
+    cor_sidebar: corSidebar,
+    cor_accent: corAccent,
+    nome_sistema: nomeSistema || null
+  }).eq('id', _temaEmpresaId);
+
+  if (error) { alert('Erro ao salvar tema: ' + error.message); return; }
+
+  // Atualiza cache local
+  const idx = _todasEmpresas.findIndex(e => e.id === _temaEmpresaId);
+  if (idx >= 0) {
+    _todasEmpresas[idx] = { ..._todasEmpresas[idx], logo_url: logoUrl||null, cor_primaria: corPrimaria, cor_sidebar: corSidebar, cor_accent: corAccent, nome_sistema: nomeSistema||null };
+  }
+
+  // Se é a empresa atual, aplica o tema imediatamente
+  if (_empresaAtual?.id === _temaEmpresaId) {
+    aplicarTemaEmpresa(_todasEmpresas[idx] || _empresaAtual);
+  }
+
+  fecharModalTema();
+  await masterLoadEmpresas();
+  showToast('Tema salvo com sucesso!', 'success');
+}
+
+async function masterResetarTema() {
+  if (!confirm('Resetar tema para o padrão do sistema?')) return;
+  document.getElementById('tema-logo-url').value = '';
+  document.getElementById('tema-cor-primaria').value = '#2a9d5c';
+  document.getElementById('tema-cor-sidebar').value = '#1e2d3d';
+  document.getElementById('tema-cor-accent').value = '#2a9d5c';
+  document.getElementById('tema-nome-sistema').value = '';
+  atualizarPreviewTema();
+}
+
+// Aplica o tema da empresa ao sistema quando faz login/acessa
+function aplicarTemaEmpresa(emp) {
+  if (!emp) return;
+  const root = document.documentElement.style;
+  const corPrimaria = emp.cor_primaria || '#2a9d5c';
+  const corSidebar = emp.cor_sidebar || '#1e2d3d';
+  const corAccent = emp.cor_accent || corPrimaria;
+
+  root.setProperty('--green', corPrimaria);
+  root.setProperty('--accent', corAccent);
+  root.setProperty('--sidebar-bg', corSidebar);
+  root.setProperty('--green-dim', corPrimaria + '18');
+  root.setProperty('--green-light', corPrimaria + '20');
+
+  // Logo no sidebar
+  const sidebarLogoIcon = document.querySelector('.sidebar-logo-icon');
+  const sidebarLogoText = document.querySelector('.logo-mark');
+  if (sidebarLogoIcon) {
+    if (emp.logo_url) {
+      sidebarLogoIcon.innerHTML = `<img src="${emp.logo_url}" style="width:28px;height:28px;object-fit:contain;border-radius:4px" onerror="this.style.display='none'">`;
+      sidebarLogoIcon.style.background = 'transparent';
+    } else {
+      sidebarLogoIcon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`;
+      sidebarLogoIcon.style.background = `linear-gradient(135deg,${corPrimaria},${corAccent})`;
+    }
+  }
+  if (sidebarLogoText) {
+    const nomeSistema = emp.nome_sistema || emp.nome || 'Visão do Negócio';
+    const partes = nomeSistema.split(' ');
+    const ultima = partes.pop();
+    sidebarLogoText.innerHTML = partes.join(' ') + (partes.length ? ' ' : '') + `<span>${ultima}</span>`;
+    sidebarLogoText.querySelector('span').style.color = corPrimaria;
+  }
+}
+
+// ─── LOGS DE ACESSO ─────────────────────────────────
+async function masterLoadLogs() {
+  const el = document.getElementById('master-logs-table');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:rgba(255,255,255,.4);font-size:13px">Carregando...</div>';
+
+  const { data: logs } = await sb.from('logs_acesso').select('*,vn_usuarios(nome,email),empresas(nome)').order('criado_em', {ascending:false}).limit(100);
+
+  if (!logs || !logs.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(255,255,255,.4);font-size:13px">Nenhum log registrado ainda.<br><span style="font-size:11px;opacity:.6">Os acessos serão registrados automaticamente após ativar a tabela logs_acesso no Supabase.</span></div>';
+    return;
+  }
+
+  const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:10px 14px;color:rgba(255,255,255,.4);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)';
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="${TH}">Usuário</th>
+      <th style="${TH}">Empresa</th>
+      <th style="${TH}">Ação</th>
+      <th style="${TH}">IP / Dispositivo</th>
+      <th style="${TH}">Data/Hora</th>
+    </tr></thead>
+    <tbody>
+      ${logs.map(l => `
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+          <td style="padding:10px 14px">
+            <div style="font-weight:600;color:#fff">${l.vn_usuarios?.nome||l.vn_usuarios?.email||'—'}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4)">${l.vn_usuarios?.email||''}</div>
+          </td>
+          <td style="padding:10px 14px;color:rgba(255,255,255,.6)">${l.empresas?.nome||'—'}</td>
+          <td style="padding:10px 14px">
+            <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${l.acao==='login'?'rgba(34,197,94,.15)':l.acao==='logout'?'rgba(239,68,68,.1)':'rgba(255,255,255,.06)'};color:${l.acao==='login'?'#4ade80':l.acao==='logout'?'#f87171':'rgba(255,255,255,.6)'}">
+              ${l.acao||'—'}
+            </span>
+          </td>
+          <td style="padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.4)">${l.ip||'—'}</td>
+          <td style="padding:10px 14px;font-size:12px;color:rgba(255,255,255,.5)">${l.criado_em ? new Date(l.criado_em).toLocaleString('pt-BR') : '—'}</td>
+        </tr>`
+      ).join('')}
+    </tbody>
+  </table>`;
+}
+
+// ─── NOTIFICAÇÕES ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('notif-destino');
+  if (sel) sel.addEventListener('change', () => {
+    const wrap = document.getElementById('notif-empresa-wrap');
+    if (wrap) wrap.style.display = sel.value === 'empresa' ? 'block' : 'none';
+  });
+});
+
+async function masterCarregarEmpresasNotif() {
+  const sel = document.getElementById('notif-empresa-sel');
+  if (!sel) return;
+  const { data: emps } = await sb.from('empresas').select('id,nome').eq('ativo', true).order('nome');
+  sel.innerHTML = (emps||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+}
+
+async function masterEnviarNotificacao() {
+  const destino = document.getElementById('notif-destino')?.value;
+  const titulo = document.getElementById('notif-titulo')?.value.trim();
+  const msg = document.getElementById('notif-msg')?.value.trim();
+  const tipo = document.getElementById('notif-tipo')?.value;
+  const empresaId = document.getElementById('notif-empresa-sel')?.value;
+
+  if (!titulo || !msg) { alert('Preencha o título e a mensagem.'); return; }
+
+  const payload = {
+    titulo,
+    mensagem: msg,
+    tipo,
+    destino,
+    empresa_id: destino === 'empresa' ? empresaId : null,
+    criado_em: new Date().toISOString(),
+    criado_por: _vnUser?.id
+  };
+
+  const { error } = await sb.from('notificacoes_master').insert(payload);
+  if (error) { alert('Erro ao enviar: ' + error.message); return; }
+
+  document.getElementById('notif-titulo').value = '';
+  document.getElementById('notif-msg').value = '';
+  showToast('Notificação enviada!', 'success');
+  await masterLoadNotificacoes();
+}
+
+async function masterLoadNotificacoes() {
+  const el = document.getElementById('master-notif-lista');
+  if (!el) return;
+  const { data: notifs } = await sb.from('notificacoes_master').select('*').order('criado_em', {ascending:false}).limit(50);
+
+  if (!notifs?.length) {
+    el.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:13px;padding:8px">Nenhuma notificação enviada ainda.</div>';
+    return;
+  }
+
+  const tipoIcon = {info:'ℹ️', aviso:'⚠️', erro:'🔴', sucesso:'✅'};
+  el.innerHTML = notifs.map(n => `
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="font-size:18px;flex-shrink:0;margin-top:2px">${tipoIcon[n.tipo]||'📢'}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;color:#fff;font-size:13px">${n.titulo}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:2px">${n.mensagem}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">
+          ${n.destino === 'todas' ? '📡 Todas as empresas' : '🏢 Empresa específica'} · 
+          ${n.criado_em ? new Date(n.criado_em).toLocaleString('pt-BR') : ''}
+        </div>
+      </div>
+      <button onclick="masterExcluirNotif('${n.id}')" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:13px;padding:4px">✕</button>
+    </div>`
+  ).join('');
+}
+
+async function masterExcluirNotif(id) {
+  await sb.from('notificacoes_master').delete().eq('id', id);
+  await masterLoadNotificacoes();
+}
+
+// ─── PLANOS ──────────────────────────────────────────
+async function masterLoadPlanos() {
+  const { data: emps } = await sb.from('empresas').select('plano').order('plano');
+  const contagem = {};
+  (emps||[]).forEach(e => { const p = e.plano||'Sem Plano'; contagem[p] = (contagem[p]||0)+1; });
+
+  const planosConfig = [
+    {nome:'Básico', cor:'#60a5fa', desc:'1 usuário, funcionalidades essenciais', preco:'R$ 49/mês'},
+    {nome:'Profissional', cor:'#4ade80', desc:'5 usuários, relatórios e integrações', preco:'R$ 99/mês'},
+    {nome:'Enterprise', cor:'#a78bfa', desc:'Ilimitado, API, suporte dedicado', preco:'R$ 299/mês'},
+  ];
+
+  const grid = document.getElementById('master-planos-grid');
+  if (grid) {
+    grid.innerHTML = planosConfig.map(p => `
+      <div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,.06)">
+        <div style="width:36px;height:36px;border-radius:10px;background:${p.cor}22;display:flex;align-items:center;justify-content:center;margin-bottom:12px">
+          <div style="width:14px;height:14px;border-radius:50%;background:${p.cor}"></div>
+        </div>
+        <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">${p.nome}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:12px">${p.desc}</div>
+        <div style="font-size:20px;font-weight:800;color:${p.cor};margin-bottom:4px">${p.preco}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4)">${contagem[p.nome]||0} empresa(s) ativas</div>
+      </div>`
+    ).join('');
+  }
+
+  const tbl = document.getElementById('master-planos-table');
+  if (tbl) {
+    const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:10px 14px;color:rgba(255,255,255,.4);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)';
+    const { data: todasEmps } = await sb.from('empresas').select('nome,plano,ativo,criado_em').order('nome');
+    tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>
+        <th style="${TH}">Empresa</th>
+        <th style="${TH}">Plano</th>
+        <th style="${TH}">Status</th>
+        <th style="${TH}">Cliente desde</th>
+        <th style="${TH}">Ações</th>
+      </tr></thead>
+      <tbody>
+        ${(todasEmps||[]).map(e => `
+          <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+            <td style="padding:10px 14px;font-weight:600;color:#fff">${e.nome}</td>
+            <td style="padding:10px 14px">
+              <span style="padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.06);color:rgba(255,255,255,.7)">${e.plano||'—'}</span>
+            </td>
+            <td style="padding:10px 14px">
+              <span style="padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:${e.ativo?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)'};color:${e.ativo?'#4ade80':'#f87171'}">${e.ativo?'Ativa':'Inativa'}</span>
+            </td>
+            <td style="padding:10px 14px;font-size:12px;color:rgba(255,255,255,.4)">${e.criado_em ? new Date(e.criado_em).toLocaleDateString('pt-BR') : '—'}</td>
+            <td style="padding:10px 14px">
+              <select onchange="masterAtualizarPlano(this,'${e.nome.replace(/'/g,"\\'")}',this.value)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#fff;font-size:11px;padding:4px 8px;font-family:'Outfit',sans-serif;cursor:pointer">
+                <option value="">— alterar plano —</option>
+                <option value="Básico">Básico</option>
+                <option value="Profissional">Profissional</option>
+                <option value="Enterprise">Enterprise</option>
+              </select>
+            </td>
+          </tr>`
+        ).join('')}
+      </tbody>
+    </table>`;
+  }
+}
+
+async function masterAtualizarPlano(select, nomeEmp, plano) {
+  if (!plano) return;
+  const { data: emps } = await sb.from('empresas').select('id').eq('nome', nomeEmp);
+  if (!emps?.length) return;
+  await sb.from('empresas').update({plano}).eq('id', emps[0].id);
+  select.value = '';
+  showToast(`Plano da ${nomeEmp} atualizado para ${plano}`, 'success');
+  await masterLoadPlanos();
+}
+
 </script>
 
 <!-- MODAL PREVIEW IMPORTAÇÃO SERVIÇOS -->
