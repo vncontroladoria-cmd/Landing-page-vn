@@ -7547,12 +7547,21 @@ async function loadDocumentos() {
   if ((pastas||[]).length) {
     pastaHtml = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
       ${pastas.map(p => `
-        <div onclick="abrirPastaDoc('${p.id}','${(p.fornecedor||'').replace(/'/g,'')}')"
-          style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600"
+        <div style="display:flex;align-items:center;gap:0;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px;font-weight:600"
           onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <span>📁</span> ${p.fornecedor}
-          <button onclick="event.stopPropagation();deletarDocumento('${p.id}',true)"
-            style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;margin-left:4px">✕</button>
+          <div onclick="abrirPastaDoc('${p.id}','${(p.fornecedor||'').replace(/'/g,'')}')"
+            style="display:flex;align-items:center;gap:6px;padding:6px 12px;cursor:pointer;flex:1">
+            <span>📁</span> ${p.fornecedor}
+            <span style="font-size:10px;color:var(--text3);font-weight:400">(${p.total_docs||0} docs)</span>
+          </div>
+          <div style="display:flex;border-left:1px solid var(--border)">
+            <button onclick="event.stopPropagation();verInfoPasta('${p.id}','${(p.fornecedor||'').replace(/'/g,'')}')"
+              style="background:none;border:none;color:#7c3aed;cursor:pointer;padding:6px 8px;font-size:12px" title="Detalhes">🔍</button>
+            <button onclick="event.stopPropagation();editarPasta('${p.id}','${(p.fornecedor||'').replace(/'/g,'')}')"
+              style="background:none;border:none;color:var(--accent);cursor:pointer;padding:6px 8px;font-size:12px" title="Renomear">✏️</button>
+            <button onclick="event.stopPropagation();deletarDocumento('${p.id}',true)"
+              style="background:none;border:none;color:var(--red);cursor:pointer;padding:6px 8px;font-size:12px" title="Excluir">✕</button>
+          </div>
         </div>`).join('')}
     </div>`;
   }
@@ -14783,8 +14792,7 @@ async function lerDocumentoIA(input) {
             },
             {
               type: 'text',
-              text: `Extraia os dados deste boleto/nota fiscal e responda SOMENTE em JSON válido, sem texto adicional, sem markdown:
-{"nome":"nome do beneficiário/fornecedor","cnpj":"CNPJ do beneficiário","valor":0.00,"vencimento":"YYYY-MM-DD","numero_doc":"número do documento/boleto","chave_pix":"linha digitável ou chave pix se houver","observacao":"qualquer info relevante"}`
+              text: `Extraia os dados deste boleto ou nota fiscal e responda SOMENTE em JSON válido, sem texto, sem markdown. Formato exato:\n{"nome":"emitente/fornecedor","cnpj":"CNPJ emitente","valor_total":0.00,"vencimento":"YYYY-MM-DD","numero_doc":"número NF ou boleto","chave_pix":"linha digitável ou chave pix","observacao":"info relevante","parcelas":[{"numero":1,"vencimento":"YYYY-MM-DD","valor":0.00}]}\nSe não tiver parcelas, use array vazio. Se NF com fatura/duplicata, inclua todas as parcelas.`
             }
           ]
         }]
@@ -14799,39 +14807,53 @@ async function lerDocumentoIA(input) {
     const dados = JSON.parse(clean);
 
     // Preenche campos automaticamente
-    if (dados.nome) {
-      const nomeInput = document.getElementById('ct-nome');
-      if (nomeInput && !nomeInput.value) nomeInput.value = dados.nome;
+    // Preenche campos automaticamente (só se estiverem vazios)
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el && !el.value && val) el.value = val; };
+    setVal('ct-nome', dados.nome);
+    setVal('ct-cnpj', dados.cnpj);
+    setVal('ct-numero-nf', dados.numero_doc);
+    setVal('ct-pix', dados.chave_pix);
+
+    // Valor e vencimento
+    if (dados.valor_total) setVal('ct-valor', dados.valor_total);
+    if (dados.vencimento) setVal('ct-vencimento', dados.vencimento);
+
+    // Parcelas
+    if (dados.parcelas && dados.parcelas.length > 1) {
+      // Tem parcelas — preenche número de parcelas e configura parcelamento
+      setVal('ct-parcelas', dados.parcelas.length);
+      const recEl = document.getElementById('ct-recorrente');
+      if (recEl) recEl.value = 'parcelado';
+      // Guarda parcelas para uso no salvarConta
+      window._contaParcelas = dados.parcelas.map(p => ({
+        vencimento: p.vencimento,
+        valor: p.valor,
+        numero_doc: dados.numero_doc ? `${dados.numero_doc}-${p.numero}` : null
+      }));
+      statusTxt.textContent = `✅ ${dados.parcelas.length} parcelas detectadas! Total: ${fmtBRL(dados.valor_total)}. Confira e ajuste.`;
+    } else {
+      window._contaParcelas = [];
+      statusTxt.textContent = '✅ Dados preenchidos automaticamente! Confira e ajuste se necessário.';
     }
-    if (dados.cnpj) {
-      const cnpjInput = document.getElementById('ct-cnpj');
-      if (cnpjInput && !cnpjInput.value) cnpjInput.value = dados.cnpj;
+
+    // Observação com detalhes da NF
+    const obsEl = document.getElementById('ct-obs');
+    if (obsEl && !obsEl.value) {
+      let obs = '';
+      if (dados.numero_doc) obs += `NF/Doc: ${dados.numero_doc} | `;
+      if (dados.observacao) obs += dados.observacao;
+      obsEl.value = obs.replace(/\s*\|\s*$/, '');
     }
-    if (dados.valor) {
-      const valInput = document.getElementById('ct-valor');
-      if (valInput && !valInput.value) valInput.value = dados.valor;
-    }
-    if (dados.vencimento) {
-      const vencInput = document.getElementById('ct-vencimento');
-      if (vencInput && !vencInput.value) vencInput.value = dados.vencimento;
-    }
-    if (dados.numero_doc) {
-      const nfInput = document.getElementById('ct-numero-nf');
-      if (nfInput && !nfInput.value) nfInput.value = dados.numero_doc;
-    }
-    if (dados.chave_pix) {
-      const pixInput = document.getElementById('ct-pix');
-      if (pixInput && !pixInput.value) pixInput.value = dados.chave_pix;
-    }
-    if (dados.observacao) {
-      const obsInput = document.getElementById('ct-obs');
-      if (obsInput && !obsInput.value) obsInput.value = dados.observacao;
+
+    // Palavra-chave automática
+    const pkEl = document.getElementById('ct-palavra-chave');
+    if (pkEl && !pkEl.value && dados.nome) {
+      pkEl.value = dados.nome.split(' ')[0].toUpperCase();
     }
 
     statusDiv.style.background = 'var(--green-dim)';
     statusDiv.style.color = 'var(--green)';
     statusDiv.style.borderColor = 'var(--green)';
-    statusTxt.textContent = '✅ Dados preenchidos automaticamente! Confira e ajuste se necessário.';
 
   } catch(e) {
     statusDiv.style.background = 'var(--red-dim)';
@@ -14840,6 +14862,35 @@ async function lerDocumentoIA(input) {
     statusTxt.textContent = '⚠️ Não foi possível ler automaticamente. Preencha manualmente.';
     console.error('Erro leitura IA:', e);
   }
+}
+
+// ─── FUNÇÕES DE PASTA ────────────────────────────────
+async function editarPasta(id, nomeAtual) {
+  const novo = prompt('Novo nome da pasta:', nomeAtual);
+  if (!novo || novo === nomeAtual) return;
+  const { error } = await sb.from('documentos_fiscais').update({ fornecedor: novo }).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Pasta renomeada!', 'success');
+  loadDocumentos();
+}
+
+async function verInfoPasta(id, nome) {
+  const { data: docs } = await sb.from('documentos_fiscais')
+    .select('*').eq('conta_pagar_id', id).neq('tipo','pasta');
+
+  const total = (docs||[]).reduce((s,d) => s + Number(d.valor||0), 0);
+  const qtd = (docs||[]).length;
+
+  const info = [
+    `📁 Pasta: ${nome}`,
+    `📄 Documentos: ${qtd}`,
+    `💰 Valor total: ${fmtBRL(total)}`,
+    ``,
+    `Documentos:`,
+    ...(docs||[]).map(d => `  • ${d.fornecedor||d.numero_nf||'arquivo'} — ${fmtBRL(d.valor||0)} — ${d.data_emissao||'—'}`)
+  ].join('\n');
+
+  alert(info);
 }
 
 // ─── INIT ────────────────────────────────────────────
