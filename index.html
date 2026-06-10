@@ -3640,8 +3640,30 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <input type="text" id="ct-palavra-chave" placeholder="Ex: ALUGUEL, CEMIG">
       </div>
       <div class="form-group">
-        <label>Anexar documento (opcional)</label>
-        <input type="file" id="ct-arquivo" accept=".pdf,.jpg,.jpeg,.png" style="padding:6px">
+        <label>📎 Anexar Boleto / NF / Foto</label>
+        <div style="border:2px dashed var(--border);border-radius:10px;padding:12px;background:var(--bg3);transition:all .2s" id="ct-arquivo-drop"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+          ondragleave="this.style.borderColor='var(--border)'"
+          ondrop="handleFileDrop(event)">
+          <input type="file" id="ct-arquivo" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="lerDocumentoIA(this)">
+          <div style="text-align:center;cursor:pointer" onclick="document.getElementById('ct-arquivo').click()">
+            <div style="font-size:24px;margin-bottom:4px">📄</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text)">Clique ou arraste o arquivo aqui</div>
+            <div style="font-size:11px;color:var(--text2)">PDF, JPG, PNG — boleto, nota fiscal ou foto</div>
+          </div>
+          <div id="ct-arquivo-preview" style="display:none;margin-top:10px;padding:8px;background:var(--bg2);border-radius:8px;display:none;align-items:center;gap:8px">
+            <span style="font-size:18px" id="ct-arquivo-icone">📄</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="ct-arquivo-nome"></div>
+              <div style="font-size:11px;color:var(--text2)" id="ct-arquivo-tamanho"></div>
+            </div>
+            <button onclick="limparArquivo()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">✕</button>
+          </div>
+        </div>
+        <!-- Status leitura IA -->
+        <div id="ct-ia-status" style="display:none;margin-top:8px;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;background:var(--green-dim);color:var(--green);border:1px solid var(--green)">
+          <span id="ct-ia-status-txt">🤖 Lendo documento...</span>
+        </div>
       </div>
     </div>
 
@@ -3649,8 +3671,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <label>Observação</label>
       <textarea id="ct-obs" rows="2" style="width:100%;padding:8px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;resize:vertical" placeholder="Observações..."></textarea>
     </div>
-
-
 
     <div class="form-group" style="margin-bottom:12px">
       <label>📁 Arquivar na pasta</label>
@@ -12107,17 +12127,11 @@ async function salvarConta() {
   }
   document.getElementById('ct-numero-nf').style.borderColor = '';
 
-  // Pasta obrigatória se tiver arquivo anexado
+  // Pasta obrigatória SOMENTE se tiver arquivo anexado
   const fileInputCheck = document.getElementById('ct-arquivo');
   const pastaCheck = document.getElementById('ct-pasta-sel')?.value;
   if (fileInputCheck?.files[0] && !pastaCheck) {
     showToast('Selecione uma pasta para arquivar o documento','error');
-    document.getElementById('ct-pasta-sel').style.borderColor = 'var(--red)';
-    return;
-  }
-  // Pasta obrigatória em geral
-  if (!pastaCheck) {
-    showToast('Selecione uma pasta para arquivar a conta','error');
     document.getElementById('ct-pasta-sel').style.borderColor = 'var(--red)';
     return;
   }
@@ -14695,6 +14709,137 @@ async function verHistoricoConta(id, tipo) {
   `;
 
   document.getElementById('modal-historico-conta').style.display = 'flex';
+}
+
+// ─── LEITURA DE BOLETO/NF VIA IA ────────────────────
+function handleFileDrop(event) {
+  event.preventDefault();
+  document.getElementById('ct-arquivo-drop').style.borderColor = 'var(--border)';
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+  const input = document.getElementById('ct-arquivo');
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  lerDocumentoIA(input);
+}
+
+function limparArquivo() {
+  document.getElementById('ct-arquivo').value = '';
+  document.getElementById('ct-arquivo-preview').style.display = 'none';
+  document.getElementById('ct-ia-status').style.display = 'none';
+}
+
+async function lerDocumentoIA(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Mostra preview do arquivo
+  const prev = document.getElementById('ct-arquivo-preview');
+  const iconeEl = document.getElementById('ct-arquivo-icone');
+  const nomeEl = document.getElementById('ct-arquivo-nome');
+  const tamEl = document.getElementById('ct-arquivo-tamanho');
+  const ext = file.name.split('.').pop().toLowerCase();
+  iconeEl.textContent = ext === 'pdf' ? '📄' : '🖼️';
+  nomeEl.textContent = file.name;
+  tamEl.textContent = (file.size / 1024).toFixed(0) + ' KB';
+  prev.style.display = 'flex';
+
+  // Status
+  const statusDiv = document.getElementById('ct-ia-status');
+  const statusTxt = document.getElementById('ct-ia-status-txt');
+  statusDiv.style.display = 'block';
+  statusDiv.style.background = 'var(--amber-dim)';
+  statusDiv.style.color = 'var(--amber)';
+  statusDiv.style.borderColor = 'var(--amber)';
+  statusTxt.textContent = '🤖 Lendo documento com IA...';
+
+  try {
+    // Converte arquivo para base64
+    const base64 = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result.split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+
+    const mediaType = ext === 'pdf' ? 'application/pdf'
+      : ext === 'png' ? 'image/png'
+      : 'image/jpeg';
+
+    // Chama Claude API
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: mediaType === 'application/pdf' ? 'document' : 'image',
+              source: { type: 'base64', media_type: mediaType, data: base64 }
+            },
+            {
+              type: 'text',
+              text: `Extraia os dados deste boleto/nota fiscal e responda SOMENTE em JSON válido, sem texto adicional, sem markdown:
+{"nome":"nome do beneficiário/fornecedor","cnpj":"CNPJ do beneficiário","valor":0.00,"vencimento":"YYYY-MM-DD","numero_doc":"número do documento/boleto","chave_pix":"linha digitável ou chave pix se houver","observacao":"qualquer info relevante"}`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const txt = data.content?.find(c => c.type === 'text')?.text || '';
+
+    // Parse JSON
+    const clean = txt.replace(/```json|```/g,'').trim();
+    const dados = JSON.parse(clean);
+
+    // Preenche campos automaticamente
+    if (dados.nome) {
+      const nomeInput = document.getElementById('ct-nome');
+      if (nomeInput && !nomeInput.value) nomeInput.value = dados.nome;
+    }
+    if (dados.cnpj) {
+      const cnpjInput = document.getElementById('ct-cnpj');
+      if (cnpjInput && !cnpjInput.value) cnpjInput.value = dados.cnpj;
+    }
+    if (dados.valor) {
+      const valInput = document.getElementById('ct-valor');
+      if (valInput && !valInput.value) valInput.value = dados.valor;
+    }
+    if (dados.vencimento) {
+      const vencInput = document.getElementById('ct-vencimento');
+      if (vencInput && !vencInput.value) vencInput.value = dados.vencimento;
+    }
+    if (dados.numero_doc) {
+      const nfInput = document.getElementById('ct-numero-nf');
+      if (nfInput && !nfInput.value) nfInput.value = dados.numero_doc;
+    }
+    if (dados.chave_pix) {
+      const pixInput = document.getElementById('ct-pix');
+      if (pixInput && !pixInput.value) pixInput.value = dados.chave_pix;
+    }
+    if (dados.observacao) {
+      const obsInput = document.getElementById('ct-obs');
+      if (obsInput && !obsInput.value) obsInput.value = dados.observacao;
+    }
+
+    statusDiv.style.background = 'var(--green-dim)';
+    statusDiv.style.color = 'var(--green)';
+    statusDiv.style.borderColor = 'var(--green)';
+    statusTxt.textContent = '✅ Dados preenchidos automaticamente! Confira e ajuste se necessário.';
+
+  } catch(e) {
+    statusDiv.style.background = 'var(--red-dim)';
+    statusDiv.style.color = 'var(--red)';
+    statusDiv.style.borderColor = 'var(--red)';
+    statusTxt.textContent = '⚠️ Não foi possível ler automaticamente. Preencha manualmente.';
+    console.error('Erro leitura IA:', e);
+  }
 }
 
 // ─── INIT ────────────────────────────────────────────
