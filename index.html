@@ -793,6 +793,149 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
   </div>
 </div>
 
+<!-- PAINEL MASTER (admin only) -->
+<div id="painel-master" style="display:none;min-height:100vh;background:#0f172a;font-family:'Outfit',sans-serif">
+
+  <!-- SIDEBAR MASTER -->
+  <div style="position:fixed;top:0;left:0;width:220px;height:100vh;background:#1e293b;display:flex;flex-direction:column;z-index:100;border-right:1px solid rgba(255,255,255,.08)">
+    <!-- Logo -->
+    <div style="padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:32px;height:32px;background:linear-gradient(135deg,#2a9d5c,#059669);border-radius:8px;display:flex;align-items:center;justify-content:center">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:800;font-size:13px;color:#fff">VN Master</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">Painel de Controle</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav style="flex:1;padding:12px 8px;overflow-y:auto">
+      <div class="master-nav-item active" onclick="masterPage('dashboard')" id="mnav-dashboard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="master-nav-item" onclick="masterPage('empresas')" id="mnav-empresas">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        Empresas
+      </div>
+      <div class="master-nav-item" onclick="masterPage('usuarios')" id="mnav-usuarios">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Usuários
+      </div>
+      <div class="master-nav-item" onclick="masterPage('base')" id="mnav-base">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        Sistema Base
+      </div>
+    </nav>
+
+    <!-- User + Sair -->
+    <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:4px" id="master-user-email"></div>
+      <button onclick="doLogout()" style="width:100%;padding:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif">
+        Sair
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO MASTER -->
+  <div style="margin-left:220px;padding:28px;min-height:100vh">
+
+    <!-- PAGE: DASHBOARD -->
+    <div id="mpage-dashboard">
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Dashboard Administrativo</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px">Visão geral do sistema</div>
+
+      <!-- Cards métricas -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;margin-bottom:8px">Total Empresas</div>
+          <div style="font-size:32px;font-weight:800;color:#fff" id="m-total-emp">—</div>
+        </div>
+        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;margin-bottom:8px">Ativas</div>
+          <div style="font-size:32px;font-weight:800;color:#22c55e" id="m-ativas">—</div>
+        </div>
+        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;margin-bottom:8px">Inativas</div>
+          <div style="font-size:32px;font-weight:800;color:#ef4444" id="m-inativas">—</div>
+        </div>
+        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;margin-bottom:8px">Total Usuários</div>
+          <div style="font-size:32px;font-weight:800;color:#fff" id="m-total-usr">—</div>
+        </div>
+      </div>
+
+      <!-- Lista empresas rápida -->
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;font-size:14px;color:#fff">Empresas Cadastradas</div>
+          <button onclick="masterPage('empresas')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:12px;padding:5px 12px;cursor:pointer;font-family:'Outfit',sans-serif">Ver todas →</button>
+        </div>
+        <div id="master-emp-lista" style="padding:8px"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: EMPRESAS -->
+    <div id="mpage-empresas" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Empresas</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.4)">Gerencie todas as empresas do sistema</div>
+        </div>
+      </div>
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+        <div id="master-emp-table" style="overflow-x:auto"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: USUÁRIOS -->
+    <div id="mpage-usuarios" style="display:none">
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Usuários</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px">Todos os usuários do sistema</div>
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+        <div id="master-usr-table" style="overflow-x:auto"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: SISTEMA BASE -->
+    <div id="mpage-base" style="display:none">
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Sistema Base</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px">Configurações que replicam para todas as empresas</div>
+
+      <!-- Categorias globais -->
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06);margin-bottom:14px">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;font-size:14px;color:#fff">Categorias Padrão</div>
+          <button onclick="adicionarCategoriaBase()" style="background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:12px;padding:6px 14px;cursor:pointer;font-weight:600;font-family:'Outfit',sans-serif">+ Adicionar</button>
+        </div>
+        <div id="master-cats" style="padding:14px"></div>
+      </div>
+
+      <!-- Plano de contas global -->
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+        <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)">
+          <div style="font-weight:700;font-size:14px;color:#fff">Plano de Contas Base</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">Replicado automaticamente para novas empresas</div>
+        </div>
+        <div id="master-plano" style="padding:14px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.master-nav-item {
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+  color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;margin-bottom:2px;transition:all .15s;
+}
+.master-nav-item:hover { background:rgba(255,255,255,.06);color:rgba(255,255,255,.8); }
+.master-nav-item.active { background:rgba(42,157,92,.2);color:#4ade80;font-weight:600; }
+</style>
+
 <!-- APP -->
 <div id="app">
   <div class="layout">
@@ -3847,6 +3990,7 @@ async function doLogout() {
   currentUser = null;
   sessionStorage.removeItem('vn_user_id');
   document.getElementById('app').style.display = 'none';
+  document.getElementById('painel-master').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
 
@@ -3863,10 +4007,12 @@ async function checkSession() {
 
 // Inicia sessão: carrega empresas e mostra app
 async function iniciarSessaoMultiEmpresa() {
-  // Carrega empresas disponíveis para este usuário
+  // ADMIN → vai para Painel Master
   if (_vnUser.perfil === 'admin') {
-    const { data } = await sb.from('empresas').select('*').eq('ativo', true).order('nome');
+    const { data } = await sb.from('empresas').select('*').order('nome');
     _todasEmpresas = data || [];
+    await showPainelMaster();
+    return;
   } else {
     const ids = _vnUser.empresa_ids || [];
     if (ids.length) {
@@ -13131,6 +13277,298 @@ function donutOpts(labels, data, cores, fmtFn) {
       }
     }
   };
+}
+
+// ─── PAINEL MASTER ───────────────────────────────────────
+
+async function showPainelMaster() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('painel-master').style.display = 'block';
+
+  const el = id => document.getElementById(id);
+  if (el('master-user-email')) el('master-user-email').textContent = _vnUser?.email || '';
+
+  await masterPage('dashboard');
+}
+
+async function masterPage(page) {
+  // Esconde todas as páginas
+  ['dashboard','empresas','usuarios','base'].forEach(p => {
+    const el = document.getElementById('mpage-'+p);
+    if (el) el.style.display = 'none';
+    const nav = document.getElementById('mnav-'+p);
+    if (nav) nav.classList.remove('active');
+  });
+
+  // Mostra a página selecionada
+  const el = document.getElementById('mpage-'+page);
+  if (el) el.style.display = 'block';
+  const nav = document.getElementById('mnav-'+page);
+  if (nav) nav.classList.add('active');
+
+  if (page === 'dashboard') await masterLoadDashboard();
+  if (page === 'empresas')  await masterLoadEmpresas();
+  if (page === 'usuarios')  await masterLoadUsuarios();
+  if (page === 'base')      await masterLoadBase();
+}
+
+async function masterLoadDashboard() {
+  const { data: emps } = await sb.from('empresas').select('*').order('nome');
+  const { data: usrs } = await sb.from('vn_usuarios').select('id,ativo');
+
+  const ativas   = (emps||[]).filter(e => e.ativo).length;
+  const inativas = (emps||[]).filter(e => !e.ativo).length;
+
+  const el = id => document.getElementById(id);
+  if (el('m-total-emp')) el('m-total-emp').textContent = (emps||[]).length;
+  if (el('m-ativas'))    el('m-ativas').textContent    = ativas;
+  if (el('m-inativas'))  el('m-inativas').textContent  = inativas;
+  if (el('m-total-usr')) el('m-total-usr').textContent = (usrs||[]).length;
+
+  // Lista rápida
+  const lista = el('master-emp-lista');
+  if (lista) {
+    lista.innerHTML = (emps||[]).map(e => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-bottom:2px;background:rgba(255,255,255,.03)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:8px;background:rgba(42,157,92,.2);color:#4ade80;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">
+            ${(e.nome||'?').substring(0,2).toUpperCase()}
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#fff">${e.nome}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4)">${e.cnpj||'—'} · ID: ${(e.id||'').replace(/-/g,'').substring(0,8).toUpperCase()}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${e.ativo?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};color:${e.ativo?'#4ade80':'#f87171'}">
+            ${e.ativo?'Ativa':'Inativa'}
+          </span>
+          <button onclick="masterAcessarEmpresa('${e.id}')"
+            style="padding:4px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">
+            Acessar →
+          </button>
+        </div>
+      </div>`
+    ).join('');
+  }
+}
+
+async function masterLoadEmpresas() {
+  const { data: emps } = await sb.from('empresas').select('*').order('nome');
+  const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:10px 14px;color:rgba(255,255,255,.4);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)';
+  const el = document.getElementById('master-emp-table');
+  if (!el) return;
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="${TH}">Empresa</th>
+      <th style="${TH}">CNPJ</th>
+      <th style="${TH}">ID</th>
+      <th style="${TH}">Status</th>
+      <th style="${TH}">Ações</th>
+    </tr></thead>
+    <tbody>
+      ${(emps||[]).map(e => `
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+          <td style="padding:12px 14px">
+            <div style="font-weight:600;color:#fff">${e.nome}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4)">${e.email||''}</div>
+          </td>
+          <td style="padding:12px 14px;color:rgba(255,255,255,.5)">${e.cnpj||'—'}</td>
+          <td style="padding:12px 14px;font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.4)">
+            ${(e.id||'').replace(/-/g,'').substring(0,8).toUpperCase()}
+          </td>
+          <td style="padding:12px 14px">
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${e.ativo?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};color:${e.ativo?'#4ade80':'#f87171'}">
+              ${e.ativo?'Ativa':'Inativa'}
+            </span>
+          </td>
+          <td style="padding:12px 14px">
+            <div style="display:flex;gap:6px">
+              <button onclick="masterAcessarEmpresa('${e.id}')"
+                style="padding:4px 10px;background:rgba(42,157,92,.2);border:none;border-radius:6px;color:#4ade80;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
+                Acessar
+              </button>
+              <button onclick="masterAlternarEmpresa('${e.id}',${!e.ativo})"
+                style="padding:4px 10px;background:${e.ativo?'rgba(239,68,68,.15)':'rgba(34,197,94,.15)'};border:none;border-radius:6px;color:${e.ativo?'#f87171':'#4ade80'};font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
+                ${e.ativo?'Desativar':'Ativar'}
+              </button>
+              <button onclick="masterExcluirEmpresa('${e.id}','${e.nome.replace(/'/g,"\'")}')"
+                style="padding:4px 10px;background:rgba(239,68,68,.1);border:none;border-radius:6px;color:#f87171;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
+                Excluir
+              </button>
+            </div>
+          </td>
+        </tr>`
+      ).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function masterLoadUsuarios() {
+  const { data: usrs } = await sb.from('vn_usuarios').select('*').order('nome');
+  const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:10px 14px;color:rgba(255,255,255,.4);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)';
+  const el = document.getElementById('master-usr-table');
+  if (!el) return;
+  const perfilCor = {admin:'#a78bfa',operador:'#60a5fa',leitor:'#94a3b8'};
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="${TH}">Usuário</th>
+      <th style="${TH}">Perfil</th>
+      <th style="${TH}">Empresas</th>
+      <th style="${TH}">Status</th>
+      <th style="${TH}">Ações</th>
+    </tr></thead>
+    <tbody>
+      ${(usrs||[]).map(u => `
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+          <td style="padding:12px 14px">
+            <div style="font-weight:600;color:#fff">${u.nome||'—'}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4)">${u.email}</div>
+          </td>
+          <td style="padding:12px 14px">
+            <span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:rgba(255,255,255,.06);color:${perfilCor[u.perfil]||'#94a3b8'}">
+              ${u.perfil}
+            </span>
+          </td>
+          <td style="padding:12px 14px;color:rgba(255,255,255,.5);font-size:12px">
+            ${u.perfil==='admin'?'Todas':(u.empresa_ids||[]).length+' empresa(s)'}
+          </td>
+          <td style="padding:12px 14px">
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${u.ativo?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};color:${u.ativo?'#4ade80':'#f87171'}">
+              ${u.ativo?'Ativo':'Inativo'}
+            </span>
+          </td>
+          <td style="padding:12px 14px">
+            <div style="display:flex;gap:6px">
+              <button onclick="masterResetSenha('${u.id}','${u.nome||u.email}')"
+                style="padding:4px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">
+                Reset senha
+              </button>
+              <button onclick="masterAlternarUsuario('${u.id}',${!u.ativo})"
+                style="padding:4px 10px;background:${u.ativo?'rgba(239,68,68,.1)':'rgba(34,197,94,.15)'};border:none;border-radius:6px;color:${u.ativo?'#f87171':'#4ade80'};font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">
+                ${u.ativo?'Desativar':'Ativar'}
+              </button>
+            </div>
+          </td>
+        </tr>`
+      ).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function masterLoadBase() {
+  // Categorias base (empresa_id NULL = base global)
+  const { data: cats } = await sb.from('pdv_categorias').select('*').is('empresa_id', null).order('nome');
+  const el = document.getElementById('master-cats');
+  if (el) {
+    if (!(cats||[]).length) {
+      el.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:13px;padding:8px">Nenhuma categoria base. Clique em + Adicionar para criar.</div>';
+    } else {
+      el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px">${
+        cats.map(c => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px">
+            <span style="font-size:12px;color:#fff">${c.nome}</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.3)">${c.tipo}</span>
+            <button onclick="masterExcluirCategoria('${c.id}')" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:12px">✕</button>
+          </div>`
+        ).join('')
+      }</div>`;
+    }
+  }
+
+  // Plano de contas base
+  const { data: plano } = await sb.from('plano_contas').select('*').is('empresa_id', null).order('grupo');
+  const elP = document.getElementById('master-plano');
+  if (elP) {
+    if (!(plano||[]).length) {
+      elP.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:13px;padding:8px">Plano de contas base vazio.</div>';
+    } else {
+      const grupos = [...new Set(plano.map(p=>p.grupo).filter(Boolean))];
+      elP.innerHTML = grupos.map(g => `
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:700;margin-bottom:6px">${g}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${
+            plano.filter(p=>p.grupo===g).map(p=>`
+              <span style="padding:4px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:6px;font-size:12px;color:${p.tipo==='ENTRADA'?'#4ade80':'#f87171'}">${p.nome}</span>
+            `).join('')
+          }</div>
+        </div>`
+      ).join('');
+    }
+  }
+}
+
+// Acessa uma empresa como admin (entra no sistema dela)
+async function masterAcessarEmpresa(empresaId) {
+  const emp = _todasEmpresas.find(e => e.id === empresaId);
+  if (!emp) return;
+  _empresaAtual = emp;
+  document.getElementById('painel-master').style.display = 'none';
+  await showApp();
+}
+
+async function masterAlternarEmpresa(id, ativo) {
+  await sb.from('empresas').update({ativo}).eq('id', id);
+  await masterLoadEmpresas();
+  await masterLoadDashboard();
+  // Atualiza lista
+  const { data } = await sb.from('empresas').select('*').order('nome');
+  _todasEmpresas = data || [];
+}
+
+async function masterAlternarUsuario(id, ativo) {
+  await sb.from('vn_usuarios').update({ativo}).eq('id', id);
+  await masterLoadUsuarios();
+}
+
+async function masterResetSenha(id, nome) {
+  const novaSenha = prompt(`Nova senha para ${nome}:`);
+  if (!novaSenha?.trim()) return;
+  await sb.from('vn_usuarios').update({senha_hash: novaSenha.trim()}).eq('id', id);
+  alert('Senha alterada com sucesso!');
+}
+
+async function masterExcluirEmpresa(id, nome) {
+  if (!confirm(`Excluir "${nome}" e todos os dados? Esta ação não pode ser desfeita!`)) return;
+  const confirmNome = prompt(`Digite o nome da empresa para confirmar:`);
+  if (confirmNome !== nome) { alert('Nome incorreto. Cancelado.'); return; }
+  const tabelas = ['lancamentos','bancos_cadastrados','plano_contas','grupos_plano','contas_pagar','contas_receber','pdv_caixas','pdv_itens','pdv_categorias','rel_dados_brutos','rel_servicos','rel_lucratividade','rel_tipos','profissionais','metas_profissionais','metas_financeiras','fornecedores','documentos_fiscais','projecoes_dre'];
+  for (const t of tabelas) await sb.from(t).delete().eq('empresa_id', id);
+  const { data: usrs } = await sb.from('vn_usuarios').select('id,empresa_ids,perfil').neq('perfil','admin');
+  for (const u of (usrs||[])) {
+    if ((u.empresa_ids||[]).includes(id)) {
+      const ids = (u.empresa_ids||[]).filter(e=>e!==id);
+      if (!ids.length) await sb.from('vn_usuarios').delete().eq('id',u.id);
+      else await sb.from('vn_usuarios').update({empresa_ids:ids}).eq('id',u.id);
+    }
+  }
+  await sb.from('empresas').delete().eq('id', id);
+  const { data } = await sb.from('empresas').select('*').order('nome');
+  _todasEmpresas = data || [];
+  await masterLoadEmpresas();
+  await masterLoadDashboard();
+}
+
+async function adicionarCategoriaBase() {
+  const nome = prompt('Nome da categoria:');
+  if (!nome?.trim()) return;
+  const tipo = prompt('Tipo (ENTRADA ou SAIDA):')?.toUpperCase() || 'ENTRADA';
+  // empresa_id NULL = base global
+  await sb.from('pdv_categorias').insert({nome: nome.trim(), tipo, empresa_id: null});
+  // Replica para todas as empresas ativas
+  const { data: emps } = await sb.from('empresas').select('id').eq('ativo', true);
+  for (const e of (emps||[])) {
+    await sb.from('pdv_categorias').insert({nome: nome.trim(), tipo, empresa_id: e.id});
+  }
+  alert(`Categoria "${nome}" criada e replicada para ${(emps||[]).length} empresa(s)!`);
+  await masterLoadBase();
+}
+
+async function masterExcluirCategoria(id) {
+  if (!confirm('Excluir esta categoria da base global?')) return;
+  await sb.from('pdv_categorias').delete().eq('id', id);
+  await masterLoadBase();
 }
 
 // ─── ESTRUTURA BASE PARA NOVA EMPRESA ────────────────
