@@ -933,10 +933,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <option value="2026-02">Fevereiro 2026</option>
             <option value="2026-01">Janeiro 2026</option>
           </select>
-          <!-- Nome da empresa + ID fixo no topbar -->
-          <div id="topbar-empresa-tag" style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px">
-            <span style="font-size:10px;color:rgba(255,255,255,.5);font-weight:500" id="topbar-empresa-id"></span>
-            <span id="topbar-empresa-nome" style="font-size:12px;font-weight:700;color:#fff">—</span>
+          <!-- Nome da empresa + ID fixo no topbar — sempre visível -->
+          <div id="topbar-empresa-tag" style="display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;min-width:160px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            <div style="display:flex;flex-direction:column;line-height:1.2">
+              <span id="topbar-empresa-nome" style="font-size:12px;font-weight:700;color:#fff">—</span>
+              <span id="topbar-empresa-id" style="font-size:9px;color:rgba(255,255,255,.5)"></span>
+            </div>
           </div>
           <!-- Botão trocar empresa (visível para admin/operador com múltiplas empresas) -->
           <button id="btn-trocar-empresa" onclick="abrirSeletorEmpresas()"
@@ -5452,8 +5455,7 @@ async function loadDashboard() {
   const CORES_BAR = ['#2a9d5c','#34d399','#059669','#10b981','#6ee7b7','#a7f3d0'];
 
   // ── 1. Lançamentos ────────────────────────────────────
-  const { data: lancs } = await sb.from('lancamentos')
-    .select('*').gte('data_lancamento', ini).lte('data_lancamento', fim);
+  const { data: lancs } = await qE('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim);
 
   const entradas = (lancs||[]).filter(l=>l.tipo==='ENTRADA'&&l.descricao!=='Saldo Inicial').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
   const saidas   = (lancs||[]).filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
@@ -5667,8 +5669,7 @@ async function loadDashboard() {
     const hoje2 = new Date();
     const hojeStr2 = hoje2.toISOString().substring(0,10);
     // A Vencer: contas do período ini–fim com status pendente/atrasado
-    const { data: cpAVencer } = await sb.from('contas_pagar')
-      .select('valor,status,data_vencimento')
+    const { data: cpAVencer } = await qE('contas_pagar').select('valor,status,data_vencimento')
       .gte('data_vencimento', ini).lte('data_vencimento', fim)
       .in('status', ['a pagar','pendente','atrasado','enviado']);
     // Total a Pagar: contas do mês, pendentes ou atrasadas (excluindo pagas)
@@ -5687,8 +5688,7 @@ async function loadDashboard() {
   // ── Saldo em Caixa: saldo do último dia com movimento no período ──
   try {
     // Busca o último caixa do período (data mais recente)
-    const { data: ultimoCx } = await sb.from('pdv_caixas')
-      .select('id,data_caixa')
+    const { data: ultimoCx } = await qE('pdv_caixas').select('id,data_caixa')
       .gte('data_caixa', ini).lte('data_caixa', fim)
       .order('data_caixa', { ascending: false })
       .limit(1);
@@ -6134,8 +6134,7 @@ async function loadDashboard() {
   if(el('dash-maior-fat-d')) el('dash-maior-fat-d').textContent = topDia ? ('dia ' + topDia[0] + ' · ' + mesLabel) : 'sem dados';
 
   // ── 13. Últimos lançamentos ───────────────────────────
-  const { data: recentes } = await sb.from('lancamentos')
-    .select('*').order('data_lancamento',{ascending:false}).limit(6);
+  const { data: recentes } = await qE('lancamentos').select('*').order('data_lancamento',{ascending:false}).limit(6);
   renderLancTable(recentes||[], 'dash-lancamentos', true);
 }
 
@@ -6470,8 +6469,7 @@ async function loadLancamentos() {
 
   // ── SALDOS ──────────────────────────────────────────────
   // Busca TODOS os lançamentos com categoria para cálculo de saldo real
-  const { data: todosLancs } = await sb.from('lancamentos')
-    .select('entrada,saida,valor,tipo,banco_id,banco_nome,categoria,categoria_dfc');
+  const { data: todosLancs } = await qE('lancamentos').select('entrada,saida,valor,tipo,banco_id,banco_nome,categoria,categoria_dfc');
   const todos = todosLancs || [];
 
   // Valor líquido de um lançamento
@@ -9662,8 +9660,7 @@ async function salvarBancoInline(id, rowId) {
   // Atualiza o lançamento de saldo inicial correspondente
   if (saldo > 0 && dataSaldo) {
     const descricao = `Saldo inicial — ${nome}`;
-    const { data: lancs } = await sb.from('lancamentos')
-      .select('id').eq('banco_id', id).like('extrato', 'Saldo inicial%');
+    const { data: lancs } = await qE('lancamentos').select('id').eq('banco_id', id).like('extrato', 'Saldo inicial%');
     if (lancs?.length) {
       await sb.from('lancamentos').update({
         entrada: saldo, valor: saldo,
@@ -10141,8 +10138,7 @@ async function loadServicos() {
   let rows = [];
   let from = 0;
   while (true) {
-    const { data, error } = await sb.from('rel_servicos')
-      .select('profissional,data_comanda,dia_semana,numero_comanda,servico,categoria,cliente,cpf,telefone,celular,qtd,valor,desconto,total,pacote')
+    const { data, error } = await qE('rel_servicos').select('profissional,data_comanda,dia_semana,numero_comanda,servico,categoria,cliente,cpf,telefone,celular,qtd,valor,desconto,total,pacote')
       .order('data_comanda', { ascending: false })
       .range(from, from + 999);
     if (error) { showToast('Erro: ' + error.message, 'error'); return; }
@@ -13212,12 +13208,15 @@ async function criarEstruturaBase(empresaId) {
 // qE: wrapper que filtra SELECT por empresa_id automaticamente
 function qE(tabela) {
   const q = sb.from(tabela);
-  // Retorna proxy que injeta .eq('empresa_id') antes do primeiro .then/.execute
   return {
     select: (...args) => {
       const base = q.select(...args);
-      if (_empresaAtual?.id) return base.eq('empresa_id', _empresaAtual.id);
-      return base;
+      if (_empresaAtual?.id) {
+        // Filtra estritamente pela empresa atual
+        return base.eq('empresa_id', _empresaAtual.id);
+      }
+      // Sem empresa definida: não retorna nada (segurança)
+      return base.eq('empresa_id', '00000000-0000-0000-0000-000000000000');
     }
   };
 }
