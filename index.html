@@ -7752,17 +7752,25 @@ async function loadContasPagar() {
   } else {
     q = q.gte('data_vencimento', `${ano}-01-01`).lte('data_vencimento', `${ano}-12-31`);
   }
-  if (status) q = q.eq('status', status);
-
+  // Não filtra status no Supabase — filtra no JS para ser case-insensitive
   const { data } = await q;
-  const contas = data || [];
+  let contas = data || [];
+
+  // Filtro de status case-insensitive no JS
+  const normS = s => (s||'').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if (status) {
+    const normStatus = normS(status);
+    contas = contas.filter(c => normS(c.status) === normStatus ||
+      (normStatus === 'pendente' && ['a pagar','pendente','nao pago','nao recebido'].includes(normS(c.status)))
+    );
+  }
 
   const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
-  const aPagar    = contas.filter(c => c.status === 'a pagar' || c.status === 'pendente');
-  const enviados  = contas.filter(c => c.status === 'enviado');
-  const pagos     = contas.filter(c => c.status === 'pago');
-  const naoPago   = contas.filter(c => c.status === 'não pago');
-  const atrasados = contas.filter(c => c.status === 'atrasado' || ((c.status === 'pendente' || c.status === 'a pagar') && c.data_vencimento < hoje));
+  const aPagar    = contas.filter(c => ['a pagar','pendente','nao pago','a pagar'].includes(normS(c.status)));
+  const enviados  = contas.filter(c => normS(c.status) === 'enviado');
+  const pagos     = contas.filter(c => ['pago','pago'].includes(normS(c.status)));
+  const naoPago   = contas.filter(c => ['não pago','nao pago'].includes(normS(c.status)));
+  const atrasados = contas.filter(c => normS(c.status) === 'atrasado' || (['pendente','a pagar','não pago','nao pago'].includes(normS(c.status)) && c.data_vencimento < hoje));
 
   const _s = (id, val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
   _s('cp-total', fmtBRL(soma(aPagar))); _s('cp-enviado', fmtBRL(soma(enviados)));
