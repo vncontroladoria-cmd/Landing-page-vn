@@ -6088,7 +6088,7 @@ async function loadLancamentos() {
     .select('entrada,saida,valor,tipo,banco_id,banco_nome,categoria,categoria_dfc');
   const todos = todosLancs || [];
 
-  // Função que calcula o valor líquido de um lançamento
+  // Valor líquido de um lançamento
   const vlLanc = l => {
     const e = Number(l.entrada||0), sa = Number(l.saida||0);
     if (e > 0 || sa > 0) return e - sa;
@@ -6098,14 +6098,13 @@ async function loadLancamentos() {
     return 0;
   };
 
-  // Saldo de um banco = saldo_inicial + soma de todos os lançamentos do banco
+  // Saldo acumulado de um banco = soma de TODOS os lançamentos históricos (sem filtro de data)
   const saldoBanco = (b) => {
-    const saldoIni = Number(b.saldo_inicial||0);
     const lancsB = todos.filter(l =>
       l.banco_id === b.id ||
       (l.banco_nome||'').toLowerCase() === (b.nome||'').toLowerCase()
     );
-    return saldoIni + lancsB.reduce((s,l) => s + vlLanc(l), 0);
+    return lancsB.reduce((s,l) => s + vlLanc(l), 0);
   };
 
   // Cards por banco
@@ -6121,6 +6120,7 @@ async function loadLancamentos() {
         <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
       </div>`;
     });
+    // Adiciona cards de Entradas, Saídas e Saldo Total do período
     saldoDiv.innerHTML = cardsHtml;
   }
 
@@ -6128,13 +6128,16 @@ async function loadLancamentos() {
   const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
   const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
 
-  // Saldo Total = soma dos saldos de todos os bancos (ou do banco filtrado)
+  // Saldo Total = soma acumulada de todos os bancos (ou só do banco filtrado)
   let saldoTotal;
   if (bancoFilter) {
     const b = _bancos.find(x=>x.id===bancoFilter);
-    saldoTotal = b ? saldoBanco(b) : 0;
+    saldoTotal = b ? saldoBanco(b) : todos.filter(l=>l.banco_id===bancoFilter).reduce((s,l)=>s+vlLanc(l),0);
   } else {
-    saldoTotal = _bancos.reduce((s,b) => s + saldoBanco(b), 0);
+    // Soma de todos os bancos cadastrados + lançamentos sem banco
+    const comBanco = _bancos.reduce((s,b) => s + saldoBanco(b), 0);
+    const semBanco = todos.filter(l => !l.banco_id && !l.banco_nome).reduce((s,l) => s+vlLanc(l), 0);
+    saldoTotal = comBanco + semBanco;
   }
 
   const _ls = (id,v,clr) => { const e=document.getElementById(id); if(e){ e.textContent=v; if(clr) e.style.color=clr; } };
