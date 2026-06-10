@@ -842,6 +842,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
         Notificações
       </div>
+      <div class="master-nav-item" onclick="masterPage('dados')" id="mnav-dados">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></polyline></svg>
+        Limpar Dados
+      </div>
     </nav>
 
     <!-- User + Sair -->
@@ -964,6 +968,23 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
         <div id="master-logs-table" style="overflow-x:auto"></div>
       </div>
+    </div>
+
+    <!-- PAGE: LIMPAR DADOS -->
+    <div id="mpage-dados" style="display:none">
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Limpar Dados</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:24px">Exclua dados de uma empresa por página. Esta ação é irreversível.</div>
+
+      <!-- Seletor de empresa -->
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:20px;margin-bottom:16px">
+        <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;margin-bottom:8px">Selecione a Empresa</div>
+        <select id="dados-empresa-sel" onchange="masterLoadDadosEmpresa()" style="width:100%;max-width:380px;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+          <option value="">— selecione uma empresa —</option>
+        </select>
+      </div>
+
+      <!-- Grid de páginas/tabelas -->
+      <div id="dados-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
     </div>
 
     <!-- PAGE: NOTIFICAÇÕES -->
@@ -1279,28 +1300,20 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         </button>
         <div class="topbar-title" id="page-title">Dashboard</div>
         <div class="topbar-right">
-          <select class="filter-select" id="global-mes" onchange="loadDashboard()" style="display:none">
-            <option value="2026-05">Maio 2026</option>
-            <option value="2026-04">Abril 2026</option>
-            <option value="2026-03">Março 2026</option>
-            <option value="2026-02">Fevereiro 2026</option>
-            <option value="2026-01">Janeiro 2026</option>
-          </select>
-          <!-- Nome da empresa + ID fixo no topbar — sempre visível -->
-          <div id="topbar-empresa-tag" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(0,0,0,.15);border:1.5px solid rgba(0,0,0,.2);border-radius:8px;min-width:180px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-            <div style="display:flex;flex-direction:column;line-height:1.3">
+          <!-- filtro de mês removido do topbar — está dentro do dashboard -->
+          <!-- Botão empresa — clicável para trocar (admin/operador com múltiplas empresas) -->
+          <div id="topbar-empresa-tag"
+            onclick="abrirSeletorEmpresas()"
+            style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(0,0,0,.12);border:1.5px solid rgba(0,0,0,.15);border-radius:8px;min-width:180px;cursor:pointer;transition:all .15s;user-select:none"
+            onmouseover="this.style.background='rgba(0,0,0,.2)'" onmouseout="this.style.background='rgba(0,0,0,.12)'"
+            title="Clique para trocar de empresa">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            <div style="display:flex;flex-direction:column;line-height:1.3;flex:1">
               <span id="topbar-empresa-nome" style="font-size:13px;font-weight:800;color:#111">—</span>
-              <span id="topbar-empresa-id" style="font-size:10px;font-weight:600;color:#333"></span>
+              <span id="topbar-empresa-id" style="font-size:10px;font-weight:600;color:#555"></span>
             </div>
+            <svg id="topbar-trocar-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-          <!-- Botão trocar empresa (visível para admin/operador com múltiplas empresas) -->
-          <button id="btn-trocar-empresa" onclick="abrirSeletorEmpresas()"
-            style="display:none;align-items:center;gap:6px;padding:6px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;cursor:pointer;font-size:11px;font-weight:600;font-family:'Outfit',sans-serif">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-            Trocar
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
           <span class="empresa-tag" id="empresa-tag" style="display:none">—</span>
         </div>
       </div>
@@ -4284,12 +4297,9 @@ async function showApp() {
 
   loadDashboard();
 
-  // Mostra/esconde botão de empresa no topbar
-  const btnEmp = document.getElementById('btn-trocar-empresa');
-  if (btnEmp) {
-    const mostrar = _todasEmpresas.length > 1 || _vnUser?.perfil === 'admin';
-    btnEmp.style.display = mostrar ? 'flex' : 'none';
-  }
+  // Seta sempre visível — clique abre seletor
+  const tag = document.getElementById('topbar-empresa-tag');
+  if (tag) tag.style.cursor = 'pointer';
 
   // Mostra menu Empresas só para admin
   const navEmp = document.querySelector('[data-page="empresas"]');
@@ -13546,7 +13556,7 @@ async function showPainelMaster() {
 
 async function masterPage(page) {
   // Esconde todas as páginas
-  ['dashboard','empresas','usuarios','base','planos','logs','notificacoes'].forEach(p => {
+  ['dashboard','empresas','usuarios','base','planos','logs','notificacoes','dados'].forEach(p => {
     const el = document.getElementById('mpage-'+p);
     if (el) el.style.display = 'none';
     const nav = document.getElementById('mnav-'+p);
@@ -13566,6 +13576,7 @@ async function masterPage(page) {
   if (page === 'planos')        await masterLoadPlanos();
   if (page === 'logs')          await masterLoadLogs();
   if (page === 'notificacoes')  { await masterLoadNotificacoes(); await masterCarregarEmpresasNotif(); }
+  if (page === 'dados')         await masterLoadDadosInit();
 }
 
 async function masterLoadDashboard() {
@@ -14239,6 +14250,109 @@ async function salvarUsuario() {
   loadEmpresas();
 }
 
+// ─── LIMPAR DADOS POR EMPRESA ────────────────────────
+const TABELAS_EMPRESA = [
+  { id:'lancamentos',         label:'Lançamentos',         tabela:'lançamentos',           icone:'💰', desc:'Entradas e saídas financeiras' },
+  { id:'pdv',                 label:'PDV / Comandas',       tabela:'pdv_itens',             icone:'🛒', desc:'Itens de venda e comandas' },
+  { id:'contas-pagar',        label:'Contas a Pagar',       tabela:'contas_pagar',          icone:'📤', desc:'Obrigações a pagar' },
+  { id:'contas-receber',      label:'Contas a Receber',     tabela:'contas_receber',        icone:'📥', desc:'Valores a receber' },
+  { id:'servicos',            label:'Serviços Importados',  tabela:'servicos_importados',   icone:'✂️', desc:'Relatório de serviços' },
+  { id:'clientes',            label:'Clientes',             tabela:'clientes_atendidos',    icone:'👥', desc:'Clientes atendidos' },
+  { id:'clientes-novos',      label:'Clientes Novos',       tabela:'clientes_novos',        icone:'🆕', desc:'Clientes novos captados' },
+  { id:'produtos',            label:'Produtos Importados',  tabela:'produtos_importados',   icone:'📦', desc:'Vendas de produtos' },
+  { id:'performance',         label:'Performance',          tabela:'relatorio_profissional',icone:'📊', desc:'Relatório de profissionais' },
+  { id:'lucratividade',       label:'Lucratividade',        tabela:'lucratividade_importada',icone:'📈',desc:'Dados de lucratividade' },
+  { id:'metas-prof',          label:'Metas Profissionais',  tabela:'metas_profissionais',   icone:'🎯', desc:'Metas por profissional' },
+  { id:'metas-fin',           label:'Metas Financeiras',    tabela:'metas_financeiras',     icone:'🏆', desc:'Metas financeiras do mês' },
+];
+
+let _dadosEmpresaId = null;
+let _dadosContagens = {};
+
+async function masterLoadDadosInit() {
+  // Popula select de empresas
+  const sel = document.getElementById('dados-empresa-sel');
+  if (!sel) return;
+  const { data: emps } = await sb.from('empresas').select('id,nome').eq('ativo',true).order('nome');
+  sel.innerHTML = '<option value="">— selecione uma empresa —</option>' +
+    (emps||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  document.getElementById('dados-grid').innerHTML = '';
+}
+
+async function masterLoadDadosEmpresa() {
+  const sel = document.getElementById('dados-empresa-sel');
+  const empId = sel?.value;
+  if (!empId) { document.getElementById('dados-grid').innerHTML = ''; return; }
+  _dadosEmpresaId = empId;
+
+  const grid = document.getElementById('dados-grid');
+  grid.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:13px;grid-column:1/-1;padding:8px">Carregando contagens...</div>';
+
+  // Busca contagens em paralelo
+  const counts = await Promise.all(
+    TABELAS_EMPRESA.map(async t => {
+      try {
+        const { count } = await sb.from(t.tabela).select('id', {count:'exact',head:true}).eq('empresa_id', empId);
+        return { ...t, count: count || 0 };
+      } catch { return { ...t, count: 0 }; }
+    })
+  );
+
+  grid.innerHTML = counts.map(t => `
+    <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <div style="font-size:22px">${t.icone}</div>
+        <div>
+          <div style="font-weight:700;color:#fff;font-size:13px">${t.label}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)">${t.desc}</div>
+        </div>
+      </div>
+      <div style="font-size:28px;font-weight:800;color:${t.count>0?'#fff':'rgba(255,255,255,.2)'};margin-bottom:12px">
+        ${t.count.toLocaleString('pt-BR')}
+        <span style="font-size:12px;font-weight:400;color:rgba(255,255,255,.4)">registros</span>
+      </div>
+      <button onclick="masterExcluirDados('${t.id}','${t.tabela}','${t.label}',${t.count})"
+        ${t.count === 0 ? 'disabled' : ''}
+        style="width:100%;padding:8px;border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;cursor:${t.count===0?'default':'pointer'};
+               background:${t.count>0?'rgba(239,68,68,.15)':'rgba(255,255,255,.04)'};
+               color:${t.count>0?'#f87171':'rgba(255,255,255,.2)'}">
+        ${t.count > 0 ? '🗑️ Excluir todos os dados' : 'Sem dados'}
+      </button>
+    </div>`
+  ).join('');
+}
+
+async function masterExcluirDados(pageId, tabela, label, count) {
+  if (!_dadosEmpresaId || count === 0) return;
+
+  const empNome = document.getElementById('dados-empresa-sel')?.selectedOptions[0]?.text || '';
+  const confirmMsg = `⚠️ ATENÇÃO — Ação Irreversível!\n\nVocê está prestes a excluir TODOS os ${count.toLocaleString('pt-BR')} registros de:\n\n📄 ${label}\n🏢 ${empNome}\n\nEsta ação NÃO pode ser desfeita.\n\nDigite CONFIRMAR para prosseguir:`;
+  
+  const resp = prompt(confirmMsg);
+  if (resp !== 'CONFIRMAR') {
+    if (resp !== null) alert('Texto incorreto. Nenhum dado foi excluído.');
+    return;
+  }
+
+  // Exclui em lotes de 50
+  let totalExcluido = 0;
+  let continuar = true;
+  
+  while (continuar) {
+    const { data: ids } = await sb.from(tabela).select('id').eq('empresa_id', _dadosEmpresaId).limit(50);
+    if (!ids || ids.length === 0) { continuar = false; break; }
+    
+    const idsArr = ids.map(r => r.id);
+    const { error } = await sb.from(tabela).delete().in('id', idsArr);
+    if (error) { alert('Erro ao excluir: ' + error.message); return; }
+    totalExcluido += ids.length;
+    if (ids.length < 50) continuar = false;
+  }
+
+  showToast(`${totalExcluido.toLocaleString('pt-BR')} registros excluídos de ${label}`, 'success');
+  await masterLoadDadosEmpresa(); // recarrega contagens
+}
+
 // ─── PERMISSÕES POR EMPRESA ──────────────────────────
 const TODAS_ABAS = [
   {id:'dashboard',    label:'Dashboard'},
@@ -14397,8 +14511,12 @@ async function salvarPermissoes() {
 
   // Upsert empresas marcadas
   if (registros.length) {
-    await sb.from('usuario_empresas')
+    const { error: errUpsert } = await sb.from('usuario_empresas')
       .upsert(registros, { onConflict: 'usuario_id,empresa_id' });
+    if (errUpsert) {
+      alert('Erro ao salvar permissões:\n' + errUpsert.message + '\n\nCódigo: ' + errUpsert.code);
+      return;
+    }
   }
 
   fecharModalPermissoes();
