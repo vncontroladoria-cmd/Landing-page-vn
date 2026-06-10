@@ -7803,6 +7803,7 @@ async function loadContasPagar() {
           <td style="padding:7px 10px" onclick="event.stopPropagation()">
             <div style="display:flex;gap:3px;justify-content:center">
               ${c.arquivo_url?`<button class="btn btn-sm" style="padding:2px 6px;font-size:10px;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="verDocumento('${c.arquivo_url}','${(c.descricao||'').replace(/'/g,'')}')">📎</button>`:''}
+              <button class="btn btn-sm" style="padding:2px 6px;font-size:10px;color:#7c3aed;border-color:#7c3aed" onclick="verHistoricoConta('${c.id}','pagar')" title="Ver histórico">🔍</button>
               <button class="btn btn-sm" style="padding:2px 6px;font-size:10px" onclick="editarConta('${c.id}','pagar')">✏️</button>
               <button class="btn btn-sm" style="padding:2px 6px;font-size:10px;color:var(--red);border-color:var(--red)" onclick="excluirConta('${c.id}','pagar')">🗑️</button>
             </div>
@@ -12096,6 +12097,32 @@ async function salvarConta() {
   if (!valor) { showToast('Preencha o valor','error'); return; }
   if (!venc) { showToast('Preencha o vencimento ou o dia','error'); return; }
 
+  // Nº boleto/NF obrigatório
+  const numeroNFCheck = document.getElementById('ct-numero-nf')?.value.trim();
+  if (!numeroNFCheck) {
+    showToast('Preencha o Nº do Boleto ou Nota Fiscal','error');
+    document.getElementById('ct-numero-nf')?.focus();
+    document.getElementById('ct-numero-nf').style.borderColor = 'var(--red)';
+    return;
+  }
+  document.getElementById('ct-numero-nf').style.borderColor = '';
+
+  // Pasta obrigatória se tiver arquivo anexado
+  const fileInputCheck = document.getElementById('ct-arquivo');
+  const pastaCheck = document.getElementById('ct-pasta-sel')?.value;
+  if (fileInputCheck?.files[0] && !pastaCheck) {
+    showToast('Selecione uma pasta para arquivar o documento','error');
+    document.getElementById('ct-pasta-sel').style.borderColor = 'var(--red)';
+    return;
+  }
+  // Pasta obrigatória em geral
+  if (!pastaCheck) {
+    showToast('Selecione uma pasta para arquivar a conta','error');
+    document.getElementById('ct-pasta-sel').style.borderColor = 'var(--red)';
+    return;
+  }
+  document.getElementById('ct-pasta-sel').style.borderColor = ''
+
   const tipo = document.getElementById('ct-tipo').value;
   const parcelas = parseInt(document.getElementById('ct-parcelas').value) || 1;
   const pix = document.getElementById('ct-pix').value.trim();
@@ -12169,6 +12196,10 @@ async function salvarConta() {
       arquivo_url: arquivoUrl || null,
       observacao: (obs || '') + (m.numero_doc ? ' | Boleto: '+m.numero_doc : '') + (numeroNF ? ' | NF: '+numeroNF : '') || null,
       status: 'pendente',
+      criado_por: _vnUser?.id || null,
+      criado_por_nome: _vnUser?.nome || _vnUser?.email || null,
+      criado_em: new Date().toISOString(),
+      pasta_id: document.getElementById('ct-pasta-sel')?.value || null,
     };
 
     const { error } = (editId && i === 0)
@@ -14569,6 +14600,103 @@ async function salvarPermissoes() {
   showToast('Permissões salvas!', 'success');
 }
 
+// ─── HISTÓRICO CONTA ─────────────────────────────────
+async function verHistoricoConta(id, tipo) {
+  const tabela = tipo === 'pagar' ? 'contas_pagar' : 'contas_receber';
+  const { data: c } = await sb.from(tabela).select('*').eq('id', id).single();
+  if (!c) return;
+
+  document.getElementById('hist-titulo').textContent = c.descricao || 'Conta';
+  document.getElementById('hist-subtitulo').textContent = tipo === 'pagar' ? 'Conta a Pagar' : 'Conta a Receber';
+
+  const corpo = document.getElementById('hist-corpo');
+
+  // Linha do tempo
+  const itens = [];
+
+  if (c.criado_em) {
+    itens.push({
+      icone: '📝', cor: '#7c3aed',
+      titulo: 'Cadastrado',
+      desc: `Por: ${c.criado_por_nome || 'Sistema'}`,
+      data: c.criado_em
+    });
+  }
+  if (c.data_pagamento) {
+    itens.push({
+      icone: '✅', cor: '#059669',
+      titulo: 'Pagamento registrado',
+      desc: `Status: ${c.status}`,
+      data: c.data_pagamento + 'T00:00:00'
+    });
+  }
+  if (c.arquivo_url) {
+    itens.push({
+      icone: '📎', cor: '#2563eb',
+      titulo: 'Documento anexado',
+      desc: `<a href="${c.arquivo_url}" target="_blank" style="color:#2563eb">Ver documento</a>`,
+      data: c.criado_em
+    });
+  }
+
+  // Dados completos
+  const campos = [
+    { label: 'Valor', valor: fmtBRL(c.valor) },
+    { label: 'Vencimento', valor: fmtDate(c.data_vencimento) },
+    { label: 'Status', valor: c.status || '—' },
+    { label: 'Categoria', valor: c.categoria || '—' },
+    { label: 'Nº NF/Boleto', valor: c.numero_nf || c.numero_doc || '—' },
+    { label: 'Pasta', valor: c.pasta_id || '—' },
+    { label: 'Chave PIX', valor: c.chave_pix || '—' },
+    { label: 'CNPJ/CPF', valor: c.cnpj || '—' },
+    { label: 'Palavra-chave', valor: c.palavra_chave || '—' },
+    { label: 'Observação', valor: c.observacao || '—' },
+    { label: 'Cadastrado por', valor: c.criado_por_nome || '—' },
+    { label: 'Cadastrado em', valor: c.criado_em ? new Date(c.criado_em).toLocaleString('pt-BR') : '—' },
+    { label: 'Parcela', valor: c.total_parcelas ? `${c.parcela_atual||1}/${c.total_parcelas}` : '1/1' },
+  ];
+
+  corpo.innerHTML = `
+    <!-- Timeline -->
+    ${itens.length ? `
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:10px">Linha do Tempo</div>
+      ${itens.map(item => `
+        <div style="display:flex;gap:12px;margin-bottom:10px;align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:50%;background:${item.cor}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">${item.icone}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:13px;color:var(--text)">${item.titulo}</div>
+            <div style="font-size:12px;color:var(--text2)">${item.desc}</div>
+            <div style="font-size:11px;color:var(--text3)">${new Date(item.data).toLocaleString('pt-BR')}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    <!-- Dados completos -->
+    <div style="background:var(--bg3);border-radius:10px;padding:14px;border:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:10px">Dados Completos</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${campos.map(f => `
+          <div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;font-weight:600">${f.label}</div>
+            <div style="font-size:12px;color:var(--text);font-weight:500">${f.valor}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    ${c.arquivo_url ? `
+    <div style="margin-top:12px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">📎</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600">Documento anexado</div>
+        <a href="${c.arquivo_url}" target="_blank" style="font-size:11px;color:var(--accent)">Clique para visualizar</a>
+      </div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('modal-historico-conta').style.display = 'flex';
+}
+
 // ─── INIT ────────────────────────────────────────────
 checkSession();
 document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
@@ -15101,6 +15229,23 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
       <button onclick="fecharModalPermissoes()" style="padding:11px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif">
         Cancelar
       </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL HISTÓRICO CONTA -->
+<div id="modal-historico-conta" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border-radius:16px;border:1px solid var(--border);padding:24px;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:var(--text)" id="hist-titulo">Histórico da Conta</div>
+        <div style="font-size:12px;color:var(--text2)" id="hist-subtitulo"></div>
+      </div>
+      <button onclick="document.getElementById('modal-historico-conta').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div id="hist-corpo">
+      <!-- preenchido via JS -->
     </div>
   </div>
 </div>
