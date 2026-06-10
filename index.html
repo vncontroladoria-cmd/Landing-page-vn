@@ -749,9 +749,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
     </div>
     <div class="login-sub">Cadastrar nova empresa</div>
 
-    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;margin-bottom:1rem">
-      ⏳ Após o cadastro, aguarde a <strong>ativação pelo administrador</strong> para acessar o sistema.
-    </div>
+
 
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);margin-bottom:8px;letter-spacing:.5px">Dados da Empresa</div>
 
@@ -3786,7 +3784,7 @@ async function doCadastro() {
 
   // 1. Cria empresa INATIVA (aguarda ativação do admin)
   const { data: emp, error: errEmp } = await sb.from('empresas').insert({
-    nome: nomeEmp, cnpj, telefone: tel, email: emailEmp, ativo: false
+    nome: nomeEmp, cnpj, telefone: tel, email: emailEmp, ativo: true
   }).select().single();
 
   if (errEmp) { errEl.style.color='red'; errEl.textContent = 'Erro: ' + errEmp.message; return; }
@@ -3797,13 +3795,13 @@ async function doCadastro() {
     perfil: 'operador',
     empresa_ids: [emp.id],
     empresa_padrao: emp.id,
-    ativo: false
+    ativo: true
   });
 
   if (errUsr) { errEl.style.color='red'; errEl.textContent = 'Erro: ' + errUsr.message; return; }
 
   errEl.style.color = '#059669';
-  errEl.textContent = '✅ Cadastro enviado! Aguarde a ativação pelo administrador.';
+  errEl.textContent = '✅ Cadastro realizado! Você já pode fazer login.';
 
   // Limpa campos
   ['cad-empresa-nome','cad-empresa-cnpj','cad-empresa-tel','cad-empresa-email',
@@ -3819,9 +3817,14 @@ async function doLogin() {
   document.getElementById('login-err').textContent = '';
 
   // Busca usuário na tabela vn_usuarios (login próprio do sistema)
-  const { data: usuarios } = await sb.from('vn_usuarios').select('*').eq('email', email).eq('ativo', true);
-  const usr = (usuarios||[]).find(u => u.senha_hash === pass);
+  const { data: todos } = await sb.from('vn_usuarios').select('*').eq('email', email);
+  const usrInativo = (todos||[]).find(u => u.senha_hash === pass && !u.ativo);
+  const usr = (todos||[]).find(u => u.senha_hash === pass && u.ativo);
 
+  if (usrInativo) {
+    document.getElementById('login-err').textContent = 'Conta inativa. Entre em contato com o administrador.';
+    return;
+  }
   if (!usr) {
     document.getElementById('login-err').textContent = 'E-mail ou senha incorretos';
     return;
