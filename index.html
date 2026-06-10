@@ -10060,12 +10060,24 @@ async function salvarNovaCategoria(gid, gNome, demo, ordem, totalAtual) {
   const nome = document.getElementById('nova-cat-nome-' + gid).value.trim();
   if (!nome) { showToast('Digite o nome','error'); return; }
   const demoSalvar = demo === 'NENHUM' ? 'NENHUM' : demo;
-  const { data: cats } = await qE('plano_contas').select('id').eq('grupo', gNome);
-  const codigo = `${ordem}.${(cats?.length||0)+1}`;
-  const tipo = 'SAIDA'; // padrão para categorias novas
-  const { error } = await sb.from('plano_contas').insert(addEmpresaId({ codigo, nome, tipo, demonstrativo: demoSalvar, grupo: gNome, ordem: (cats?.length||0)+1 }));
-  if (error) { showToast('Erro: '+error.message,'error'); return; }
-  showToast('Categoria adicionada!','success');
+  const tipo = 'SAIDA';
+
+  // Replica categoria em TODAS as empresas ativas
+  const { data: empresas } = await sb.from('empresas').select('id').eq('ativo', true);
+  let erros = 0;
+  for (const emp of (empresas||[])) {
+    // Verifica a ordem de categorias nessa empresa
+    const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', gNome).eq('empresa_id', emp.id);
+    const codigo = `${ordem}.${(cats?.length||0)+1}`;
+    // Só insere se não existe ainda
+    const { data: existe } = await sb.from('plano_contas').select('id').eq('nome', nome).eq('grupo', gNome).eq('empresa_id', emp.id).maybeSingle();
+    if (!existe) {
+      const { error } = await sb.from('plano_contas').insert({ codigo, nome, tipo, demonstrativo: demoSalvar, grupo: gNome, ordem: (cats?.length||0)+1, empresa_id: emp.id });
+      if (error) erros++;
+    }
+  }
+  if (erros) { showToast('Erro ao replicar em algumas empresas','error'); return; }
+  showToast('Categoria adicionada em todas as empresas!','success');
   document.getElementById('nova-cat-' + gid).style.display = 'none';
   document.getElementById('nova-cat-nome-' + gid).value = '';
   loadPlanoContas();
@@ -10135,16 +10147,32 @@ async function saveGrupo() {
     ordem: parseInt(document.getElementById('grp-ordem').value) || 99,
     cor: document.getElementById('grp-cor').value,
   };
+
   if (editId) {
+    // Edição — atualiza só na empresa atual
     const { data: ant } = await qE('grupos_plano').select('nome').eq('id', editId).single();
-    await sb.from('grupos_plano').update(payload).eq('id', editId);
+    const { error: upErr } = await sb.from('grupos_plano').update(payload).eq('id', editId);
+    if (upErr) { showToast('Erro: ' + upErr.message, 'error'); return; }
     if (ant?.nome && ant.nome !== nome) {
       await sb.from('plano_contas').update({ grupo: nome }).eq('grupo', ant.nome);
     }
   } else {
-    await sb.from('grupos_plano').insert(payload);
+    // Criação — replica em TODAS as empresas ativas automaticamente
+    const { data: empresas } = await sb.from('empresas').select('id').eq('ativo', true);
+    let erros = 0;
+    for (const emp of (empresas||[])) {
+      // Só insere se o grupo ainda não existe nessa empresa
+      const { data: existe } = await sb.from('grupos_plano')
+        .select('id').eq('nome', nome).eq('empresa_id', emp.id).maybeSingle();
+      if (!existe) {
+        const { error } = await sb.from('grupos_plano').insert({ ...payload, empresa_id: emp.id });
+        if (error) erros++;
+      }
+    }
+    if (erros) { showToast('Erro ao replicar em algumas empresas','error'); return; }
   }
-  showToast('Grupo salvo!', 'success');
+
+  showToast('Grupo criado em todas as empresas!', 'success');
   delete document.getElementById('modal-grupo').dataset.editId;
   document.getElementById('modal-grupo').querySelector('.modal-title').textContent = 'Novo grupo';
   closeModal('modal-grupo');
