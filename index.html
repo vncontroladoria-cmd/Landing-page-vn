@@ -4586,31 +4586,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('sidebar-overlay');
   if (!sidebar) return;
 
-  // No mobile (< 768px): sidebar começa fechado e fecha ao clicar item
-  if (window.innerWidth < 768) {
-    sidebar.classList.remove('open');
-    if (overlay) overlay.classList.remove('show');
-  } else {
-    // Desktop: sempre aberto
-    sidebar.classList.add('open');
-  }
+  // Sidebar sempre começa fechado — abre só ao clicar no hamburguer
+  sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('show');
 
-  // Fecha ao clicar em item do menu no mobile
+  // Fecha sidebar ao clicar em qualquer item do menu
   sidebar.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
-      if (window.innerWidth < 768) {
-        sidebar.classList.remove('open');
-        if (overlay) overlay.classList.remove('show');
-      }
-    });
-  });
-
-  // Fecha ao redimensionar para desktop
-  window.addEventListener('resize', () => {
-    if (window.innerWidth >= 768) {
-      sidebar.classList.add('open');
+      sidebar.classList.remove('open');
       if (overlay) overlay.classList.remove('show');
-    }
+    });
   });
 });
 
