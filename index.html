@@ -4071,6 +4071,7 @@ let currentUser = null;
 let _vnUser = null;        // usuário da tabela vn_usuarios
 let _empresaAtual = null;  // empresa selecionada
 let _todasEmpresas = [];   // lista de empresas (admin vê todas)
+let _permissoes = {};      // { empresa_id: { abas: [...] } }
 let currentTipo = 'ENTRADA';
 let chartDaily = null;
 let chartCat = null;
@@ -4229,7 +4230,22 @@ async function iniciarSessaoMultiEmpresa() {
     _todasEmpresas = data || [];
     await showPainelMaster();
     return;
+  }
+
+  // Carrega permissões por empresa da tabela usuario_empresas
+  const { data: perms } = await sb.from('usuario_empresas')
+    .select('empresa_id,abas_liberadas,ativo,empresas(*)')
+    .eq('usuario_id', _vnUser.id)
+    .eq('ativo', true);
+
+  if (perms && perms.length) {
+    _todasEmpresas = perms.map(p => p.empresas).filter(Boolean);
+    _permissoes = {};
+    perms.forEach(p => {
+      _permissoes[p.empresa_id] = { abas: p.abas_liberadas || [] };
+    });
   } else {
+    // fallback: empresa_ids da coluna antiga
     const ids = _vnUser.empresa_ids || [];
     if (ids.length) {
       const { data } = await sb.from('empresas').select('*').in('id', ids).eq('ativo', true).order('nome');
@@ -4308,22 +4324,31 @@ function atualizarTopbarEmpresa() {
   if (elTag) elTag.style.display = 'flex';
 }
 
-// Aplica permissões de menu conforme perfil
+// Aplica permissões de menu conforme perfil e empresa atual
 function aplicarPermissoes() {
   const perfil = _vnUser?.perfil || 'leitor';
-  const paginasLiberadas = _vnUser?.paginas_liberadas || [];
+  const empId = _empresaAtual?.id;
+
+  // Pega abas liberadas para esta empresa (vazio = todas)
+  const abasEmp = (empId && _permissoes[empId]?.abas) || [];
+  const temRestricao = abasEmp.length > 0;
 
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     const page = item.dataset.page;
-    if (perfil === 'admin' || perfil === 'operador') {
+    if (perfil === 'admin') {
       item.style.display = '';
+      return;
+    }
+    if (temRestricao) {
+      // Mostra só o que foi liberado para esta empresa
+      item.style.display = abasEmp.includes(page) ? '' : 'none';
     } else {
-      // leitor: só vê páginas liberadas
-      item.style.display = paginasLiberadas.includes(page) ? '' : 'none';
+      // Sem restrição: operador vê tudo, leitor vê padrão
+      item.style.display = perfil === 'operador' ? '' : 'none';
     }
   });
 
-  // Admin vê menu de configuração completo
+  // Configurações só para admin
   const configItems = document.querySelectorAll('[data-page="usuarios"],[data-page="empresas"]');
   configItems.forEach(el => {
     el.style.display = perfil === 'admin' ? '' : 'none';
@@ -4336,11 +4361,11 @@ function trocarEmpresa(empresaId) {
   if (!emp) return;
   _empresaAtual = emp;
   atualizarTopbarEmpresa();
+  aplicarTemaEmpresa(emp);
+  aplicarPermissoes(); // reaplica abas da nova empresa
   fecharSeletorEmpresas();
-  // Recarrega página atual
-  const ativa = document.querySelector('.nav-item.active');
-  if (ativa) ativa.click();
-  else loadDashboard();
+  // Vai para dashboard ao trocar (evita ficar em aba sem permissão)
+  showPage('dashboard', document.querySelector('[data-page="dashboard"]'));
   showToast('Empresa: ' + emp.nome, 'success');
 }
 
@@ -4349,21 +4374,29 @@ function abrirSeletorEmpresas() {
   if (!el) return;
   const lista = document.getElementById('seletor-empresa-lista');
   if (lista) {
-    lista.innerHTML = _todasEmpresas.map(e =>
-      `<div onclick="trocarEmpresa('${e.id}')"
-        style="padding:10px 14px;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:10px;
-               ${_empresaAtual?.id===e.id?'background:var(--bg3);font-weight:700':''}"
-        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='${_empresaAtual?.id===e.id?'var(--bg3)':''}'">
-        <div style="width:32px;height:32px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">
-          ${(e.nome||'?').substring(0,2).toUpperCase()}
+    lista.innerHTML = _todasEmpresas.map(e => {
+      const ativa = _empresaAtual?.id === e.id;
+      const cor = e.cor_primaria || 'var(--accent)';
+      const abasEmp = (_permissoes[e.id]?.abas || []);
+      const abasTexto = abasEmp.length ? abasEmp.slice(0,3).join(', ') + (abasEmp.length > 3 ? '...' : '') : 'Acesso completo';
+      return `<div onclick="trocarEmpresa('${e.id}')"
+        style="padding:12px 14px;cursor:pointer;border-radius:10px;display:flex;align-items:center;gap:12px;
+               border:1.5px solid ${ativa ? cor : 'transparent'};
+               background:${ativa ? cor + '15' : 'transparent'};margin-bottom:4px;transition:all .12s"
+        onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='${ativa ? cor + '15' : 'transparent'}'">
+        <div style="width:40px;height:40px;border-radius:10px;background:${cor};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+          ${e.logo_url
+            ? `<img src="${e.logo_url}" style="width:36px;height:36px;object-fit:contain" onerror="this.style.display='none'">`
+            : `<span style="font-weight:800;font-size:14px;color:#fff">${(e.nome||'?').substring(0,2).toUpperCase()}</span>`
+          }
         </div>
-        <div>
-          <div style="font-size:13px">${e.nome}</div>
-          <div style="font-size:11px;color:var(--text2)">${e.cnpj||''}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:${ativa?'700':'500'};color:var(--text)">${e.nome}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:1px">${abasTexto}</div>
         </div>
-        ${_empresaAtual?.id===e.id?'<span style="margin-left:auto;color:var(--accent)">✓</span>':''}
-      </div>`
-    ).join('');
+        ${ativa ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${cor}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+      </div>`;
+    }).join('');
   }
   el.classList.add('open');
 }
@@ -13648,6 +13681,11 @@ async function masterLoadEmpresas() {
 }
 async function masterLoadUsuarios() {
   const { data: usrs } = await sb.from('vn_usuarios').select('*').order('nome');
+  // Carrega contagem de empresas por usuário da nova tabela
+  const { data: ueAll } = await sb.from('usuario_empresas').select('usuario_id,empresa_id').eq('ativo', true);
+  const contEmp = {};
+  (ueAll||[]).forEach(r => { contEmp[r.usuario_id] = (contEmp[r.usuario_id]||0)+1; });
+
   const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:10px 14px;color:rgba(255,255,255,.4);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)';
   const el = document.getElementById('master-usr-table');
   if (!el) return;
@@ -13656,7 +13694,7 @@ async function masterLoadUsuarios() {
     <thead><tr>
       <th style="${TH}">Usuário</th>
       <th style="${TH}">Perfil</th>
-      <th style="${TH}">Empresas</th>
+      <th style="${TH}">Empresas/Abas</th>
       <th style="${TH}">Status</th>
       <th style="${TH}">Ações</th>
     </tr></thead>
@@ -13672,8 +13710,14 @@ async function masterLoadUsuarios() {
               ${u.perfil}
             </span>
           </td>
-          <td style="padding:12px 14px;color:rgba(255,255,255,.5);font-size:12px">
-            ${u.perfil==='admin'?'Todas':(u.empresa_ids||[]).length+' empresa(s)'}
+          <td style="padding:12px 14px">
+            ${u.perfil==='admin'
+              ? '<span style="font-size:11px;color:#a78bfa;font-weight:600">Acesso total</span>'
+              : `<button onclick="abrirModalPermissoes('${u.id}','${(u.nome||u.email).replace(/'/g,"\\'")}','${u.perfil}')"
+                  style="padding:4px 10px;background:rgba(59,130,246,.15);border:none;border-radius:6px;color:#60a5fa;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
+                  🏢 ${contEmp[u.id]||0} empresa(s)
+                </button>`
+            }
           </td>
           <td style="padding:12px 14px">
             <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${u.ativo?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};color:${u.ativo?'#4ade80':'#f87171'}">
@@ -13681,7 +13725,7 @@ async function masterLoadUsuarios() {
             </span>
           </td>
           <td style="padding:12px 14px">
-            <div style="display:flex;gap:6px">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
               <button onclick="masterResetSenha('${u.id}','${u.nome||u.email}')"
                 style="padding:4px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">
                 Reset senha
@@ -14195,6 +14239,173 @@ async function salvarUsuario() {
   loadEmpresas();
 }
 
+// ─── PERMISSÕES POR EMPRESA ──────────────────────────
+const TODAS_ABAS = [
+  {id:'dashboard',    label:'Dashboard'},
+  {id:'lancamentos',  label:'Lançamentos'},
+  {id:'pdv',          label:'PDV / Comandas'},
+  {id:'contas-pagar', label:'Contas a Pagar'},
+  {id:'contas-receber',label:'Contas a Receber'},
+  {id:'conciliacao',  label:'Conciliação'},
+  {id:'dfc',          label:'DFC'},
+  {id:'dre',          label:'DRE'},
+  {id:'servicos',     label:'Serviços'},
+  {id:'produtos',     label:'Produtos'},
+  {id:'clientes',     label:'Clientes'},
+  {id:'performance',  label:'Performance'},
+  {id:'lucratividade',label:'Lucratividade'},
+  {id:'metricas',     label:'Métricas'},
+  {id:'importacao',   label:'Importação'},
+  {id:'fornecedores', label:'Fornecedores'},
+  {id:'plano-contas', label:'Plano de Contas'},
+  {id:'bancos',       label:'Bancos'},
+  {id:'usuarios',     label:'Usuários'},
+];
+
+let _permModalUserId = null;
+let _permModalPerfil = null;
+let _permEmpresas = []; // empresas carregadas no modal
+
+async function abrirModalPermissoes(userId, nomeUser, perfil) {
+  _permModalUserId = userId;
+  _permModalPerfil = perfil;
+  document.getElementById('modal-perm-nome').textContent = nomeUser + ' — Permissões';
+
+  // Carrega todas as empresas ativas
+  const { data: emps } = await sb.from('empresas').select('*').eq('ativo', true).order('nome');
+  _permEmpresas = emps || [];
+
+  // Carrega permissões já salvas
+  const { data: perms } = await sb.from('usuario_empresas').select('*').eq('usuario_id', userId);
+  const permMap = {};
+  (perms||[]).forEach(p => { permMap[p.empresa_id] = p; });
+
+  const corpo = document.getElementById('modal-perm-corpo');
+  corpo.innerHTML = _permEmpresas.map(emp => {
+    const perm = permMap[emp.id];
+    const temAcesso = !!perm && perm.ativo;
+    const abasLiberadas = perm?.abas_liberadas || [];
+    const cor = emp.cor_primaria || '#2a9d5c';
+
+    return `
+    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:hidden" id="perm-emp-${emp.id}">
+      <!-- Header da empresa -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer" onclick="togglePermEmpresa('${emp.id}')">
+        <input type="checkbox" id="chk-emp-${emp.id}" ${temAcesso?'checked':''} 
+          onchange="toggleAcessoEmpresa('${emp.id}',this.checked)" onclick="event.stopPropagation()"
+          style="width:16px;height:16px;cursor:pointer;accent-color:${cor}">
+        <div style="width:32px;height:32px;border-radius:8px;background:${cor};display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+          ${emp.logo_url ? `<img src="${emp.logo_url}" style="width:28px;height:28px;object-fit:contain">` : `<span style="font-size:12px;font-weight:800;color:#fff">${(emp.nome||'?')[0].toUpperCase()}</span>`}
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:#fff;font-size:13px">${emp.nome}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)">${temAcesso ? (abasLiberadas.length ? abasLiberadas.length + ' aba(s) liberada(s)' : 'Todas as abas') : 'Sem acesso'}</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2.5" id="arrow-${emp.id}" style="transition:.2s;${temAcesso?'transform:rotate(180deg)':''}"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <!-- Abas da empresa (expandível) -->
+      <div id="abas-emp-${emp.id}" style="display:${temAcesso?'block':'none'};padding:0 16px 14px 16px;border-top:1px solid rgba(255,255,255,.06)">
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin:10px 0 8px;font-weight:600;text-transform:uppercase">Abas liberadas (deixe tudo marcado para acesso completo)</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button onclick="marcarTodasAbas('${emp.id}',true)" style="padding:3px 10px;background:rgba(42,157,92,.15);border:none;border-radius:5px;color:#4ade80;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">✓ Todas</button>
+          <button onclick="marcarTodasAbas('${emp.id}',false)" style="padding:3px 10px;background:rgba(255,255,255,.06);border:none;border-radius:5px;color:rgba(255,255,255,.5);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">✗ Nenhuma</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          ${TODAS_ABAS.map(aba => `
+            <label style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(255,255,255,.03);border-radius:6px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.7)">
+              <input type="checkbox" id="chk-aba-${emp.id}-${aba.id}"
+                ${abasLiberadas.length===0 || abasLiberadas.includes(aba.id) ? 'checked' : ''}
+                style="accent-color:${cor};cursor:pointer">
+              ${aba.label}
+            </label>`
+          ).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('modal-permissoes').style.display = 'flex';
+}
+
+function fecharModalPermissoes() {
+  document.getElementById('modal-permissoes').style.display = 'none';
+  _permModalUserId = null;
+}
+
+function togglePermEmpresa(empId) {
+  const el = document.getElementById('abas-emp-'+empId);
+  const chk = document.getElementById('chk-emp-'+empId);
+  const arrow = document.getElementById('arrow-'+empId);
+  if (!el || !chk?.checked) return;
+  const open = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  if (arrow) arrow.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+function toggleAcessoEmpresa(empId, temAcesso) {
+  const abasDiv = document.getElementById('abas-emp-'+empId);
+  const arrow = document.getElementById('arrow-'+empId);
+  if (abasDiv) abasDiv.style.display = temAcesso ? 'block' : 'none';
+  if (arrow) arrow.style.transform = temAcesso ? 'rotate(180deg)' : '';
+}
+
+function marcarTodasAbas(empId, marcar) {
+  TODAS_ABAS.forEach(aba => {
+    const chk = document.getElementById(`chk-aba-${empId}-${aba.id}`);
+    if (chk) chk.checked = marcar;
+  });
+}
+
+async function salvarPermissoes() {
+  if (!_permModalUserId) return;
+
+  const registros = [];
+  const deletar = [];
+
+  for (const emp of _permEmpresas) {
+    const chkEmp = document.getElementById('chk-emp-'+emp.id);
+    const temAcesso = chkEmp?.checked;
+
+    if (!temAcesso) {
+      deletar.push(emp.id);
+      continue;
+    }
+
+    // Coleta abas marcadas
+    const abasMarcadas = TODAS_ABAS
+      .filter(a => document.getElementById(`chk-aba-${emp.id}-${a.id}`)?.checked)
+      .map(a => a.id);
+
+    // Se todas marcadas = sem restrição (array vazio)
+    const abas = abasMarcadas.length === TODAS_ABAS.length ? [] : abasMarcadas;
+
+    registros.push({
+      usuario_id: _permModalUserId,
+      empresa_id: emp.id,
+      abas_liberadas: abas,
+      ativo: true
+    });
+  }
+
+  // Remove empresas desmarcadas
+  if (deletar.length) {
+    await sb.from('usuario_empresas')
+      .delete()
+      .eq('usuario_id', _permModalUserId)
+      .in('empresa_id', deletar);
+  }
+
+  // Upsert empresas marcadas
+  if (registros.length) {
+    await sb.from('usuario_empresas')
+      .upsert(registros, { onConflict: 'usuario_id,empresa_id' });
+  }
+
+  fecharModalPermissoes();
+  await masterLoadUsuarios();
+  showToast('Permissões salvas!', 'success');
+}
+
 // ─── INIT ────────────────────────────────────────────
 checkSession();
 document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
@@ -14699,6 +14910,34 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         <button class="btn" onclick="closeModal('modal-pdv-excel')">Cancelar</button>
         <button class="btn btn-primary" id="pdv-excel-confirmar" onclick="confirmarImportExcelPDV()">💾 Confirmar Importação</button>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL PERMISSÕES USUÁRIO -->
+<div id="modal-permissoes" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:28px;width:680px;max-width:96vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#fff" id="modal-perm-nome">Permissões</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4)">Defina quais empresas e abas este usuário pode acessar</div>
+      </div>
+      <button onclick="fecharModalPermissoes()" style="background:rgba(255,255,255,.08);border:none;border-radius:8px;color:rgba(255,255,255,.6);font-size:18px;width:32px;height:32px;cursor:pointer">✕</button>
+    </div>
+
+    <!-- Lista de empresas com checkboxes e abas -->
+    <div id="modal-perm-corpo" style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+      <!-- preenchido via JS -->
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button onclick="salvarPermissoes()" style="flex:1;background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:14px;padding:11px;cursor:pointer;font-weight:700;font-family:'Outfit',sans-serif">
+        💾 Salvar Permissões
+      </button>
+      <button onclick="fecharModalPermissoes()" style="padding:11px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif">
+        Cancelar
+      </button>
     </div>
   </div>
 </div>
