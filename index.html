@@ -13258,11 +13258,21 @@ async function loadEmpresas() {
             }
           </td>
           <td style="padding:8px 10px;text-align:center">
-            <button onclick="alternarEmpresaAtiva('${e.id}',${!e.ativo})"
-              style="padding:4px 12px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;border:none;
-                     background:${e.ativo?'#fee2e2':'#dcfce7'};color:${e.ativo?'#991b1b':'#166534'}">
-              ${e.ativo?'⛔ Desativar':'✅ Ativar'}
-            </button>
+            <div style="display:flex;gap:6px;justify-content:center">
+              <button onclick="editarEmpresa('${e.id}')"
+                style="padding:4px 10px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;border:none;background:#dbeafe;color:#1e40af">
+                ✏️ Editar
+              </button>
+              <button onclick="alternarEmpresaAtiva('${e.id}',${!e.ativo})"
+                style="padding:4px 10px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;border:none;
+                       background:${e.ativo?'#fee2e2':'#dcfce7'};color:${e.ativo?'#991b1b':'#166534'}">
+                ${e.ativo?'⛔ Desativar':'✅ Ativar'}
+              </button>
+              <button onclick="excluirEmpresa('${e.id}','${e.nome.replace(/'/g,"\'")}' )"
+                style="padding:4px 10px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;border:none;background:#fee2e2;color:#991b1b">
+                🗑️ Excluir
+              </button>
+            </div>
           </td>
         </tr>`).join('')}</tbody>
       </table>`;
@@ -13295,6 +13305,58 @@ async function loadEmpresas() {
       </table>`;
     }
   }
+}
+
+async function excluirEmpresa(id, nome) {
+  if (!confirm(`⚠️ ATENÇÃO!
+
+Isso vai excluir PERMANENTEMENTE a empresa "${nome}" e TODOS os seus dados:
+- Lançamentos
+- Contas a pagar/receber
+- PDV
+- Relatórios
+- Usuários
+
+Esta ação NÃO pode ser desfeita!
+
+Digite o nome da empresa para confirmar:`)) return;
+  const confirmNome = prompt(`Digite exatamente: ${nome}`);
+  if (confirmNome !== nome) { showToast('Nome incorreto. Exclusão cancelada.','error'); return; }
+
+  showToast('Excluindo dados...','success');
+
+  // Tabelas com empresa_id
+  const tabelas = [
+    'lancamentos','bancos_cadastrados','plano_contas','grupos_plano',
+    'contas_pagar','contas_receber','pdv_caixas','pdv_itens','pdv_categorias',
+    'rel_dados_brutos','rel_servicos','rel_lucratividade','rel_tipos',
+    'profissionais','metas_profissionais','metas_financeiras',
+    'fornecedores','documentos_fiscais','projecoes_dre'
+  ];
+
+  for (const tabela of tabelas) {
+    await sb.from(tabela).delete().eq('empresa_id', id);
+  }
+
+  // Exclui usuários vinculados (não admin)
+  const { data: usrs } = await sb.from('vn_usuarios').select('id,empresa_ids,perfil').neq('perfil','admin');
+  for (const u of (usrs||[])) {
+    const ids = (u.empresa_ids||[]).filter(eid => eid !== id);
+    if ((u.empresa_ids||[]).includes(id)) {
+      if (ids.length === 0) {
+        await sb.from('vn_usuarios').delete().eq('id', u.id);
+      } else {
+        await sb.from('vn_usuarios').update({empresa_ids: ids}).eq('id', u.id);
+      }
+    }
+  }
+
+  // Exclui a empresa
+  await sb.from('empresas').delete().eq('id', id);
+
+  showToast(`Empresa "${nome}" excluída!`, 'success');
+  loadEmpresas();
+  await iniciarSessaoMultiEmpresa();
 }
 
 async function alternarEmpresaAtiva(id, ativo) {
