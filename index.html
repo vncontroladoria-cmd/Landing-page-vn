@@ -3917,16 +3917,30 @@ async function showApp() {
 
 // Atualiza nome da empresa no topo
 function atualizarTopbarEmpresa() {
+  const emp = _empresaAtual;
+
+  // Nome
   const elNome = document.getElementById('topbar-empresa-nome');
-  if (elNome) elNome.textContent = _empresaAtual?.nome || '—';
-  // ID curto (últimos 6 caracteres do UUID)
+  if (elNome) elNome.textContent = emp?.nome || '—';
+
+  // ID — usa os primeiros 8 caracteres do UUID sem hífens
   const elId = document.getElementById('topbar-empresa-id');
-  if (elId && _empresaAtual?.id) {
-    const idCurto = _empresaAtual.id.replace(/-/g,'').substring(0,6).toUpperCase();
-    elId.textContent = 'ID ' + idCurto;
+  if (elId) {
+    if (emp?.id) {
+      const idCurto = emp.id.replace(/-/g,'').substring(0,8).toUpperCase();
+      elId.textContent = 'ID: ' + idCurto;
+    } else {
+      elId.textContent = '';
+    }
   }
-  const el = document.getElementById('topbar-empresa');
-  if (el) el.textContent = _empresaAtual?.nome || '—';
+
+  // Legado
+  const elLeg = document.getElementById('topbar-empresa');
+  if (elLeg) elLeg.textContent = emp?.nome || '—';
+
+  // Garante visibilidade do tag
+  const elTag = document.getElementById('topbar-empresa-tag');
+  if (elTag) elTag.style.display = 'flex';
 }
 
 // Aplica permissões de menu conforme perfil
