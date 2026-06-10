@@ -3897,7 +3897,7 @@ async function loadImportacao() {
 // ── Tipos ──────────────────────────────────────────────────
 
 async function loadTiposImport() {
-  const { data, error } = await sb.from('rel_tipos').select('*').eq('ativo', true).order('nome');
+  const { data, error } = await qE('rel_tipos').select('*').eq('ativo', true).order('nome');
   if (error) { showToast('Erro ao carregar tipos: ' + error.message, 'error'); return; }
   _impTipos = data || [];
   renderTiposGrid();
@@ -3988,7 +3988,7 @@ async function salvarNovoTipo() {
   const desc = document.getElementById('novo-tipo-desc').value.trim();
   if (!nome) { showToast('Digite o nome do tipo.', 'error'); return; }
 
-  const { error } = await sb.from('rel_tipos').insert({ nome, descricao: desc || null });
+  const { error } = await sb.from('rel_tipos').insert(addEmpresaId({ nome, descricao: desc || null }));
   if (error) {
     if (error.message.includes('unique') || error.code === '23505') {
       showToast('Já existe um tipo com esse nome.', 'error');
@@ -4617,11 +4617,11 @@ async function confirmarImportExcelPDV() {
     let caixasCriados = 0;
     for (const [data, linhas] of Object.entries(porData)) {
       // Cria o caixa
-      const { data: caixa, error: errC } = await sb.from('pdv_caixas').insert({
+      const { data: caixa, error: errC } = await sb.from('pdv_caixas').insert(addEmpresaId({
         data_caixa: data,
         responsavel: '',
         status: 'fechado'
-      }).select().single();
+      })).select().single();
       if (errC) throw new Error(errC.message);
 
       // Cria os itens
@@ -4667,7 +4667,7 @@ async function initPDV() {
 }
 
 async function carregarCategoriasPDV() {
-  const { data } = await sb.from('pdv_categorias').select('*').order('nome');
+  const { data } = await qE('pdv_categorias').select('*').order('nome');
   _pdvCategorias = data || [];
 }
 
@@ -4727,7 +4727,7 @@ Essa ação não pode ser desfeita.`)) return;
 async function loadPDV() {
   const ano = document.getElementById('pdv-filtro-ano')?.value || '2026';
   const mes = document.getElementById('pdv-filtro-mes')?.value || '';
-  let q = sb.from('pdv_caixas').select('*').order('data_caixa', {ascending: true});
+  let q = qE('pdv_caixas').select('*').order('data_caixa', {ascending: true});
   if (mes) {
     const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate();
     const fimMes = String(ultimoDia).padStart(2,'0');
@@ -4744,7 +4744,7 @@ async function loadPDV() {
   const ids = (caixas||[]).map(c => c.id);
   let todosItens = [];
   if (ids.length) {
-    const { data: itens } = await sb.from('pdv_itens').select('*').in('caixa_id', ids);
+    const { data: itens } = await qE('pdv_itens').select('*').in('caixa_id', ids);
     todosItens = itens || [];
   }
 
@@ -4861,12 +4861,12 @@ function abrirModalNovoCaixa() {
 async function editarCaixa(id) {
   _pdvCaixaId = id;
   document.getElementById('modal-pdv-titulo').textContent = 'Editar Caixa';
-  const { data: cx } = await sb.from('pdv_caixas').select('*').eq('id', id).single();
+  const { data: cx } = await qE('pdv_caixas').select('*').eq('id', id).single();
   if (!cx) return;
   document.getElementById('pdv-data').value = cx.data_caixa;
   document.getElementById('pdv-responsavel').value = cx.responsavel||'';
   document.getElementById('pdv-status').value = cx.status||'aberto';
-  const { data: itens } = await sb.from('pdv_itens').select('*').eq('caixa_id', id).order('created_at');
+  const { data: itens } = await qE('pdv_itens').select('*').eq('caixa_id', id).order('created_at');
   document.getElementById('pdv-itens-body').innerHTML = '';
   (itens||[]).forEach(item => adicionarLinhaPDV(item));
   calcTotaisPDV();
@@ -4983,10 +4983,10 @@ async function salvarCaixa() {
     if (error) { showToast('Erro: ' + error.message, 'error'); return; }
     await sb.from('pdv_itens').delete().eq('caixa_id', caixaId);
   } else {
-    const { data: novo, error } = await sb.from('pdv_caixas').insert({
+    const { data: novo, error } = await sb.from('pdv_caixas').insert(addEmpresaId({
       data_caixa, responsavel, status, total_entradas, total_saidas,
       created_by: usuario
-    }).select().single();
+    })).select().single();
     if (error) { showToast('Erro: ' + error.message, 'error'); return; }
     caixaId = novo.id;
   }
@@ -5010,7 +5010,7 @@ async function excluirCaixa(id) {
 }
 
 async function verAuditoriaPDV(id) {
-  const { data: cx } = await sb.from('pdv_caixas').select('*').eq('id', id).single();
+  const { data: cx } = await qE('pdv_caixas').select('*').eq('id', id).single();
   const el = document.getElementById('pdv-auditoria-body');
   if (!cx) return;
   el.innerHTML = `
@@ -5254,7 +5254,7 @@ async function loadDashboard() {
   // entradas/saidas preenchidos abaixo junto com os outros cards
 
   // ── 2. Dados de serviços ──────────────────────────────
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
   const tipoSrv  = (tipos||[]).find(t=>t.nome.toLowerCase().includes('servi')&&!t.nome.toLowerCase().includes('cliente'));
   const tipoProd = (tipos||[]).find(t=>t.nome.toLowerCase().includes('produto'));
 
@@ -5262,7 +5262,7 @@ async function loadDashboard() {
   const anoMes = mes ? `${ano}-${mes}` : ano;
 
   if (tipoSrv) {
-    const { data } = await sb.from('rel_servicos').select('*')
+    const { data } = await qE('rel_servicos').select('*')
       .gte('data_comanda', ini).lte('data_comanda', fim).limit(15000);
     srvRows = (data||[]);
     srvRows.forEach(r => {
@@ -5270,7 +5270,7 @@ async function loadDashboard() {
     });
   }
   if (tipoProd) {
-    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoProd.id).limit(5000);
+    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id',tipoProd.id).limit(5000);
     prodRows = (data||[]).map(r=>parseProdRow(r.colunas))
       .filter(r=>r.produto && r.data && r.data >= ini && r.data <= fim);
   }
@@ -5282,14 +5282,14 @@ async function loadDashboard() {
   const hojeStr0 = hoje0.toISOString().substring(0,10);
   let pdvDiarioEarly = {}, pdvTotCatEarly = {}, pdvHojeEarly = 0;
   try {
-    const { data: cxE } = await sb.from('pdv_caixas').select('id,data_caixa')
+    const { data: cxE } = await qE('pdv_caixas').select('id,data_caixa')
       .gte('data_caixa', ini).lte('data_caixa', fim);
     if (cxE?.length) {
       const cxDataE = {}; cxE.forEach(c => { cxDataE[c.id] = c.data_caixa; });
       const idsE = cxE.map(c => c.id);
       let itE = [];
       for(let i=0;i<idsE.length;i+=200){
-        const {data:l} = await sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id',idsE.slice(i,i+200));
+        const {data:l} = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id',idsE.slice(i,i+200));
         if(l?.length) itE = itE.concat(l);
       }
       const normE = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -5354,21 +5354,21 @@ async function loadDashboard() {
   // ── Indicadores do DRE (mesma lógica do relatório DRE) ────
   // Busca grupos e categorias do DRE para o mês/período atual
   try {
-    const { data: dreGrupos } = await sb.from('grupos_plano').select('*').eq('demonstrativo','DRE').order('ordem');
-    const { data: dreCats }   = await sb.from('plano_contas').select('*').eq('demonstrativo','DRE');
+    const { data: dreGrupos } = await qE('grupos_plano').select('*').eq('demonstrativo','DRE').order('ordem');
+    const { data: dreCats }   = await qE('plano_contas').select('*').eq('demonstrativo','DRE');
 
     if (dreGrupos?.length && dreCats?.length && lancs?.length) {
       // Agrega PDV para o período (mesmo cálculo do DRE)
       let pdvDRECat = {}; // { catNome|mes: valor }
       try {
-        const { data: cxDRE } = await sb.from('pdv_caixas').select('id,data_caixa')
+        const { data: cxDRE } = await qE('pdv_caixas').select('id,data_caixa')
           .gte('data_caixa', ini).lte('data_caixa', fim);
         if (cxDRE?.length) {
           const cxMes = {}; cxDRE.forEach(c => { cxMes[c.id] = c.data_caixa.substring(5,7); });
           const cxIds = cxDRE.map(c => c.id);
           let pdvIt = [];
           for(let i=0;i<cxIds.length;i+=200){
-            const {data:lt} = await sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id',cxIds.slice(i,i+200));
+            const {data:lt} = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id',cxIds.slice(i,i+200));
             if(lt?.length) pdvIt = pdvIt.concat(lt);
           }
           pdvIt.filter(it=>it.tipo==='ENTRADA').forEach(it=>{
@@ -5518,7 +5518,7 @@ async function loadDashboard() {
   let pdvHoje   = 0;  // soma PDV de hoje
 
   try {
-    const { data: caixasPDV } = await sb.from('pdv_caixas').select('id,data_caixa')
+    const { data: caixasPDV } = await qE('pdv_caixas').select('id,data_caixa')
       .gte('data_caixa', ini).lte('data_caixa', fim);
 
     if (caixasPDV?.length) {
@@ -5853,7 +5853,7 @@ async function loadDashboard() {
 
   try {
     // 1 query: todos os caixas dos 6 meses
-    const { data: cxAll } = await sb.from('pdv_caixas').select('id,data_caixa')
+    const { data: cxAll } = await qE('pdv_caixas').select('id,data_caixa')
       .gte('data_caixa', ini6).lte('data_caixa', fim6);
 
     if (cxAll?.length) {
@@ -6067,7 +6067,7 @@ async function confirmarImportePDV() {
   const dataFinal = dataCaixa || new Date().toISOString().substring(0,10);
   console.log('Salvando caixa:', { dataFinal, responsavel, total_entradas, total_saidas });
 
-  const { data: novo, error } = await sb.from('pdv_caixas').insert({
+  const { data: novo, error } = await sb.from('pdv_caixas').insert(addEmpresaId({
     data_caixa: dataFinal,
     responsavel: responsavel || '',
     status: 'fechado',
@@ -6075,7 +6075,7 @@ async function confirmarImportePDV() {
     total_saidas: Number(total_saidas)||0,
     created_by: usuario,
     origem_arquivo: 'importado'
-  }).select('id').single();
+  })).select('id').single();
 
   if (error) { 
     showToast('Erro: ' + error.message, 'error'); 
@@ -6133,7 +6133,7 @@ async function salvarCategoriaPDV() {
   const nome = document.getElementById('nova-cat-pdv').value.trim();
   const tipo = document.getElementById('nova-cat-pdv-tipo').value;
   if (!nome) return;
-  const { error } = await sb.from('pdv_categorias').insert({ nome, tipo });
+  const { error } = await sb.from('pdv_categorias').insert(addEmpresaId({ nome, tipo }));
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   document.getElementById('nova-cat-pdv').value = '';
   await carregarCategoriasPDV();
@@ -6152,7 +6152,7 @@ async function excluirCategoriaPDV(id) {
 
 // ─── LANÇAMENTOS ────────────────────────────────────────
 async function carregarBancos() {
-  const { data } = await sb.from('bancos_cadastrados').select('*').order('nome');
+  const { data } = await qE('bancos_cadastrados').select('*').order('nome');
   _bancos = data || [];
   const opts = _bancos.map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
 
@@ -6176,7 +6176,7 @@ async function initLancamentos() {
   await carregarBancos();
 
   // Sempre busca categorias frescas do banco
-  const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
+  const { data: cats } = await qE('plano_contas').select('*').order('codigo');
   _categorias = cats || [];
 
   // Agrupa categorias por nome — mesclando DFC e DRE
@@ -6202,7 +6202,7 @@ async function initLancamentos() {
   }
 
   // Carrega fornecedores para reconhecimento
-  const { data: forns } = await sb.from('fornecedores').select('*');
+  const { data: forns } = await qE('fornecedores').select('*');
   _fornecedores = forns || [];
 
   // Data padrão = hoje
@@ -6235,7 +6235,7 @@ async function loadLancamentos() {
   el.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
 
   // Busca lançamentos — filtra por banco direto no Supabase
-  let q = sb.from('lancamentos').select('*')
+  let q = qE('lancamentos').select('*')
     .gte('data_lancamento', ini)
     .lte('data_lancamento', fim)
     .order('data_lancamento', {ascending: false})
@@ -6251,7 +6251,7 @@ async function loadLancamentos() {
   if (bancoFilter) {
     const bancoNomeF = (_bancos.find(b => b.id === bancoFilter)?.nome || '').toLowerCase();
     // busca os sem banco_id mas com banco_nome correspondente
-    const { data: porNome } = await sb.from('lancamentos').select('*')
+    const { data: porNome } = await qE('lancamentos').select('*')
       .gte('data_lancamento', ini).lte('data_lancamento', fim)
       .is('banco_id', null)
       .ilike('banco_nome', bancoNomeF);
@@ -6442,7 +6442,7 @@ function filtrarCategoriasPorTipo(tipo) {
 async function abrirDropdownCategoria() {
   // Se categorias ainda não carregaram, busca agora
   if (!_categorias.length) {
-    const { data } = await sb.from('plano_contas').select('*').order('codigo');
+    const { data } = await qE('plano_contas').select('*').order('codigo');
     _categorias = data || [];
     filtrarCategoriasPorTipo(_tipoLanc);
   }
@@ -6665,7 +6665,7 @@ fornecedorBate(f, desc)
     const catDfc = match?.categoria_dfc || '';
     const catDre = match?.categoria_dre || '';
 
-    const { error } = await sb.from('lancamentos').insert({
+    const { error } = await sb.from('lancamentos').insert(addEmpresaId({
       data_lancamento: r.data,
       extrato: desc,
       descricao: '',
@@ -6680,7 +6680,7 @@ fornecedorBate(f, desc)
       banco_nome: bancoNome,
       mes: meses[parseInt(m)-1]?.toUpperCase(),
       status: 'pago',
-    });
+    }));
     if (error) erros++; else count++;
   }
 
@@ -6858,8 +6858,8 @@ async function loadDocumentos() {
 
   grid.innerHTML = '<div style="padding:1rem;text-align:center;font-size:12px;color:var(--text3)"><div class="spin" style="margin:0 auto 8px"></div></div>';
 
-  let qPastas = sb.from('documentos_fiscais').select('*').eq('tipo','pasta').order('fornecedor');
-  let qArqs   = sb.from('documentos_fiscais').select('*').neq('tipo','pasta').order('created_at',{ascending:false});
+  let qPastas = qE('documentos_fiscais').select('*').eq('tipo','pasta').order('fornecedor');
+  let qArqs   = qE('documentos_fiscais').select('*').neq('tipo','pasta').order('created_at',{ascending:false});
 
   if (_docPastaAtual) {
     qPastas = qPastas.eq('conta_pagar_id', _docPastaAtual);
@@ -6961,11 +6961,11 @@ function atualizarSelectPastaModal(pastas) {
 async function criarPastaDoc() {
   const nomePasta = document.getElementById('doc-pasta-nova')?.value.trim();
   if (!nomePasta) { showToast('Digite o nome da pasta','error'); return; }
-  const { error } = await sb.from('documentos_fiscais').insert({
+  const { error } = await sb.from('documentos_fiscais').insert(addEmpresaId({
     tipo: 'pasta',
     fornecedor: nomePasta,
     conta_pagar_id: _docPastaAtual || null
-  });
+  }));
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   document.getElementById('doc-pasta-nova').value = '';
   showToast('Pasta criada!','success');
@@ -7013,14 +7013,14 @@ async function uploadDocumentos(files) {
       const tipo = ext === 'pdf' ? (file.name.toLowerCase().includes('nf') || file.name.toLowerCase().includes('nota') ? 'nfe' : 'boleto') : ext;
 
       // Salva metadado no banco
-      await sb.from('documentos_fiscais').insert({
+      await sb.from('documentos_fiscais').insert(addEmpresaId({
         tipo,
         numero_nf: file.name.replace(/\.[^.]+$/, ''), // nome sem extensão
         fornecedor: file.name,
         arquivo_url: url,
         conta_pagar_id: _docPastaAtual || null,
         data_emissao: new Date().toISOString().substring(0,10)
-      });
+      }));
       ok++;
     } catch(e) { console.warn(e); }
   }
@@ -7037,7 +7037,7 @@ async function loadContasPagar() {
 
   const anoNum = parseInt(ano);
   const mesNum = mes ? parseInt(mes) : null;
-  let q = sb.from('contas_pagar').select('*').order('data_vencimento');
+  let q = qE('contas_pagar').select('*').order('data_vencimento');
   if (mesNum) {
     const ultimoDia = new Date(anoNum, mesNum, 0).getDate();
     const ini = `${ano}-${mes.padStart(2,'0')}-01`;
@@ -7244,10 +7244,10 @@ async function importarTodosClientes(input) {
     })).filter(r => r.nome);
 
     // Salva no Supabase
-    const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+    const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
     let tipo = tipos?.find(t => t.nome.toLowerCase().includes('todos os clientes') || t.nome.toLowerCase() === 'clientes');
     if (!tipo) {
-      const { data: novo } = await sb.from('rel_tipos').insert({nome:'Clientes', descricao:'Relatório de todos os clientes do período'}).select().single();
+      const { data: novo } = await sb.from('rel_tipos').insert(addEmpresaId({nome:'Clientes', descricao:'Relatório de todos os clientes do período'})).select().single();
       tipo = novo;
     }
     if (tipo) {
@@ -7285,10 +7285,10 @@ async function importarClientesNovos(input) {
     })).filter(r => r.nome);
 
     // Salva no Supabase
-    const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+    const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
     let tipo = tipos?.find(t => t.nome.toLowerCase().includes('clientes novos') || t.nome.toLowerCase().includes('cliente novo'));
     if (!tipo) {
-      const { data: novo } = await sb.from('rel_tipos').insert({nome:'Clientes Novos', descricao:'Relatório de novos cadastros'}).select().single();
+      const { data: novo } = await sb.from('rel_tipos').insert(addEmpresaId({nome:'Clientes Novos', descricao:'Relatório de novos cadastros'})).select().single();
       tipo = novo;
     }
     if (tipo) {
@@ -7338,7 +7338,7 @@ async function initClientes() {
     return null;
   };
 
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
   if (!tipos?.length) { renderClientesPage(); return; }
 
   // ── Clientes (todos) — tem "Última Visita", "Total Consumido" ─
@@ -7350,7 +7350,7 @@ async function initClientes() {
   if (tipoTodos) {
     let all = [], from = 0;
     while (true) {
-      const { data } = await sb.from('rel_dados_brutos').select('colunas')
+      const { data } = await qE('rel_dados_brutos').select('colunas')
         .eq('tipo_id', tipoTodos.id).range(from, from + 999);
       if (!data?.length) break;
       all = all.concat(data);
@@ -7379,7 +7379,7 @@ async function initClientes() {
   if (tipoNovos) {
     let all = [], from = 0;
     while (true) {
-      const { data } = await sb.from('rel_dados_brutos').select('colunas')
+      const { data } = await qE('rel_dados_brutos').select('colunas')
         .eq('tipo_id', tipoNovos.id).range(from, from + 999);
       if (!data?.length) break;
       all = all.concat(data);
@@ -7416,11 +7416,11 @@ async function loadLucratividade() {
   const catFiltro  = el('luc-cat')?.value  || '';
 
   // Busca dados
-  let q = sb.from('rel_lucratividade').select('*')
+  let q = qE('rel_lucratividade').select('*')
     .gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
   if (mes) {
     const ultimo = new Date(parseInt(ano), parseInt(mes), 0).getDate();
-    q = sb.from('rel_lucratividade').select('*')
+    q = qE('rel_lucratividade').select('*')
       .gte('data_comanda', `${ano}-${mes}-01`)
       .lte('data_comanda', `${ano}-${mes}-${String(ultimo).padStart(2,'0')}`);
   }
@@ -8156,7 +8156,7 @@ async function loadProdutos() {
   const cat  = document.getElementById('prod-categoria')?.value || '';
 
   // Busca tipo "Produtos" no Supabase
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo', true);
+  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo', true);
   const tipoProd = (tipos||[]).find(t => t.nome.toLowerCase().includes('produto'));
 
   let rows = [];
@@ -8374,10 +8374,10 @@ let _perfChartProf = null;
 
 async function initPerformance() {
   // Preenche filtros de ano e profissional
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
   const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
   if (tipoSrv) {
-    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', tipoSrv.id).limit(15000);
+    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoSrv.id).limit(15000);
     const rows = (data||[]).map(r => parseSrvRow(r.colunas));
     const anos  = [...new Set(rows.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
     const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
@@ -8395,12 +8395,12 @@ async function loadPerformance() {
   const prof = document.getElementById('perf-prof')?.value || '';
   const el   = id => document.getElementById(id);
 
-  const { data: tipos } = await sb.from('rel_tipos').select('id,nome').eq('ativo',true);
+  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
   const tipoSrv = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
 
   let rows = [];
   if (tipoSrv) {
-    const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id',tipoSrv.id).limit(15000);
+    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id',tipoSrv.id).limit(15000);
     rows = (data||[]).map(r => parseSrvRow(r.colunas)).filter(r => r.servico || r.profissional);
   }
 
@@ -8718,7 +8718,7 @@ async function saveLancamento() {
   const pagto = document.getElementById('lanc-pagto').value;
   const status = document.getElementById('lanc-status').value;
   if (!desc||!valor||!data) { showToast('Preencha todos os campos','error'); return; }
-  const { error } = await sb.from('lancamentos').insert({ descricao:desc, valor, data_lancamento:data, tipo:currentTipo, categoria:cat, forma_pagamento:pagto, status });
+  const { error } = await sb.from('lancamentos').insert(addEmpresaId({ descricao:desc, valor, data_lancamento:data, tipo:currentTipo, categoria:cat, forma_pagamento:pagto, status }));
   if (error) { showToast('Erro ao salvar','error'); return; }
   showToast('Lançamento salvo!','success');
   closeModal('modal-lanc');
@@ -8735,7 +8735,7 @@ async function saveContaPagar() {
   const receb = document.getElementById('cp-receb').value;
   const mes = document.getElementById('cp-mes-form').value;
   if (!desc||!valor||!venc) { showToast('Preencha todos os campos','error'); return; }
-  const { error } = await sb.from('contas_pagar').insert({ descricao:desc, valor, data_vencimento:venc, tipo, recebido:receb, mes, status:'Não pago' });
+  const { error } = await sb.from('contas_pagar').insert(addEmpresaId({ descricao:desc, valor, data_vencimento:venc, tipo, recebido:receb, mes, status:'Não pago' }));
   if (error) { showToast('Erro ao salvar','error'); return; }
   showToast('Conta salva!','success');
   closeModal('modal-cp');
@@ -8845,7 +8845,7 @@ async function toggleFormFornecedor() {
   f.style.display = abrindo ? 'block' : 'none';
   if (abrindo) {
     // Sempre busca categorias frescas do banco
-    const { data } = await sb.from('plano_contas').select('*').order('codigo');
+    const { data } = await qE('plano_contas').select('*').order('codigo');
     _categorias = data || [];
 
     // Limpa todos os campos
@@ -8863,7 +8863,7 @@ async function toggleFormFornecedor() {
 
 async function carregarCatsFornecedor() {
   // Sempre busca do banco — nunca usa cache
-  const { data } = await sb.from('plano_contas').select('*').order('codigo');
+  const { data } = await qE('plano_contas').select('*').order('codigo');
   _categorias = data || [];
 }
 
@@ -8872,7 +8872,7 @@ function buscarCatConta(texto) {
   if (!dd) return;
   const termo = (texto||'').toLowerCase().trim();
   if (!_categorias.length) {
-    sb.from('plano_contas').select('*').order('codigo').then(({data}) => {
+    qE('plano_contas').select('*').order('codigo').then(({data}) => {
       _categorias = data || [];
       buscarCatConta(texto);
     });
@@ -8931,7 +8931,7 @@ function selecionarCatForn(tipo, nome, codigo) {
 }
 
 async function editarFornecedorForm(id) {
-  const { data: f } = await sb.from('fornecedores').select('*').eq('id', id).single();
+  const { data: f } = await qE('fornecedores').select('*').eq('id', id).single();
   if (!f) return;
   await carregarCatsFornecedor();
   document.getElementById('forn-nome').value = f.nome || '';
@@ -8956,7 +8956,7 @@ async function editarFornecedorForm(id) {
 async function loadFornecedores() {
   const el = document.getElementById('forn-table');
   if (!el) return;
-  const { data } = await sb.from('fornecedores').select('*').order('nome');
+  const { data } = await qE('fornecedores').select('*').order('nome');
   if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
   let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody>';
   data.forEach(r => {
@@ -9015,7 +9015,7 @@ async function openModal(id) {
 }
 
 async function loadGruposSelect(selectId, demo) {
-  const { data } = await sb.from('grupos_plano').select('*').order('ordem');
+  const { data } = await qE('grupos_plano').select('*').order('ordem');
   const sel = document.getElementById(selectId);
   const filtrado = demo
     ? (data||[]).filter(g => g.demonstrativo === demo || g.demonstrativo === 'AMBOS')
@@ -9030,11 +9030,11 @@ async function previewCodigo() {
   if (!grupoId) { preview.textContent = '—'; return; }
 
   // Busca ordem e nome do grupo
-  const { data: grp } = await sb.from('grupos_plano').select('ordem,nome,demonstrativo').eq('id', grupoId).single();
+  const { data: grp } = await qE('grupos_plano').select('ordem,nome,demonstrativo').eq('id', grupoId).single();
   if (!grp) { preview.textContent = '—'; return; }
 
   // Conta categorias já nesse grupo
-  const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', grp.nome).eq('demonstrativo', grp.demonstrativo);
+  const { data: cats } = await qE('plano_contas').select('id').eq('grupo', grp.nome).eq('demonstrativo', grp.demonstrativo);
   const proximo = (cats?.length || 0) + 1;
   const codigo = `${grp.ordem}.${proximo}`;
 
@@ -9056,7 +9056,7 @@ async function saveFornecedor() {
   const id = document.getElementById('forn-codigo').value;
 
   // Verifica duplicata por nome EXATO (não parcial)
-  const { data: existeNome } = await sb.from('fornecedores').select('id,nome').ilike('nome', nome);
+  const { data: existeNome } = await qE('fornecedores').select('id,nome').ilike('nome', nome);
   const dupNome = existeNome?.filter(f => f.id !== id && f.nome.toLowerCase() === nome.toLowerCase());
   if (dupNome?.length) {
     showToast(`⚠ Já existe um fornecedor com o nome "${dupNome[0].nome}"`, 'error');
@@ -9066,7 +9066,7 @@ async function saveFornecedor() {
   // Verifica duplicata por CNPJ/CPF
   if (cnpj) {
     const cnpjLimpo = cnpj.replace(/\D/g,'');
-    const { data: existeCnpj } = await sb.from('fornecedores').select('id,nome,cnpj').not('cnpj','is',null);
+    const { data: existeCnpj } = await qE('fornecedores').select('id,nome,cnpj').not('cnpj','is',null);
     const dupCnpj = existeCnpj?.filter(f => f.id !== id && f.cnpj?.replace(/\D/g,'') === cnpjLimpo);
     if (dupCnpj?.length) {
       showToast(`⚠ CPF/CNPJ já cadastrado para "${dupCnpj[0].nome}"`, 'error');
@@ -9078,7 +9078,7 @@ async function saveFornecedor() {
   // Gera código automático para novo fornecedor
   let codigo = undefined;
   if (isNovo) {
-    const { count } = await sb.from('fornecedores').select('*', {count:'exact',head:true});
+    const { count } = await qE('fornecedores').select('*', {count:'exact',head:true});
     codigo = `F${String((count||0)+1).padStart(4,'0')}`;
   }
 
@@ -9118,8 +9118,8 @@ async function loadPlanoContas() {
   elDfc.innerHTML = '<div class="loading"><div class="spin"></div></div>';
   elDre.innerHTML = '<div class="loading"><div class="spin"></div></div>';
 
-  const { data: grupos } = await sb.from('grupos_plano').select('*').order('ordem');
-  const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
+  const { data: grupos } = await qE('grupos_plano').select('*').order('ordem');
+  const { data: cats } = await qE('plano_contas').select('*').order('codigo');
 
   _grupos = grupos || [];
 
@@ -9198,10 +9198,10 @@ function adicionarCategoriaNoGrupo(gid, gNome, demo, ordem) {
 async function salvarNovaCategoria(gid, gNome, demo, ordem, totalAtual) {
   const nome = document.getElementById('nova-cat-nome-' + gid).value.trim();
   if (!nome) { showToast('Digite o nome','error'); return; }
-  const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', gNome).eq('demonstrativo', demo);
+  const { data: cats } = await qE('plano_contas').select('id').eq('grupo', gNome).eq('demonstrativo', demo);
   const codigo = `${ordem}.${(cats?.length||0)+1}`;
   const tipo = demo === 'DFC' ? (ordem <= 2 ? 'ENTRADA' : 'SAIDA') : (ordem === 1 || ordem === 8 ? 'ENTRADA' : 'SAIDA');
-  const { error } = await sb.from('plano_contas').insert({ codigo, nome, tipo, demonstrativo: demo, grupo: gNome, ordem: (cats?.length||0)+1 });
+  const { error } = await sb.from('plano_contas').insert(addEmpresaId({ codigo, nome, tipo, demonstrativo: demo, grupo: gNome, ordem: (cats?.length||0)+1 }));
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('Categoria adicionada!','success');
   document.getElementById('nova-cat-' + gid).style.display = 'none';
@@ -9210,7 +9210,7 @@ async function salvarNovaCategoria(gid, gNome, demo, ordem, totalAtual) {
 }
 
 async function moverCategoria(id, dir, grupo, demo) {
-  const { data: cats } = await sb.from('plano_contas').select('*').eq('grupo', grupo).eq('demonstrativo', demo).order('codigo');
+  const { data: cats } = await qE('plano_contas').select('*').eq('grupo', grupo).eq('demonstrativo', demo).order('codigo');
   const idx = cats.findIndex(c => c.id === id);
   const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
   if (swapIdx < 0 || swapIdx >= cats.length) return;
@@ -9233,7 +9233,7 @@ async function salvarCategoriaInline(id, rowId) {
   const novoNome   = inpArr[1]?.value.trim() || '';
   if (!novoNome) { showToast('Nome obrigatório','error'); return; }
   const payload = { codigo: novoCodigo, nome: novoNome };
-  const { data: ant } = await sb.from('plano_contas').select('nome').eq('id', id).single();
+  const { data: ant } = await qE('plano_contas').select('nome').eq('id', id).single();
   const { error } = await sb.from('plano_contas').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   // Atualiza lançamentos que usam o nome antigo
@@ -9274,7 +9274,7 @@ async function saveGrupo() {
     cor: document.getElementById('grp-cor').value,
   };
   if (editId) {
-    const { data: ant } = await sb.from('grupos_plano').select('nome').eq('id', editId).single();
+    const { data: ant } = await qE('grupos_plano').select('nome').eq('id', editId).single();
     await sb.from('grupos_plano').update(payload).eq('id', editId);
     if (ant?.nome && ant.nome !== nome) {
       await sb.from('plano_contas').update({ grupo: nome }).eq('grupo', ant.nome);
@@ -9299,7 +9299,7 @@ async function excluirGrupo(id) {
 // Abre modal de categoria para editar — busca dados direto do banco
 async function abrirEditarCategoria(btn) {
   const cid = btn.dataset.cid;
-  const { data: c } = await sb.from('plano_contas').select('*').eq('id', cid).single();
+  const { data: c } = await qE('plano_contas').select('*').eq('id', cid).single();
   if (!c) return;
 
   document.getElementById('cat-tipo').value = c.tipo;
@@ -9353,13 +9353,13 @@ async function saveCategoria() {
     // Mantém código original ao editar
     codigo = document.getElementById('modal-categoria').dataset.codigoOriginal || '';
     // Se mudou de grupo, recalcula
-    const { data: orig } = await sb.from('plano_contas').select('grupo').eq('id', editId).single();
+    const { data: orig } = await qE('plano_contas').select('grupo').eq('id', editId).single();
     if (orig?.grupo !== grupoNome) {
-      const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo).neq('id', editId);
+      const { data: cats } = await qE('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo).neq('id', editId);
       codigo = `${grupoOrdem}.${(cats?.length || 0) + 1}`;
     }
   } else {
-    const { data: cats } = await sb.from('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo);
+    const { data: cats } = await qE('plano_contas').select('id').eq('grupo', grupoNome).eq('demonstrativo', demo);
     codigo = `${grupoOrdem}.${(cats?.length || 0) + 1}`;
   }
 
@@ -9368,7 +9368,7 @@ async function saveCategoria() {
   let error;
   if (editId) {
     // Atualiza cascata se nome mudou
-    const { data: ant } = await sb.from('plano_contas').select('nome').eq('id', editId).single();
+    const { data: ant } = await qE('plano_contas').select('nome').eq('id', editId).single();
     const res = await sb.from('plano_contas').update(payload).eq('id', editId);
     error = res.error;
     if (!error && ant?.nome && ant.nome !== nome) {
@@ -9402,7 +9402,7 @@ async function excluirCategoria(id) {
 async function loadBancos() {
   const el = document.getElementById('bancos-grid');
   if (!el) return;
-  const { data } = await sb.from('bancos_cadastrados').select('*').order('nome');
+  const { data } = await qE('bancos_cadastrados').select('*').order('nome');
   if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum banco cadastrado</div>'; return; }
   const bancos = ['Itaú','Stone','C6 Bank','Nubank','Bradesco','Santander','Caixa Econômica','Banco do Brasil','Inter','PicPay','Sicoob','Outro'];
   const tipos = ['Conta Corrente','Poupança','Caixa Físico','PIX'];
@@ -9465,11 +9465,11 @@ async function salvarBancoInline(id, rowId) {
     } else {
       // Cria se não existia
       const mes = new Date(dataSaldo).toLocaleString('pt-BR',{month:'long'}).toUpperCase();
-      await sb.from('lancamentos').insert({
+      await sb.from('lancamentos').insert(addEmpresaId({
         data_lancamento: dataSaldo, extrato: descricao, descricao,
         entrada: saldo, valor: saldo, tipo: 'ENTRADA',
         categoria: 'Saldo Inicial', banco_id: id, banco_nome: nome, mes, status: 'pago',
-      });
+      }));
     }
   }
 
@@ -9513,14 +9513,14 @@ async function saveBanco() {
   } else if (!editId && saldo > 0 && dataSaldo) {
     // Novo banco — cria lançamento automático
     const mes = new Date(dataSaldo).toLocaleString('pt-BR',{month:'long'}).toUpperCase();
-    await sb.from('lancamentos').insert({
+    await sb.from('lancamentos').insert(addEmpresaId({
       data_lancamento: dataSaldo,
       extrato: `Saldo inicial — ${nome}`,
       descricao: `Saldo inicial — ${nome}`,
       entrada: saldo, saida: null, valor: saldo, tipo: 'ENTRADA',
       categoria: 'Saldo Inicial', categoria_dfc: '', categoria_dre: '',
       banco_id: saved.id, banco_nome: nome, mes, status: 'pago',
-    });
+    }));
     showToast('Banco salvo e saldo lançado!','success');
   } else {
     showToast('Banco salvo!','success');
@@ -9724,7 +9724,7 @@ function toggleInline(rowId) {
         buscaCatInline(catInput.value, lancId);
       };
       if (!_categorias.length) {
-        sb.from('plano_contas').select('*').order('codigo').then(({data}) => {
+        qE('plano_contas').select('*').order('codigo').then(({data}) => {
           _categorias = data || [];
           setTimeout(abrirDropdown, 150);
         });
@@ -10514,7 +10514,7 @@ function parseDataBR(val) {
 
 async function preencherFiltrosServicos() {
   // Lê direto de rel_servicos — colunas certas garantidas
-  const { data } = await sb.from('rel_servicos').select('profissional,categoria,data_comanda');
+  const { data } = await qE('rel_servicos').select('profissional,categoria,data_comanda');
   const rows = data || [];
 
   const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
@@ -10547,7 +10547,7 @@ async function loadProjecaoDRE() {
   container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
 
   // Carrega apenas categorias do DRE
-  const { data: cats, error: errCats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
+  const { data: cats, error: errCats } = await qE('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
   if (errCats || !cats?.length) {
     container.innerHTML = '<div class="empty" style="padding:1.5rem">Nenhuma categoria cadastrada no Plano de Contas.</div>';
     return;
@@ -10695,9 +10695,9 @@ async function loadDFC() {
   const ano = document.getElementById('dfc-ano')?.value || '2026';
   const mesFiltro = document.getElementById('dfc-mes')?.value || '';
 
-  const { data: grupos } = await sb.from('grupos_plano').select('*').eq('demonstrativo','DFC').order('ordem');
-  const { data: cats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DFC').order('codigo');
-  const { data: lancs } = await sb.from('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+  const { data: grupos } = await qE('grupos_plano').select('*').eq('demonstrativo','DFC').order('ordem');
+  const { data: cats } = await qE('plano_contas').select('*').eq('demonstrativo','DFC').order('codigo');
+  const { data: lancs } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
 
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DFC no Plano de Contas</div>'; return; }
 
@@ -10710,7 +10710,7 @@ async function loadDFC() {
       .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
   }
 
-  const { data: bancos } = await sb.from('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
+  const { data: bancos } = await qE('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
   const saldoInicialTotal = (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
 
   // Pré-calcula por grupo
@@ -10851,16 +10851,16 @@ async function loadDRE() {
   const mesFiltro = document.getElementById('dre-mes')?.value || '';
   const modo = document.getElementById('dre-modo')?.value || 'realizado';
 
-  const { data: grupos } = await sb.from('grupos_plano').select('*').eq('demonstrativo','DRE').order('ordem');
-  const { data: cats } = await sb.from('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
-  const { data: lancs } = await sb.from('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+  const { data: grupos } = await qE('grupos_plano').select('*').eq('demonstrativo','DRE').order('ordem');
+  const { data: cats } = await qE('plano_contas').select('*').eq('demonstrativo','DRE').order('codigo');
+  const { data: lancs } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
 
   // Busca PDV: pdv_caixas (data) + pdv_itens (forma_pagamento = nome categoria, valor, tipo)
   // Agrega por: forma_pagamento (nome exato da categoria PDV) + mês
   // { "NomeCategoria|MM": valor }
   let pdvPorCatMes = {};
   try {
-    const { data: caixas } = await sb.from('pdv_caixas').select('id,data_caixa')
+    const { data: caixas } = await qE('pdv_caixas').select('id,data_caixa')
       .gte('data_caixa',`${ano}-01-01`).lte('data_caixa',`${ano}-12-31`);
     if (caixas?.length) {
       const caixaMes = {};
@@ -11158,7 +11158,7 @@ function abrirModalConta(tipo) {
   // Popula select de pasta
   const selPasta = document.getElementById('ct-pasta-sel');
   if (selPasta) {
-    sb.from('documentos_fiscais').select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id',null).order('fornecedor')
+    qE('documentos_fiscais').select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id',null).order('fornecedor')
       .then(({data}) => {
         selPasta.innerHTML = '<option value="">— Não arquivar —</option>' +
           (data||[]).map(p=>`<option value="${p.id}">${p.fornecedor}</option>`).join('');
@@ -11166,7 +11166,7 @@ function abrirModalConta(tipo) {
   }
   document.getElementById('modal-conta').classList.add('open');
   if (!_categorias.length) {
-    sb.from('plano_contas').select('*').order('codigo').then(({data}) => { _categorias = data || []; });
+    qE('plano_contas').select('*').order('codigo').then(({data}) => { _categorias = data || []; });
   }
 }
 
@@ -11546,7 +11546,7 @@ async function salvarConta() {
         const ext = fileAnex.name.split('.').pop().toLowerCase();
         // Pega parcela info do nome da conta (ex: "AR2M (1/3)")
         const parcelaMatch = nome.match(/\((\d+\/\d+)\)/);
-        await sb.from('documentos_fiscais').insert({
+        await sb.from('documentos_fiscais').insert(addEmpresaId({
           tipo: ext === 'pdf' ? 'pdf' : ext,
           fornecedor: nome,  // nome da conta (não o arquivo)
           numero_nf: numeroNF || null,
@@ -11556,7 +11556,7 @@ async function salvarConta() {
           arquivo_url: urlData?.publicUrl || '',
           conta_pagar_id: pastaId,
           data_emissao: venc || new Date().toISOString().substring(0,10)
-        });
+        }));
         showToast('Documento arquivado na pasta!', 'success');
       }
     } catch(e) { console.warn('arquivar:', e); }
@@ -11575,7 +11575,7 @@ async function loadContasReceber() {
 
   const anoNumR = parseInt(ano);
   const mesNumR = mes ? parseInt(mes) : null;
-  let qR = sb.from('contas_receber').select('*').order('data_vencimento');
+  let qR = qE('contas_receber').select('*').order('data_vencimento');
   if (mesNumR) {
     const ini = `${ano}-${mes.padStart(2,'0')}-01`;
     const ultimoDia = new Date(anoNumR, mesNumR, 0).getDate();
@@ -11894,7 +11894,7 @@ async function loadMetricas() {
   const mesNome = MESES_NOMES[mesIdx];
 
   // Busca meta financeira do mês
-  const { data: todasMetFin } = await sb.from('metas_financeiras').select('*').eq('ano', ano);
+  const { data: todasMetFin } = await qE('metas_financeiras').select('*').eq('ano', ano);
   const metaFin = (todasMetFin||[]).find(m => Number(m.mes) === parseInt(mes));
   const metaMes = Number(metaFin?.meta || 0);
   const diasAbertos = Number(metaFin?.dias_abertos || 0);
@@ -11903,7 +11903,7 @@ async function loadMetricas() {
   const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate();
   const ini = `${ano}-${mes}-01`;
   const fim = `${ano}-${mes}-${String(ultimoDia).padStart(2,'0')}`;
-  const { data: lancsM } = await sb.from('lancamentos').select('entrada').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
+  const { data: lancsM } = await qE('lancamentos').select('entrada').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
   const realizado = (lancsM||[]).reduce((s,l)=>s+Number(l.entrada||0),0);
 
   // Dias restantes baseado nos dias que o salão abre
@@ -11944,7 +11944,7 @@ async function loadMetricas() {
 }
 
 async function loadProfissionaisMetricas(mes, ano, ini, fim) {
-  const { data: profs } = await sb.from('profissionais').select('*').order('nome');
+  const { data: profs } = await qE('profissionais').select('*').order('nome');
   const el = document.getElementById('met-profissionais-table');
   if (!profs?.length) {
     el.innerHTML = '<div class="empty">Nenhum profissional cadastrado.<br>Clique em "+ Profissional" para adicionar.</div>';
@@ -11952,8 +11952,8 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   }
 
   // Busca metas e realizados
-  const { data: metas } = await sb.from('metas_profissionais').select('*').eq('ano', ano).eq('mes', mes);
-  const { data: lancsProf } = await sb.from('lancamentos').select('entrada,descricao,extrato').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
+  const { data: metas } = await qE('metas_profissionais').select('*').eq('ano', ano).eq('mes', mes);
+  const { data: lancsProf } = await qE('lancamentos').select('entrada,descricao,extrato').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
 
   const metaMap = {};
   (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
@@ -12037,7 +12037,7 @@ function abrirModalProfissional(prof = null) {
   // Se editando, busca metas
   if (prof?.id) {
     const ano = document.getElementById('met-ano')?.value || '2026';
-    sb.from('metas_profissionais').select('*').eq('profissional_id', prof.id).eq('ano', ano).then(({data}) => {
+    qE('metas_profissionais').select('*').eq('profissional_id', prof.id).eq('ano', ano).then(({data}) => {
       (data||[]).forEach(m => {
         const inp = document.getElementById(`prof-meta-${m.mes}`);
         if (inp) inp.value = m.meta;
@@ -12048,7 +12048,7 @@ function abrirModalProfissional(prof = null) {
 }
 
 async function editarProfissional(id) {
-  const { data } = await sb.from('profissionais').select('*').eq('id', id).single();
+  const { data } = await qE('profissionais').select('*').eq('id', id).single();
   if (data) abrirModalProfissional(data);
 }
 
@@ -12064,7 +12064,7 @@ async function salvarProfissional() {
   if (id) {
     await sb.from('profissionais').update({ nome, cargo, comissao }).eq('id', id);
   } else {
-    const { data } = await sb.from('profissionais').insert({ nome, cargo, comissao }).select().single();
+    const { data } = await sb.from('profissionais').insert(addEmpresaId({ nome, cargo, comissao })).select().single();
     profId = data?.id;
   }
 
@@ -12092,7 +12092,7 @@ async function excluirProfissional(id) {
 
 async function abrirModalMetaFinanceira() {
   const ano = document.getElementById('met-ano')?.value || '2026';
-  const { data: metas } = await sb.from('metas_financeiras').select('*').eq('ano', ano);
+  const { data: metas } = await qE('metas_financeiras').select('*').eq('ano', ano);
   const metaMap = {};
   (metas||[]).forEach(m => { metaMap[m.mes] = { meta: m.meta, dias: m.dias_abertos || 0 }; });
 
@@ -12250,11 +12250,11 @@ async function processarExcelMapeado() {
 
   // Garante fornecedores e categorias
   if (!_fornecedores.length) {
-    const { data } = await sb.from('fornecedores').select('*');
+    const { data } = await qE('fornecedores').select('*');
     _fornecedores = data || [];
   }
   if (!_categorias.length) {
-    const { data } = await sb.from('plano_contas').select('*').order('codigo');
+    const { data } = await qE('plano_contas').select('*').order('codigo');
     _categorias = data || [];
   }
 
@@ -12372,11 +12372,11 @@ async function iniciarConciliacao() {
 
   // Garante que fornecedores e categorias estão carregados
   if (!_fornecedores.length) {
-    const { data: forns } = await sb.from('fornecedores').select('*');
+    const { data: forns } = await qE('fornecedores').select('*');
     _fornecedores = forns || [];
   }
   if (!_categorias.length) {
-    const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
+    const { data: cats } = await qE('plano_contas').select('*').order('codigo');
     _categorias = cats || [];
   }
 
@@ -12551,10 +12551,10 @@ async function conciliarLinha(idx) {
   const usuario = (await sb.auth.getUser())?.data?.user?.email || 'sistema';
 
   // Conta quantos já foram salvos para gerar código sequencial
-  const { count: total } = await sb.from('lancamentos').select('*', {count:'exact',head:true});
+  const { count: total } = await qE('lancamentos').select('*', {count:'exact',head:true});
   const codigo = `${ano}${m.padStart(2,'0')}${String((total||0)+1).padStart(4,'0')}`;
 
-  const { error } = await sb.from('lancamentos').insert({
+  const { error } = await sb.from('lancamentos').insert(addEmpresaId({
     codigo,
     data_lancamento: r.data,
     extrato: r.extrato,
@@ -12575,7 +12575,7 @@ async function conciliarLinha(idx) {
     origem_arquivo: _concFile?.name || '',
     criado_por: usuario,
     criado_em: agora,
-  });
+  }));
 
   if (error) { showToast('Erro: '+error.message,'error'); return; }
 
@@ -12612,7 +12612,7 @@ async function concluirTodos() {
 
 // Auditoria — mostra de onde veio o lançamento
 async function verAuditoria(id) {
-  const { data: l } = await sb.from('lancamentos').select('*').eq('id', id).single();
+  const { data: l } = await qE('lancamentos').select('*').eq('id', id).single();
   if (!l) return;
   const content = document.getElementById('auditoria-content');
   content.innerHTML = `
@@ -12819,9 +12819,9 @@ async function atualizarLancamentos() {
 }
 
 async function atualizarFornecedores() {
-  const { data: cats } = await sb.from('plano_contas').select('*').order('codigo');
+  const { data: cats } = await qE('plano_contas').select('*').order('codigo');
   _categorias = cats || [];
-  const { data: forns } = await sb.from('fornecedores').select('*').order('nome');
+  const { data: forns } = await qE('fornecedores').select('*').order('nome');
   _fornecedores = forns || [];
   const el = document.getElementById('forn-table');
   if (!el) { showToast('Página não encontrada','error'); return; }
@@ -12848,15 +12848,15 @@ async function atualizarFornecedores() {
 }
 
 async function atualizarPlanoContas() {
-  const { data } = await sb.from('plano_contas').select('*').order('codigo');
+  const { data } = await qE('plano_contas').select('*').order('codigo');
   _categorias = data || [];
-  const { data: grupos } = await sb.from('grupos_plano').select('*').order('ordem');
+  const { data: grupos } = await qE('grupos_plano').select('*').order('ordem');
   _grupos = grupos || [];
   await loadPlanoContas();
 }
 
 async function atualizarBancos() {
-  const { data } = await sb.from('bancos_cadastrados').select('*');
+  const { data } = await qE('bancos_cadastrados').select('*');
   _bancos = data || [];
   await loadBancos();
 }
@@ -12929,10 +12929,24 @@ function donutOpts(labels, data, cores, fmtFn) {
 
 // ─── MULTI-EMPRESA ───────────────────────────────────
 
-// Filtra queries pelo empresa_id atual
-function qEmpresa(query) {
-  if (_empresaAtual?.id) return query.eq('empresa_id', _empresaAtual.id);
-  return query;
+// qE: wrapper que filtra SELECT por empresa_id automaticamente
+function qE(tabela) {
+  const q = sb.from(tabela);
+  // Retorna proxy que injeta .eq('empresa_id') antes do primeiro .then/.execute
+  return {
+    select: (...args) => {
+      const base = q.select(...args);
+      if (_empresaAtual?.id) return base.eq('empresa_id', _empresaAtual.id);
+      return base;
+    }
+  };
+}
+
+// Para INSERT: adiciona empresa_id automaticamente no payload
+function addEmpresaId(payload) {
+  if (!_empresaAtual?.id) return payload;
+  if (Array.isArray(payload)) return payload.map(p => ({...p, empresa_id: _empresaAtual.id}));
+  return {...payload, empresa_id: _empresaAtual.id};
 }
 
 // Carrega página Empresas & Usuários
