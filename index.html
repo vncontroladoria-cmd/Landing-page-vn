@@ -1840,7 +1840,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 </select>
               </div>
               <button class="btn" onclick="loadContasPagar()">↻ Atualizar</button>
-              <button class="btn" onclick="abrirModalImportarNF()" style="background:var(--blue-dim);color:var(--blue);border-color:var(--blue)">📄 Importar NF / Boleto</button>
               <button class="btn btn-primary" onclick="abrirModalConta('pagar')">+ Nova conta a pagar</button>
             </div>
           </div>
@@ -5910,8 +5909,8 @@ async function loadDashboard() {
   // ── 1. Lançamentos ────────────────────────────────────
   const { data: lancs } = await qE('lancamentos').select('*').gte('data_lancamento', ini).lte('data_lancamento', fim);
 
-  const entradas = (lancs||[]).filter(l=>l.tipo==='ENTRADA'&&l.descricao!=='Saldo Inicial').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
-  const saidas   = (lancs||[]).filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+  const entradas = (lancs||[]).filter(l=>l.tipo==='ENTRADA'&&!isLancContabil(l)).reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
+  const saidas   = (lancs||[]).filter(l=>l.tipo==='SAIDA'&&!isLancContabil(l)).reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
   const lucro    = entradas - saidas;
 
   // entradas/saidas preenchidos abaixo junto com os outros cards
@@ -6376,7 +6375,7 @@ async function loadDashboard() {
 
   // ── 4. Donut entradas por categoria ───────────────────
   const entCatMap = {};
-  (lancs||[]).filter(l=>l.tipo==='ENTRADA'&&l.descricao!=='Saldo Inicial').forEach(l=>{
+  (lancs||[]).filter(l=>l.tipo==='ENTRADA'&&!isLancContabil(l)).forEach(l=>{
     const k = l.categoria||l.categoria_dre||'Outros'; entCatMap[k]=(entCatMap[k]||0)+Number(l.entrada||l.valor||0);
   });
   const entEntries = Object.entries(entCatMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -6400,7 +6399,7 @@ async function loadDashboard() {
 
   // ── 5. Donut saídas por categoria ─────────────────────
   const saiCatMap = {};
-  (lancs||[]).filter(l=>l.tipo==='SAIDA').forEach(l=>{
+  (lancs||[]).filter(l=>l.tipo==='SAIDA'&&!isLancContabil(l)).forEach(l=>{
     const k = l.categoria||l.categoria_dfc||'Outros'; saiCatMap[k]=(saiCatMap[k]||0)+Number(l.saida||l.valor||0);
   });
   const saiEntries = Object.entries(saiCatMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -6916,13 +6915,21 @@ async function loadLancamentos() {
   // Se filtro por banco ativo: também inclui lançamentos com banco_nome (sem banco_id)
   if (bancoFilter) {
     const bancoNomeF = (_bancos.find(b => b.id === bancoFilter)?.nome || '').toLowerCase();
-    // busca os sem banco_id mas com banco_nome correspondente
-    const { data: porNome } = await qE('lancamentos').select('*')
-      .gte('data_lancamento', ini).lte('data_lancamento', fim)
-      .is('banco_id', null)
-      .ilike('banco_nome', bancoNomeF);
-    if (porNome?.length) lancs = [...lancs, ...porNome];
-    // ordena por data desc
+    // Busca lançamentos sem banco_id usando variações de nome
+    // Ex: banco "Itaú" deve pegar banco_nome "ITAU", "C/C ITAU", "Itaú"
+    const normB = normalizarBancoFiltro(bancoNomeF);
+    const variacoes = gerarVariacoesBanco(normB);
+    let porNomeTodos = [];
+    for (const v of variacoes) {
+      const { data: pn } = await qE('lancamentos').select('*')
+        .gte('data_lancamento', ini).lte('data_lancamento', fim)
+        .is('banco_id', null)
+        .ilike('banco_nome', `%${v}%`);
+      if (pn?.length) porNomeTodos = [...porNomeTodos, ...pn];
+    }
+    // Remove duplicatas por id
+    const ids = new Set(lancs.map(l=>l.id));
+    porNomeTodos.forEach(l => { if (!ids.has(l.id)) { lancs.push(l); ids.add(l.id); } });
     lancs.sort((a,b) => (b.data_lancamento||'').localeCompare(a.data_lancamento||''));
   }
 
@@ -6942,10 +6949,27 @@ async function loadLancamentos() {
   };
 
   // Saldo acumulado de um banco = soma de TODOS os lançamentos históricos (sem filtro de data)
+  // Inclui variações de nome (ex: "C/C ITAU" e "ITAU" são o mesmo banco "Itaú")
+  const normalizarBanco = (nome) => {
+    const n = (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+    if (n.includes('itau') || n.includes('itaú') || n === 'c/c itau') return 'itau';
+    if (n.includes('pagbank') || n.includes('pag bank')) return 'pagbank';
+    if (n.includes('stone')) return 'stone';
+    if (n.includes('bradesco')) return 'bradesco';
+    if (n.includes('santander')) return 'santander';
+    if (n.includes('nubank') || n.includes('nu ')) return 'nubank';
+    if (n.includes('inter')) return 'inter';
+    if (n.includes('caixa')) return 'caixa';
+    if (n.includes('brasil') || n === 'bb') return 'bb';
+    if (n.includes('sicoob')) return 'sicoob';
+    if (n.includes('c6')) return 'c6';
+    return n;
+  };
   const saldoBanco = (b) => {
+    const nomeB = normalizarBanco(b.nome);
     const lancsB = todos.filter(l =>
       l.banco_id === b.id ||
-      (l.banco_nome||'').toLowerCase() === (b.nome||'').toLowerCase()
+      normalizarBanco(l.banco_nome) === nomeB
     );
     return lancsB.reduce((s,l) => s + vlLanc(l), 0);
   };
@@ -6967,9 +6991,9 @@ async function loadLancamentos() {
     saldoDiv.innerHTML = cardsHtml;
   }
 
-  // Entradas e Saídas do período filtrado
-  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
-  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+  // Entradas e Saídas do período filtrado (exclui Entre Contas e Saldo Inicial)
+  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA'&&!isLancContabil(l)).reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
+  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA'&&!isLancContabil(l)).reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
 
   // Saldo Total = soma acumulada de todos os bancos (ou só do banco filtrado)
   let saldoTotal;
@@ -7532,7 +7556,11 @@ async function loadDocumentos() {
         <span style="cursor:pointer;color:var(--accent);font-weight:600" onclick="_docPastaAtual=null;_docNomePastaAtual=null;loadDocumentos()">🏠 Pastas</span>
         <span style="color:var(--text3)"> / </span>
         <span style="font-weight:600">📁 ${_docNomePastaAtual||'...'}</span>
-        <span style="font-size:11px;color:var(--text2);margin-left:8px">${(arqs||[]).length} documento(s)</span>`;
+        <span style="font-size:11px;color:var(--text2);margin-left:8px">${(arqs||[]).length} documento(s)</span>
+        <button onclick="abrirModalImportarNFNaPasta('${_docPastaAtual}','${(_docNomePastaAtual||'').replace(/'/g,"\'")}')"
+          style="margin-left:12px;padding:4px 12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">
+          📄 + Arquivar Documento
+        </button>`;
     }
 
     if (!(arqs||[]).length) {
@@ -14900,23 +14928,27 @@ async function verInfoPasta(id, nome) {
 }
 
 // ─── MODAL IMPORTAR NF/BOLETO ────────────────────────
-async function abrirModalImportarNF() {
+async function abrirModalImportarNF(pastaId, pastaNome) {
   // Carrega pastas
   const { data: pastas } = await qE('documentos_fiscais').select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id',null).order('fornecedor');
   const sel = document.getElementById('nf-pasta');
   if (sel) {
     sel.innerHTML = '<option value="">— Selecione a pasta —</option>' +
       (pastas||[]).map(p => `<option value="${p.id}">${p.fornecedor}</option>`).join('');
+    // Pré-seleciona a pasta se veio de dentro de uma
+    if (pastaId) sel.value = pastaId;
   }
   // Reset campos
   ['nf-nome','nf-numero','nf-valor','nf-vencimento','nf-categoria-busca'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  const np = document.getElementById('nf-nparcelas'); if (np) { np.value = 2; np.disabled = true; np.style.opacity = '.4'; }
-  const par = document.getElementById('nf-parcelado'); if (par) par.value = 'nao';
   document.getElementById('nf-categoria').value = '';
   document.getElementById('nf-file-input').value = '';
   document.getElementById('modal-importar-nf').style.display = 'flex';
+}
+
+function abrirModalImportarNFNaPasta(pastaId, pastaNome) {
+  abrirModalImportarNF(pastaId, pastaNome);
 }
 
 function fecharModalImportarNF() {
@@ -15036,6 +15068,59 @@ async function buscarDocumentos(termo) {
         </tr>`;
       }).join('')}
     </tbody></table>`;
+}
+
+// ─── NORMALIZAÇÃO DE BANCO ───────────────────────────
+// Padroniza variações de nome de banco para comparação
+function normalizarBancoFiltro(nome) {
+  const n = (nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  if (n.includes('itau') || n === 'c/c itau') return 'itau';
+  if (n.includes('pagbank') || n.includes('pag bank')) return 'pagbank';
+  if (n.includes('stone')) return 'stone';
+  if (n.includes('bradesco')) return 'bradesco';
+  if (n.includes('santander')) return 'santander';
+  if (n.includes('nubank')) return 'nubank';
+  if (n.includes('inter')) return 'inter';
+  if (n.includes('caixa')) return 'caixa';
+  if (n.includes('brasil') || n === 'bb') return 'bb';
+  if (n.includes('sicoob')) return 'sicoob';
+  if (n.includes('c6')) return 'c6';
+  return n;
+}
+
+// Retorna variações de nome para busca no banco de dados
+function gerarVariacoesBanco(normNome) {
+  const mapa = {
+    'itau':    ['ITAU', 'Itaú', 'itau', 'C/C ITAU', 'ITAÚ', 'Itau'],
+    'pagbank': ['PAGBANK', 'Pagbank', 'PAG BANK', 'pagbank'],
+    'stone':   ['STONE', 'Stone', 'stone'],
+    'bradesco':['BRADESCO', 'Bradesco', 'bradesco'],
+    'santander':['SANTANDER', 'Santander'],
+    'nubank':  ['NUBANK', 'Nubank', 'Nu'],
+    'inter':   ['INTER', 'Inter', 'Banco Inter'],
+    'caixa':   ['CAIXA', 'Caixa', 'CEF'],
+    'bb':      ['BRASIL', 'BB', 'Banco do Brasil'],
+    'sicoob':  ['SICOOB', 'Sicoob'],
+    'c6':      ['C6', 'C6 Bank'],
+  };
+  return mapa[normNome] || [normNome];
+}
+
+// ─── LANÇAMENTOS CONTÁBEIS (excluir de totais) ──────
+// Entre Contas e Saldo Inicial são movimentações contábeis
+// Não devem entrar em Entradas/Saídas reais nem no faturamento
+function isLancContabil(l) {
+  const cat = (l.categoria||'').toLowerCase();
+  const desc = (l.descricao||'').toLowerCase();
+  const catDfc = (l.categoria_dfc||'').toLowerCase();
+  return (
+    cat.includes('entre conta') ||
+    cat.includes('saldo inicial') ||
+    cat === 'transferência' ||
+    cat === 'transferencia' ||
+    desc === 'saldo inicial' ||
+    catDfc.includes('entre conta')
+  );
 }
 
 // ─── INIT ────────────────────────────────────────────
