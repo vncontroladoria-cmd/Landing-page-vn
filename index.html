@@ -4047,7 +4047,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <select id="grp-tipo"><option value="ENTRADA">Entrada (+)</option><option value="SAIDA">Saída (-)</option></select>
       </div>
       <div class="form-group"><label>Demonstrativo</label>
-        <select id="grp-demo"><option value="DFC">DFC</option><option value="DRE">DRE</option><option value="AMBOS">Ambos</option></select>
+        <select id="grp-demo">
+          <option value="DFC">DFC</option>
+          <option value="DRE">DRE</option>
+          <option value="AMBOS">Ambos (DFC + DRE)</option>
+          <option value="NENHUM">Nenhum — só controle de caixa</option>
+        </select>
       </div>
       <div class="form-group"><label>Ordem</label><input type="number" id="grp-ordem" placeholder="1" min="1"></div>
       <div class="form-group"><label>Cor</label><input type="color" id="grp-cor" value="#6b7280"></div>
@@ -6132,7 +6137,8 @@ async function loadDashboard() {
   // ── Indicadores do DRE (mesma lógica do relatório DRE) ────
   // Busca grupos e categorias do DRE para o mês/período atual
   try {
-    const { data: dreGrupos } = await qE('grupos_plano').select('*').eq('demonstrativo','DRE').order('ordem');
+    const { data: dreGruposRaw } = await qE('grupos_plano').select('*').order('ordem');
+    const dreGrupos = (dreGruposRaw||[]).filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
     const { data: dreCats }   = await qE('plano_contas').select('*').eq('demonstrativo','DRE');
 
     if (dreGrupos?.length && dreCats?.length && lancs?.length) {
@@ -9963,7 +9969,7 @@ async function loadPlanoContas() {
   elDfc.innerHTML = '<div class="loading"><div class="spin"></div></div>';
   elDre.innerHTML = '<div class="loading"><div class="spin"></div></div>';
 
-  const { data: grupos } = await qE('grupos_plano').select('*').order('ordem');
+  const { data: grupos } = await qE('grupos_plano').select('*').order('demonstrativo').order('ordem');
   const { data: cats } = await qE('plano_contas').select('*').order('codigo');
 
   _grupos = grupos || [];
@@ -10043,10 +10049,11 @@ function adicionarCategoriaNoGrupo(gid, gNome, demo, ordem) {
 async function salvarNovaCategoria(gid, gNome, demo, ordem, totalAtual) {
   const nome = document.getElementById('nova-cat-nome-' + gid).value.trim();
   if (!nome) { showToast('Digite o nome','error'); return; }
-  const { data: cats } = await qE('plano_contas').select('id').eq('grupo', gNome).eq('demonstrativo', demo);
+  const demoSalvar = demo === 'NENHUM' ? 'NENHUM' : demo;
+  const { data: cats } = await qE('plano_contas').select('id').eq('grupo', gNome);
   const codigo = `${ordem}.${(cats?.length||0)+1}`;
-  const tipo = demo === 'DFC' ? (ordem <= 2 ? 'ENTRADA' : 'SAIDA') : (ordem === 1 || ordem === 8 ? 'ENTRADA' : 'SAIDA');
-  const { error } = await sb.from('plano_contas').insert(addEmpresaId({ codigo, nome, tipo, demonstrativo: demo, grupo: gNome, ordem: (cats?.length||0)+1 }));
+  const tipo = 'SAIDA'; // padrão para categorias novas
+  const { error } = await sb.from('plano_contas').insert(addEmpresaId({ codigo, nome, tipo, demonstrativo: demoSalvar, grupo: gNome, ordem: (cats?.length||0)+1 }));
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('Categoria adicionada!','success');
   document.getElementById('nova-cat-' + gid).style.display = 'none';
@@ -11536,7 +11543,8 @@ async function loadDFC() {
   const ano = document.getElementById('dfc-ano')?.value || '2026';
   const mesFiltro = document.getElementById('dfc-mes')?.value || '';
 
-  const { data: grupos } = await qE('grupos_plano').select('*').eq('demonstrativo','DFC').order('ordem');
+  const { data: dfcGruposRaw } = await qE('grupos_plano').select('*').order('ordem');
+  const grupos = (dfcGruposRaw||[]).filter(g => g.demonstrativo === 'DFC' || g.demonstrativo === 'AMBOS');
   const { data: cats } = await qE('plano_contas').select('*').eq('demonstrativo','DFC').order('codigo');
   const { data: lancs } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
 
