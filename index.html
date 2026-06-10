@@ -6083,26 +6083,37 @@ async function loadLancamentos() {
   }
 
   // ── SALDOS ──────────────────────────────────────────────
-  // Busca TODOS os lançamentos (sem filtro de período) para saldo acumulado real
-  const { data: todosLancs } = await sb.from('lancamentos').select('entrada,saida,valor,tipo,banco_id,banco_nome');
+  // Busca TODOS os lançamentos com categoria para cálculo de saldo real
+  const { data: todosLancs } = await sb.from('lancamentos')
+    .select('entrada,saida,valor,tipo,banco_id,banco_nome,categoria,categoria_dfc');
   const todos = todosLancs || [];
 
-  const isSaldoInicial = l => (l.categoria||'').toLowerCase() === 'saldo inicial' || (l.categoria_dfc||'').toLowerCase() === 'saldo inicial';
-
-  const calcSaldo = arr => arr.reduce((s,l) => {
+  // Função que calcula o valor líquido de um lançamento
+  const vlLanc = l => {
     const e = Number(l.entrada||0), sa = Number(l.saida||0);
-    if (e > 0 || sa > 0) return s + e - sa;
+    if (e > 0 || sa > 0) return e - sa;
     const v = Number(l.valor||0);
-    return l.tipo === 'ENTRADA' ? s + v : l.tipo === 'SAIDA' ? s - v : s;
-  }, 0);
+    if (l.tipo === 'ENTRADA') return v;
+    if (l.tipo === 'SAIDA') return -v;
+    return 0;
+  };
 
-  // Cards por banco: soma de todos os lançamentos daquele banco (inclui lançamento de saldo inicial)
+  // Saldo de um banco = saldo_inicial + soma de todos os lançamentos do banco
+  const saldoBanco = (b) => {
+    const saldoIni = Number(b.saldo_inicial||0);
+    const lancsB = todos.filter(l =>
+      l.banco_id === b.id ||
+      (l.banco_nome||'').toLowerCase() === (b.nome||'').toLowerCase()
+    );
+    return saldoIni + lancsB.reduce((s,l) => s + vlLanc(l), 0);
+  };
+
+  // Cards por banco
   const saldoDiv = document.getElementById('lanc-saldo-bancos');
   if (saldoDiv) {
     let cardsHtml = '';
     _bancos.forEach(b => {
-      const lancsB = todos.filter(l => l.banco_id === b.id || (l.banco_nome||'').toLowerCase() === b.nome.toLowerCase());
-      const saldoB = calcSaldo(lancsB);
+      const saldoB = saldoBanco(b);
       const cor = saldoB >= 0 ? 'var(--green)' : 'var(--red)';
       const isSelected = bancoFilter === b.id;
       cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer;${isSelected?'border:2px solid var(--accent);background:var(--bg3)':'border:1.5px solid var(--border)'}" onclick="filtrarPorBanco('${b.id}')">
@@ -6113,19 +6124,17 @@ async function loadLancamentos() {
     saldoDiv.innerHTML = cardsHtml;
   }
 
-  // Entradas e Saídas: do período filtrado, sem saldo inicial
-  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA' && !isSaldoInicial(l)).reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
-  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA'   && !isSaldoInicial(l)).reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+  // Entradas e Saídas do período filtrado
+  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA').reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
+  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA').reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
 
-  // Saldo Total: soma de todos os lançamentos (inclui lançamento de saldo inicial)
+  // Saldo Total = soma dos saldos de todos os bancos (ou do banco filtrado)
   let saldoTotal;
   if (bancoFilter) {
-    const bancoFiltrado = _bancos.find(b=>b.id===bancoFilter)||{};
-    const bancoNomeFiltro = bancoFiltrado.nome||'';
-    const todosDoB = todos.filter(l => l.banco_id===bancoFilter || (l.banco_nome||'').toLowerCase()===bancoNomeFiltro.toLowerCase());
-    saldoTotal = calcSaldo(todosDoB);
+    const b = _bancos.find(x=>x.id===bancoFilter);
+    saldoTotal = b ? saldoBanco(b) : 0;
   } else {
-    saldoTotal = calcSaldo(todos);
+    saldoTotal = _bancos.reduce((s,b) => s + saldoBanco(b), 0);
   }
 
   const _ls = (id,v,clr) => { const e=document.getElementById(id); if(e){ e.textContent=v; if(clr) e.style.color=clr; } };
