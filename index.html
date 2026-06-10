@@ -511,7 +511,102 @@ tbody tr:hover { background: var(--bg3); }
 
 /* RESPONSIVE */
 @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } .charts-row { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .sidebar { display: none; } .main { margin-left: 0; width: 100%; } .metrics-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ── MOBILE COMPLETO ─────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Zoom desativado no mobile */
+  body { zoom: 1 !important; font-size: 14px; }
+  
+  /* Painel master ocupa tela toda */
+  #painel-master { padding: 0 !important; }
+
+  /* Sidebar vira drawer — começa fechado */
+  .sidebar { transform: translateX(-100%); width: 260px !important; }
+  .sidebar.open { transform: translateX(0); }
+
+  /* Main ocupa tela toda */
+  .main { margin-left: 0 !important; width: 100% !important; }
+
+  /* Topbar mobile */
+  .topbar {
+    padding: 0 12px !important;
+    height: 52px !important;
+    gap: 8px !important;
+  }
+  .topbar-title { font-size: 15px !important; }
+  #topbar-empresa-tag { min-width: unset !important; padding: 5px 10px !important; }
+  #topbar-empresa-tag span { font-size: 11px !important; }
+  #topbar-empresa-id { display: none; }
+
+  /* Hamburguer — mostra no mobile */
+  #btn-hamburger { display: flex !important; }
+
+  /* Botão trocar empresa menor */
+  #btn-trocar-empresa { font-size: 10px; padding: 4px 8px; }
+
+  /* Content padding menor */
+  .content { padding: 12px !important; }
+
+  /* Cards hero em 2 colunas */
+  .hero-cards { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .hcard { padding: 10px 12px !important; }
+  .hcard-value { font-size: 16px !important; }
+  .hcard-label { font-size: 10px !important; }
+
+  /* Metrics em 2 colunas */
+  .metrics-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .metric-card { padding: 12px !important; }
+  .metric-val { font-size: 16px !important; }
+
+  /* Seção cards empilham */
+  .section-card { padding: 12px !important; }
+  .filter-row { flex-wrap: wrap !important; gap: 6px !important; }
+  .filter-group { flex-direction: column; gap: 2px; }
+  .filter-select, .filter-input { font-size: 12px !important; padding: 6px 8px !important; }
+
+  /* Tabelas com scroll horizontal */
+  .table-wrap, table { font-size: 11px !important; }
+  thead th { padding: 6px 8px !important; font-size: 10px !important; }
+  tbody td { padding: 6px 8px !important; font-size: 11px !important; }
+
+  /* Charts menores */
+  .charts-row { grid-template-columns: 1fr !important; }
+  .chart-box { padding: 12px !important; }
+
+  /* Modais ocupam tela toda */
+  .modal { 
+    zoom: 1 !important;
+    max-width: 100% !important; 
+    max-height: 95vh !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    margin: 4px !important;
+  }
+  .modal-overlay { padding: 4px !important; align-items: flex-end !important; }
+
+  /* Grids de 2 colunas viram 1 */
+  .form-grid { grid-template-columns: 1fr !important; }
+  
+  /* Botões maiores para toque */
+  .btn { min-height: 38px; padding: 8px 14px !important; font-size: 12px !important; }
+  .btn-primary { min-height: 38px; }
+
+  /* Painel master responsivo */
+  #painel-master .master-layout { flex-direction: column !important; }
+  #painel-master .master-nav { width: 100% !important; flex-direction: row !important; overflow-x: auto; padding: 8px !important; gap: 4px !important; flex-wrap: nowrap !important; }
+  #painel-master .master-nav-item { white-space: nowrap; padding: 7px 12px !important; font-size: 12px !important; }
+  #painel-master .master-content { padding: 12px !important; }
+
+  /* DFC/DRE tabelas */
+  .dfc-table th, .dfc-table td { padding: 4px 6px !important; font-size: 10px !important; }
+}
+
+/* Telas muito pequenas (iPhone SE etc) */
+@media (max-width: 390px) {
+  .hero-cards { grid-template-columns: 1fr 1fr !important; }
+  .hcard-value { font-size: 14px !important; }
+  body { font-size: 13px; }
+}
 
 /* ── RESPONSIVO TOTAL ───────────────────────────────── */
 /* Conteúdo nunca ultrapassa a tela */
@@ -4480,15 +4575,36 @@ function toggleSidebar() {
   if (overlay) overlay.classList.toggle('show', isOpen);
 }
 
-// Fecha sidebar ao clicar em nav-item
+// No mobile, fecha sidebar ao clicar em nav-item
 document.addEventListener('DOMContentLoaded', () => {
   const sidebar = document.getElementById('main-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
   if (!sidebar) return;
-  // Sidebar fixo — não fecha ao clicar em itens
-  sidebar.addEventListener('click', (e) => {
-    if (false) {
-      e.stopPropagation();
+
+  // No mobile (< 768px): sidebar começa fechado e fecha ao clicar item
+  if (window.innerWidth < 768) {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  } else {
+    // Desktop: sempre aberto
+    sidebar.classList.add('open');
+  }
+
+  // Fecha ao clicar em item do menu no mobile
+  sidebar.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth < 768) {
+        sidebar.classList.remove('open');
+        if (overlay) overlay.classList.remove('show');
+      }
+    });
+  });
+
+  // Fecha ao redimensionar para desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768) {
       sidebar.classList.add('open');
+      if (overlay) overlay.classList.remove('show');
     }
   });
 });
