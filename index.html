@@ -933,9 +933,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <option value="2026-02">Fevereiro 2026</option>
             <option value="2026-01">Janeiro 2026</option>
           </select>
-          <!-- Nome da empresa fixo — sempre visível -->
+          <!-- Nome da empresa + ID fixo no topbar -->
           <div id="topbar-empresa-tag" style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:8px">
-            <span style="font-size:11px;color:rgba(255,255,255,.6);font-weight:500">EMPRESA</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.5);font-weight:500" id="topbar-empresa-id"></span>
             <span id="topbar-empresa-nome" style="font-size:12px;font-weight:700;color:#fff">—</span>
           </div>
           <!-- Botão trocar empresa (visível para admin/operador com múltiplas empresas) -->
@@ -3800,6 +3800,9 @@ async function doCadastro() {
 
   if (errUsr) { errEl.style.color='red'; errEl.textContent = 'Erro: ' + errUsr.message; return; }
 
+  // Cria estrutura base para a nova empresa
+  await criarEstruturaBase(emp.id);
+
   errEl.style.color = '#059669';
   errEl.textContent = '✅ Cadastro realizado! Você já pode fazer login.';
 
@@ -3911,10 +3914,14 @@ async function showApp() {
 
 // Atualiza nome da empresa no topo
 function atualizarTopbarEmpresa() {
-  // Elemento principal fixo
   const elNome = document.getElementById('topbar-empresa-nome');
   if (elNome) elNome.textContent = _empresaAtual?.nome || '—';
-  // Elemento legado
+  // ID curto (últimos 6 caracteres do UUID)
+  const elId = document.getElementById('topbar-empresa-id');
+  if (elId && _empresaAtual?.id) {
+    const idCurto = _empresaAtual.id.replace(/-/g,'').substring(0,6).toUpperCase();
+    elId.textContent = 'ID ' + idCurto;
+  }
   const el = document.getElementById('topbar-empresa');
   if (el) el.textContent = _empresaAtual?.nome || '—';
 }
@@ -13126,6 +13133,78 @@ function donutOpts(labels, data, cores, fmtFn) {
       }
     }
   };
+}
+
+// ─── ESTRUTURA BASE PARA NOVA EMPRESA ────────────────
+async function criarEstruturaBase(empresaId) {
+  const eid = empresaId;
+
+  // ── Grupos do Plano de Contas (DRE) ──
+  const gruposDRE = [
+    {nome:'Receita Bruta',          tipo:'ENTRADA', demonstrativo:'DRE', sinal:1,  ordem:1},
+    {nome:'Deduções de Faturamento',tipo:'SAIDA',   demonstrativo:'DRE', sinal:-1, ordem:2},
+    {nome:'Custos dos Serviços Direto',tipo:'SAIDA',demonstrativo:'DRE', sinal:-1, ordem:3},
+    {nome:'Custos dos Serviços Indireto',tipo:'SAIDA',demonstrativo:'DRE',sinal:-1,ordem:4},
+    {nome:'Market / Comercial',     tipo:'SAIDA',   demonstrativo:'DRE', sinal:-1, ordem:5},
+    {nome:'Administrativas',        tipo:'SAIDA',   demonstrativo:'DRE', sinal:-1, ordem:6},
+    {nome:'Equipe / CLTs',          tipo:'SAIDA',   demonstrativo:'DRE', sinal:-1, ordem:7},
+    {nome:'Outras Receitas',        tipo:'ENTRADA', demonstrativo:'DRE', sinal:1,  ordem:8},
+    {nome:'Despesas Financeiras',   tipo:'SAIDA',   demonstrativo:'DRE', sinal:-1, ordem:9},
+  ];
+  const gruposDFC = [
+    {nome:'Entradas Operacionais',  tipo:'ENTRADA', demonstrativo:'DFC', sinal:1,  ordem:1},
+    {nome:'Saídas Operacionais',    tipo:'SAIDA',   demonstrativo:'DFC', sinal:-1, ordem:2},
+    {nome:'Entradas Financeiras',   tipo:'ENTRADA', demonstrativo:'DFC', sinal:1,  ordem:3},
+    {nome:'Saídas Financeiras',     tipo:'SAIDA',   demonstrativo:'DFC', sinal:-1, ordem:4},
+  ];
+  const todosGrupos = [...gruposDRE, ...gruposDFC].map(g => ({...g, empresa_id: eid}));
+  await sb.from('grupos_plano').insert(todosGrupos);
+
+  // ── Plano de Contas base ──
+  const plano = [
+    // DRE — Receita
+    {nome:'Comanda',          tipo:'ENTRADA', demonstrativo:'DRE', grupo:'Receita Bruta'},
+    {nome:'Cartão Crédito',   tipo:'ENTRADA', demonstrativo:'DRE', grupo:'Receita Bruta'},
+    {nome:'Cartão Débito',    tipo:'ENTRADA', demonstrativo:'DRE', grupo:'Receita Bruta'},
+    {nome:'Pix',              tipo:'ENTRADA', demonstrativo:'DRE', grupo:'Receita Bruta'},
+    // DRE — Custos
+    {nome:'Custo de Produtos',tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Custos dos Serviços Direto'},
+    {nome:'Custo de Serviços',tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Custos dos Serviços Direto'},
+    {nome:'Comissões',        tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Custos dos Serviços Direto'},
+    {nome:'Aluguel',          tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Administrativas'},
+    {nome:'Energia Elétrica', tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Administrativas'},
+    {nome:'Internet/Telefone',tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Administrativas'},
+    {nome:'Salários',         tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Equipe / CLTs'},
+    {nome:'Marketing',        tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Market / Comercial'},
+    {nome:'Empréstimo',       tipo:'SAIDA',   demonstrativo:'DRE', grupo:'Despesas Financeiras'},
+    // DFC
+    {nome:'Recebimento Clientes', tipo:'ENTRADA', demonstrativo:'DFC', grupo:'Entradas Operacionais'},
+    {nome:'Pagamento Fornecedores',tipo:'SAIDA',  demonstrativo:'DFC', grupo:'Saídas Operacionais'},
+    {nome:'Pagamento Aluguel',    tipo:'SAIDA',   demonstrativo:'DFC', grupo:'Saídas Operacionais'},
+    {nome:'Pagamento Salários',   tipo:'SAIDA',   demonstrativo:'DFC', grupo:'Saídas Operacionais'},
+  ].map(c => ({...c, empresa_id: eid, ativo: true}));
+  await sb.from('plano_contas').insert(plano);
+
+  // ── Categorias PDV ──
+  const categoriasPDV = [
+    {nome:'Comanda',       tipo:'ENTRADA'},
+    {nome:'Cartão Crédito',tipo:'ENTRADA'},
+    {nome:'Cartão Débito', tipo:'ENTRADA'},
+    {nome:'Pix',           tipo:'ENTRADA'},
+    {nome:'Dinheiro',      tipo:'ENTRADA'},
+  ].map(c => ({...c, empresa_id: eid}));
+  await sb.from('pdv_categorias').insert(categoriasPDV);
+
+  // ── Tipos de Relatório ──
+  const tiposRel = [
+    {nome:'Serviços',       descricao:'Relatório de serviços prestados'},
+    {nome:'Clientes',       descricao:'Relatório de clientes atendidos'},
+    {nome:'Clientes Novos', descricao:'Relatório de novos cadastros'},
+    {nome:'Lucratividade',  descricao:'Análise de lucratividade por serviço'},
+  ].map(t => ({...t, empresa_id: eid}));
+  await sb.from('rel_tipos').insert(tiposRel);
+
+  console.log('Estrutura base criada para empresa:', eid);
 }
 
 // ─── MULTI-EMPRESA ───────────────────────────────────
