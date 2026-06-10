@@ -1899,8 +1899,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:10px;color:var(--text2)">NF-e · Boletos · Holerites · Contratos</div>
                 </div>
               </div>
-              <div style="display:flex;gap:8px;align-items:center">
-                <input type="text" id="doc-pasta-nova" placeholder="Nova pasta..." style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);width:160px">
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="doc-busca" placeholder="🔍 Buscar documento..." 
+                  oninput="buscarDocumentos(this.value)"
+                  style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);width:180px">
+                <input type="text" id="doc-pasta-nova" placeholder="Nova pasta..." style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);width:140px">
                 <button class="btn" onclick="criarPastaDoc()" style="font-size:12px">+ Pasta</button>
                 <input type="file" id="doc-upload-input" multiple accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="uploadDocumentos(this.files);this.value=''">
                 <button class="btn" onclick="document.getElementById('doc-upload-input').click()" style="font-size:12px">📤 Enviar</button>
@@ -7518,108 +7521,112 @@ async function loadDocumentos() {
   const breadcrumb = document.getElementById('doc-breadcrumb');
   if (!grid) return;
 
-  grid.innerHTML = '<div style="padding:1rem;text-align:center;font-size:12px;color:var(--text3)"><div class="spin" style="margin:0 auto 8px"></div></div>';
-
-  let qPastas = qE('documentos_fiscais').select('*').eq('tipo','pasta').order('fornecedor');
-  let qArqs   = qE('documentos_fiscais').select('*').neq('tipo','pasta').order('created_at',{ascending:false});
+  grid.innerHTML = '<div style="padding:1rem;text-align:center;font-size:12px;color:var(--text3)"><div class="spin" style="margin:0 auto 8px"></div>Carregando...</div>';
 
   if (_docPastaAtual) {
-    qPastas = qPastas.eq('conta_pagar_id', _docPastaAtual);
-    qArqs   = qArqs.eq('conta_pagar_id', _docPastaAtual);
-  } else {
-    qPastas = qPastas.is('conta_pagar_id', null);
-    qArqs   = qArqs.is('conta_pagar_id', null);
-  }
+    // ── Vista interna da pasta ──
+    const { data: arqs } = await qE('documentos_fiscais').select('*').neq('tipo','pasta').eq('conta_pagar_id', _docPastaAtual).order('created_at',{ascending:false});
 
-  const [{ data: pastas }, { data: arqs }] = await Promise.all([qPastas, qArqs]);
-
-  // Breadcrumb
-  if (breadcrumb) {
-    let html = `<span style="cursor:pointer;color:var(--accent);font-weight:600" onclick="_docPastaAtual=null;loadDocumentos()">🏠 Raiz</span>`;
-    if (_docPastaAtual) {
-      const nome = _docNomePastaAtual || '...';
-      html += `<span style="color:var(--text3)"> / </span><span style="font-weight:600">${nome}</span>`;
+    if (breadcrumb) {
+      breadcrumb.innerHTML = `
+        <span style="cursor:pointer;color:var(--accent);font-weight:600" onclick="_docPastaAtual=null;_docNomePastaAtual=null;loadDocumentos()">🏠 Pastas</span>
+        <span style="color:var(--text3)"> / </span>
+        <span style="font-weight:600">📁 ${_docNomePastaAtual||'...'}</span>
+        <span style="font-size:11px;color:var(--text2);margin-left:8px">${(arqs||[]).length} documento(s)</span>`;
     }
-    breadcrumb.innerHTML = html;
-  }
 
-  // ── Pastas em cima (grid pequeno) ──
-  let pastaHtml = '';
-  if ((pastas||[]).length) {
-    pastaHtml = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-      ${pastas.map(p => `
-        <div style="display:flex;align-items:center;gap:0;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px;font-weight:600"
-          onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div onclick="abrirPastaDoc('${p.id}','${(p.fornecedor||'').replace(/'/g,'')}')"
-            style="display:flex;align-items:center;gap:6px;padding:6px 12px;cursor:pointer;flex:1">
-            <span>📁</span> ${p.fornecedor}
-            <span style="font-size:10px;color:var(--text3);font-weight:400">(${p.total_docs||0} docs)</span>
-          </div>
-          <div style="display:flex;border-left:1px solid var(--border)">
-            <button onclick="event.stopPropagation();verInfoPasta('${p.id}','${(p.fornecedor||'').replace(/'/g,'')}')"
-              style="background:none;border:none;color:#7c3aed;cursor:pointer;padding:6px 8px;font-size:12px" title="Detalhes">🔍</button>
-            <button onclick="event.stopPropagation();editarPasta('${p.id}','${(p.fornecedor||'').replace(/'/g,'')}')"
-              style="background:none;border:none;color:var(--accent);cursor:pointer;padding:6px 8px;font-size:12px" title="Renomear">✏️</button>
-            <button onclick="event.stopPropagation();deletarDocumento('${p.id}',true)"
-              style="background:none;border:none;color:var(--red);cursor:pointer;padding:6px 8px;font-size:12px" title="Excluir">✕</button>
-          </div>
-        </div>`).join('')}
-    </div>`;
-  }
+    if (!(arqs||[]).length) {
+      grid.innerHTML = '<div style="padding:2rem;text-align:center;font-size:13px;color:var(--text3)">📂 Pasta vazia — envie documentos usando o botão 📤 acima</div>';
+      atualizarSelectPastaModal([]);
+      return;
+    }
 
-  // ── Arquivos em lista com colunas ──
-  let arqHtml = '';
-  if ((arqs||[]).length) {
     const iconArq = nome => {
       const ext = (nome||'').split('.').pop().toLowerCase();
       if (ext==='pdf') return '📄';
       if (['xlsx','xls','csv'].includes(ext)) return '📊';
-      if (['jpg','jpeg','png','gif'].includes(ext)) return '🖼️';
-      if (['doc','docx'].includes(ext)) return '📝';
+      if (['jpg','jpeg','png','gif','webp'].includes(ext)) return '🖼️';
       return '📎';
     };
-    const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2);text-align:left';
-    arqHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+
+    const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2);text-align:left';
+    grid.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
         <th style="${TH};width:30px"></th>
         <th style="${TH}">Data</th>
-        <th style="${TH}">Nome / Fornecedor</th>
+        <th style="${TH}">Fornecedor / Nome</th>
         <th style="${TH};text-align:right">Valor</th>
         <th style="${TH}">Nº Documento</th>
-        <th style="${TH}">Parcela</th>
-        <th style="${TH};width:50px">Ações</th>
+        <th style="${TH};width:80px;text-align:center">Ações</th>
       </tr></thead>
       <tbody>
-        ${arqs.map(a => {
+        ${(arqs||[]).map((a,i) => {
           const nome = a.fornecedor || a.numero_nf || 'arquivo';
-          const data = a.data_emissao ? new Date(a.data_emissao+'T12:00:00').toLocaleDateString('pt-BR') :
-                       a.created_at  ? new Date(a.created_at).toLocaleDateString('pt-BR') : '—';
-          const valStr = a.valor ? fmtBRL(Number(a.valor)) : '—';
-          return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="abrirDocumento('${a.arquivo_url||''}')">
-            <td style="padding:7px 10px;text-align:center;font-size:16px">${iconArq(nome)}</td>
+          const data = a.data_emissao ? new Date(a.data_emissao+'T12:00:00').toLocaleDateString('pt-BR')
+                     : a.created_at  ? new Date(a.created_at).toLocaleDateString('pt-BR') : '—';
+          return `<tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:7px 10px;text-align:center;font-size:18px">${iconArq(a.arquivo_url||nome)}</td>
             <td style="padding:7px 10px;color:var(--text2);white-space:nowrap">${data}</td>
-            <td style="padding:7px 10px;font-weight:600">${nome}</td>
-            <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${valStr}</td>
+            <td style="padding:7px 10px;font-weight:600;cursor:pointer;color:var(--accent)" onclick="abrirDocumento('${a.arquivo_url||''}')">${nome}</td>
+            <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${a.valor ? fmtBRL(Number(a.valor)) : '—'}</td>
             <td style="padding:7px 10px;font-family:'DM Mono',monospace;color:var(--text2)">${a.numero_nf||'—'}</td>
-            <td style="padding:7px 10px;text-align:center">${a.parcela_info ? `<span style="background:var(--bg3);border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700">${a.parcela_info}</span>` : '—'}</td>
-            <td style="padding:7px 10px" onclick="event.stopPropagation()">
-              <button onclick="deletarDocumento('${a.id}',false)" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px">🗑</button>
+            <td style="padding:7px 10px;text-align:center">
+              <div style="display:flex;gap:4px;justify-content:center">
+                ${a.arquivo_url ? `<button onclick="abrirDocumento('${a.arquivo_url}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px" title="Abrir">👁</button>` : ''}
+                <button onclick="deletarDocumento('${a.id}',false)" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:13px" title="Excluir">🗑</button>
+              </div>
             </td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>`;
+    atualizarSelectPastaModal([]);
+    return;
   }
 
-  if (!pastaHtml && !arqHtml) {
-    grid.innerHTML = '<div style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Pasta vazia — crie subpastas ou envie arquivos</div>';
-  } else {
-    grid.innerHTML = pastaHtml + arqHtml;
+  // ── Vista de pastas (raiz) ──
+  if (breadcrumb) breadcrumb.innerHTML = '';
+
+  // Busca pastas com contagem real de documentos
+  const { data: pastas } = await qE('documentos_fiscais').select('*').eq('tipo','pasta').is('conta_pagar_id',null).order('fornecedor');
+  const { data: todos }  = await qE('documentos_fiscais').select('id,conta_pagar_id').neq('tipo','pasta');
+
+  // Conta docs por pasta
+  const contMap = {};
+  (todos||[]).forEach(d => { if (d.conta_pagar_id) contMap[d.conta_pagar_id] = (contMap[d.conta_pagar_id]||0)+1; });
+
+  if (!(pastas||[]).length) {
+    grid.innerHTML = '<div style="padding:2rem;text-align:center;font-size:13px;color:var(--text3)">Nenhuma pasta criada ainda. Use o campo acima para criar.</div>';
+    atualizarSelectPastaModal([]);
+    return;
   }
 
-  // Atualiza select de pasta no modal
+  const cores = ['c-green','c-blue','c-purple','c-amber','c-teal','c-red'];
+  grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+    ${(pastas||[]).map((p,i) => {
+      const qtd = contMap[p.id] || 0;
+      const cor = cores[i % cores.length];
+      return `<div class="metric-card ${cor}" style="cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s"
+        onclick="abrirPastaDoc('${p.id}','${(p.fornecedor||'').replace(/'/g,"\\'")}')"
+        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'"
+        onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px">
+          <button onclick="event.stopPropagation();editarPasta('${p.id}','${(p.fornecedor||'').replace(/'/g,"\\'")}' )"
+            style="background:rgba(0,0,0,.1);border:none;border-radius:4px;width:22px;height:22px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center" title="Renomear">✏️</button>
+          <button onclick="event.stopPropagation();deletarDocumento('${p.id}',true)"
+            style="background:rgba(0,0,0,.1);border:none;border-radius:4px;width:22px;height:22px;cursor:pointer;color:currentColor;font-size:13px;display:flex;align-items:center;justify-content:center" title="Excluir">×</button>
+        </div>
+        <div style="font-size:28px;margin-bottom:6px">📁</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px">${p.fornecedor}</div>
+        <div style="font-size:11px;opacity:.7">${qtd} documento${qtd!==1?'s':''}</div>
+        <div style="font-size:10px;opacity:.5;margin-top:6px">Clique para abrir →</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
   atualizarSelectPastaModal(pastas||[]);
 }
+
 
 // Atualiza o select de pasta no modal conta
 function atualizarSelectPastaModal(pastas) {
@@ -14936,20 +14943,15 @@ function buscarCatNF(termo) {
 }
 
 async function salvarContaDaImportacao() {
-  const nome    = document.getElementById('nf-nome')?.value.trim();
-  const numero  = document.getElementById('nf-numero')?.value.trim();
-  const valor   = parseFloat(document.getElementById('nf-valor')?.value) || 0;
-  const venc    = document.getElementById('nf-vencimento')?.value;
-  const pasta   = document.getElementById('nf-pasta')?.value;
-  const cat     = document.getElementById('nf-categoria')?.value || '';
-  const parcelado = document.getElementById('nf-parcelado')?.value === 'sim';
-  const nParcelas = parseInt(document.getElementById('nf-nparcelas')?.value) || 1;
-  const hoje    = new Date().toISOString().substring(0,10);
+  const nome   = document.getElementById('nf-nome')?.value.trim();
+  const numero = document.getElementById('nf-numero')?.value.trim();
+  const valor  = parseFloat(document.getElementById('nf-valor')?.value) || 0;
+  const data   = document.getElementById('nf-vencimento')?.value || new Date().toISOString().substring(0,10);
+  const pasta  = document.getElementById('nf-pasta')?.value;
+  const cat    = document.getElementById('nf-categoria')?.value || '';
 
   if (!nome)   { showToast('Preencha o nome do fornecedor','error'); return; }
   if (!numero) { showToast('Preencha o Nº da NF ou Boleto','error'); return; }
-  if (!valor)  { showToast('Preencha o valor','error'); return; }
-  if (!venc)   { showToast('Preencha o vencimento','error'); return; }
   if (!pasta)  { showToast('Selecione a pasta','error'); document.getElementById('nf-pasta').style.borderColor='var(--red)'; return; }
   document.getElementById('nf-pasta').style.borderColor = '';
 
@@ -14963,54 +14965,77 @@ async function salvarContaDaImportacao() {
     if (upErr) { showToast('Erro no upload: '+upErr.message,'error'); return; }
     const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
     arquivoUrl = urlData?.publicUrl || '';
-    // Registra na tabela de documentos
-    await sb.from('documentos_fiscais').insert(addEmpresaId({
-      tipo: file.name.split('.').pop().toLowerCase(),
-      fornecedor: nome, numero_nf: numero,
-      valor, arquivo_url: arquivoUrl,
-      conta_pagar_id: pasta,
-      data_emissao: hoje
-    }));
   }
 
-  // Cria contas a pagar
-  let salvos = 0;
-  const total = parcelado ? nParcelas : 1;
+  // Só registra o documento — sem criar conta a pagar
+  const { error } = await sb.from('documentos_fiscais').insert(addEmpresaId({
+    tipo: file ? file.name.split('.').pop().toLowerCase() : 'nfe',
+    fornecedor: nome,
+    numero_nf: numero,
+    valor: valor || null,
+    categoria: cat || null,
+    arquivo_url: arquivoUrl || null,
+    conta_pagar_id: pasta,
+    data_emissao: data,
+    criado_por_nome: _vnUser?.nome || _vnUser?.email || null,
+    criado_em: new Date().toISOString()
+  }));
 
-  for (let i = 0; i < total; i++) {
-    // Calcula vencimento de cada parcela (mensal a partir do 1º vencimento)
-    let dataVenc = venc;
-    if (parcelado && i > 0) {
-      const d = new Date(venc + 'T12:00:00');
-      d.setMonth(d.getMonth() + i);
-      dataVenc = d.toISOString().substring(0,10);
-    }
-    const desc = total > 1
-      ? `${nome} (${i+1}/${total}) - NF ${numero}`
-      : `${nome} - NF ${numero}`;
-
-    await sb.from('contas_pagar').insert(addEmpresaId({
-      descricao: desc,
-      valor: valor / total,
-      categoria: cat,
-      data_vencimento: dataVenc,
-      parcela_atual: total > 1 ? i+1 : null,
-      total_parcelas: total > 1 ? total : null,
-      palavra_chave: nome.split(' ')[0].toUpperCase(),
-      arquivo_url: arquivoUrl || null,
-      status: 'pendente',
-      criado_por: _vnUser?.id || null,
-      criado_por_nome: _vnUser?.nome || _vnUser?.email || null,
-      criado_em: new Date().toISOString(),
-      pasta_id: pasta,
-    }));
-    salvos++;
-  }
+  if (error) { showToast('Erro: '+error.message,'error'); return; }
 
   fecharModalImportarNF();
-  showToast(`${salvos} conta(s) criada(s)!`, 'success');
-  loadContasPagar();
+  showToast('Documento arquivado!', 'success');
   loadDocumentos();
+}
+
+// ─── BUSCA DE DOCUMENTOS ────────────────────────────
+async function buscarDocumentos(termo) {
+  const grid = document.getElementById('doc-grid');
+  if (!termo.trim()) { loadDocumentos(); return; }
+
+  const { data: arqs } = await qE('documentos_fiscais')
+    .select('*').neq('tipo','pasta')
+    .or(`fornecedor.ilike.%${termo}%,numero_nf.ilike.%${termo}%`)
+    .order('created_at',{ascending:false}).limit(50);
+
+  if (!arqs?.length) {
+    grid.innerHTML = `<div style="padding:2rem;text-align:center;font-size:13px;color:var(--text3)">Nenhum documento encontrado para "<b>${termo}</b>"</div>`;
+    return;
+  }
+
+  const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2);text-align:left';
+  const iconArq = url => {
+    const ext = (url||'').split('.').pop().toLowerCase().split('?')[0];
+    return ext==='pdf'?'📄':['jpg','jpeg','png','webp'].includes(ext)?'🖼️':'📎';
+  };
+  grid.innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">🔍 ${arqs.length} resultado(s) para "<b>${termo}</b>" — <span style="cursor:pointer;color:var(--accent)" onclick="document.getElementById('doc-busca').value='';loadDocumentos()">limpar</span></div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>
+      <th style="${TH};width:30px"></th>
+      <th style="${TH}">Data</th>
+      <th style="${TH}">Fornecedor</th>
+      <th style="${TH};text-align:right">Valor</th>
+      <th style="${TH}">Nº Doc</th>
+      <th style="${TH};width:60px"></th>
+    </tr></thead>
+    <tbody>
+      ${arqs.map(a => {
+        const data = a.data_emissao ? new Date(a.data_emissao+'T12:00:00').toLocaleDateString('pt-BR')
+                   : a.created_at  ? new Date(a.created_at).toLocaleDateString('pt-BR') : '—';
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:7px 10px;text-align:center;font-size:18px">${iconArq(a.arquivo_url)}</td>
+          <td style="padding:7px 10px;color:var(--text2);white-space:nowrap">${data}</td>
+          <td style="padding:7px 10px;font-weight:600;cursor:pointer;color:var(--accent)" onclick="abrirDocumento('${a.arquivo_url||''}')">${a.fornecedor||'—'}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${a.valor ? fmtBRL(Number(a.valor)) : '—'}</td>
+          <td style="padding:7px 10px;font-family:'DM Mono',monospace;color:var(--text2)">${a.numero_nf||'—'}</td>
+          <td style="padding:7px 10px;text-align:center">
+            ${a.arquivo_url ? `<button onclick="abrirDocumento('${a.arquivo_url}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px">👁</button>` : ''}
+            <button onclick="deletarDocumento('${a.id}',false);buscarDocumentos('${termo}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:13px">🗑</button>
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`;
 }
 
 // ─── INIT ────────────────────────────────────────────
@@ -15596,22 +15621,8 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
       </div>
 
       <div>
-        <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;margin-bottom:5px">Vencimento / 1ª Parcela *</div>
+        <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;margin-bottom:5px">Data do Documento</div>
         <input id="nf-vencimento" type="date" style="width:100%;padding:9px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
-      </div>
-
-      <div>
-        <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;margin-bottom:5px">Parcelado?</div>
-        <select id="nf-parcelado" onchange="toggleNFParcelas()" style="width:100%;padding:9px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
-          <option value="nao">Não — pagamento único</option>
-          <option value="sim">Sim — parcelado</option>
-        </select>
-      </div>
-
-      <div>
-        <div style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;margin-bottom:5px">Nº de Parcelas</div>
-        <input id="nf-nparcelas" type="number" min="2" max="60" value="2" disabled
-          style="width:100%;padding:9px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;opacity:.4">
       </div>
 
       <div style="grid-column:1/-1;position:relative">
