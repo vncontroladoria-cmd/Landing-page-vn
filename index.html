@@ -7766,11 +7766,11 @@ async function loadContasPagar() {
   }
 
   const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
-  const aPagar    = contas.filter(c => ['a pagar','pendente','nao pago','a pagar'].includes(normS(c.status)));
+  const aPagar    = contas.filter(c => ['a pagar','pendente','nao pago'].includes(normS(c.status)));
   const enviados  = contas.filter(c => normS(c.status) === 'enviado');
-  const pagos     = contas.filter(c => ['pago','pago'].includes(normS(c.status)));
-  const naoPago   = contas.filter(c => ['não pago','nao pago'].includes(normS(c.status)));
-  const atrasados = contas.filter(c => normS(c.status) === 'atrasado' || (['pendente','a pagar','não pago','nao pago'].includes(normS(c.status)) && c.data_vencimento < hoje));
+  const pagos     = contas.filter(c => normS(c.status) === 'pago');
+  const naoPago   = contas.filter(c => normS(c.status) === 'nao pago');
+  const atrasados = contas.filter(c => normS(c.status) === 'atrasado' || (['pendente','a pagar','nao pago'].includes(normS(c.status)) && c.data_vencimento < hoje));
 
   const _s = (id, val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
   _s('cp-total', fmtBRL(soma(aPagar))); _s('cp-enviado', fmtBRL(soma(enviados)));
