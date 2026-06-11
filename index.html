@@ -3324,8 +3324,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Fornecedores e parceiros cadastrados</div>
-            <div style="display:flex;gap:8px">
-              <button class="btn" onclick="atualizarFornecedores()">↻ Atualizar</button>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="text" id="forn-busca" placeholder="🔍 Buscar..."
+                oninput="filtrarFornecedores(this.value)"
+                style="padding:6px 12px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);width:200px">
+              <button class="btn" onclick="atualizarFornecedores()">↻</button>
               <button class="btn btn-primary" onclick="toggleFormFornecedor()">+ Novo fornecedor</button>
             </div>
           </div>
@@ -9825,12 +9828,21 @@ async function editarFornecedorForm(id) {
 }
 
 // ─── FORNECEDORES ─────────────────────────────────────
+function filtrarFornecedores(termo) {
+  const t = (termo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const rows = document.querySelectorAll('#forn-tbody tr');
+  rows.forEach(row => {
+    const txt = row.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    row.style.display = !t || txt.includes(t) ? '' : 'none';
+  });
+}
+
 async function loadFornecedores() {
   const el = document.getElementById('forn-table');
   if (!el) return;
   const { data } = await qE('fornecedores').select('*').order('nome');
   if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
-  let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody>';
+  let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody id="forn-tbody">';
   data.forEach(r => {
     html += `<tr id="forn-row-${r.id}">
       <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
