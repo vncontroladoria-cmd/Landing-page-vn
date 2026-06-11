@@ -4500,6 +4500,7 @@ async function iniciarSessaoMultiEmpresa() {
   } else if (_todasEmpresas.length) {
     _empresaAtual = _todasEmpresas[0];
   }
+  if (_empresaAtual?.id) sessionStorage.setItem('vn_empresa_id', _empresaAtual.id);
 
   await showApp();
 }
@@ -4598,6 +4599,7 @@ async function trocarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
   _empresaAtual = emp;
+  if (emp?.id) sessionStorage.setItem('vn_empresa_id', emp.id);
   atualizarTopbarEmpresa();
   aplicarTemaEmpresa(emp);
   aplicarPermissoes();
@@ -14207,6 +14209,7 @@ async function masterAcessarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
   _empresaAtual = emp;
+  if (emp?.id) sessionStorage.setItem('vn_empresa_id', emp.id);
   // Registra log de acesso à empresa
   if (_vnUser?.id) {
     sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
