@@ -7452,7 +7452,7 @@ async function salvarLancamento() {
     categoria_dre: catDre,
     banco_id: bancoId || null,
     banco_nome: bancoNome,
-    mes: meses[parseInt(m)-1]?.toUpperCase(),
+    mes: `${ano}-${m.padStart(2,'0')}`,
     status: 'pago',
   };
 
@@ -7604,7 +7604,7 @@ fornecedorBate(f, desc)
       categoria_dre: catDre,
       banco_id: bancoId || null,
       banco_nome: bancoNome,
-      mes: meses[parseInt(m)-1]?.toUpperCase(),
+      mes: `${ano}-${m.padStart(2,'0')}`,
       status: 'pago',
     }));
     if (error) erros++; else count++;
@@ -13489,7 +13489,7 @@ function renderConciliacao() {
     let temSugestao = !!match;
 
     // 2. Se não achou por fornecedor, tenta pela coluna CATEGORIA do Excel
-    if (!temSugestao && r._catExcel) {
+    if (r._catExcel) {
       const normCat = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
       const catMatch = _categorias.find(c =>
         normCat(c.nome) === normCat(r._catExcel) ||
@@ -13497,12 +13497,15 @@ function renderConciliacao() {
         normCat(r._catExcel).includes(normCat(c.nome))
       );
       if (catMatch) {
-        catDfc = catMatch.nome;
+        // Achou no plano de contas — usa DFC/DRE corretamente
+        catDfc = (catMatch.demonstrativo === 'DFC' || catMatch.demonstrativo === 'AMBOS') ? catMatch.nome : catDfc;
+        catDre = (catMatch.demonstrativo === 'DRE' || catMatch.demonstrativo === 'AMBOS') ? catMatch.nome : catDre;
         catNome = catMatch.nome;
         temSugestao = true;
       } else {
-        // Usa o nome da categoria do Excel direto mesmo sem match
+        // Usa o nome do Excel direto
         catNome = r._catExcel;
+        catDfc = r._catExcel;
         temSugestao = true;
       }
     }
@@ -13619,7 +13622,7 @@ async function conciliarLinha(idx) {
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
-  const tipo = r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
+  const tipo = (r.entrada > 0 && !r.saida) ? 'ENTRADA' : (r.saida > 0 && !r.entrada) ? 'SAIDA' : r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
   // Usa a data do próprio lançamento para determinar mês/ano
   const ano = (r.data || '').substring(0,4) || new Date().getFullYear().toString();
   const m = (r.data || '').substring(5,7) || String(new Date().getMonth()+1).padStart(2,'0');
@@ -13645,7 +13648,7 @@ async function conciliarLinha(idx) {
     categoria_dre: catDre,
     banco_id: _concBancoId || null,
     banco_nome: _concBancoNome,
-    mes: meses[parseInt(m)-1]?.toUpperCase(),
+    mes: `${ano}-${m.padStart(2,'0')}`,
     status: 'pago',
     conciliado: true,
     origem: 'importacao',
