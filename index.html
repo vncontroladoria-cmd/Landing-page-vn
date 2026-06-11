@@ -7422,8 +7422,9 @@ async function salvarLancamento() {
   const catVal = document.getElementById('nl-categoria').value;
   const catBusca = document.getElementById('nl-categoria-busca')?.value.trim() || '';
   const bancoId = document.getElementById('nl-banco').value;
-  const mesEl = document.getElementById('lanc-mes')?.value || data?.substring(0,7) || '';
-  const [ano, m] = mesEl ? mesEl.split('-') : [new Date().getFullYear().toString(), String(new Date().getMonth()+1).padStart(2,'0')];
+  // Extrai ano e mês direto da data do lançamento
+  const anoNum = data ? data.substring(0,4) : String(new Date().getFullYear());
+  const mNum   = data ? data.substring(5,7) : String(new Date().getMonth()+1).padStart(2,'0');
 
   if (!data) { showToast('Informe a data','error'); return; }
   if (!valor) { showToast('Informe o valor','error'); return; }
@@ -7456,7 +7457,7 @@ async function salvarLancamento() {
     categoria_dre: catDre,
     banco_id: bancoId || null,
     banco_nome: bancoNome,
-    mes: `${ano}-${m.padStart(2,'0')}`,
+    mes: `${anoNum}-${mNum}`,
     status: 'pago',
   };
 
