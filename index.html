@@ -14533,18 +14533,21 @@ async function salvarUsuario() {
 
 // ─── LIMPAR DADOS POR EMPRESA ────────────────────────
 const TABELAS_EMPRESA = [
-  { id:'lancamentos',         label:'Lançamentos',         tabela:'lançamentos',           icone:'💰', desc:'Entradas e saídas financeiras' },
+  { id:'lancamentos',         label:'Lançamentos',         tabela:'lancamentos',           icone:'💰', desc:'Entradas e saídas financeiras' },
   { id:'pdv',                 label:'PDV / Comandas',       tabela:'pdv_itens',             icone:'🛒', desc:'Itens de venda e comandas' },
   { id:'contas-pagar',        label:'Contas a Pagar',       tabela:'contas_pagar',          icone:'📤', desc:'Obrigações a pagar' },
   { id:'contas-receber',      label:'Contas a Receber',     tabela:'contas_receber',        icone:'📥', desc:'Valores a receber' },
-  { id:'servicos',            label:'Serviços Importados',  tabela:'servicos_importados',   icone:'✂️', desc:'Relatório de serviços' },
-  { id:'clientes',            label:'Clientes',             tabela:'clientes_atendidos',    icone:'👥', desc:'Clientes atendidos' },
-  { id:'clientes-novos',      label:'Clientes Novos',       tabela:'clientes_novos',        icone:'🆕', desc:'Clientes novos captados' },
-  { id:'produtos',            label:'Produtos Importados',  tabela:'produtos_importados',   icone:'📦', desc:'Vendas de produtos' },
-  { id:'performance',         label:'Performance',          tabela:'relatorio_profissional',icone:'📊', desc:'Relatório de profissionais' },
-  { id:'lucratividade',       label:'Lucratividade',        tabela:'lucratividade_importada',icone:'📈',desc:'Dados de lucratividade' },
+  { id:'servicos',            label:'Serviços Importados',  tabela:'rel_servicos',          icone:'✂️', desc:'Relatório de serviços' },
+  { id:'lucratividade',       label:'Lucratividade',        tabela:'rel_lucratividade',     icone:'📈', desc:'Dados de lucratividade' },
+  { id:'dados-brutos',        label:'Dados Importados',     tabela:'rel_dados_brutos',      icone:'📋', desc:'Dados brutos importados' },
+  { id:'fornecedores',        label:'Fornecedores',         tabela:'fornecedores',          icone:'🏪', desc:'Cadastro de fornecedores' },
+  { id:'bancos',              label:'Bancos',               tabela:'bancos_cadastrados',    icone:'🏦', desc:'Contas bancárias' },
+  { id:'profissionais',       label:'Profissionais',        tabela:'profissionais',         icone:'👤', desc:'Cadastro de profissionais' },
   { id:'metas-prof',          label:'Metas Profissionais',  tabela:'metas_profissionais',   icone:'🎯', desc:'Metas por profissional' },
   { id:'metas-fin',           label:'Metas Financeiras',    tabela:'metas_financeiras',     icone:'🏆', desc:'Metas financeiras do mês' },
+  { id:'plano-contas',        label:'Plano de Contas',      tabela:'plano_contas',          icone:'📒', desc:'Categorias do plano de contas' },
+  { id:'grupos-plano',        label:'Grupos Plano',         tabela:'grupos_plano',          icone:'📂', desc:'Grupos do plano de contas' },
+  { id:'documentos',          label:'Documentos/Pastas',    tabela:'documentos_fiscais',    icone:'📁', desc:'Documentos arquivados' },
 ];
 
 let _dadosEmpresaId = null;
