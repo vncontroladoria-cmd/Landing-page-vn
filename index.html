@@ -13637,8 +13637,12 @@ async function conciliarLinha(idx) {
 }
 
 async function concluirTodos() {
+  // Só processa linhas que têm categoria definida — sem categoria fica para o usuário preencher
   for (let i = 0; i < _concRows.length; i++) {
-    if (!_concRows[i]._concluido) await conciliarLinha(i);
+    const r = _concRows[i];
+    if (!r._concluido && r._catNome && r._catNome.trim()) {
+      await conciliarLinha(i);
+    }
   }
   showToast(`✓ ${_concRows.filter(r=>r._concluido).length} lançamentos salvos!`, 'success');
   _concRows = [];
@@ -13916,10 +13920,12 @@ function normText(s) {
 // Verifica se fornecedor bate com extrato
 function fornecedorBate(f, extrato) {
   const ext = normText(extrato);
-  // 1. Palavra-chave
+  // 1. Palavras-chave — suporta múltiplas separadas por |
   if (f.palavra_chave) {
-    const pk = normText(f.palavra_chave);
-    if (pk && ext.includes(pk)) return true;
+    const pks = f.palavra_chave.split('|').map(p => normText(p.trim())).filter(Boolean);
+    for (const pk of pks) {
+      if (pk && ext.includes(pk)) return true;
+    }
   }
   // 2. Nome completo normalizado
   if (f.nome) {
