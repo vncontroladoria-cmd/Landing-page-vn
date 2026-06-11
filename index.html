@@ -3514,6 +3514,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div>
               <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">DRE — Demonstrativo de Resultado</div>
               <div id="grupos-dre"><div class="loading"><div class="spin"></div></div></div>
+              <div id="grupos-outros"></div>
             </div>
           </div>
         </div>
@@ -9905,7 +9906,8 @@ function filtrarFornecedores(termo) {
 async function loadFornecedores() {
   const el = document.getElementById('forn-table');
   if (!el) return;
-  const { data } = await qE('fornecedores').select('*').order('nome');
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const { data } = await sb.from('fornecedores').select('*').eq('empresa_id', empId).order('nome');
   if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum fornecedor cadastrado</div>'; return; }
   let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody id="forn-tbody">';
   data.forEach(r => {
@@ -10095,10 +10097,16 @@ async function loadPlanoContas() {
 
       // Linha para nova categoria (oculta)
       html += `<div id="nova-cat-${g.id}" style="display:none;padding:10px 14px;background:#f0fdf4;border-bottom:1px solid var(--border)">
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="text" id="nova-cat-nome-${g.id}" placeholder="Nome da categoria" style="flex:1;padding:7px 10px;font-size:13px;border:1.5px solid var(--accent);border-radius:8px;font-family:'Outfit',sans-serif">
-          <span style="font-size:12px;color:var(--text2);white-space:nowrap">Código: <strong id="nova-cat-cod-${g.id}" style="color:var(--accent)">${g.ordem}.${gCats.length+1}</strong></span>
-          <button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarNovaCategoria('${g.id}','${g.nome}','${g.demonstrativo}',${g.ordem},${gCats.length})">💾 Salvar</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="nova-cat-nome-${g.id}" placeholder="Nome da categoria" style="flex:1;min-width:150px;padding:7px 10px;font-size:13px;border:1.5px solid var(--accent);border-radius:8px;font-family:'Outfit',sans-serif">
+          <select id="nova-cat-demo-${g.id}" style="padding:7px 10px;font-size:12px;border:1.5px solid var(--accent);border-radius:8px;background:#fff;font-family:'Outfit',sans-serif">
+            <option value="DFC" ${g.demonstrativo==='DFC'?'selected':''}>DFC</option>
+            <option value="DRE" ${g.demonstrativo==='DRE'?'selected':''}>DRE</option>
+            <option value="AMBOS">Ambos</option>
+            <option value="NENHUM" ${g.demonstrativo==='NENHUM'?'selected':''}>Nenhum</option>
+          </select>
+          <span style="font-size:12px;color:var(--text2);white-space:nowrap">Cód: <strong id="nova-cat-cod-${g.id}" style="color:var(--accent)">${g.ordem}.${gCats.length+1}</strong></span>
+          <button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarNovaCategoria('${g.id}','${g.nome}',document.getElementById('nova-cat-demo-${g.id}').value,${g.ordem},${gCats.length})">💾 Salvar</button>
           <button class="btn btn-sm" onclick="document.getElementById('nova-cat-${g.id}').style.display='none'">✕</button>
         </div>
       </div>`;
@@ -10130,10 +10138,18 @@ async function loadPlanoContas() {
     el.innerHTML = html;
   };
 
-  const dfc = _grupos.filter(g => g.demonstrativo === 'DFC');
-  const dre = _grupos.filter(g => g.demonstrativo === 'DRE');
+  const dfc    = _grupos.filter(g => g.demonstrativo === 'DFC' || g.demonstrativo === 'AMBOS');
+  const dre    = _grupos.filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
+  const outros = _grupos.filter(g => g.demonstrativo === 'NENHUM');
   renderGrupoComCats(dfc, 'grupos-dfc');
   renderGrupoComCats(dre, 'grupos-dre');
+  const elO = document.getElementById('grupos-outros');
+  if (elO) {
+    if (outros.length) {
+      elO.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 10px;padding-top:16px;border-top:1px solid var(--border)">🗂️ Controle de Caixa — não entra em DFC nem DRE</div><div id="grupos-outros-lista"></div>';
+      renderGrupoComCats(outros, 'grupos-outros-lista');
+    } else { elO.innerHTML = ''; }
+  }
 }
 
 function adicionarCategoriaNoGrupo(gid, gNome, demo, ordem) {
@@ -10358,7 +10374,8 @@ async function excluirCategoria(id) {
 async function loadBancos() {
   const el = document.getElementById('bancos-grid');
   if (!el) return;
-  const { data } = await qE('bancos_cadastrados').select('*').order('nome');
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const { data } = await sb.from('bancos_cadastrados').select('*').eq('empresa_id', empId).order('nome');
   if (!data?.length) { el.innerHTML = '<div class="empty">Nenhum banco cadastrado</div>'; return; }
   const bancos = ['Itaú','Stone','C6 Bank','Nubank','Bradesco','Santander','Caixa Econômica','Banco do Brasil','Inter','PicPay','Sicoob','Outro'];
   const tipos = ['Conta Corrente','Poupança','Caixa Físico','PIX'];
@@ -12503,6 +12520,24 @@ async function salvarConta() {
     salvos++;
   }
 
+  // Se estiver editando e a data mudou, perguntar se altera futuras
+  if (editId) {
+    const dataOriginal = document.getElementById('ct-data-original')?.value;
+    const dataAtual = document.getElementById('ct-venc')?.value;
+    if (dataOriginal && dataAtual && dataOriginal !== dataAtual && recorrente === 'sim') {
+      if (confirm('Deseja atualizar a data de vencimento de TODAS as parcelas futuras também?')) {
+        const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+        const nomeBase = document.getElementById('ct-nome')?.value.trim();
+        await sb.from('contas_pagar')
+          .update({ data_vencimento: dataAtual })
+          .eq('empresa_id', empId)
+          .eq('descricao', nomeBase)
+          .gte('data_vencimento', dataOriginal)
+          .neq('id', editId);
+      }
+    }
+  }
+
   const msg = recorrente === 'parcelado' ? `${salvos} parcelas criadas!`
     : recorrente === 'sim' ? `Conta recorrente criada para ${salvos} meses!`
     : 'Conta salva!';
@@ -12773,6 +12808,9 @@ async function editarConta(id, tipo) {
   document.getElementById('ct-cnpj').value = c.cnpj || '';
   document.getElementById('ct-valor').value = c.valor || '';
   document.getElementById('ct-vencimento').value = c.data_vencimento || '';
+  let origInput = document.getElementById('ct-data-original');
+  if (!origInput) { origInput = document.createElement('input'); origInput.type='hidden'; origInput.id='ct-data-original'; document.body.appendChild(origInput); }
+  origInput.value = c.data_vencimento || '';
   document.getElementById('ct-tipo').value = c.tipo || 'fixa';
   document.getElementById('ct-recorrente').value = c.recorrente ? 'sim' : 'nao';
   document.getElementById('ct-dia-venc').value = c.dia_vencimento || '';
