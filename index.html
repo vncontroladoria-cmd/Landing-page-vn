@@ -10049,7 +10049,7 @@ async function saveFornecedor() {
   if (codigo) payload.codigo = codigo;
 
   const { error } = isNovo
-    ? await sb.from('fornecedores').insert(payload)
+    ? await sb.from('fornecedores').insert(addEmpresaId(payload))
     : await sb.from('fornecedores').update(payload).eq('id', id);
   if (error) { showToast('Erro: ' + error.message,'error'); return; }
   showToast('Fornecedor salvo!','success');
