@@ -12409,7 +12409,7 @@ async function salvarConta() {
 
     const { error } = (editId && i === 0)
       ? await sb.from(tabela).update(payload).eq('id', editId)
-      : await sb.from(tabela).insert(payload);
+      : await sb.from(tabela).insert(addEmpresaId(payload));
 
     if (error) { showToast('Erro: ' + error.message, 'error'); return; }
     salvos++;
