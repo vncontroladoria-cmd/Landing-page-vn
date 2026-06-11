@@ -7048,6 +7048,16 @@ async function carregarBancos() {
 // ─── LANÇAMENTOS ─────────────────────────────────────────
 let _bancos = [];
 let _categorias = [];
+
+// Garante que categorias estão carregadas antes de usar
+async function garantirCategorias() {
+  if (_categorias.length) return;
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
+  if (!empId) return;
+  const { data } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('codigo');
+  _categorias = data || [];
+  filtrarCategoriasPorTipo(_tipoLanc || 'SAIDA');
+}
 let _fornecedores = [];
 
 async function initLancamentos() {
@@ -7342,12 +7352,7 @@ function filtrarCategoriasPorTipo(tipo) {
 }
 
 async function abrirDropdownCategoria() {
-  // Se categorias ainda não carregaram, busca agora
-  if (!_categorias.length) {
-    const { data } = await qE('plano_contas').select('*').order('codigo');
-    _categorias = data || [];
-    filtrarCategoriasPorTipo(_tipoLanc);
-  }
+  await garantirCategorias();
   buscarCategoria('');
 }
 
@@ -9809,7 +9814,8 @@ async function carregarCatsFornecedor() {
   _categorias = data || [];
 }
 
-function buscarCatConta(texto) {
+async function buscarCatConta(texto) {
+  await garantirCategorias();
   const dd = document.getElementById('ct-cat-dd');
   if (!dd) return;
   const termo = (texto||'').toLowerCase().trim();
@@ -13680,7 +13686,8 @@ async function verAuditoria(id) {
   document.getElementById('modal-auditoria').classList.add('open');
 }
 
-function buscaCatInline(texto, lancId) {
+async function buscaCatInline(texto, lancId) {
+  await garantirCategorias();
   const dd = document.getElementById(`lcat-dd-${lancId}`);
   if (!dd) return;
   const termo = (texto||'').toLowerCase().trim();
@@ -13718,7 +13725,8 @@ function selecionarCatInline(lancId, nome, dfc, dre) {
   if (dd) dd.style.display = 'none';
 }
 
-function buscaCatConc(texto, idx) {
+async function buscaCatConc(texto, idx) {
+  await garantirCategorias();
   const dd = document.getElementById(`conc-cat-dd-${idx}`);
   if (!dd) return;
   const termo = texto.toLowerCase().trim();
@@ -15271,7 +15279,8 @@ function toggleNFParcelas() {
   if (npEl) { npEl.disabled = !parcelado; npEl.style.opacity = parcelado ? '1' : '.4'; }
 }
 
-function buscarCatNF(termo) {
+async function buscarCatNF(termo) {
+  await garantirCategorias();
   const dd = document.getElementById('nf-cat-dd');
   if (!dd) return;
   const cats = (_categorias||[]).filter(c => !termo || c.nome?.toLowerCase().includes(termo.toLowerCase()));
@@ -15733,10 +15742,11 @@ async function excluirLancCC(id) {
 
 // ── Busca de categoria no plano de contas ─────────────
 async function buscaCatCC(termo) {
+  await garantirCategorias();
   const dd = document.getElementById('cc-cat-dropdown');
   if (!dd) return;
   if (!termo || termo.length < 2) { dd.style.display='none'; return; }
-  const { data } = await qE('plano_contas').select('nome,demonstrativo,grupo').ilike('nome', `%${termo}%`).limit(15);
+  const data = _categorias.filter(c => c.nome.toLowerCase().includes(termo.toLowerCase()));
   if (!data?.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = data.map(c => `
