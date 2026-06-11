@@ -13680,12 +13680,10 @@ async function conciliarLinha(idx) {
 }
 
 async function concluirTodos() {
-  // Só processa linhas que têm categoria definida
+  // Processa TODOS os lançamentos — com ou sem categoria
   for (let i = 0; i < _concRows.length; i++) {
     const r = _concRows[i];
-    const catEl = document.getElementById(`conc-cat-${i}`);
-    const cat = catEl?.value || r._catNome || '';
-    if (!r._concluido && cat.trim()) {
+    if (!r._concluido) {
       await conciliarLinha(i);
     }
   }
