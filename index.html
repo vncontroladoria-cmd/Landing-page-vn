@@ -7420,20 +7420,24 @@ async function salvarLancamento() {
   const valor = parseFloat(document.getElementById('nl-valor').value) || 0;
   const descricao = document.getElementById('nl-descricao').value.trim();
   const catVal = document.getElementById('nl-categoria').value;
+  const catBusca = document.getElementById('nl-categoria-busca')?.value.trim() || '';
   const bancoId = document.getElementById('nl-banco').value;
   const mes = document.getElementById('lanc-mes').value;
-  const [ano, m] = mes.split('-');
-  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const [ano, m] = mes ? mes.split('-') : [new Date().getFullYear(), String(new Date().getMonth()+1).padStart(2,'0')];
 
   if (!data) { showToast('Informe a data','error'); return; }
   if (!valor) { showToast('Informe o valor','error'); return; }
-  if (!catVal) { showToast('Selecione uma categoria','error'); return; }
 
   let catNome = '', catDfc = '', catDre = '';
-  try {
-    const catObj = JSON.parse(catVal);
-    catNome = catObj.nome; catDfc = catObj.dfc; catDre = catObj.dre;
-  } catch(e) { catNome = catVal; }
+  if (catVal) {
+    try {
+      const catObj = JSON.parse(catVal);
+      catNome = catObj.nome; catDfc = catObj.dfc || ''; catDre = catObj.dre || '';
+    } catch(e) { catNome = catVal; }
+  } else if (catBusca) {
+    // Aceita texto digitado mesmo sem selecionar do dropdown
+    catNome = catBusca;
+  }
 
   const entrada = _tipoLanc === 'ENTRADA' ? valor : null;
   const saida = _tipoLanc === 'SAIDA' ? valor : null;
