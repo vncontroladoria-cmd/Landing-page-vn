@@ -13311,11 +13311,23 @@ async function processarExcelMapeado() {
 
     let entrada = 0, saida = 0;
     if (colValor !== '') {
-      const v = parseValor(row[parseInt(colValor)]);
-      if (v > 0) entrada = v; else if (v < 0) saida = Math.abs(v);
+      // Coluna única: positivo = entrada, negativo = saída
+      const vRaw = row[parseInt(colValor)];
+      const vNum = typeof vRaw === 'number' ? vRaw : parseFloat(String(vRaw||'').replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.')) || 0;
+      if (vNum > 0) entrada = vNum; else if (vNum < 0) saida = Math.abs(vNum);
     }
-    if (colEntrada !== '') entrada = Math.abs(parseValor(row[parseInt(colEntrada)])) || entrada;
-    if (colSaida !== '') saida = Math.abs(parseValor(row[parseInt(colSaida)])) || saida;
+    if (colEntrada !== '') {
+      // Coluna entrada: pega só se valor > 0
+      const eRaw = row[parseInt(colEntrada)];
+      const eNum = typeof eRaw === 'number' ? eRaw : parseFloat(String(eRaw||'').replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.')) || 0;
+      if (eNum > 0) entrada = eNum;
+    }
+    if (colSaida !== '') {
+      // Coluna saída: pega valor absoluto (pode vir negativo ou positivo)
+      const sRaw = row[parseInt(colSaida)];
+      const sNum = typeof sRaw === 'number' ? sRaw : parseFloat(String(sRaw||'').replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.')) || 0;
+      if (sNum !== 0) saida = Math.abs(sNum);
+    }
     const catExcel = colCat !== '' ? String(row[parseInt(colCat)] || '').trim() : '';
 
     const anotacao = colAnotacao !== '' ? String(row[parseInt(colAnotacao)] || '').trim() : '';
@@ -13559,13 +13571,22 @@ function aprovarSugestao(idx) {
 }
 
 async function aprovarTodos() {
-  const total = _concRows.length;
-  if (!total) return;
+  // Só aprova os que têm categoria reconhecida — sem categoria fica para o usuário
+  const comCat = _concRows.filter((r,i) => {
+    const catEl = document.getElementById(`conc-cat-${i}`);
+    const cat = catEl?.value || r._catNome || '';
+    return cat.trim() !== '';
+  });
+  
+  if (!comCat.length) {
+    showToast('Nenhum lançamento com categoria definida para aprovar', 'error');
+    return;
+  }
 
   const container = document.getElementById('conc-container');
   container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text2)">
     <div class="spin" style="margin:0 auto 12px"></div>
-    Salvando ${total} lançamentos...
+    Salvando ${comCat.length} lançamentos reconhecidos...
   </div>`;
 
   await concluirTodos();
@@ -13585,7 +13606,7 @@ async function conciliarLinha(idx) {
   const m = (r.data || '').substring(5,7) || String(new Date().getMonth()+1).padStart(2,'0');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const agora = new Date().toISOString();
-  const usuario = (await sb.auth.getUser())?.data?.user?.email || 'sistema';
+  const usuario = _vnUser?.nome || _vnUser?.email || 'sistema';
 
   // Conta quantos já foram salvos para gerar código sequencial
   const { count: total } = await qE('lancamentos').select('*', {count:'exact',head:true});
@@ -13637,10 +13658,12 @@ async function conciliarLinha(idx) {
 }
 
 async function concluirTodos() {
-  // Só processa linhas que têm categoria definida — sem categoria fica para o usuário preencher
+  // Só processa linhas que têm categoria definida
   for (let i = 0; i < _concRows.length; i++) {
     const r = _concRows[i];
-    if (!r._concluido && r._catNome && r._catNome.trim()) {
+    const catEl = document.getElementById(`conc-cat-${i}`);
+    const cat = catEl?.value || r._catNome || '';
+    if (!r._concluido && cat.trim()) {
       await conciliarLinha(i);
     }
   }
