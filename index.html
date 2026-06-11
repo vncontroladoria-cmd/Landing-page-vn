@@ -14354,15 +14354,13 @@ async function criarEstruturaBase(empresaId) {
 
 // qE: wrapper que filtra SELECT por empresa_id automaticamente
 function qE(tabela) {
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   const q = sb.from(tabela);
   return {
     select: (...args) => {
       const base = q.select(...args);
-      if (_empresaAtual?.id) {
-        // Filtra estritamente pela empresa atual
-        return base.eq('empresa_id', _empresaAtual.id);
-      }
-      // Sem empresa definida: não retorna nada (segurança)
+      if (empId) return base.eq('empresa_id', empId);
+      // Sem empresa: retorna vazio com segurança
       return base.eq('empresa_id', '00000000-0000-0000-0000-000000000000');
     }
   };
@@ -14370,9 +14368,20 @@ function qE(tabela) {
 
 // Para INSERT: adiciona empresa_id automaticamente no payload
 function addEmpresaId(payload) {
-  if (!_empresaAtual?.id) return payload;
-  if (Array.isArray(payload)) return payload.map(p => ({...p, empresa_id: _empresaAtual.id}));
-  return {...payload, empresa_id: _empresaAtual.id};
+  // Sempre pega empresa_id de forma segura — nunca salva sem empresa
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!empId) {
+    console.error('addEmpresaId: empresa_id não encontrado! _empresaAtual:', _empresaAtual);
+    showToast('Erro: empresa não identificada. Faça login novamente.', 'error');
+    throw new Error('empresa_id ausente');
+  }
+  if (Array.isArray(payload)) return payload.map(p => ({...p, empresa_id: empId}));
+  return {...payload, empresa_id: empId};
+}
+
+// Garante que _empresaAtual está sempre sincronizado com sessionStorage
+function getEmpresaId() {
+  return _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || null;
 }
 
 // Carrega página Empresas & Usuários
