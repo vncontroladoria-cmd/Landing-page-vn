@@ -7058,12 +7058,16 @@ let _categoriasEmpresaId = null;
 async function garantirCategorias() {
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   if (!empId) return;
-  // Recarrega se empresa mudou ou ainda não carregou
-  if (_categorias.length && _categoriasEmpresaId === empId) return;
+  // Sempre recarrega — nunca usa cache de outra empresa
   const { data } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('codigo');
   _categorias = data || [];
   _categoriasEmpresaId = empId;
-  filtrarCategoriasPorTipo(_tipoLanc || 'SAIDA');
+  _catMapAtual = {};
+  _categorias.forEach(c => {
+    if (!_catMapAtual[c.nome]) _catMapAtual[c.nome] = { nome: c.nome, dfc: null, dre: null };
+    if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dfc = c.codigo;
+    if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dre = c.codigo;
+  });
 }
 let _fornecedores = [];
 
@@ -7347,8 +7351,8 @@ function selecionarTipoLanc(tipo) {
 
 function filtrarCategoriasPorTipo(tipo) {
   _catMapAtual = {};
-  // Mostra todas as categorias — filtra por tipo mas inclui sem tipo
-  const lista = _categorias.filter(c => !c.tipo || c.tipo === tipo || c.demonstrativo === 'AMBOS' || c.demonstrativo === 'NENHUM');
+  // Mostra todas as categorias sem filtrar por tipo — usuário escolhe
+  const lista = _categorias;
   lista.forEach(c => {
     if (!_catMapAtual[c.nome]) _catMapAtual[c.nome] = { nome: c.nome, dfc: null, dre: null };
     if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dfc = c.codigo;
@@ -7360,7 +7364,15 @@ function filtrarCategoriasPorTipo(tipo) {
 
 async function abrirDropdownCategoria() {
   await garantirCategorias();
-  buscarCategoria('');
+  // Se _catMapAtual ainda vazio, popula direto das categorias
+  if (!Object.keys(_catMapAtual).length && _categorias.length) {
+    _categorias.forEach(c => {
+      if (!_catMapAtual[c.nome]) _catMapAtual[c.nome] = { nome: c.nome, dfc: null, dre: null };
+      if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dfc = c.codigo;
+      if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dre = c.codigo;
+    });
+  }
+  buscarCategoria(document.getElementById('nl-categoria-busca')?.value || '');
 }
 
 function toggleFormLanc() {
