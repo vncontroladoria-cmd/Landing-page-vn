@@ -3365,7 +3365,18 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div style="border-top:1.5px solid var(--border);padding-top:1rem;margin-bottom:1rem">
               <div style="font-size:13px;font-weight:600;margin-bottom:0.75rem;color:var(--accent)">🔗 Reconhecimento automático</div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-                <div class="form-group"><label>Palavra-chave no extrato</label><input type="text" id="forn-palavra-chave" placeholder="Ex: CEMIG, ALUGUEL, PIX"></div>
+                <div class="form-group">
+                  <label>Palavras-chave no extrato</label>
+                  <div style="display:flex;gap:6px;margin-bottom:6px">
+                    <input type="text" id="forn-palavra-nova" placeholder="Ex: BOLETO PAGO NUCLEO" 
+                      style="flex:1;padding:7px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)"
+                      onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarPalavraChaveForn()}">
+                    <button type="button" onclick="adicionarPalavraChaveForn()" 
+                      style="padding:7px 12px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer;white-space:nowrap;font-family:'Outfit',sans-serif">+ Add</button>
+                  </div>
+                  <div id="forn-palavras-tags" style="display:flex;flex-wrap:wrap;gap:4px;min-height:28px"></div>
+                  <input type="hidden" id="forn-palavra-chave">
+                </div>
                 
                 <div class="form-group" style="position:relative">
                   <label>Categoria DFC</label>
@@ -9802,7 +9813,7 @@ async function editarFornecedorForm(id) {
   document.getElementById('forn-telefone').value = f.telefone || '';
   document.getElementById('forn-contato').value = f.contato || '';
   document.getElementById('forn-obs').value = f.observacao || '';
-  document.getElementById('forn-palavra-chave').value = f.palavra_chave || '';
+  carregarPalavrasChaveForn(f.palavra_chave || '');
   document.getElementById('forn-cat-dfc-busca').value = f.categoria_dfc || '';
   document.getElementById('forn-cat-dfc').value = f.categoria_dfc || '';
   document.getElementById('forn-cat-dre-busca').value = f.categoria_dre || '';
@@ -15272,6 +15283,57 @@ function isLancContabil(l) {
     desc === 'saldo inicial' ||
     catDfc.includes('entre conta')
   );
+}
+
+// ─── PALAVRAS-CHAVE MÚLTIPLAS ────────────────────────
+function adicionarPalavraChaveForn() {
+  const input = document.getElementById('forn-palavra-nova');
+  const val = input?.value.trim().toUpperCase();
+  if (!val) return;
+
+  const hidden = document.getElementById('forn-palavra-chave');
+  const tags = document.getElementById('forn-palavras-tags');
+  if (!hidden || !tags) return;
+
+  // Pega lista atual
+  const atual = hidden.value ? hidden.value.split('|').map(s=>s.trim()).filter(Boolean) : [];
+  if (atual.includes(val)) { input.value = ''; return; }
+
+  atual.push(val);
+  hidden.value = atual.join(' | ');
+
+  renderTagsPalavraChave(atual);
+  input.value = '';
+  input.focus();
+}
+
+function removerPalavraChaveForn(palavra) {
+  const hidden = document.getElementById('forn-palavra-chave');
+  const atual = hidden.value ? hidden.value.split('|').map(s=>s.trim()).filter(Boolean) : [];
+  const nova = atual.filter(p => p !== palavra);
+  hidden.value = nova.join(' | ');
+  renderTagsPalavraChave(nova);
+}
+
+function renderTagsPalavraChave(lista) {
+  const tags = document.getElementById('forn-palavras-tags');
+  if (!tags) return;
+  tags.innerHTML = lista.map(p => `
+    <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:var(--green-dim);border:1px solid var(--accent);border-radius:20px;font-size:11px;font-weight:600;color:var(--accent)">
+      🔑 ${p}
+      <button onclick="removerPalavraChaveForn('${p.replace(/'/g,"&#39;")}')" 
+        style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;padding:0;line-height:1">×</button>
+    </span>`
+  ).join('');
+}
+
+function carregarPalavrasChaveForn(valor) {
+  const hidden = document.getElementById('forn-palavra-chave');
+  const tags = document.getElementById('forn-palavras-tags');
+  if (!hidden || !tags) return;
+  hidden.value = valor || '';
+  const lista = valor ? valor.split('|').map(s=>s.trim()).filter(Boolean) : [];
+  renderTagsPalavraChave(lista);
 }
 
 // ─── INIT ────────────────────────────────────────────
