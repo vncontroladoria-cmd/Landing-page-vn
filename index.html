@@ -10122,6 +10122,13 @@ async function loadPlanoContas() {
             <input class="cell-edit" style="display:none;width:50px;font-family:monospace;font-size:12px" value="${c.codigo||''}">
             <span style="font-size:13px;flex:1" class="cell-view">${c.nome}</span>
             <input class="cell-edit" style="display:none;flex:1;font-size:13px" value="${c.nome||''}">
+            <span style="font-size:11px;color:var(--text2);min-width:45px" class="cell-view">${c.demonstrativo||''}</span>
+            <select class="cell-edit" style="display:none;font-size:12px;padding:4px 6px;border:1.5px solid var(--accent);border-radius:6px;background:var(--bg2)">
+              <option value="DFC" ${c.demonstrativo==='DFC'?'selected':''}>DFC</option>
+              <option value="DRE" ${c.demonstrativo==='DRE'?'selected':''}>DRE</option>
+              <option value="AMBOS" ${c.demonstrativo==='AMBOS'?'selected':''}>Ambos</option>
+              <option value="NENHUM" ${c.demonstrativo==='NENHUM'?'selected':''}>Nenhum</option>
+            </select>
             <div style="display:flex;gap:4px">
               <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="moverCategoria('${c.id}','up','${g.nome}','${g.demonstrativo}')" ${idx===0?'disabled':''}>↑</button>
               <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="moverCategoria('${c.id}','down','${g.nome}','${g.demonstrativo}')" ${idx===gCats.length-1?'disabled':''}>↓</button>
@@ -10197,11 +10204,13 @@ async function salvarCategoriaInline(id, rowId) {
   const inputs = row.querySelectorAll('.cell-edit');
   // O HTML só tem 2 inputs: [0]=codigo, [1]=nome
   // btn de salvar também é .cell-edit, então pega só os <input>
-  const inpArr = Array.from(inputs).filter(el => el.tagName === 'INPUT');
+  const inpArr = Array.from(inputs).filter(el => el.tagName === 'INPUT' || el.tagName === 'SELECT');
   const novoCodigo = inpArr[0]?.value.trim() || '';
   const novoNome   = inpArr[1]?.value.trim() || '';
+  const novoDemo   = inpArr[2]?.value || '';
   if (!novoNome) { showToast('Nome obrigatório','error'); return; }
   const payload = { codigo: novoCodigo, nome: novoNome };
+  if (novoDemo) payload.demonstrativo = novoDemo;
   const { data: ant } = await qE('plano_contas').select('nome').eq('id', id).single();
   const { error } = await sb.from('plano_contas').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
