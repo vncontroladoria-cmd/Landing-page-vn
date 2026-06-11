@@ -4600,6 +4600,10 @@ async function trocarEmpresa(empresaId) {
   if (!emp) return;
   _empresaAtual = emp;
   if (emp?.id) { sessionStorage.setItem('vn_empresa_id', emp.id); localStorage.setItem('vn_empresa_id', emp.id); }
+  // Limpa cache de categorias para recarregar da nova empresa
+  _categorias = [];
+  _categoriasEmpresaId = null;
+  _catMapAtual = {};
   atualizarTopbarEmpresa();
   aplicarTemaEmpresa(emp);
   aplicarPermissoes();
@@ -7050,12 +7054,15 @@ let _bancos = [];
 let _categorias = [];
 
 // Garante que categorias estão carregadas antes de usar
+let _categoriasEmpresaId = null;
 async function garantirCategorias() {
-  if (_categorias.length) return;
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   if (!empId) return;
+  // Recarrega se empresa mudou ou ainda não carregou
+  if (_categorias.length && _categoriasEmpresaId === empId) return;
   const { data } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('codigo');
   _categorias = data || [];
+  _categoriasEmpresaId = empId;
   filtrarCategoriasPorTipo(_tipoLanc || 'SAIDA');
 }
 let _fornecedores = [];
@@ -14258,6 +14265,10 @@ async function masterAcessarEmpresa(empresaId) {
     sessionStorage.setItem('vn_empresa_id', emp.id);
     localStorage.setItem('vn_empresa_id', emp.id);
   }
+  // Limpa cache de categorias para recarregar da nova empresa
+  _categorias = [];
+  _categoriasEmpresaId = null;
+  _catMapAtual = {};
   // Registra log de acesso à empresa
   if (_vnUser?.id) {
     sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
