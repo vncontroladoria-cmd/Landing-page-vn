@@ -1322,6 +1322,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <span class="nav-icon">💰</span><span class="nav-label">Contas a Receber</span>
       </div>
 
+      <div class="nav-item" data-page="cartao-credito" onclick="showPage('cartao-credito',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+        <span class="nav-label">Cartão de Crédito</span>
+      </div>
       <div class="nav-item" data-page="conciliacao" onclick="showPage('conciliacao',this)">
         <span class="nav-icon">⇄</span><span class="nav-label">Conciliação</span>
       </div>
@@ -2482,6 +2486,65 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         </div>
 
         <!-- CONCILIAÇÃO BANCÁRIA -->
+
+        <!-- ═══ PAGE: CARTÃO DE CRÉDITO ═══ -->
+        <div class="page" id="page-cartao-credito">
+          <div class="pg-header">
+            <div>
+              <div class="pg-header-title">💳 Cartão de Crédito</div>
+              <div class="pg-header-sub">Faturas e lançamentos por cartão</div>
+            </div>
+          </div>
+          <div class="hero-cards cols-4" style="margin-bottom:10px">
+            <div class="hcard green"><div class="hcard-label">Limite Total</div><div class="hcard-value sm" id="cc-hero-limite">—</div><div class="hcard-sub">todos os cartões</div><div class="hcard-icon">💳</div></div>
+            <div class="hcard red"><div class="hcard-label">Utilizado</div><div class="hcard-value sm" id="cc-hero-usado">—</div><div class="hcard-sub">período filtrado</div><div class="hcard-icon">💸</div></div>
+            <div class="hcard blue"><div class="hcard-label">Disponível</div><div class="hcard-value sm" id="cc-hero-disp">—</div><div class="hcard-sub">limite − utilizado</div><div class="hcard-icon">✅</div></div>
+            <div class="hcard purple"><div class="hcard-label">Lançamentos</div><div class="hcard-value" id="cc-hero-n">—</div><div class="hcard-sub">no período</div><div class="hcard-icon">📋</div></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+            <div class="filters" style="margin-bottom:0">
+              <select class="filter-select" id="cc-cartao-filter" onchange="loadCartaoLancamentos()">
+                <option value="">Todos os cartões</option>
+              </select>
+              <select class="filter-select" id="cc-ano" onchange="loadCartaoLancamentos()">
+                <option value="2026">2026</option><option value="2025">2025</option>
+              </select>
+              <select class="filter-select" id="cc-mes" onchange="loadCartaoLancamentos()">
+                <option value="">Todos os meses</option>
+                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                <option value="03">Março</option><option value="04">Abril</option>
+                <option value="05">Maio</option><option value="06" selected>Junho</option>
+                <option value="07">Julho</option><option value="08">Agosto</option>
+                <option value="09">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+              <input type="text" id="cc-busca" placeholder="🔍 Buscar..."
+                oninput="filtrarCartaoLanc(this.value)"
+                style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
+              <button class="btn" onclick="loadCartaoLancamentos()">↻ Atualizar</button>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="abrirModalCartao()">⚙️ Cartões</button>
+              <button class="btn" onclick="abrirImportarFaturaCC()">📥 Importar Fatura</button>
+              <button class="btn btn-primary" onclick="abrirModalLancCC()">+ Novo lançamento</button>
+            </div>
+          </div>
+          <div class="section-card" style="padding:0">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>DATA</th><th>CARTÃO</th><th>EXTRATO</th><th>DESCRIÇÃO</th>
+                    <th style="text-align:right">VALOR</th><th>CATEGORIA DFC/DRE</th>
+                    <th>MÊS</th><th>STATUS</th><th>AÇÕES</th>
+                  </tr>
+                </thead>
+                <tbody id="cc-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <div class="page" id="page-conciliacao">
           <div class="pg-header">
             <div><div class="pg-header-title">🔗 Conciliação Bancária</div><div class="pg-header-sub">Cruzamento do extrato com lançamentos cadastrados</div></div>
@@ -4640,7 +4703,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const pageTitles = {
   dashboard:'Dashboard', lancamentos:'Lançamentos', pdv:'PDV / Caixa',
-  'contas-pagar':'Contas a Pagar', importar:'Importar Dados',
+  'contas-pagar':'Contas a Pagar',
+  'cartao-credito':'Cartão de Crédito', importar:'Importar Dados',
   servicos:'Serviços', clientes:'Clientes',
   produtos:'Produtos', performance:'Performance',
   metricas:'Métricas', conciliacao:'Conciliação',
@@ -4671,7 +4735,8 @@ function showPage(id, el) {
   if (id === 'servicos') { preencherFiltrosServicos(); initServicos(); }
   if (id === 'dfc') loadDFC();
   if (id === 'dre') loadDRE();
-  if (id === 'lancamentos') loadLancamentos();
+  if (id === 'lancamentos')    loadLancamentos();
+  if (id === 'cartao-credito') initCartaoCredito();
   if (id === 'contas-pagar') { loadContasPagar(); loadDocumentos(); }
   if (id === 'contas-receber') loadContasReceber();
   if (id === 'metricas') loadMetricas();
@@ -10461,7 +10526,7 @@ const _todasPaginas = [
 
 const _permissoesPadrao = {
   admin: _todasPaginas.map(p => p.id),
-  operador: ['dashboard','lancamentos','conciliacao','contas-pagar','fornecedores','importar','servicos','clientes','produtos','performance'],
+  operador: ['dashboard','lancamentos','cartao-credito','conciliacao','contas-pagar','fornecedores','importar','servicos','clientes','produtos','performance'],
   cliente: ['dashboard','dfc','dre','servicos','clientes','produtos','performance'],
 };
 
@@ -15348,6 +15413,364 @@ function carregarPalavrasChaveForn(valor) {
   renderTagsPalavraChave(lista);
 }
 
+// ═══════════════════════════════════════════════════════
+// CARTÃO DE CRÉDITO
+// ═══════════════════════════════════════════════════════
+
+let _cartoes = [];
+let _ccLancEditId = null;
+let _ccCartaoEditId = null;
+
+async function initCartaoCredito() {
+  await loadCartoes();
+  await loadCartaoLancamentos();
+}
+
+// ── Carregar cartões ──────────────────────────────────
+async function loadCartoes() {
+  const { data } = await qE('cartoes').select('*').eq('ativo', true).order('nome');
+  _cartoes = data || [];
+
+  // Popular selects de cartão
+  const opts = _cartoes.map(c => `<option value="${c.id}">${c.nome} (${c.bandeira||''})</option>`).join('');
+  ['cc-cartao-filter','cc-lanc-cartao','cc-imp-cartao'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const all = id === 'cc-cartao-filter' ? '<option value="">Todos os cartões</option>' : '<option value="">Selecione o cartão</option>';
+    el.innerHTML = all + opts;
+  });
+
+  // Popular bancos no modal de cartão
+  const { data: bancos } = await qE('bancos_cadastrados').select('id,nome').eq('ativo', true);
+  const elBanco = document.getElementById('cc-banco-id');
+  if (elBanco) {
+    elBanco.innerHTML = '<option value="">Nenhum</option>' + (bancos||[]).map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
+  }
+}
+
+// ── Carregar lançamentos ──────────────────────────────
+async function loadCartaoLancamentos() {
+  const tbody = document.getElementById('cc-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px"><div class="spin"></div></td></tr>';
+
+  const cartaoId = document.getElementById('cc-cartao-filter')?.value;
+  const ano = document.getElementById('cc-ano')?.value || new Date().getFullYear();
+  const mes = document.getElementById('cc-mes')?.value;
+
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!empId) return;
+
+  let q = sb.from('cartao_lancamentos').select('*, cartoes(nome,bandeira,limite)').eq('empresa_id', empId);
+  if (cartaoId) q = q.eq('cartao_id', cartaoId);
+  if (mes) q = q.eq('mes', `${ano}-${mes}`);
+  else q = q.like('mes', `${ano}%`);
+  q = q.order('data_lancamento', { ascending: false });
+
+  const { data: lancs } = await q;
+  const lista = lancs || [];
+
+  // Cards hero
+  const limiteTotal = _cartoes.reduce((s,c) => s + (Number(c.limite)||0), 0);
+  const usado = lista.reduce((s,l) => s + (Number(l.valor)||0), 0);
+  const disp = limiteTotal - usado;
+
+  const fmt = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2});
+  document.getElementById('cc-hero-limite').textContent = fmt(limiteTotal);
+  document.getElementById('cc-hero-usado').textContent  = fmt(usado);
+  document.getElementById('cc-hero-disp').textContent   = fmt(disp);
+  document.getElementById('cc-hero-n').textContent      = lista.length;
+
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text2)">Nenhum lançamento encontrado</td></tr>';
+    return;
+  }
+
+  const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+  tbody.innerHTML = lista.map(l => {
+    const mesLabel = l.mes ? meses[parseInt(l.mes.split('-')[1])-1] + '/' + l.mes.split('-')[0] : '—';
+    const statusColor = l.status === 'pago' ? 'var(--green)' : 'var(--amber)';
+    return `<tr id="cc-row-${l.id}">
+      <td>${l.data_lancamento ? new Date(l.data_lancamento+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+      <td>${l.cartoes?.nome || '—'}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.extrato||''}">${l.extrato||'—'}</td>
+      <td>${l.descricao||'—'}</td>
+      <td style="text-align:right;color:var(--red);font-weight:700">${fmt(l.valor)}</td>
+      <td style="font-size:11px">${l.categoria_dfc||l.categoria||'—'}</td>
+      <td style="font-size:11px">${mesLabel}</td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${statusColor}22;color:${statusColor};font-weight:700">${(l.status||'pendente').toUpperCase()}</span></td>
+      <td>
+        <button onclick="editarLancCC('${l.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
+        <button onclick="excluirLancCC('${l.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Filtrar lançamentos ───────────────────────────────
+function filtrarCartaoLanc(termo) {
+  const t = (termo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  document.querySelectorAll('#cc-tbody tr').forEach(r => {
+    r.style.display = !t || r.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(t) ? '' : 'none';
+  });
+}
+
+// ── Modal Cartão ──────────────────────────────────────
+async function abrirModalCartao() {
+  _ccCartaoEditId = null;
+  ['cc-nome','cc-limite','cc-vencimento'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+  document.getElementById('cc-bandeira').value = '';
+  document.getElementById('cc-banco-id').value = '';
+  await renderListaCartoes();
+  document.getElementById('modal-cartao-title').textContent = 'Gerenciar Cartões';
+  document.getElementById('modal-cartao').classList.add('open');
+}
+
+async function renderListaCartoes() {
+  const el = document.getElementById('cc-lista-cartoes');
+  if (!el) return;
+  const { data } = await qE('cartoes').select('*').order('nome');
+  if (!data?.length) { el.innerHTML = '<div style="color:var(--text2);font-size:12px">Nenhum cartão cadastrado</div>'; return; }
+  el.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px">CARTÕES CADASTRADOS</div>' +
+    data.map(c => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg3);border-radius:8px;margin-bottom:6px">
+        <div>
+          <div style="font-weight:700;font-size:13px">${c.nome}</div>
+          <div style="font-size:11px;color:var(--text2)">${c.bandeira||''} · Limite: R$ ${Number(c.limite||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} · Vence dia ${c.vencimento_dia||'—'}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="editarCartao('${c.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--accent)">✏️</button>
+          <button onclick="excluirCartao('${c.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--red)">🗑️</button>
+        </div>
+      </div>`
+    ).join('');
+}
+
+async function salvarCartao() {
+  const nome = document.getElementById('cc-nome')?.value.trim();
+  if (!nome) { showToast('Digite o nome do cartão','error'); return; }
+  const payload = {
+    nome,
+    bandeira: document.getElementById('cc-bandeira')?.value || null,
+    limite: parseFloat(document.getElementById('cc-limite')?.value) || 0,
+    vencimento_dia: parseInt(document.getElementById('cc-vencimento')?.value) || null,
+    banco_id: document.getElementById('cc-banco-id')?.value || null,
+    ativo: true,
+  };
+  const { error } = _ccCartaoEditId
+    ? await sb.from('cartoes').update(payload).eq('id', _ccCartaoEditId)
+    : await sb.from('cartoes').insert(addEmpresaId(payload));
+  if (error) { showToast('Erro: ' + error.message,'error'); return; }
+  showToast('Cartão salvo!','success');
+  _ccCartaoEditId = null;
+  ['cc-nome','cc-limite','cc-vencimento'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+  await loadCartoes();
+  await renderListaCartoes();
+}
+
+async function editarCartao(id) {
+  const { data } = await sb.from('cartoes').select('*').eq('id', id).single();
+  if (!data) return;
+  _ccCartaoEditId = id;
+  document.getElementById('cc-nome').value = data.nome || '';
+  document.getElementById('cc-bandeira').value = data.bandeira || '';
+  document.getElementById('cc-limite').value = data.limite || '';
+  document.getElementById('cc-vencimento').value = data.vencimento_dia || '';
+  document.getElementById('cc-banco-id').value = data.banco_id || '';
+  document.getElementById('modal-cartao-title').textContent = 'Editar Cartão';
+}
+
+async function excluirCartao(id) {
+  if (!confirm('Excluir este cartão?')) return;
+  await sb.from('cartoes').update({ativo:false}).eq('id', id);
+  await loadCartoes();
+  await renderListaCartoes();
+  showToast('Cartão excluído','success');
+}
+
+// ── Modal Lançamento CC ───────────────────────────────
+function abrirModalLancCC() {
+  _ccLancEditId = null;
+  ['cc-lanc-extrato','cc-lanc-desc','cc-lanc-cat','cc-lanc-valor'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+  document.getElementById('cc-lanc-cat-dfc').value = '';
+  document.getElementById('cc-lanc-cat-dre').value = '';
+  document.getElementById('cc-lanc-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('cc-lanc-status').value = 'pendente';
+  document.getElementById('modal-lanc-cc-title').textContent = 'Novo Lançamento';
+  document.getElementById('modal-lanc-cc').classList.add('open');
+}
+
+async function editarLancCC(id) {
+  const { data } = await sb.from('cartao_lancamentos').select('*').eq('id', id).single();
+  if (!data) return;
+  _ccLancEditId = id;
+  document.getElementById('cc-lanc-cartao').value = data.cartao_id || '';
+  document.getElementById('cc-lanc-data').value = data.data_lancamento || '';
+  document.getElementById('cc-lanc-valor').value = data.valor || '';
+  document.getElementById('cc-lanc-extrato').value = data.extrato || '';
+  document.getElementById('cc-lanc-desc').value = data.descricao || '';
+  document.getElementById('cc-lanc-cat').value = data.categoria || '';
+  document.getElementById('cc-lanc-cat-dfc').value = data.categoria_dfc || '';
+  document.getElementById('cc-lanc-cat-dre').value = data.categoria_dre || '';
+  document.getElementById('cc-lanc-status').value = data.status || 'pendente';
+  document.getElementById('modal-lanc-cc-title').textContent = 'Editar Lançamento';
+  document.getElementById('modal-lanc-cc').classList.add('open');
+}
+
+async function salvarLancCC() {
+  const cartaoId = document.getElementById('cc-lanc-cartao')?.value;
+  const data     = document.getElementById('cc-lanc-data')?.value;
+  const valor    = parseFloat(document.getElementById('cc-lanc-valor')?.value);
+  if (!cartaoId) { showToast('Selecione o cartão','error'); return; }
+  if (!data)     { showToast('Informe a data','error'); return; }
+  if (!valor)    { showToast('Informe o valor','error'); return; }
+
+  const mes = data.substring(0,7);
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const payload = {
+    empresa_id: empId,
+    cartao_id: cartaoId,
+    data_lancamento: data,
+    mes,
+    extrato:      document.getElementById('cc-lanc-extrato')?.value || '',
+    descricao:    document.getElementById('cc-lanc-desc')?.value || '',
+    valor,
+    tipo: 'SAIDA',
+    categoria:     document.getElementById('cc-lanc-cat')?.value || '',
+    categoria_dfc: document.getElementById('cc-lanc-cat-dfc')?.value || '',
+    categoria_dre: document.getElementById('cc-lanc-cat-dre')?.value || '',
+    status:        document.getElementById('cc-lanc-status')?.value || 'pendente',
+    origem: 'manual',
+  };
+
+  const { error } = _ccLancEditId
+    ? await sb.from('cartao_lancamentos').update(payload).eq('id', _ccLancEditId)
+    : await sb.from('cartao_lancamentos').insert(payload);
+
+  if (error) { showToast('Erro: ' + error.message,'error'); return; }
+  showToast('Lançamento salvo!','success');
+  closeModal('modal-lanc-cc');
+  await loadCartaoLancamentos();
+}
+
+async function excluirLancCC(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  await sb.from('cartao_lancamentos').delete().eq('id', id);
+  await loadCartaoLancamentos();
+  showToast('Lançamento excluído','success');
+}
+
+// ── Busca de categoria no plano de contas ─────────────
+async function buscaCatCC(termo) {
+  const dd = document.getElementById('cc-cat-dropdown');
+  if (!dd) return;
+  if (!termo || termo.length < 2) { dd.style.display='none'; return; }
+  const { data } = await qE('plano_contas').select('nome,demonstrativo,grupo').ilike('nome', `%${termo}%`).limit(15);
+  if (!data?.length) { dd.style.display='none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = data.map(c => `
+    <div onclick="selecionarCatCC('${c.nome}','${c.demonstrativo}')"
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <div style="font-weight:700">${c.nome}</div>
+      <div style="font-size:10px;color:var(--text2)">${c.grupo||''} · ${c.demonstrativo}</div>
+    </div>`).join('');
+}
+
+function selecionarCatCC(nome, demo) {
+  document.getElementById('cc-lanc-cat').value = nome;
+  document.getElementById('cc-lanc-cat-dfc').value = (demo==='DFC'||demo==='AMBOS') ? nome : '';
+  document.getElementById('cc-lanc-cat-dre').value = (demo==='DRE'||demo==='AMBOS') ? nome : '';
+  document.getElementById('cc-cat-dropdown').style.display = 'none';
+}
+
+// ── Importar Fatura ───────────────────────────────────
+let _ccFaturaRows = [];
+
+function abrirImportarFaturaCC() {
+  document.getElementById('cc-imp-preview').style.display = 'none';
+  document.getElementById('cc-imp-arquivo').value = '';
+  _ccFaturaRows = [];
+  document.getElementById('modal-importar-cc').classList.add('open');
+}
+
+function previewFaturaCC(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    _ccFaturaRows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    if (!_ccFaturaRows.length) return;
+
+    const cols = Object.keys(_ccFaturaRows[0]);
+    const normC = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const findCol = (names) => cols.find(c => names.some(n => normC(c).includes(n))) || '';
+
+    const mapaEl = document.getElementById('cc-imp-mapa');
+    const mapaFields = [
+      { label:'Data',     key:'cc-map-data',   guess: findCol(['data','date']) },
+      { label:'Extrato',  key:'cc-map-ext',    guess: findCol(['historico','extrato','descri','lancamento']) },
+      { label:'Valor',    key:'cc-map-valor',  guess: findCol(['valor','value','amount','debito','saida']) },
+    ];
+
+    mapaEl.innerHTML = mapaFields.map(f => `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:12px;width:60px;font-weight:700">${f.label}</span>
+        <select id="${f.key}" style="flex:1;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+          <option value="">— não mapear —</option>
+          ${cols.map(c => `<option value="${c}" ${c===f.guess?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>`).join('');
+
+    document.getElementById('cc-imp-preview').style.display = 'block';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function processarFaturaCC() {
+  const cartaoId = document.getElementById('cc-imp-cartao')?.value;
+  if (!cartaoId) { showToast('Selecione o cartão','error'); return; }
+  if (!_ccFaturaRows.length) { showToast('Nenhum dado encontrado','error'); return; }
+
+  const colData  = document.getElementById('cc-map-data')?.value;
+  const colExt   = document.getElementById('cc-map-ext')?.value;
+  const colValor = document.getElementById('cc-map-valor')?.value;
+
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const parseD = v => {
+    if (!v) return null;
+    const s = String(v).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+    const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return null;
+  };
+  const parseV = v => { if (!v&&v!==0) return 0; if (typeof v==='number') return Math.abs(v); const s=String(v).replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'); return Math.abs(parseFloat(s)||0); };
+
+  const rows = _ccFaturaRows.map(r => {
+    const data = parseD(colData ? r[colData] : null);
+    const valor = parseV(colValor ? r[colValor] : null);
+    if (!data || !valor) return null;
+    const mes = data.substring(0,7);
+    return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+  }).filter(Boolean);
+
+  if (!rows.length) { showToast('Nenhum lançamento válido encontrado','error'); return; }
+
+  let erros = 0;
+  for (let i=0; i<rows.length; i+=100) {
+    const { error } = await sb.from('cartao_lancamentos').insert(rows.slice(i,i+100));
+    if (error) erros++;
+  }
+
+  if (erros) { showToast('Erro em alguns lançamentos','error'); return; }
+  showToast(`✅ ${rows.length} lançamentos importados!`,'success');
+  closeModal('modal-importar-cc');
+  await loadCartaoLancamentos();
+}
+
 // ─── INIT ────────────────────────────────────────────
 checkSession();
 document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
@@ -15962,6 +16385,109 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
     <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px">
       <button onclick="fecharModalImportarNF()" style="padding:10px 20px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text2);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif">Cancelar</button>
       <button onclick="salvarContaDaImportacao()" style="padding:10px 22px;background:var(--green);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: GERENCIAR CARTÕES -->
+<div class="modal-overlay" id="modal-cartao">
+  <div class="modal" style="max-width:500px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title" id="modal-cartao-title">Novo Cartão</div>
+      <button onclick="closeModal('modal-cartao')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group"><label>Nome do cartão *</label><input type="text" id="cc-nome" placeholder="Ex: Itaú Visa Gold"></div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label>Bandeira</label>
+          <select id="cc-bandeira" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+            <option value="">Selecione</option>
+            <option>Visa</option><option>Mastercard</option><option>Elo</option>
+            <option>American Express</option><option>Hipercard</option><option>Outro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Dia vencimento fatura</label><input type="number" id="cc-vencimento" placeholder="15" min="1" max="31"></div>
+      </div>
+      <div class="form-group"><label>Limite (R$)</label><input type="number" id="cc-limite" placeholder="0,00" step="0.01"></div>
+      <div class="form-group"><label>Banco vinculado</label>
+        <select id="cc-banco-id" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+          <option value="">Nenhum</option>
+        </select>
+      </div>
+    </div>
+    <div id="cc-lista-cartoes" style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-cartao')">Fechar</button>
+      <button class="btn btn-primary" onclick="salvarCartao()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVO LANÇAMENTO CC -->
+<div class="modal-overlay" id="modal-lanc-cc">
+  <div class="modal" style="max-width:520px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title" id="modal-lanc-cc-title">Novo Lançamento</div>
+      <button onclick="closeModal('modal-lanc-cc')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group"><label>Cartão *</label>
+        <select id="cc-lanc-cartao" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+          <option value="">Selecione o cartão</option>
+        </select>
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label>Data *</label><input type="date" id="cc-lanc-data"></div>
+        <div class="form-group"><label>Valor (R$) *</label><input type="number" id="cc-lanc-valor" placeholder="0,00" step="0.01"></div>
+      </div>
+      <div class="form-group"><label>Extrato / Histórico</label><input type="text" id="cc-lanc-extrato" placeholder="Ex: AMAZON PRIME"></div>
+      <div class="form-group"><label>Descrição</label><input type="text" id="cc-lanc-desc" placeholder="Descrição do gasto"></div>
+      <div class="form-group"><label>Categoria</label>
+        <input type="text" id="cc-lanc-cat" placeholder="🔍 Buscar categoria..." oninput="buscaCatCC(this.value)" autocomplete="off">
+        <div id="cc-cat-dropdown" style="display:none;position:absolute;background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);z-index:999;max-height:200px;overflow-y:auto;width:300px"></div>
+        <input type="hidden" id="cc-lanc-cat-dfc">
+        <input type="hidden" id="cc-lanc-cat-dre">
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="cc-lanc-status" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+          <option value="pendente">Pendente</option>
+          <option value="pago">Pago</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-lanc-cc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarLancCC()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: IMPORTAR FATURA CC -->
+<div class="modal-overlay" id="modal-importar-cc">
+  <div class="modal" style="max-width:500px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title">Importar Fatura</div>
+      <button onclick="closeModal('modal-importar-cc')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group"><label>Cartão</label>
+        <select id="cc-imp-cartao" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+          <option value="">Selecione</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Arquivo Excel (.xlsx)</label>
+        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv" onchange="previewFaturaCC(this)">
+      </div>
+      <div id="cc-imp-preview" style="display:none">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Colunas detectadas — confirme o mapeamento:</div>
+        <div id="cc-imp-mapa"></div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-importar-cc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="processarFaturaCC()">📥 Importar</button>
     </div>
   </div>
 </div>
