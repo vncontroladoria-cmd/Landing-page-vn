@@ -13720,11 +13720,22 @@ async function concluirTodos() {
       await conciliarLinha(i);
     }
   }
-  showToast(`✓ ${_concRows.filter(r=>r._concluido).length} lançamentos salvos!`, 'success');
+  const salvos = _concRows.filter(r=>r._concluido).length;
+  showToast(`✓ ${salvos} lançamentos salvos!`, 'success');
   _concRows = [];
-  // Vai direto para lançamentos
-  const navLanc = document.querySelector('[onclick*="lancamentos"]');
-  showPage('lancamentos', navLanc);
+  _concFile = null;
+  // Limpa a página de conciliação
+  const container = document.getElementById('conc-container');
+  if (container) container.innerHTML = '';
+  const header = document.getElementById('conc-header');
+  if (header) header.style.display = 'none';
+  const info = document.getElementById('conc-info');
+  if (info) info.innerHTML = `
+    <div style="text-align:center;padding:3rem;color:var(--text2)">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px">${salvos} lançamentos conciliados com sucesso!</div>
+      <div style="font-size:13px">Importe um novo extrato para continuar.</div>
+    </div>`;
 }
 
 // Auditoria — mostra de onde veio o lançamento
