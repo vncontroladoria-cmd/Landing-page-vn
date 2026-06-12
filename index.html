@@ -2350,6 +2350,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
             <div style="padding:1.25rem">
               <div style="display:flex;gap:8px;margin-bottom:1rem">
+                <input type="number" id="nova-cat-pdv-ordem" placeholder="Nº" min="1" style="width:60px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;text-align:center">
                 <input type="text" id="nova-cat-pdv" placeholder="Nome da categoria..." style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
                 <select id="nova-cat-pdv-tipo" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
                   <option value="ENTRADA">Entrada</option>
@@ -5572,7 +5573,7 @@ async function initPDV() {
 }
 
 async function carregarCategoriasPDV() {
-  const { data } = await qE('pdv_categorias').select('*').order('nome');
+  const { data } = await qE('pdv_categorias').select('*').order('ordem', {ascending:true}).order('nome');
   _pdvCategorias = data || [];
 }
 
@@ -7031,7 +7032,8 @@ function renderCategoriasPDV() {
   el.innerHTML = _pdvCategorias.map(c => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
       <div>
-        <span style="font-size:13px;font-weight:500">${c.nome}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:24px;display:inline-block">${c.ordem||'—'}</span>
+        <span style="font-size:13px;font-weight:500;margin-left:6px">${c.nome}</span>
         <span style="font-size:11px;color:var(--text3);margin-left:8px">${c.tipo}</span>
       </div>
       <button onclick="excluirCategoriaPDV('${c.id}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px">🗑️</button>
@@ -7041,10 +7043,12 @@ function renderCategoriasPDV() {
 async function salvarCategoriaPDV() {
   const nome = document.getElementById('nova-cat-pdv').value.trim();
   const tipo = document.getElementById('nova-cat-pdv-tipo').value;
+  const ordem = parseInt(document.getElementById('nova-cat-pdv-ordem')?.value) || 0;
   if (!nome) return;
-  const { error } = await sb.from('pdv_categorias').insert(addEmpresaId({ nome, tipo }));
+  const { error } = await sb.from('pdv_categorias').insert(addEmpresaId({ nome, tipo, ordem }));
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   document.getElementById('nova-cat-pdv').value = '';
+  document.getElementById('nova-cat-pdv-ordem').value = '';
   await carregarCategoriasPDV();
   renderCategoriasPDV();
   showToast('Categoria salva!', 'success');
