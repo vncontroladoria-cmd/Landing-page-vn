@@ -13211,7 +13211,7 @@ async function salvarMetasFinanceiras() {
     const mesNum = String(i+1).padStart(2,'0');
     const meta = parseValor(document.getElementById(`metafin-meta-${mesNum}`)?.value || '0');
     const dias = parseInt(document.getElementById(`metafin-dias-${mesNum}`)?.value || '0');
-    if (meta > 0) upserts.push({ ano, mes: mesNum, meta, dias_abertos: dias || null });
+    if (meta > 0) upserts.push({ ano: parseInt(ano), mes: i+1, meta, dias_abertos: dias || null });
   });
   if (upserts.length) {
     const empIdUp = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
