@@ -7411,16 +7411,26 @@ async function loadLancamentos() {
   const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA'&&!isLancContabil(l)).reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
   const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA'&&!isLancContabil(l)).reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
 
-  // Saldo Total = soma acumulada de todos os bancos (ou só do banco filtrado)
+  // Saldo Total = saldo acumulado até o último dia do período filtrado
+  // Pega todos os lançamentos até a última data do período
   let saldoTotal;
-  if (bancoFilter) {
-    const b = _bancos.find(x=>x.id===bancoFilter);
-    saldoTotal = b ? saldoBanco(b) : todos.filter(l=>l.banco_id===bancoFilter).reduce((s,l)=>s+vlLanc(l),0);
-  } else {
-    // Soma de todos os bancos cadastrados + lançamentos sem banco
-    const comBanco = _bancos.reduce((s,b) => s + saldoBanco(b), 0);
-    const semBanco = todos.filter(l => !l.banco_id && !l.banco_nome).reduce((s,l) => s+vlLanc(l), 0);
-    saldoTotal = comBanco + semBanco;
+  {
+    // Determinar última data do período filtrado
+    const ultimaDataFiltro = lancs.length 
+      ? lancs.reduce((max, l) => l.data_lancamento > max ? l.data_lancamento : max, lancs[0].data_lancamento)
+      : null;
+
+    // Filtrar todos os lançamentos até essa data (inclusive)
+    const lancAte = ultimaDataFiltro
+      ? todos.filter(l => l.data_lancamento <= ultimaDataFiltro)
+      : todos;
+
+    // Aplicar filtro de banco se houver
+    const lancFiltrados = bancoFilter
+      ? lancAte.filter(l => l.banco_id === bancoFilter)
+      : lancAte;
+
+    saldoTotal = lancFiltrados.reduce((s, l) => s + vlLanc(l), 0);
   }
 
   const _ls = (id,v,clr) => { const e=document.getElementById(id); if(e){ e.textContent=v; if(clr) e.style.color=clr; } };
