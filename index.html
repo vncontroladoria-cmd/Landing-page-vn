@@ -1695,6 +1695,54 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
+
+          <!-- PROJEÇÃO DE CAIXA -->
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="background:#dbeafe;color:#1d4ed8;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700">📈</span>
+                <span style="font-weight:700;font-size:13px">Projeção de Caixa</span>
+                <span style="font-size:11px;color:var(--text2)" id="proj-periodo-label">mês atual</span>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <button onclick="projMesAnterior()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px">◀</button>
+                <span id="proj-mes-label" style="font-size:12px;font-weight:600;min-width:100px;text-align:center">—</span>
+                <button onclick="projMesSeguinte()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px">▶</button>
+              </div>
+            </div>
+            <div style="padding:14px">
+              <!-- Cards resumo -->
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+                <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Saldo Inicial</div>
+                  <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace;color:var(--accent)" id="proj-saldo-ini">—</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Receita Projetada</div>
+                  <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace;color:#16a34a" id="proj-receita">—</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Contas a Pagar</div>
+                  <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace;color:#dc2626" id="proj-contas">—</div>
+                </div>
+                <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Saldo Final Projetado</div>
+                  <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace" id="proj-saldo-fin">—</div>
+                </div>
+              </div>
+              <!-- Gráfico -->
+              <div style="position:relative;height:220px">
+                <canvas id="chart-projecao"></canvas>
+              </div>
+              <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;flex-wrap:wrap">
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:#2a9d5c;display:inline-block;border-radius:2px"></span>Realizado</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:#3b82f6;display:inline-block;border-radius:2px;border:1px dashed #3b82f6"></span>Projeção (meta)</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:#f59e0b;display:inline-block;border-radius:2px;border:1px dashed #f59e0b"></span>Projeção (média atual)</span>
+                <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:8px;background:rgba(239,68,68,.4);display:inline-block;border-radius:2px"></span>Contas a pagar</span>
+              </div>
+            </div>
+          </div>
+
           <!-- LINHA 4: TOP 3 CARDS -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
             <div class="card" style="padding:0;overflow:hidden">
@@ -6470,6 +6518,9 @@ async function loadDashboard() {
     }
     if(el('m-saldo-caixa-d')) el('m-saldo-caixa-d').textContent = 'saldo do dia ' + dLabel;
   } catch(e) { console.warn('saldo_caixa:', e); }
+
+  // Projeção de caixa
+  try { await loadProjecaoCaixa(); } catch(e) { console.warn('projecao:', e); }
 
   // ── PDV: soma Comanda + Crédito + Débito + Pix por dia ──────
   const hoje3 = new Date();
@@ -16268,6 +16319,262 @@ function cancelarCropper() {
   if (area) area.style.display = 'none';
   const input = document.getElementById('edit-emp-logo');
   if (input) input.value = '';
+}
+
+// ═══════════════════════════════════════════════════════
+// PROJEÇÃO DE CAIXA
+// ═══════════════════════════════════════════════════════
+let _projAno  = new Date().getFullYear();
+let _projMes  = new Date().getMonth() + 1; // 1-12
+let _chartProjecao = null;
+
+function projMesAnterior() {
+  _projMes--;
+  if (_projMes < 1) { _projMes = 12; _projAno--; }
+  loadProjecaoCaixa();
+}
+
+function projMesSeguinte() {
+  _projMes++;
+  if (_projMes > 12) { _projMes = 1; _projAno++; }
+  loadProjecaoCaixa();
+}
+
+async function loadProjecaoCaixa() {
+  const canvas = document.getElementById('chart-projecao');
+  if (!canvas) return;
+
+  const mesesNomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mesNome = mesesNomes[_projMes - 1];
+  const label = `${mesNome}/${_projAno}`;
+  
+  if (document.getElementById('proj-mes-label')) 
+    document.getElementById('proj-mes-label').textContent = label;
+
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
+  if (!empId) return;
+
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth() + 1;
+  const ehMesAtual = (_projAno === anoAtual && _projMes === mesAtual);
+  const diaHoje = ehMesAtual ? hoje.getDate() : 0;
+
+  // Dias do mês
+  const diasNoMes = new Date(_projAno, _projMes, 0).getDate();
+  const dias = Array.from({length: diasNoMes}, (_, i) => i + 1);
+
+  // 1. Buscar saldo inicial (todos lançamentos antes do mês)
+  const iniStr = `${_projAno}-${String(_projMes).padStart(2,'0')}-01`;
+  const { data: lancAntes } = await sb.from('lancamentos')
+    .select('entrada,saida,valor,tipo')
+    .eq('empresa_id', empId)
+    .lt('data_lancamento', iniStr);
+  
+  const saldoInicial = (lancAntes||[]).reduce((s,l) => {
+    const e = Number(l.entrada||(l.tipo==='ENTRADA'?l.valor:0)||0);
+    const sa = Number(l.saida||(l.tipo==='SAIDA'?l.valor:0)||0);
+    return s + e - sa;
+  }, 0);
+
+  // 2. Buscar lançamentos do mês (realizados)
+  const fimStr = `${_projAno}-${String(_projMes).padStart(2,'0')}-${String(diasNoMes).padStart(2,'0')}`;
+  const { data: lancMes } = await sb.from('lancamentos')
+    .select('entrada,saida,valor,tipo,data_lancamento')
+    .eq('empresa_id', empId)
+    .gte('data_lancamento', iniStr)
+    .lte('data_lancamento', fimStr)
+    .order('data_lancamento');
+
+  // Mapa de lançamentos por dia
+  const entradaPorDia = {};
+  const saidaPorDia  = {};
+  (lancMes||[]).forEach(l => {
+    const d = parseInt(l.data_lancamento.split('-')[2]);
+    const e = Number(l.entrada||(l.tipo==='ENTRADA'?l.valor:0)||0);
+    const sa = Number(l.saida||(l.tipo==='SAIDA'?l.valor:0)||0);
+    entradaPorDia[d] = (entradaPorDia[d]||0) + e;
+    saidaPorDia[d]  = (saidaPorDia[d]||0) + sa;
+  });
+
+  // 3. Buscar contas a pagar do mês
+  const { data: contas } = await sb.from('contas_pagar')
+    .select('valor_total,data_vencimento,status')
+    .eq('empresa_id', empId)
+    .gte('data_vencimento', iniStr)
+    .lte('data_vencimento', fimStr)
+    .not('status','eq','pago');
+
+  const contasPorDia = {};
+  let totalContas = 0;
+  (contas||[]).forEach(c => {
+    const d = parseInt(c.data_vencimento.split('-')[2]);
+    const v = Number(c.valor_total||0);
+    contasPorDia[d] = (contasPorDia[d]||0) + v;
+    totalContas += v;
+  });
+
+  // 4. Meta diária
+  const { data: metaData } = await sb.from('metas_financeiras')
+    .select('meta,dias_abertos')
+    .eq('empresa_id', empId)
+    .eq('ano', _projAno)
+    .eq('mes', _projMes)
+    .limit(1);
+  
+  const meta = Number(metaData?.[0]?.meta || 0);
+  const diasAbertos = Number(metaData?.[0]?.dias_abertos || 22);
+  const metaDia = diasAbertos > 0 ? meta / diasAbertos : 0;
+
+  // Média diária atual (dos dias realizados)
+  const diasRealizados = diaHoje > 0 ? diaHoje : diasNoMes;
+  let totalRealizado = 0;
+  for (let d = 1; d <= diasRealizados; d++) {
+    totalRealizado += (entradaPorDia[d]||0) - (saidaPorDia[d]||0);
+  }
+  const mediaDia = diasRealizados > 0 ? totalRealizado / diasRealizados : 0;
+
+  // 5. Calcular curvas
+  const saldoRealizado   = [];
+  const saldoMeta        = [];
+  const saldoMedia       = [];
+  const barrasContas     = [];
+
+  let acumReal = saldoInicial;
+  let acumMeta = saldoInicial;
+  let acumMed  = saldoInicial;
+
+  for (const d of dias) {
+    // Realizado (até hoje)
+    if (d <= diaHoje || !ehMesAtual) {
+      acumReal += (entradaPorDia[d]||0) - (saidaPorDia[d]||0) - (contasPorDia[d]||0);
+      saldoRealizado.push(acumReal);
+    } else {
+      saldoRealizado.push(null);
+    }
+    // Projeção meta
+    if (d > diaHoje || !ehMesAtual) {
+      acumMeta += metaDia - (contasPorDia[d]||0);
+    } else {
+      acumMeta = acumReal !== null ? acumReal : acumMeta;
+    }
+    saldoMeta.push(acumMeta);
+    // Projeção média
+    if (d > diaHoje || !ehMesAtual) {
+      acumMed += mediaDia - (contasPorDia[d]||0);
+    } else {
+      acumMed = acumReal !== null ? acumReal : acumMed;
+    }
+    saldoMedia.push(acumMed);
+    // Barras de contas a pagar
+    barrasContas.push(contasPorDia[d] ? -(contasPorDia[d]) : 0);
+  }
+
+  // 6. Cards resumo
+  const fmt = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const saldoFinal = saldoMeta[saldoMeta.length-1];
+
+  if (document.getElementById('proj-saldo-ini')) 
+    document.getElementById('proj-saldo-ini').textContent = fmt(saldoInicial);
+  if (document.getElementById('proj-receita'))   
+    document.getElementById('proj-receita').textContent = fmt(meta || mediaDia * diasNoMes);
+  if (document.getElementById('proj-contas'))    
+    document.getElementById('proj-contas').textContent = fmt(totalContas);
+  
+  const elFin = document.getElementById('proj-saldo-fin');
+  if (elFin) {
+    elFin.textContent = fmt(saldoFinal);
+    elFin.style.color = saldoFinal >= 0 ? '#16a34a' : '#dc2626';
+  }
+
+  // 7. Renderizar gráfico
+  if (_chartProjecao) { _chartProjecao.destroy(); _chartProjecao = null; }
+
+  _chartProjecao = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: dias,
+      datasets: [
+        {
+          label: 'Realizado',
+          data: saldoRealizado,
+          type: 'line',
+          borderColor: '#2a9d5c',
+          backgroundColor: 'rgba(42,157,92,.1)',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true,
+          pointRadius: 2,
+          spanGaps: false,
+          order: 1,
+        },
+        {
+          label: 'Projeção (meta)',
+          data: saldoMeta,
+          type: 'line',
+          borderColor: '#3b82f6',
+          borderWidth: 2,
+          borderDash: [5,3],
+          tension: 0.3,
+          pointRadius: 0,
+          fill: false,
+          order: 2,
+        },
+        {
+          label: 'Projeção (média)',
+          data: saldoMedia,
+          type: 'line',
+          borderColor: '#f59e0b',
+          borderWidth: 2,
+          borderDash: [3,3],
+          tension: 0.3,
+          pointRadius: 0,
+          fill: false,
+          order: 3,
+        },
+        {
+          label: 'Contas a pagar',
+          data: barrasContas,
+          type: 'bar',
+          backgroundColor: 'rgba(239,68,68,.4)',
+          borderColor: 'rgba(239,68,68,.7)',
+          borderWidth: 1,
+          order: 4,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.parsed.y === null) return null;
+              const v = ctx.parsed.y;
+              return `${ctx.dataset.label}: R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+        y: {
+          grid: { color: 'rgba(0,0,0,.05)' },
+          ticks: {
+            font: { size: 9 },
+            callback: v => 'R$' + (v/1000).toFixed(0) + 'k'
+          }
+        }
+      }
+    }
+  });
+
+  if (document.getElementById('proj-periodo-label'))
+    document.getElementById('proj-periodo-label').textContent = 
+      ehMesAtual ? '· mês atual' : `· ${label}`;
 }
 
 // ─── INIT ────────────────────────────────────────────
