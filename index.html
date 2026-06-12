@@ -3946,6 +3946,19 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <div class="form-group"><label>Email</label><input type="email" id="edit-emp-email" class="form-input"></div>
     </div>
     <div class="form-group"><label>Endereço</label><input type="text" id="edit-emp-end" class="form-input"></div>
+    <div class="form-group">
+      <label>Logo da empresa</label>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="edit-emp-logo-preview" style="width:50px;height:50px;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg3);flex-shrink:0">
+          <img id="edit-emp-logo-img" src="" style="width:100%;height:100%;object-fit:cover;display:none">
+          <span id="edit-emp-logo-vazio" style="font-size:20px">🏢</span>
+        </div>
+        <div style="flex:1">
+          <input type="file" id="edit-emp-logo" accept="image/*" style="width:100%;padding:7px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)" onchange="previewEditEmpLogo(this)">
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">PNG, JPG ou SVG. Aparece no topbar do sistema.</div>
+        </div>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-edit-empresa')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarEmpresa()">💾 Salvar</button>
@@ -14873,6 +14886,18 @@ async function editarEmpresa(id) {
   document.getElementById('edit-emp-tel').value   = e.telefone || '';
   document.getElementById('edit-emp-email').value = e.email || '';
   document.getElementById('edit-emp-end').value   = e.endereco || '';
+  // Mostrar logo atual
+  const logoImg = document.getElementById('edit-emp-logo-img');
+  const logoVazio = document.getElementById('edit-emp-logo-vazio');
+  if (e.logo_url && logoImg) {
+    logoImg.src = e.logo_url;
+    logoImg.style.display = 'block';
+    if (logoVazio) logoVazio.style.display = 'none';
+  } else {
+    if (logoImg) logoImg.style.display = 'none';
+    if (logoVazio) logoVazio.style.display = 'block';
+  }
+  if (document.getElementById('edit-emp-logo')) document.getElementById('edit-emp-logo').value = '';
   document.getElementById('modal-edit-empresa').classList.add('open');
 }
 
@@ -14884,12 +14909,29 @@ async function salvarEmpresa() {
   const email = document.getElementById('edit-emp-email').value.trim();
   const end   = document.getElementById('edit-emp-end').value.trim();
   if (!nome) { showToast('Nome obrigatório','error'); return; }
-  const { error } = await sb.from('empresas').update({nome,cnpj,telefone:tel,email,endereco:end}).eq('id',id);
+  // Upload logo se selecionado
+  let logo_url = undefined;
+  const logoFile = document.getElementById('edit-emp-logo')?.files[0];
+  if (logoFile) {
+    const path = `logos/${Date.now()}_${logoFile.name.replace(/\s/g,'_')}`;
+    const { error: upErr } = await sb.storage.from('documentos').upload(path, logoFile, {upsert:true});
+    if (!upErr) {
+      const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+      logo_url = urlData?.publicUrl || null;
+    }
+  }
+  const updatePayload = {nome,cnpj,telefone:tel,email,endereco:end};
+  if (logo_url !== undefined) updatePayload.logo_url = logo_url;
+  const { error } = await sb.from('empresas').update(updatePayload).eq('id',id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('Empresa atualizada!','success');
   closeModal('modal-edit-empresa');
   // Atualiza o nome no topbar se for a empresa atual
-  if (_empresaAtual?.id === id) { _empresaAtual.nome = nome; atualizarTopbarEmpresa(); }
+  if (_empresaAtual?.id === id) { 
+    _empresaAtual.nome = nome; 
+    if (logo_url !== undefined) _empresaAtual.logo_url = logo_url;
+    atualizarTopbarEmpresa(); 
+  }
   loadEmpresas();
   await iniciarSessaoMultiEmpresa();
 }
@@ -16156,6 +16198,19 @@ document.addEventListener('click', e => {
     if (drop) drop.style.display = 'none';
   }
 });
+
+function previewEditEmpLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('edit-emp-logo-img');
+    const vazio = document.getElementById('edit-emp-logo-vazio');
+    if (img) { img.src = e.target.result; img.style.display = 'block'; }
+    if (vazio) vazio.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
 
 // ─── INIT ────────────────────────────────────────────
 checkSession();
