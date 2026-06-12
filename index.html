@@ -3913,7 +3913,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <select id="ct-recorrente" onchange="toggleParcelamento()">
           <option value="nao">Não</option>
           <option value="sim">Sim (mensal)</option>
-          <option value="parcelado">Parcelado</option>
+
         </select>
       </div>
       <div class="form-group" id="ct-dia-venc-group">
@@ -12672,15 +12672,7 @@ async function salvarConta() {
   if (!valor) { showToast('Preencha o valor','error'); return; }
   if (!venc) { showToast('Preencha o vencimento ou o dia','error'); return; }
 
-  // Nº boleto/NF obrigatório
-  const numeroNFCheck = document.getElementById('ct-numero-nf')?.value.trim();
-  if (!numeroNFCheck) {
-    showToast('Preencha o Nº do Boleto ou Nota Fiscal','error');
-    document.getElementById('ct-numero-nf')?.focus();
-    document.getElementById('ct-numero-nf').style.borderColor = 'var(--red)';
-    return;
-  }
-  document.getElementById('ct-numero-nf').style.borderColor = '';
+  // Nº boleto/NF — opcional
 
   // Pasta obrigatória SOMENTE se tiver arquivo anexado
   const fileInputCheck = document.getElementById('ct-arquivo');
@@ -12749,10 +12741,16 @@ async function salvarConta() {
     meses.push({ data: venc, valor_parcela: valor, parcela: null, total: null });
   }
 
+  // Se editando, só atualiza o registro atual (não cria novos)
+  if (editId) meses = meses.slice(0, 1);
+
   let salvos = 0;
   for (let i = 0; i < meses.length; i++) {
     const m = meses[i];
-    const descricao = m.total ? `${nome} (${m.parcela}/${m.total})${numeroNF?' - NF '+numeroNF:''}` : `${nome}${numeroNF?' - NF '+numeroNF:''}`;
+    // Ao editar: usa descrição simples sem alterar NF
+    const descricao = editId 
+      ? (m.total ? `${nome} (${m.parcela}/${m.total})` : nome) + (numeroNF ? ' - NF '+numeroNF : '')
+      : (m.total ? `${nome} (${m.parcela}/${m.total})${numeroNF?' - NF '+numeroNF:''}` : `${nome}${numeroNF?' - NF '+numeroNF:''}`);
     const payload = {
       descricao, valor: m.valor_parcela || valor, cnpj, categoria, tipo,
       data_vencimento: m.data,
