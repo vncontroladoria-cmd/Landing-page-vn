@@ -7036,7 +7036,12 @@ function renderCategoriasPDV() {
         <span style="font-size:13px;font-weight:500;margin-left:6px">${c.nome}</span>
         <span style="font-size:11px;color:var(--text3);margin-left:8px">${c.tipo}</span>
       </div>
-      <button onclick="excluirCategoriaPDV('${c.id}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px">🗑️</button>
+      <div style="display:flex;gap:6px">
+        <button onclick="editarCategoriaPDV('${c.id}','${c.nome.replace(/'/g,"\'")}','${c.tipo}',${c.ordem||0})"
+          style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
+        <button onclick="excluirCategoriaPDV('${c.id}')"
+          style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
+      </div>
     </div>`).join('');
 }
 
@@ -7052,6 +7057,35 @@ async function salvarCategoriaPDV() {
   await carregarCategoriasPDV();
   renderCategoriasPDV();
   showToast('Categoria salva!', 'success');
+}
+
+function editarCategoriaPDV(id, nome, tipo, ordem) {
+  document.getElementById('nova-cat-pdv').value = nome;
+  document.getElementById('nova-cat-pdv-tipo').value = tipo;
+  document.getElementById('nova-cat-pdv-ordem').value = ordem;
+  // Muda botão para salvar edição
+  const btn = document.querySelector('[onclick="salvarCategoriaPDV()"]');
+  if (btn) {
+    btn.textContent = '💾 Salvar';
+    btn.onclick = () => salvarEdicaoCategoriaPDV(id);
+  }
+}
+
+async function salvarEdicaoCategoriaPDV(id) {
+  const nome = document.getElementById('nova-cat-pdv').value.trim();
+  const tipo = document.getElementById('nova-cat-pdv-tipo').value;
+  const ordem = parseInt(document.getElementById('nova-cat-pdv-ordem')?.value) || 0;
+  if (!nome) return;
+  const { error } = await sb.from('pdv_categorias').update({ nome, tipo, ordem }).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  // Restaura botão original
+  document.getElementById('nova-cat-pdv').value = '';
+  document.getElementById('nova-cat-pdv-ordem').value = '';
+  const btn = document.querySelector('[onclick]');
+  if (btn) { btn.textContent = '+ Adicionar'; btn.onclick = salvarCategoriaPDV; }
+  await carregarCategoriasPDV();
+  renderCategoriasPDV();
+  showToast('Categoria atualizada!', 'success');
 }
 
 async function excluirCategoriaPDV(id) {
