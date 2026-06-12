@@ -6140,14 +6140,16 @@ async function loadDashboard() {
   let srvRows = [], prodRows = [];
   const anoMes = mes ? `${ano}-${mes}` : ano;
 
-  if (tipoSrv) {
+  // Busca rel_servicos direto — não depende de rel_tipos estar cadastrado
+  try {
     const { data } = await qE('rel_servicos').select('*')
       .gte('data_comanda', ini).lte('data_comanda', fim).limit(15000);
     srvRows = (data||[]);
     srvRows.forEach(r => {
       r.total = Number(r.total||0)||Number(r.valor||0)*Number(r.qtd||1);
     });
-  }
+  } catch(e) { console.warn('rel_servicos:', e); }
+
   if (tipoProd) {
     const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id',tipoProd.id).limit(5000);
     prodRows = (data||[]).map(r=>parseProdRow(r.colunas))
