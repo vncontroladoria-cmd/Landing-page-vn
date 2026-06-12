@@ -1917,7 +1917,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div><!-- fim sticky -->
 
           <!-- BARRA DE SELEÇÃO -->
-          <div id="lanc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px;flex-wrap:wrap;position:fixed;top:0;left:230px;right:0;z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,.15)">
+          <div id="lanc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px;flex-wrap:wrap;">
             <span id="lanc-sel-count" style="font-size:13px;font-weight:600;color:#92400e">0 selecionados</span>
             <span style="font-size:12px;color:#92400e">|</span>
             <span style="font-size:12px;color:#166534;font-weight:600">✅ Entradas: <span id="lanc-sel-ent" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
@@ -1931,7 +1931,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="card" style="padding:0;overflow:hidden">
             <div style="overflow-x:auto">
               <table id="lanc-main-table" style="width:100%;border-collapse:collapse;font-size:11px">
-                <thead>
+                <thead style="position:sticky;top:0;z-index:10">
                   <tr style="background:var(--bg3)">
                     <th style="padding:10px 12px;border-bottom:1.5px solid var(--border);width:36px">
                       <input type="checkbox" id="lanc-check-all" onchange="selecionarTodosLanc(this.checked)" style="cursor:pointer;width:15px;height:15px">
