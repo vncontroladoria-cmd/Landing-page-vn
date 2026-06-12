@@ -13216,7 +13216,9 @@ async function salvarMetasFinanceiras() {
   if (upserts.length) {
     const empIdUp = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
     const upsertsComEmp = upserts.map(u => ({...u, empresa_id: empIdUp}));
-    const { error } = await sb.from('metas_financeiras').upsert(upsertsComEmp, { onConflict: 'empresa_id,ano,mes' });
+    // Deleta as metas do ano/empresa e reinsere para garantir separação
+    await sb.from('metas_financeiras').delete().eq('empresa_id', empIdUp).eq('ano', parseInt(ano));
+    const { error } = await sb.from('metas_financeiras').insert(upsertsComEmp);
     if (error) { showToast('Erro ao salvar: ' + error.message, 'error'); return; }
     showToast('Metas salvas!', 'success');
   }
