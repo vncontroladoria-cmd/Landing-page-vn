@@ -7226,6 +7226,7 @@ async function loadLancamentos() {
 
   const { data } = await q;
   let lancs = data || [];
+  window._lancamentos = lancs; // cache global para seleção
 
   // Se filtro por banco ativo: também inclui lançamentos com banco_nome (sem banco_id)
   if (bancoFilter) {
@@ -14002,17 +14003,14 @@ function atualizarSelecao() {
   if (selecionados.length > 0) {
     bar.style.display = 'flex';
     count.textContent = `${selecionados.length} selecionado${selecionados.length > 1 ? 's' : ''}`;
-    // Calcular totais dos selecionados
+    // Calcular totais dos selecionados usando dados reais
     let totalEnt = 0, totalSai = 0;
     selecionados.forEach(cb => {
-      const row = document.getElementById('lr-' + cb.dataset.id);
-      if (!row) return;
-      const tds = row.querySelectorAll('td');
-      // Entrada é td[2], Saída é td[3]
-      const entTxt = tds[2]?.textContent?.replace(/[^0-9,]/g,'').replace(',','.') || '0';
-      const saiTxt = tds[3]?.textContent?.replace(/[^0-9,]/g,'').replace(',','.') || '0';
-      totalEnt += parseFloat(entTxt) || 0;
-      totalSai += parseFloat(saiTxt) || 0;
+      const id = cb.dataset.id;
+      const lanc = (_lancamentos||[]).find(l => l.id === id);
+      if (!lanc) return;
+      totalEnt += Number(lanc.entrada || (lanc.tipo==='ENTRADA' ? lanc.valor : 0) || 0);
+      totalSai += Number(lanc.saida   || (lanc.tipo==='SAIDA'   ? lanc.valor : 0) || 0);
     });
     const fmt = v => 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits:2});
     const saldo = totalEnt - totalSai;
