@@ -1112,9 +1112,22 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <!-- Seletor de empresa -->
       <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:20px;margin-bottom:16px">
         <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;margin-bottom:8px">Selecione a Empresa</div>
-        <select id="dados-empresa-sel" onchange="masterLoadDadosEmpresa()" style="width:100%;max-width:380px;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
-          <option value="">— selecione uma empresa —</option>
-        </select>
+        <!-- Dropdown customizado escuro -->
+        <div style="position:relative;width:100%;max-width:380px" id="dados-emp-wrapper">
+          <div id="dados-emp-btn" onclick="toggleDadosEmpDrop()"
+            style="padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none">
+            <span id="dados-emp-label">— selecione uma empresa —</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="dados-emp-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1e293b;border:1px solid rgba(255,255,255,.12);border-radius:8px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+            <div onclick="selecionarDadosEmp('','— selecione uma empresa —')"
+              style="padding:10px 14px;color:rgba(255,255,255,.4);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif"
+              onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">
+              — selecione uma empresa —
+            </div>
+          </div>
+          <input type="hidden" id="dados-empresa-sel">
+        </div>
       </div>
 
       <!-- Grid de páginas/tabelas -->
@@ -14847,18 +14860,13 @@ let _dadosEmpresaId = null;
 let _dadosContagens = {};
 
 async function masterLoadDadosInit() {
-  // Popula select de empresas
-  const sel = document.getElementById('dados-empresa-sel');
-  if (!sel) return;
   const { data: emps } = await sb.from('empresas').select('id,nome').eq('ativo',true).order('nome');
-  sel.innerHTML = '<option value="">— selecione uma empresa —</option>' +
-    (emps||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  if (typeof popularDadosEmpDrop === 'function') popularDadosEmpDrop(emps||[]);
   document.getElementById('dados-grid').innerHTML = '';
 }
 
 async function masterLoadDadosEmpresa() {
-  const sel = document.getElementById('dados-empresa-sel');
-  const empId = sel?.value;
+  const empId = document.getElementById('dados-empresa-sel')?.value;
   if (!empId) { document.getElementById('dados-grid').innerHTML = ''; return; }
   _dadosEmpresaId = empId;
 
@@ -15977,6 +15985,47 @@ async function processarFaturaCC() {
   closeModal('modal-importar-cc');
   await loadCartaoLancamentos();
 }
+
+// ── Dropdown customizado Limpar Dados ────────────────
+function toggleDadosEmpDrop() {
+  const drop = document.getElementById('dados-emp-drop');
+  if (!drop) return;
+  drop.style.display = drop.style.display === 'none' ? 'block' : 'none';
+}
+
+function selecionarDadosEmp(id, nome) {
+  document.getElementById('dados-empresa-sel').value = id;
+  document.getElementById('dados-emp-label').textContent = nome;
+  document.getElementById('dados-emp-drop').style.display = 'none';
+  masterLoadDadosEmpresa();
+}
+
+function popularDadosEmpDrop(empresas) {
+  const drop = document.getElementById('dados-emp-drop');
+  if (!drop) return;
+  const items = empresas.map(e => `
+    <div onclick="selecionarDadosEmp('${e.id}','${e.nome.replace(/'/g,"\'")}')"
+      style="padding:10px 14px;color:#fff;font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:10px"
+      onmouseover="this.style.background='rgba(42,157,92,.15)'" onmouseout="this.style.background=''">
+      <div style="width:28px;height:28px;border-radius:6px;background:#2a9d5c;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0">${e.nome[0].toUpperCase()}</div>
+      ${e.nome}
+    </div>`).join('');
+  // Manter o item vazio
+  drop.innerHTML = `<div onclick="selecionarDadosEmp('','— selecione uma empresa —')"
+    style="padding:10px 14px;color:rgba(255,255,255,.4);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif"
+    onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background=''">
+    — selecione uma empresa —
+  </div>${items}`;
+}
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click', e => {
+  const wrapper = document.getElementById('dados-emp-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    const drop = document.getElementById('dados-emp-drop');
+    if (drop) drop.style.display = 'none';
+  }
+});
 
 // ─── INIT ────────────────────────────────────────────
 checkSession();
