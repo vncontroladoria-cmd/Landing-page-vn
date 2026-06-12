@@ -5656,7 +5656,7 @@ async function loadPDV() {
 
   // Colunas = TODAS as categorias cadastradas (fixas), não só as que têm dados
   const normForma = f => (f||'Outros').replace(/\s+(MASTER CARD|VISA|ELO|AMEX|HIPERCARD|HIPER)\b.*/i,'').trim();
-  const formas = _pdvCategorias.filter(c => c.tipo !== 'SAIDA').map(c => c.nome);
+  const formas = _pdvCategorias.filter(c => c.tipo !== 'SAIDA' && c.nome.toLowerCase() !== 'responsável' && c.nome.toLowerCase() !== 'responsavel').map(c => c.nome);
 
   // Cards resumo
   const cardsDiv = document.getElementById('pdv-cards-resumo');
