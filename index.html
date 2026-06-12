@@ -16112,6 +16112,36 @@ document.addEventListener('click', e => {
   }
 });
 
+// ── Barra de seleção acompanha scroll ──────────────────
+(function() {
+  let _barOriginalTop = null;
+  window.addEventListener('scroll', function() {
+    const bar = document.getElementById('lanc-selecao-bar');
+    if (!bar || bar.style.display === 'none') return;
+    if (_barOriginalTop === null) {
+      _barOriginalTop = bar.getBoundingClientRect().top + window.scrollY;
+    }
+    const scrollY = window.scrollY;
+    if (scrollY > _barOriginalTop - 10) {
+      bar.style.position = 'fixed';
+      bar.style.top = '10px';
+      bar.style.left = '240px';
+      bar.style.right = '16px';
+      bar.style.zIndex = '9999';
+      bar.style.borderRadius = '8px';
+    } else {
+      bar.style.position = '';
+      bar.style.top = '';
+      bar.style.left = '';
+      bar.style.right = '';
+      bar.style.zIndex = '';
+    }
+  });
+
+  // Reset quando a barra aparece/some
+  const orig = window.atualizarSelecao;
+})();
+
 // ─── INIT ────────────────────────────────────────────
 checkSession();
 document.getElementById('login-pass').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
