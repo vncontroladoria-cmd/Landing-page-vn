@@ -8,6 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
 <style>
 :root {
   --bg: #f4f5f7;
@@ -1469,7 +1471,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             onmouseover="this.style.background='rgba(0,0,0,.2)'" onmouseout="this.style.background='rgba(0,0,0,.12)'"
             title="Clique para trocar de empresa">
             <!-- Logo do salão -->
-            <div id="topbar-logo-wrap" style="display:none;width:28px;height:28px;border-radius:6px;overflow:hidden;flex-shrink:0">
+            <div id="topbar-logo-wrap" style="display:none;width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(0,0,0,.1)">
               <img id="topbar-logo" src="" style="width:100%;height:100%;object-fit:cover">
             </div>
             <svg id="topbar-casa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
@@ -3948,16 +3950,26 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
     <div class="form-group"><label>Endereço</label><input type="text" id="edit-emp-end" class="form-input"></div>
     <div class="form-group">
       <label>Logo da empresa</label>
-      <div style="display:flex;align-items:center;gap:12px">
-        <div id="edit-emp-logo-preview" style="width:50px;height:50px;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg3);flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div id="edit-emp-logo-preview" style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;background:var(--bg3);flex-shrink:0">
           <img id="edit-emp-logo-img" src="" style="width:100%;height:100%;object-fit:cover;display:none">
-          <span id="edit-emp-logo-vazio" style="font-size:20px">🏢</span>
+          <span id="edit-emp-logo-vazio" style="font-size:24px">🏢</span>
         </div>
         <div style="flex:1">
-          <input type="file" id="edit-emp-logo" accept="image/*" style="width:100%;padding:7px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)" onchange="previewEditEmpLogo(this)">
-          <div style="font-size:11px;color:var(--text2);margin-top:4px">PNG, JPG ou SVG. Aparece no topbar do sistema.</div>
+          <input type="file" id="edit-emp-logo" accept="image/*" style="width:100%;padding:7px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)" onchange="abrirCropperLogo(this)">
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">Aparece como círculo no topbar do sistema.</div>
         </div>
       </div>
+      <div id="cropper-area" style="display:none;margin-top:8px">
+        <div style="max-height:250px;overflow:hidden;border-radius:8px;border:1px solid var(--border)">
+          <img id="cropper-img" style="max-width:100%;display:block">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
+          <button type="button" class="btn" onclick="cancelarCropper()">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="confirmarCropper()">✂️ Cortar e usar</button>
+        </div>
+      </div>
+      <input type="hidden" id="edit-emp-logo-base64">
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-edit-empresa')">Cancelar</button>
@@ -14834,12 +14846,12 @@ async function salvarNovaEmpresa() {
   const nome = document.getElementById('emp-form-nome')?.value.trim();
   if (!nome) { showToast('Digite o nome da empresa','error'); return; }
 
-  // Upload do logo se selecionado
+  // Upload logo da nova empresa
   let logo_url = null;
   const logoFile = document.getElementById('emp-form-logo')?.files[0];
   if (logoFile) {
-    const path = `${Date.now()}_${logoFile.name.replace(/\s/g,'_')}`;
-    const { error: upErr } = await sb.storage.from('logos').upload(path, logoFile, {upsert:true});
+    const path = `new_${Date.now()}_${logoFile.name.replace(/\s/g,'_')}`;
+    const { error: upErr } = await sb.storage.from('logos').upload(path, logoFile, {upsert:true, contentType: logoFile.type});
     if (!upErr) {
       const { data: urlData } = sb.storage.from('logos').getPublicUrl(path);
       logo_url = urlData?.publicUrl || null;
@@ -14913,12 +14925,15 @@ async function salvarEmpresa() {
   const email = document.getElementById('edit-emp-email').value.trim();
   const end   = document.getElementById('edit-emp-end').value.trim();
   if (!nome) { showToast('Nome obrigatório','error'); return; }
-  // Upload logo se selecionado
+  // Upload logo se cortado
   let logo_url = undefined;
-  const logoFile = document.getElementById('edit-emp-logo')?.files[0];
-  if (logoFile) {
-    const path = `${Date.now()}_${logoFile.name.replace(/\s/g,'_')}`;
-    const { error: upErr } = await sb.storage.from('logos').upload(path, logoFile, {upsert:true});
+  const base64 = document.getElementById('edit-emp-logo-base64')?.value;
+  if (base64) {
+    // Converter base64 para blob
+    const res = await fetch(base64);
+    const blob = await res.blob();
+    const path = `${id}_${Date.now()}.png`;
+    const { error: upErr } = await sb.storage.from('logos').upload(path, blob, {upsert:true, contentType:'image/png'});
     if (!upErr) {
       const { data: urlData } = sb.storage.from('logos').getPublicUrl(path);
       logo_url = urlData?.publicUrl || null;
@@ -16203,17 +16218,59 @@ document.addEventListener('click', e => {
   }
 });
 
-function previewEditEmpLogo(input) {
+let _cropperInstance = null;
+
+function abrirCropperLogo(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const img = document.getElementById('edit-emp-logo-img');
-    const vazio = document.getElementById('edit-emp-logo-vazio');
-    if (img) { img.src = e.target.result; img.style.display = 'block'; }
-    if (vazio) vazio.style.display = 'none';
+    const area = document.getElementById('cropper-area');
+    const img  = document.getElementById('cropper-img');
+    if (!area || !img) return;
+    // Destruir cropper anterior
+    if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
+    img.src = e.target.result;
+    area.style.display = 'block';
+    // Iniciar cropper circular
+    _cropperInstance = new Cropper(img, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.9,
+      restore: false,
+      guides: false,
+      center: true,
+      highlight: false,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false,
+    });
   };
   reader.readAsDataURL(file);
+}
+
+function confirmarCropper() {
+  if (!_cropperInstance) return;
+  const canvas = _cropperInstance.getCroppedCanvas({ width: 200, height: 200 });
+  const base64 = canvas.toDataURL('image/png');
+  // Mostrar preview circular
+  const img   = document.getElementById('edit-emp-logo-img');
+  const vazio = document.getElementById('edit-emp-logo-vazio');
+  if (img)   { img.src = base64; img.style.display = 'block'; }
+  if (vazio) { vazio.style.display = 'none'; }
+  // Salvar base64 para upload
+  document.getElementById('edit-emp-logo-base64').value = base64;
+  // Fechar área de corte
+  cancelarCropper();
+}
+
+function cancelarCropper() {
+  if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
+  const area = document.getElementById('cropper-area');
+  if (area) area.style.display = 'none';
+  const input = document.getElementById('edit-emp-logo');
+  if (input) input.value = '';
 }
 
 // ─── INIT ────────────────────────────────────────────
