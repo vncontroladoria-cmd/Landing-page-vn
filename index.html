@@ -989,21 +989,29 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
       <!-- Cards métricas -->
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
-        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
-          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;margin-bottom:8px">Total Empresas</div>
-          <div style="font-size:32px;font-weight:800;color:#fff" id="m-total-emp">—</div>
+        <div style="background:linear-gradient(135deg,#1e3a5f,#1e293b);border-radius:14px;padding:20px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden">
+          <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;font-weight:700;letter-spacing:.06em;margin-bottom:10px">Total Empresas</div>
+          <div style="font-size:36px;font-weight:800;color:#fff;font-family:'DM Mono',monospace" id="m-total-emp">—</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">no sistema</div>
+          <div style="position:absolute;right:16px;top:16px;font-size:28px;opacity:.15">🏢</div>
         </div>
-        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
-          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;margin-bottom:8px">Ativas</div>
-          <div style="font-size:32px;font-weight:800;color:#22c55e" id="m-ativas">—</div>
+        <div style="background:linear-gradient(135deg,#14532d,#1e293b);border-radius:14px;padding:20px;border:1px solid rgba(34,197,94,.15);position:relative;overflow:hidden">
+          <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;font-weight:700;letter-spacing:.06em;margin-bottom:10px">Ativas</div>
+          <div style="font-size:36px;font-weight:800;color:#4ade80;font-family:'DM Mono',monospace" id="m-ativas">—</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">em operação</div>
+          <div style="position:absolute;right:16px;top:16px;font-size:28px;opacity:.15">✅</div>
         </div>
-        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
-          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;margin-bottom:8px">Inativas</div>
-          <div style="font-size:32px;font-weight:800;color:#ef4444" id="m-inativas">—</div>
+        <div style="background:linear-gradient(135deg,#4c1d1d,#1e293b);border-radius:14px;padding:20px;border:1px solid rgba(239,68,68,.15);position:relative;overflow:hidden">
+          <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;font-weight:700;letter-spacing:.06em;margin-bottom:10px">Inativas</div>
+          <div style="font-size:36px;font-weight:800;color:#f87171;font-family:'DM Mono',monospace" id="m-inativas">—</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">desativadas</div>
+          <div style="position:absolute;right:16px;top:16px;font-size:28px;opacity:.15">⛔</div>
         </div>
-        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
-          <div style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;font-weight:600;margin-bottom:8px">Total Usuários</div>
-          <div style="font-size:32px;font-weight:800;color:#fff" id="m-total-usr">—</div>
+        <div style="background:linear-gradient(135deg,#312e81,#1e293b);border-radius:14px;padding:20px;border:1px solid rgba(139,92,246,.15);position:relative;overflow:hidden">
+          <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;font-weight:700;letter-spacing:.06em;margin-bottom:10px">Total Usuários</div>
+          <div style="font-size:36px;font-weight:800;color:#a78bfa;font-family:'DM Mono',monospace" id="m-total-usr">—</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">cadastrados</div>
+          <div style="position:absolute;right:16px;top:16px;font-size:28px;opacity:.15">👥</div>
         </div>
       </div>
 
@@ -14158,7 +14166,7 @@ async function masterLoadEmpresas() {
     </tr></thead>
     <tbody>
       ${(emps||[]).map(e => `
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
           <td style="padding:12px 14px">
             <div style="display:flex;align-items:center;gap:10px">
               ${e.logo_url
@@ -14233,7 +14241,7 @@ async function masterLoadUsuarios() {
     </tr></thead>
     <tbody>
       ${(usrs||[]).map(u => `
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
           <td style="padding:12px 14px">
             <div style="font-weight:600;color:#fff">${u.nome||'—'}</div>
             <div style="font-size:11px;color:rgba(255,255,255,.4)">${u.email}</div>
@@ -16170,7 +16178,7 @@ async function masterLoadLogs() {
     </tr></thead>
     <tbody>
       ${logs.map(l => `
-        <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+        <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
           <td style="padding:10px 14px">
             <div style="font-weight:600;color:#fff">${l.vn_usuarios?.nome||l.vn_usuarios?.email||'—'}</div>
             <div style="font-size:11px;color:rgba(255,255,255,.4)">${l.vn_usuarios?.email||''}</div>
@@ -16306,7 +16314,7 @@ async function masterLoadPlanos() {
       </tr></thead>
       <tbody>
         ${(todasEmps||[]).map(e => `
-          <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+          <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background=''">
             <td style="padding:10px 14px;font-weight:600;color:#fff">${e.nome}</td>
             <td style="padding:10px 14px">
               <span style="padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(255,255,255,.06);color:rgba(255,255,255,.7)">${e.plano||'—'}</span>
