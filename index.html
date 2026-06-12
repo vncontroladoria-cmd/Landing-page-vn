@@ -5904,6 +5904,12 @@ async function salvarCaixa() {
 
   showToast('Caixa salvo!', 'success');
   closeModal('modal-pdv-caixa');
+  // Limpa tudo para próximo lançamento
+  _pdvCaixaId = null;
+  document.getElementById('pdv-data').value = new Date().toISOString().substring(0,10);
+  document.getElementById('pdv-responsavel').value = '';
+  document.getElementById('pdv-status').value = 'aberto';
+  document.getElementById('pdv-itens-body').innerHTML = '';
   loadPDV();
 }
 
@@ -7013,6 +7019,11 @@ async function confirmarImportePDV() {
 
   showToast(`Caixa importado! ${payload.length} itens salvos.`, 'success');
   closeModal('modal-importar-pdv');
+  // Limpa campos do modal de importação
+  const imp = document.getElementById('pdv-import-preview');
+  if (imp) imp.innerHTML = '';
+  const fileInput = document.querySelector('#modal-importar-pdv input[type="file"]');
+  if (fileInput) fileInput.value = '';
   loadPDV();
 }
 
@@ -7545,6 +7556,12 @@ async function salvarLancamento() {
   const { error } = await sb.from('lancamentos').insert(addEmpresaId(payload));
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('✓ Lançamento salvo!','success');
+  // Limpa campos para próximo lançamento
+  document.getElementById('nl-categoria-busca').value = '';
+  document.getElementById('nl-categoria').value = '';
+  document.getElementById('nl-extrato').value = '';
+  document.getElementById('nl-desc').value = '';
+  document.getElementById('lanc-valor').value = '';
 
   // Limpa campos mas mantém modal aberto para próximo lançamento
   document.getElementById('nl-valor').value = '';
@@ -12668,6 +12685,14 @@ async function salvarConta() {
     : recorrente === 'sim' ? `Conta recorrente criada para ${salvos} meses!`
     : 'Conta salva!';
   showToast(msg, 'success');
+
+  // Limpa campos do modal
+  ['ct-nome','ct-vencimento','ct-valor','ct-obs','ct-nf','ct-parcelas'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const catBusca = document.getElementById('ct-cat-busca');
+  if (catBusca) catBusca.value = '';
 
   // Arquiva documento na pasta selecionada
   const pastaId = document.getElementById('ct-pasta-sel')?.value;
