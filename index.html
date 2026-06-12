@@ -15542,7 +15542,7 @@ async function lerDocumentoIA(input) {
   const file = input.files[0];
   if (!file) return;
 
-  // Mostra preview do arquivo
+  // Mostra preview do arquivo — sem leitura por IA, só arquiva
   const prev = document.getElementById('ct-arquivo-preview');
   const iconeEl = document.getElementById('ct-arquivo-icone');
   const nomeEl = document.getElementById('ct-arquivo-nome');
@@ -15553,8 +15553,14 @@ async function lerDocumentoIA(input) {
   tamEl.textContent = (file.size / 1024).toFixed(0) + ' KB';
   prev.style.display = 'flex';
 
-  // Status
+  // Esconder status de IA
   const statusDiv = document.getElementById('ct-ia-status');
+  if (statusDiv) statusDiv.style.display = 'none';
+
+  // Retorna sem chamar IA
+  return;
+
+  // Status (código abaixo não executa — mantido para referência)
   const statusTxt = document.getElementById('ct-ia-status-txt');
   statusDiv.style.display = 'block';
   statusDiv.style.background = 'var(--amber-dim)';
