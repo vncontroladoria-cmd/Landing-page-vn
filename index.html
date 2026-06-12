@@ -9876,11 +9876,21 @@ async function importFile(tipo, input) {
 
 let xlsxLoaded = null;
 function loadXLSX() {
-  if (xlsxLoaded) return xlsxLoaded;
-  return new Promise(res => {
+  // Se já carregou e está disponível, usa
+  if (window.XLSX) { xlsxLoaded = window.XLSX; return Promise.resolve(window.XLSX); }
+  if (xlsxLoaded) return Promise.resolve(xlsxLoaded);
+  return new Promise((res, rej) => {
     const s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
     s.onload = () => { xlsxLoaded = window.XLSX; res(window.XLSX); };
+    s.onerror = () => {
+      // Tenta CDN alternativo
+      const s2 = document.createElement('script');
+      s2.src = 'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s2.onload = () => { xlsxLoaded = window.XLSX; res(window.XLSX); };
+      s2.onerror = () => rej(new Error('Não foi possível carregar XLSX'));
+      document.head.appendChild(s2);
+    };
     document.head.appendChild(s);
   });
 }
@@ -13541,8 +13551,11 @@ async function processarExcelMapeado() {
 
   // Garante fornecedores e categorias
   if (!_fornecedores.length) {
-    const { data } = await qE('fornecedores').select('*');
-    _fornecedores = data || [];
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
+    if (empId) {
+      const { data } = await sb.from('fornecedores').select('*').eq('empresa_id', empId);
+      _fornecedores = data || [];
+    }
   }
   if (!_categorias.length) {
     const { data } = await qE('plano_contas').select('*').order('codigo');
@@ -13774,7 +13787,7 @@ function renderConciliacao() {
           <div id="sug-${idx}" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;background:#f0fdf4;border:1px solid var(--green);border-radius:6px;padding:5px 10px;cursor:pointer" onclick="aprovarSugestao(${idx})">
             <span style="font-size:14px">💡</span>
             <span style="font-size:11px;color:var(--green);font-weight:600">${catNome}</span>
-            <span style="font-size:10px;color:var(--text2)">via ${match.nome}</span>
+            <span style="font-size:10px;color:var(--text2)">via ${match?.nome || ''}</span>
             <span style="margin-left:auto;font-size:10px;background:var(--green);color:#fff;padding:2px 6px;border-radius:10px">Aprovar</span>
           </div>` : ''}
           <input type="text" id="conc-cat-${idx}" placeholder="Buscar categoria..."
