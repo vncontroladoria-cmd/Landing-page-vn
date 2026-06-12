@@ -6450,7 +6450,8 @@ async function loadDashboard() {
   try {
     const mesNumMeta = mes ? parseInt(mes) : hoje3.getMonth() + 1;
     // busca todas do ano — coluna mes é integer no banco
-    const { data: todasMetas } = await qE('metas_financeiras').select('meta, dias_abertos, mes').eq('ano', ano);
+    const empIdMeta = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
+    const { data: todasMetas } = await sb.from('metas_financeiras').select('meta, dias_abertos, mes').eq('empresa_id', empIdMeta).eq('ano', ano);
     const metaF = (todasMetas||[]).find(m => Number(m.mes) === mesNumMeta);
     metaMes     = Number(metaF?.meta || 0);
     diasAbertos = Number(metaF?.dias_abertos || 0);
@@ -12972,7 +12973,8 @@ async function loadMetricas() {
   const mesNome = MESES_NOMES[mesIdx];
 
   // Busca meta financeira do mês
-  const { data: todasMetFin } = await qE('metas_financeiras').select('*').eq('ano', ano);
+  const empIdMF = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
+  const { data: todasMetFin } = await sb.from('metas_financeiras').select('*').eq('empresa_id', empIdMF).eq('ano', ano);
   const metaFin = (todasMetFin||[]).find(m => Number(m.mes) === parseInt(mes));
   const metaMes = Number(metaFin?.meta || 0);
   const diasAbertos = Number(metaFin?.dias_abertos || 0);
@@ -13214,7 +13216,9 @@ async function salvarMetasFinanceiras() {
     if (meta > 0) upserts.push({ ano, mes: mesNum, meta, dias_abertos: dias || null });
   });
   if (upserts.length) {
-    const { error } = await sb.from('metas_financeiras').upsert(upserts, { onConflict: 'ano,mes' });
+    const empIdUp = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
+    const upsertsComEmp = upserts.map(u => ({...u, empresa_id: empIdUp}));
+    const { error } = await sb.from('metas_financeiras').upsert(upsertsComEmp, { onConflict: 'empresa_id,ano,mes' });
     if (error) { showToast('Erro ao salvar: ' + error.message, 'error'); return; }
     showToast('Metas salvas!', 'success');
   }
