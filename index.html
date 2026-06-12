@@ -14339,6 +14339,10 @@ async function masterLoadEmpresas() {
                 style="padding:4px 10px;background:rgba(42,157,92,.2);border:none;border-radius:6px;color:#4ade80;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 Acessar
               </button>
+              <button onclick="editarEmpresa('${e.id}')"
+                style="padding:4px 10px;background:rgba(255,255,255,.08);border:none;border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
+                ✏️ Editar
+              </button>
               <button onclick="abrirModalTema('${e.id}')"
                 style="padding:4px 10px;background:rgba(139,92,246,.2);border:none;border-radius:6px;color:#a78bfa;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 🎨 Tema
@@ -14834,10 +14838,10 @@ async function salvarNovaEmpresa() {
   let logo_url = null;
   const logoFile = document.getElementById('emp-form-logo')?.files[0];
   if (logoFile) {
-    const path = `logos/${Date.now()}_${logoFile.name.replace(/\s/g,'_')}`;
-    const { error: upErr } = await sb.storage.from('documentos').upload(path, logoFile, {upsert:true});
+    const path = `${Date.now()}_${logoFile.name.replace(/\s/g,'_')}`;
+    const { error: upErr } = await sb.storage.from('logos').upload(path, logoFile, {upsert:true});
     if (!upErr) {
-      const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+      const { data: urlData } = sb.storage.from('logos').getPublicUrl(path);
       logo_url = urlData?.publicUrl || null;
     }
   }
@@ -14913,10 +14917,10 @@ async function salvarEmpresa() {
   let logo_url = undefined;
   const logoFile = document.getElementById('edit-emp-logo')?.files[0];
   if (logoFile) {
-    const path = `logos/${Date.now()}_${logoFile.name.replace(/\s/g,'_')}`;
-    const { error: upErr } = await sb.storage.from('documentos').upload(path, logoFile, {upsert:true});
+    const path = `${Date.now()}_${logoFile.name.replace(/\s/g,'_')}`;
+    const { error: upErr } = await sb.storage.from('logos').upload(path, logoFile, {upsert:true});
     if (!upErr) {
-      const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+      const { data: urlData } = sb.storage.from('logos').getPublicUrl(path);
       logo_url = urlData?.publicUrl || null;
     }
   }
