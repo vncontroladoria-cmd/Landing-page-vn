@@ -14924,14 +14924,80 @@ async function salvarNovaEmpresa() {
     logo_url,
     ativo: true,
   };
-  const { error } = await sb.from('empresas').insert(payload);
+  const { data: novaEmp, error } = await sb.from('empresas').insert(payload).select().single();
   if (error) { showToast('Erro: ' + error.message,'error'); return; }
-  showToast('Empresa criada!','success');
+
+  // Copiar plano de contas base da empresa FME ou da primeira empresa ativa
+  try {
+    await copiarPlanoBaseParaEmpresa(novaEmp.id);
+    showToast('Empresa criada com plano de contas!','success');
+  } catch(e) {
+    showToast('Empresa criada! (plano de contas pendente)','success');
+  }
+
   closeModal('modal-nova-empresa');
   document.getElementById('emp-form-logo').value = '';
   document.getElementById('emp-logo-preview').style.display = 'none';
   await masterLoadEmpresas();
   await iniciarSessaoMultiEmpresa();
+}
+
+async function copiarPlanoBaseParaEmpresa(novaEmpId) {
+  // Buscar empresa base (primeira ativa com mais grupos)
+  const { data: emps } = await sb.from('empresas').select('id').eq('ativo', true).neq('id', novaEmpId);
+  if (!emps?.length) return;
+
+  // Pegar empresa com mais grupos como referência
+  let baseEmpId = emps[0].id;
+  let maxGrupos = 0;
+  for (const e of emps) {
+    const { count } = await sb.from('grupos_plano').select('id',{count:'exact',head:true}).eq('empresa_id', e.id);
+    if ((count||0) > maxGrupos) { maxGrupos = count; baseEmpId = e.id; }
+  }
+
+  // Copiar grupos
+  const { data: grupos } = await sb.from('grupos_plano').select('*').eq('empresa_id', baseEmpId);
+  if (!grupos?.length) return;
+
+  const mapaGrupoId = {}; // id antigo -> nome (para referenciar na cópia das categorias)
+  const novosGrupos = grupos.map(g => {
+    const { id, empresa_id, created_at, ...rest } = g;
+    return { ...rest, empresa_id: novaEmpId };
+  });
+
+  const { data: gruposInseridos } = await sb.from('grupos_plano').insert(novosGrupos).select();
+
+  // Mapear nome -> novo id
+  const mapaGrupoNome = {};
+  (gruposInseridos||[]).forEach(g => { mapaGrupoNome[g.nome] = g.id; });
+
+  // Copiar plano de contas (categorias)
+  const { data: cats } = await sb.from('plano_contas').select('*').eq('empresa_id', baseEmpId);
+  if (!cats?.length) return;
+
+  const novasCats = cats.map(c => {
+    const { id, empresa_id, grupo_id, created_at, ...rest } = c;
+    return {
+      ...rest,
+      empresa_id: novaEmpId,
+      grupo_id: mapaGrupoNome[rest.grupo] || null,
+    };
+  });
+
+  // Inserir em lotes
+  for (let i = 0; i < novasCats.length; i += 100) {
+    await sb.from('plano_contas').insert(novasCats.slice(i, i+100));
+  }
+
+  // Copiar categorias do PDV
+  const { data: catsPDV } = await sb.from('pdv_categorias').select('*').eq('empresa_id', baseEmpId);
+  if (catsPDV?.length) {
+    const novasCatsPDV = catsPDV.map(c => {
+      const { id, empresa_id, created_at, ...rest } = c;
+      return { ...rest, empresa_id: novaEmpId };
+    });
+    await sb.from('pdv_categorias').insert(novasCatsPDV);
+  }
 }
 
 function abrirModalNovoUsuario() {
