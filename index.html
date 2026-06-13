@@ -559,19 +559,56 @@ tbody tr:hover { background: var(--bg3); }
   .fcard { padding: 10px !important; }
   .fcard-value { font-size: 13px !important; }
 
-  /* Filtros do dashboard — empilha tudo */
-  .dash-filters-row { 
+  /* Dashboard header — empilha título e filtros */
+  #page-dashboard > div:first-child { 
     flex-direction: column !important; 
-    gap: 8px !important; 
     align-items: flex-start !important;
   }
-  .dash-filters-row > div { flex-wrap: wrap !important; gap: 6px !important; }
-  #dash-ano, #dash-mes { width: calc(50% - 4px) !important; }
-  #dash-ini, #dash-fim { width: calc(50% - 4px) !important; }
+  .dash-filters-row { 
+    width: 100% !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important; 
+    align-items: flex-end !important;
+  }
+  .dash-filters-row > div { 
+    flex: 1 1 calc(50% - 6px) !important;
+    min-width: calc(50% - 6px) !important;
+  }
+  .dash-filters-row select,
+  .dash-filters-row input[type="date"] { 
+    width: 100% !important; 
+    font-size: 12px !important;
+  }
+  .dash-filters-row .btn { flex: 1 1 calc(50% - 6px) !important; }
+
+  /* Grids de 6 colunas do dashboard → 2 colunas */
+  div[style*="grid-template-columns:repeat(6"] { 
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+  /* Grids de 3 colunas → 1 coluna */
+  div[style*="grid-template-columns:repeat(3"] {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  /* Grids de 2 colunas → mantém 2 */
+  div[style*="grid-template-columns:repeat(2"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
 
   /* Section cards */
   .section-card { padding: 10px !important; }
   .section-card-title { font-size: 12px !important; }
+
+  /* Cards do dashboard — texto menor em mobile */
+  div[style*="linear-gradient"] { padding: 10px 12px !important; }
+  div[style*="linear-gradient"] div[style*="font-size:9px"] { font-size: 8px !important; }
+  div[style*="linear-gradient"] div[style*="font-size:22px"],
+  div[style*="linear-gradient"] div[style*="font-size:24px"],
+  div[style*="linear-gradient"] div[style*="font-size:28px"] { font-size: 16px !important; }
+  div[style*="linear-gradient"] div[style*="font-size:11px"] { font-size: 9px !important; }
 
   /* Tabelas scroll */
   .card > div, .section-card > div { overflow-x: auto !important; }
@@ -607,6 +644,12 @@ tbody tr:hover { background: var(--bg3); }
   /* Filtros gerais */
   .filter-row { flex-wrap: wrap !important; gap: 5px !important; }
   .filter-select { font-size: 11px !important; padding: 5px 7px !important; }
+  .filters { flex-wrap: wrap !important; gap: 5px !important; }
+  .filters select, .filters input { font-size: 11px !important; }
+  
+  /* Botões de ação no topo das páginas */
+  .pg-header { flex-wrap: wrap !important; gap: 8px !important; }
+  .pg-header-actions { flex-wrap: wrap !important; gap: 6px !important; }
 
   /* Painel master */
   #painel-master .master-layout { flex-direction: column !important; }
