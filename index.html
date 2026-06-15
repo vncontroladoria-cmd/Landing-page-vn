@@ -1009,6 +1009,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
         Notificações
       </div>
+      <div class="master-nav-item" onclick="abrirControladoriaDoMaster()" id="mnav-controladoria">
+        <span style="font-size:16px;line-height:1">📋</span>
+        Controladoria
+      </div>
       <div class="master-nav-item" onclick="masterPage('dados')" id="mnav-dados">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></polyline></svg>
         Limpar Dados
@@ -1370,6 +1374,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <div id="onav-tarefas" class="op-nav-item active" onclick="operadorPage('tarefas')">
         <span>✅</span> Minhas Tarefas
       </div>
+      <div id="onav-empresas" class="op-nav-item" onclick="operadorPage('empresas')">
+        <span>🏢</span> Empresas
+      </div>
       <div id="onav-mensagens" class="op-nav-item" onclick="operadorPage('mensagens')">
         <span>💬</span> Mensagens
         <span id="op-msg-badge" style="display:none;margin-left:auto;background:#ef4444;border-radius:50%;width:8px;height:8px"></span>
@@ -1377,7 +1384,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
       <div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">
         <div style="font-size:11px;color:rgba(255,255,255,.4);padding:0 10px;margin-bottom:8px" id="op-user-email">—</div>
-        <div class="op-nav-item" onclick="doLogout()">
+        <div class="op-nav-item" id="op-btn-voltar-master" onclick="voltarAoMaster()" style="display:none">
+          <span>⬅️</span> Voltar ao Master
+        </div>
+        <div class="op-nav-item" id="op-btn-sair" onclick="doLogout()">
           <span>🚪</span> Sair
         </div>
       </div>
@@ -1413,6 +1423,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px">📅 Todas as Tarefas Cadastradas</div>
           <div id="op-tarefas-todas" style="display:flex;flex-direction:column;gap:8px"></div>
         </div>
+      </div>
+
+      <!-- PÁGINA: EMPRESAS -->
+      <div id="opage-empresas" style="display:none">
+        <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Empresas</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px">Empresas que você tem acesso para operar</div>
+        <div id="op-lista-empresas" style="display:flex;flex-direction:column;gap:10px"></div>
       </div>
 
       <!-- PÁGINA: MENSAGENS -->
@@ -1677,6 +1694,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <div class="topbar-right">
           <!-- filtro de mês removido do topbar — está dentro do dashboard -->
           <!-- Botão empresa — clicável para trocar (admin/operador com múltiplas empresas) -->
+          <!-- Botão Voltar à Controladoria (operador ou admin via Controladoria) -->
+          <button id="btn-voltar-controladoria" onclick="voltarAoPainelOperador()" title="Voltar à Controladoria" style="display:none;background:rgba(42,157,92,.12);border:1px solid rgba(42,157,92,.3);border-radius:8px;color:#2a9d5c;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;align-items:center;gap:6px">
+            📋 Controladoria
+          </button>
+
           <!-- Ícone de notificações -->
           <button id="btn-notificacoes" title="Notificações (em breve)"
             style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;position:relative;color:var(--text2)">
@@ -4650,6 +4672,8 @@ const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 let currentUser = null;
 let _vnUser = null;        // usuário da tabela vn_usuarios
+let _vindoDoOperador = false; // true se chegou ao app via Painel Operador
+let _vindoDoMasterControladoria = false; // true se admin abriu Controladoria pelo Master
 let _empresaAtual = null;  // empresa selecionada
 let _todasEmpresas = [];   // lista de empresas (admin vê todas)
 let _permissoes = {};      // { empresa_id: { abas: [...] } }
@@ -4877,6 +4901,12 @@ async function showApp() {
 
   // Controla visibilidade do menu conforme perfil
   aplicarPermissoes();
+
+  // Botão "Voltar à Controladoria" — visível para operadores ou admin via Controladoria
+  const btnVoltar = document.getElementById('btn-voltar-controladoria');
+  if (btnVoltar) {
+    btnVoltar.style.display = (_vnUser?.perfil === 'operador' || _vindoDoMasterControladoria) ? 'flex' : 'none';
+  }
 
   loadDashboard();
 
@@ -17137,7 +17167,7 @@ async function showPainelOperador() {
 }
 
 async function operadorPage(page) {
-  ['tarefas','mensagens'].forEach(p => {
+  ['tarefas','empresas','mensagens'].forEach(p => {
     const el = document.getElementById('opage-'+p);
     if (el) el.style.display = 'none';
     const nav = document.getElementById('onav-'+p);
@@ -17147,7 +17177,48 @@ async function operadorPage(page) {
   document.getElementById('onav-'+page).classList.add('active');
 
   if (page === 'tarefas')   await loadTarefasOperador();
+  if (page === 'empresas')  await loadEmpresasOperador();
   if (page === 'mensagens') await loadOperadoresLista();
+}
+
+async function loadEmpresasOperador() {
+  const container = document.getElementById('op-lista-empresas');
+  if (!_todasEmpresas?.length) {
+    container.innerHTML = `<div style="background:#1e293b;border-radius:12px;padding:24px;border:1px solid rgba(255,255,255,.06);text-align:center;color:rgba(255,255,255,.4);font-size:13px">
+      Nenhuma empresa vinculada ao seu usuário ainda. Peça ao administrador para te dar acesso.
+    </div>`;
+    return;
+  }
+  container.innerHTML = _todasEmpresas.map(e => `
+    <div style="display:flex;align-items:center;gap:14px;padding:16px;background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
+      <div style="width:42px;height:42px;border-radius:10px;background:#2a9d5c;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden">
+        ${e.logo_url ? `<img src="${e.logo_url}" style="width:100%;height:100%;object-fit:cover">` : e.nome[0].toUpperCase()}
+      </div>
+      <div style="flex:1">
+        <div style="color:#fff;font-size:14px;font-weight:700">${e.nome}</div>
+        <div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:2px">${e.cnpj || '—'}</div>
+      </div>
+      <button onclick="operadorAcessarEmpresa('${e.id}')"
+        style="padding:8px 18px;background:rgba(42,157,92,.2);border:none;border-radius:8px;color:#4ade80;font-size:12px;cursor:pointer;font-weight:700">
+        Acessar →
+      </button>
+    </div>
+  `).join('');
+}
+
+async function operadorAcessarEmpresa(empresaId) {
+  const emp = _todasEmpresas.find(e => e.id === empresaId);
+  if (!emp) return;
+  _empresaAtual = emp;
+  sessionStorage.setItem('vn_empresa_id', emp.id);
+  localStorage.setItem('vn_empresa_id', emp.id);
+  _categorias = []; _categoriasEmpresaId = null; _catMapAtual = {};
+  if (_vnUser?.id) {
+    sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
+  }
+  document.getElementById('painel-operador').style.display = 'none';
+  _vindoDoOperador = true;
+  await showApp();
 }
 
 // ─── TAREFAS ────────────────────────────────────────────
@@ -17493,6 +17564,53 @@ async function enviarArquivoOperador() {
 
   input.value = '';
   await loadMensagensOperador();
+}
+
+// ─── ADMIN: abrir Controladoria do Master ───────────────
+async function abrirControladoriaDoMaster() {
+  document.getElementById('painel-master').style.display = 'none';
+  document.getElementById('painel-operador').style.display = 'block';
+  _vindoDoMasterControladoria = true;
+
+  const el = id => document.getElementById(id);
+  if (el('op-user-email')) el('op-user-email').textContent = _vnUser?.nome || _vnUser?.email || '';
+
+  const hoje = new Date();
+  const diasSem = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if (el('op-data-hoje')) el('op-data-hoje').textContent = `${diasSem[hoje.getDay()]}, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
+
+  atualizarBotoesVoltarOperador();
+  await operadorPage('tarefas');
+}
+
+// Ajusta visibilidade dos botões "Sair" / "Voltar ao Master" / "Voltar à Controladoria"
+function atualizarBotoesVoltarOperador() {
+  const btnSair   = document.getElementById('op-btn-sair');
+  const btnMaster = document.getElementById('op-btn-voltar-master');
+  if (!btnSair || !btnMaster) return;
+  if (_vindoDoMasterControladoria) {
+    btnSair.style.display = 'none';
+    btnMaster.style.display = 'flex';
+  } else {
+    btnSair.style.display = 'flex';
+    btnMaster.style.display = 'none';
+  }
+}
+
+async function voltarAoMaster() {
+  document.getElementById('painel-operador').style.display = 'none';
+  document.getElementById('painel-master').style.display = 'block';
+  _vindoDoMasterControladoria = false;
+  await masterPage('dashboard');
+}
+
+// ─── OPERADOR: voltar ao Painel Operador a partir do app ────
+async function voltarAoPainelOperador() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('painel-operador').style.display = 'block';
+  atualizarBotoesVoltarOperador();
+  await operadorPage(_vindoDoMasterControladoria ? 'empresas' : 'tarefas');
 }
 
 // ─── INIT ────────────────────────────────────────────
