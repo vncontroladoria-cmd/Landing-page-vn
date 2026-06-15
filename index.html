@@ -1350,6 +1350,185 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
   </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAINEL OPERADOR -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="painel-operador" style="display:none;min-height:100vh;background:#0f172a;font-family:'Outfit',sans-serif">
+  <div style="display:flex;min-height:100vh">
+
+    <!-- Sidebar -->
+    <div style="width:220px;background:#1e293b;border-right:1px solid rgba(255,255,255,.06);padding:20px 14px;display:flex;flex-direction:column;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;padding:0 6px">
+        <div style="width:36px;height:36px;background:#2a9d5c;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📋</div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#fff">Controladoria</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4)">Painel Operador</div>
+        </div>
+      </div>
+
+      <div id="onav-tarefas" class="op-nav-item active" onclick="operadorPage('tarefas')">
+        <span>✅</span> Minhas Tarefas
+      </div>
+      <div id="onav-mensagens" class="op-nav-item" onclick="operadorPage('mensagens')">
+        <span>💬</span> Mensagens
+        <span id="op-msg-badge" style="display:none;margin-left:auto;background:#ef4444;border-radius:50%;width:8px;height:8px"></span>
+      </div>
+
+      <div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">
+        <div style="font-size:11px;color:rgba(255,255,255,.4);padding:0 10px;margin-bottom:8px" id="op-user-email">—</div>
+        <div class="op-nav-item" onclick="doLogout()">
+          <span>🚪</span> Sair
+        </div>
+      </div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div style="flex:1;padding:24px;overflow-y:auto;max-height:100vh">
+
+      <!-- PÁGINA: TAREFAS -->
+      <div id="opage-tarefas" style="display:block">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Minhas Tarefas</div>
+            <div style="font-size:13px;color:rgba(255,255,255,.4)" id="op-data-hoje">—</div>
+          </div>
+          <button onclick="abrirModalTarefa()" 
+            style="background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:13px;padding:10px 18px;cursor:pointer;font-weight:700;font-family:'Outfit',sans-serif">
+            + Nova Tarefa
+          </button>
+        </div>
+
+        <!-- Tarefas de hoje -->
+        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06);margin-bottom:20px">
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+            <span style="background:#2a9d5c;border-radius:6px;padding:2px 8px;font-size:11px">HOJE</span>
+            Tarefas do dia
+          </div>
+          <div id="op-tarefas-hoje" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+
+        <!-- Todas as tarefas / agenda -->
+        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px">📅 Todas as Tarefas Cadastradas</div>
+          <div id="op-tarefas-todas" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+      </div>
+
+      <!-- PÁGINA: MENSAGENS -->
+      <div id="opage-mensagens" style="display:none">
+        <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Mensagens</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px">Converse com outros operadores</div>
+
+        <div style="display:flex;gap:16px;height:calc(100vh - 180px)">
+          <!-- Lista de operadores -->
+          <div style="width:220px;background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06);overflow-y:auto;flex-shrink:0">
+            <div id="op-lista-operadores" style="padding:8px"></div>
+          </div>
+
+          <!-- Chat -->
+          <div style="flex:1;background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden">
+            <div id="op-chat-header" style="padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.06);font-weight:700;color:#fff;font-size:14px">
+              Selecione um operador
+            </div>
+            <div id="op-chat-mensagens" style="flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px"></div>
+            <div id="op-chat-input-area" style="padding:12px 14px;border-top:1px solid rgba(255,255,255,.06);display:none;gap:8px;align-items:center">
+              <input type="file" id="op-chat-file" style="display:none" onchange="enviarArquivoOperador()">
+              <button onclick="document.getElementById('op-chat-file').click()" 
+                style="background:rgba(255,255,255,.08);border:none;border-radius:8px;color:#fff;padding:9px 12px;cursor:pointer;font-size:14px">📎</button>
+              <input type="text" id="op-chat-texto" placeholder="Digite uma mensagem..." 
+                onkeydown="if(event.key==='Enter')enviarMensagemOperador()"
+                style="flex:1;padding:9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#fff;font-size:13px;font-family:'Outfit',sans-serif">
+              <button onclick="enviarMensagemOperador()" 
+                style="background:#2a9d5c;border:none;border-radius:8px;color:#fff;padding:9px 16px;cursor:pointer;font-weight:700;font-size:13px">Enviar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVA/EDITAR TAREFA -->
+<div class="modal-overlay" id="modal-tarefa">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title" id="tarefa-modal-titulo">Nova Tarefa</div>
+      <button onclick="closeModal('modal-tarefa')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <input type="hidden" id="tarefa-id">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group">
+        <label>Título *</label>
+        <input type="text" id="tarefa-titulo" placeholder="Ex: Conciliar extrato bancário" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+      </div>
+      <div class="form-group">
+        <label>Descrição</label>
+        <textarea id="tarefa-descricao" rows="2" placeholder="Detalhes da tarefa..." style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;resize:vertical"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Empresa</label>
+        <select id="tarefa-empresa" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+          <option value="">Geral (todas)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Repetição</label>
+        <select id="tarefa-recorrencia" onchange="toggleCamposRecorrencia()" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+          <option value="unica">Tarefa única (uma data)</option>
+          <option value="diaria">Repete todos os dias</option>
+          <option value="semanal">Repete semanalmente</option>
+          <option value="mensal">Repete mensalmente</option>
+        </select>
+      </div>
+      <div class="form-group" id="tarefa-campo-data">
+        <label>Data</label>
+        <input type="date" id="tarefa-data" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+      </div>
+      <div class="form-group" id="tarefa-campo-dia-semana" style="display:none">
+        <label>Dia da semana</label>
+        <select id="tarefa-dia-semana" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+          <option value="1">Segunda-feira</option>
+          <option value="2">Terça-feira</option>
+          <option value="3">Quarta-feira</option>
+          <option value="4">Quinta-feira</option>
+          <option value="5">Sexta-feira</option>
+          <option value="6">Sábado</option>
+          <option value="0">Domingo</option>
+        </select>
+      </div>
+      <div class="form-group" id="tarefa-campo-dia-mes" style="display:none">
+        <label>Dia do mês</label>
+        <input type="number" id="tarefa-dia-mes" min="1" max="31" placeholder="Ex: 5" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+      </div>
+      <div class="form-group">
+        <label>Responsável</label>
+        <select id="tarefa-responsavel" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+          <option value="">— Eu mesmo —</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:20px">
+      <button class="btn" id="tarefa-btn-excluir" style="color:var(--red);border-color:var(--red);display:none" onclick="excluirTarefa()">🗑️ Excluir</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn" onclick="closeModal('modal-tarefa')">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarTarefa()">✓ Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.op-nav-item {
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;
+  color:rgba(255,255,255,.55);font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .15s;margin-bottom:2px;
+}
+.op-nav-item:hover { background:rgba(255,255,255,.04); color:rgba(255,255,255,.85); }
+.op-nav-item.active { background:rgba(42,157,92,.15); color:#4ade80; }
+</style>
+
 <style>
 .master-nav-item {
   display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
@@ -4610,6 +4789,7 @@ async function doLogout() {
   sessionStorage.removeItem('vn_user_id');
   document.getElementById('app').style.display = 'none';
   document.getElementById('painel-master').style.display = 'none';
+  document.getElementById('painel-operador').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
 
@@ -4631,6 +4811,19 @@ async function iniciarSessaoMultiEmpresa() {
     const { data } = await sb.from('empresas').select('*').order('nome');
     _todasEmpresas = data || [];
     await showPainelMaster();
+    return;
+  }
+
+  // OPERADOR → vai para Painel Operador
+  if (_vnUser.perfil === 'operador') {
+    const { data: perms } = await sb.from('usuario_empresas')
+      .select('empresa_id,abas_liberadas,ativo,empresas(*)')
+      .eq('usuario_id', _vnUser.id)
+      .eq('ativo', true);
+    _todasEmpresas = (perms||[]).map(p => p.empresas).filter(Boolean);
+    _permissoes = {};
+    (perms||[]).forEach(p => { _permissoes[p.empresa_id] = { abas: p.abas_liberadas || [] }; });
+    await showPainelOperador();
     return;
   }
 
@@ -16920,6 +17113,386 @@ async function confirmarVinculoEImportarPerformance() {
     btn.textContent = '💾 Salvar e Importar';
     btn.disabled = false;
   }
+}
+
+// ═══════════════════════════════════════════════════════
+// PAINEL OPERADOR
+// ═══════════════════════════════════════════════════════
+
+async function showPainelOperador() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('painel-master').style.display = 'none';
+  document.getElementById('painel-operador').style.display = 'block';
+
+  const el = id => document.getElementById(id);
+  if (el('op-user-email')) el('op-user-email').textContent = _vnUser?.nome || _vnUser?.email || '';
+
+  const hoje = new Date();
+  const diasSem = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if (el('op-data-hoje')) el('op-data-hoje').textContent = `${diasSem[hoje.getDay()]}, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
+
+  await operadorPage('tarefas');
+}
+
+async function operadorPage(page) {
+  ['tarefas','mensagens'].forEach(p => {
+    const el = document.getElementById('opage-'+p);
+    if (el) el.style.display = 'none';
+    const nav = document.getElementById('onav-'+p);
+    if (nav) nav.classList.remove('active');
+  });
+  document.getElementById('opage-'+page).style.display = 'block';
+  document.getElementById('onav-'+page).classList.add('active');
+
+  if (page === 'tarefas')   await loadTarefasOperador();
+  if (page === 'mensagens') await loadOperadoresLista();
+}
+
+// ─── TAREFAS ────────────────────────────────────────────
+
+function hojeISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function tarefaValeParaHoje(t, hojeStr, diaSemanaHoje, diaMesHoje) {
+  switch (t.recorrencia) {
+    case 'diaria':  return true;
+    case 'semanal': return Number(t.dia_semana) === diaSemanaHoje;
+    case 'mensal':  return Number(t.dia_mes) === diaMesHoje;
+    case 'unica':   return t.data_referencia === hojeStr;
+    default: return false;
+  }
+}
+
+async function loadTarefasOperador() {
+  const hojeStr = hojeISO();
+  const hoje = new Date();
+  const diaSemanaHoje = hoje.getDay();
+  const diaMesHoje = hoje.getDate();
+
+  // Empresas vinculadas ao operador (para filtrar tarefas)
+  const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
+
+  // Buscar todas as tarefas ativas (gerais OU das empresas do operador)
+  let query = sb.from('tarefas_operador').select('*, empresas(nome)').eq('ativo', true);
+  if (empresaIds.length) {
+    query = query.or(`empresa_id.is.null,empresa_id.in.(${empresaIds.join(',')})`);
+  } else {
+    query = query.is('empresa_id', null);
+  }
+  const { data: tarefas } = await query.order('criado_em');
+  const todasTarefas = tarefas || [];
+
+  // Tarefas que valem para hoje
+  const tarefasHoje = todasTarefas.filter(t => tarefaValeParaHoje(t, hojeStr, diaSemanaHoje, diaMesHoje));
+
+  // Conclusões de hoje
+  const idsHoje = tarefasHoje.map(t=>t.id);
+  let concluidasHoje = new Set();
+  if (idsHoje.length) {
+    const { data: concl } = await sb.from('tarefas_conclusoes')
+      .select('tarefa_id').eq('data_referencia', hojeStr).in('tarefa_id', idsHoje);
+    (concl||[]).forEach(c => concluidasHoje.add(c.tarefa_id));
+  }
+
+  // Render: Tarefas de hoje (não concluídas)
+  const pendentesHoje = tarefasHoje.filter(t => !concluidasHoje.has(t.id));
+  const containerHoje = document.getElementById('op-tarefas-hoje');
+
+  if (!pendentesHoje.length) {
+    containerHoje.innerHTML = `<div style="text-align:center;padding:24px;color:rgba(255,255,255,.3);font-size:13px">
+      🎉 Nenhuma tarefa pendente para hoje!
+    </div>`;
+  } else {
+    containerHoje.innerHTML = pendentesHoje.map(t => `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+        <input type="checkbox" onchange="concluirTarefaHoje('${t.id}', this)" 
+          style="margin-top:2px;cursor:pointer;width:16px;height:16px;accent-color:#2a9d5c">
+        <div style="flex:1">
+          <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
+          ${t.descricao ? `<div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:2px">${t.descricao}</div>` : ''}
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            ${t.empresas?.nome ? `<span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 7px;border-radius:5px;font-weight:700">${t.empresas.nome}</span>` : `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">GERAL</span>`}
+            ${recorrenciaLabel(t)}
+          </div>
+        </div>
+        <button onclick="abrirModalTarefa('${t.id}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:13px">✏️</button>
+      </div>
+    `).join('');
+  }
+
+  // Render: Todas as tarefas cadastradas (para edição)
+  const containerTodas = document.getElementById('op-tarefas-todas');
+  if (!todasTarefas.length) {
+    containerTodas.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">
+      Nenhuma tarefa cadastrada ainda.
+    </div>`;
+  } else {
+    containerTodas.innerHTML = todasTarefas.map(t => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.04)">
+        <div style="flex:1">
+          <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            ${t.empresas?.nome ? `<span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 7px;border-radius:5px;font-weight:700">${t.empresas.nome}</span>` : `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">GERAL</span>`}
+            ${recorrenciaLabel(t)}
+          </div>
+        </div>
+        <button onclick="abrirModalTarefa('${t.id}')" 
+          style="padding:5px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-weight:600">✏️ Editar</button>
+      </div>
+    `).join('');
+  }
+}
+
+function recorrenciaLabel(t) {
+  const diasSem = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  switch (t.recorrencia) {
+    case 'diaria':  return `<span style="font-size:9px;background:rgba(34,197,94,.15);color:#4ade80;padding:2px 7px;border-radius:5px;font-weight:700">🔁 TODOS OS DIAS</span>`;
+    case 'semanal': return `<span style="font-size:9px;background:rgba(168,85,247,.15);color:#c084fc;padding:2px 7px;border-radius:5px;font-weight:700">🔁 ${diasSem[t.dia_semana]?.toUpperCase()}</span>`;
+    case 'mensal':  return `<span style="font-size:9px;background:rgba(251,146,60,.15);color:#fb923c;padding:2px 7px;border-radius:5px;font-weight:700">🔁 DIA ${t.dia_mes} DO MÊS</span>`;
+    case 'unica':   return `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">📅 ${t.data_referencia?.split('-').reverse().join('/')}</span>`;
+    default: return '';
+  }
+}
+
+async function concluirTarefaHoje(tarefaId, checkbox) {
+  checkbox.disabled = true;
+  const { error } = await sb.from('tarefas_conclusoes').insert({
+    tarefa_id: tarefaId,
+    data_referencia: hojeISO(),
+    concluido_por: _vnUser?.id || null,
+  });
+  if (error) {
+    showToast('Erro: ' + error.message, 'error');
+    checkbox.disabled = false;
+    checkbox.checked = false;
+    return;
+  }
+  // Anima e remove da lista
+  const item = checkbox.closest('div[style*="border-radius:8px"]');
+  if (item) {
+    item.style.transition = 'opacity .3s, transform .3s';
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(20px)';
+    setTimeout(() => loadTarefasOperador(), 300);
+  } else {
+    loadTarefasOperador();
+  }
+}
+
+function toggleCamposRecorrencia() {
+  const rec = document.getElementById('tarefa-recorrencia').value;
+  document.getElementById('tarefa-campo-data').style.display = rec === 'unica' ? 'block' : 'none';
+  document.getElementById('tarefa-campo-dia-semana').style.display = rec === 'semanal' ? 'block' : 'none';
+  document.getElementById('tarefa-campo-dia-mes').style.display = rec === 'mensal' ? 'block' : 'none';
+}
+
+async function abrirModalTarefa(tarefaId) {
+  // Popular select de empresas
+  const selEmp = document.getElementById('tarefa-empresa');
+  selEmp.innerHTML = '<option value="">Geral (todas)</option>' +
+    (_todasEmpresas||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+
+  // Popular select de responsáveis (operadores)
+  const { data: operadores } = await sb.from('vn_usuarios').select('id,nome,email').eq('perfil','operador').eq('ativo',true);
+  const selResp = document.getElementById('tarefa-responsavel');
+  selResp.innerHTML = '<option value="">— Eu mesmo —</option>' +
+    (operadores||[]).map(o => `<option value="${o.id}">${o.nome||o.email}</option>`).join('');
+
+  if (tarefaId) {
+    const { data } = await sb.from('tarefas_operador').select('*').eq('id', tarefaId).single();
+    if (data) {
+      document.getElementById('tarefa-modal-titulo').textContent = 'Editar Tarefa';
+      document.getElementById('tarefa-id').value = data.id;
+      document.getElementById('tarefa-titulo').value = data.titulo || '';
+      document.getElementById('tarefa-descricao').value = data.descricao || '';
+      document.getElementById('tarefa-empresa').value = data.empresa_id || '';
+      document.getElementById('tarefa-recorrencia').value = data.recorrencia || 'unica';
+      document.getElementById('tarefa-data').value = data.data_referencia || '';
+      document.getElementById('tarefa-dia-semana').value = data.dia_semana ?? '1';
+      document.getElementById('tarefa-dia-mes').value = data.dia_mes || '';
+      document.getElementById('tarefa-responsavel').value = data.responsavel_id || '';
+      document.getElementById('tarefa-btn-excluir').style.display = 'block';
+    }
+  } else {
+    document.getElementById('tarefa-modal-titulo').textContent = 'Nova Tarefa';
+    document.getElementById('tarefa-id').value = '';
+    document.getElementById('tarefa-titulo').value = '';
+    document.getElementById('tarefa-descricao').value = '';
+    document.getElementById('tarefa-empresa').value = '';
+    document.getElementById('tarefa-recorrencia').value = 'unica';
+    document.getElementById('tarefa-data').value = hojeISO();
+    document.getElementById('tarefa-dia-semana').value = '1';
+    document.getElementById('tarefa-dia-mes').value = '';
+    document.getElementById('tarefa-responsavel').value = '';
+    document.getElementById('tarefa-btn-excluir').style.display = 'none';
+  }
+
+  toggleCamposRecorrencia();
+  document.getElementById('modal-tarefa').classList.add('open');
+}
+
+async function salvarTarefa() {
+  const id = document.getElementById('tarefa-id').value;
+  const titulo = document.getElementById('tarefa-titulo').value.trim();
+  if (!titulo) { showToast('Digite o título da tarefa', 'error'); return; }
+
+  const recorrencia = document.getElementById('tarefa-recorrencia').value;
+  const payload = {
+    titulo,
+    descricao: document.getElementById('tarefa-descricao').value.trim() || null,
+    empresa_id: document.getElementById('tarefa-empresa').value || null,
+    recorrencia,
+    data_referencia: recorrencia === 'unica' ? (document.getElementById('tarefa-data').value || null) : null,
+    dia_semana: recorrencia === 'semanal' ? parseInt(document.getElementById('tarefa-dia-semana').value) : null,
+    dia_mes: recorrencia === 'mensal' ? parseInt(document.getElementById('tarefa-dia-mes').value) : null,
+    responsavel_id: document.getElementById('tarefa-responsavel').value || null,
+  };
+
+  let error;
+  if (id) {
+    ({ error } = await sb.from('tarefas_operador').update(payload).eq('id', id));
+  } else {
+    payload.criado_por = _vnUser?.id || null;
+    ({ error } = await sb.from('tarefas_operador').insert(payload));
+  }
+
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast(id ? 'Tarefa atualizada!' : 'Tarefa criada!', 'success');
+  closeModal('modal-tarefa');
+  await loadTarefasOperador();
+}
+
+async function excluirTarefa() {
+  const id = document.getElementById('tarefa-id').value;
+  if (!id) return;
+  if (!confirm('Excluir esta tarefa? Esta ação não pode ser desfeita.')) return;
+  const { error } = await sb.from('tarefas_operador').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Tarefa excluída!', 'success');
+  closeModal('modal-tarefa');
+  await loadTarefasOperador();
+}
+
+// ─── MENSAGENS ENTRE OPERADORES ─────────────────────────
+
+let _opChatCom = null; // id do operador com quem está conversando
+
+async function loadOperadoresLista() {
+  const { data: ops } = await sb.from('vn_usuarios')
+    .select('id,nome,email')
+    .eq('perfil','operador')
+    .eq('ativo',true)
+    .neq('id', _vnUser?.id || '')
+    .order('nome');
+
+  const lista = document.getElementById('op-lista-operadores');
+  if (!ops?.length) {
+    lista.innerHTML = `<div style="padding:14px;text-align:center;color:rgba(255,255,255,.3);font-size:12px">Nenhum outro operador cadastrado</div>`;
+    return;
+  }
+
+  lista.innerHTML = ops.map(o => `
+    <div onclick="abrirChatOperador('${o.id}','${(o.nome||o.email).replace(/'/g,"\'")}')"
+      style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;cursor:pointer;transition:background .15s"
+      onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background=''" id="op-item-${o.id}">
+      <div style="width:32px;height:32px;border-radius:50%;background:#2a9d5c;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0">${(o.nome||o.email)[0].toUpperCase()}</div>
+      <div style="flex:1;overflow:hidden">
+        <div style="color:#fff;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.nome||o.email}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function abrirChatOperador(opId, opNome) {
+  _opChatCom = opId;
+
+  // Marca item como ativo
+  document.querySelectorAll('#op-lista-operadores > div').forEach(el => el.style.background = '');
+  const item = document.getElementById('op-item-'+opId);
+  if (item) item.style.background = 'rgba(42,157,92,.12)';
+
+  document.getElementById('op-chat-header').textContent = opNome;
+  document.getElementById('op-chat-input-area').style.display = 'flex';
+
+  await loadMensagensOperador();
+}
+
+async function loadMensagensOperador() {
+  if (!_opChatCom) return;
+  const meuId = _vnUser?.id;
+
+  const { data: msgs } = await sb.from('mensagens_operadores')
+    .select('*')
+    .or(`and(de_usuario_id.eq.${meuId},para_usuario_id.eq.${_opChatCom}),and(de_usuario_id.eq.${_opChatCom},para_usuario_id.eq.${meuId})`)
+    .order('criado_em');
+
+  const container = document.getElementById('op-chat-mensagens');
+  if (!msgs?.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:12px">Nenhuma mensagem ainda. Diga olá!</div>`;
+  } else {
+    container.innerHTML = msgs.map(m => {
+      const minha = m.de_usuario_id === meuId;
+      const hora = new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      return `
+        <div style="display:flex;justify-content:${minha?'flex-end':'flex-start'}">
+          <div style="max-width:70%;background:${minha?'#2a9d5c':'rgba(255,255,255,.06)'};color:#fff;padding:8px 12px;border-radius:10px;font-size:13px">
+            ${m.mensagem ? `<div>${m.mensagem.replace(/</g,'&lt;')}</div>` : ''}
+            ${m.arquivo_url ? `<div style="margin-top:4px"><a href="${m.arquivo_url}" target="_blank" style="color:#bfdbfe;text-decoration:underline;font-size:12px">📎 ${m.arquivo_nome||'Arquivo'}</a></div>` : ''}
+            <div style="font-size:9px;color:rgba(255,255,255,.5);margin-top:3px;text-align:right">${hora}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  container.scrollTop = container.scrollHeight;
+
+  // Marca mensagens recebidas como lidas
+  await sb.from('mensagens_operadores').update({lida:true}).eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false);
+}
+
+async function enviarMensagemOperador() {
+  if (!_opChatCom) return;
+  const input = document.getElementById('op-chat-texto');
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const { error } = await sb.from('mensagens_operadores').insert({
+    de_usuario_id: _vnUser?.id,
+    para_usuario_id: _opChatCom,
+    mensagem: texto,
+  });
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  input.value = '';
+  await loadMensagensOperador();
+}
+
+async function enviarArquivoOperador() {
+  if (!_opChatCom) return;
+  const input = document.getElementById('op-chat-file');
+  const file = input.files[0];
+  if (!file) return;
+
+  const path = `${_vnUser?.id}_${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+  const { error: upErr } = await sb.storage.from('operador-arquivos').upload(path, file, {upsert:true});
+  if (upErr) { showToast('Erro ao subir arquivo: ' + upErr.message, 'error'); return; }
+
+  const { data: urlData } = sb.storage.from('operador-arquivos').getPublicUrl(path);
+
+  const { error } = await sb.from('mensagens_operadores').insert({
+    de_usuario_id: _vnUser?.id,
+    para_usuario_id: _opChatCom,
+    arquivo_url: urlData?.publicUrl || null,
+    arquivo_nome: file.name,
+  });
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  input.value = '';
+  await loadMensagensOperador();
 }
 
 // ─── INIT ────────────────────────────────────────────
