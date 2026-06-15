@@ -1398,7 +1398,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
       <!-- PÁGINA: TAREFAS -->
       <div id="opage-tarefas" style="display:block">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
           <div>
             <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Minhas Tarefas</div>
             <div style="font-size:13px;color:rgba(255,255,255,.4)" id="op-data-hoje">—</div>
@@ -1409,19 +1409,58 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </button>
         </div>
 
-        <!-- Tarefas de hoje -->
-        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06);margin-bottom:20px">
-          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-            <span style="background:#2a9d5c;border-radius:6px;padding:2px 8px;font-size:11px">HOJE</span>
-            Tarefas do dia
-          </div>
-          <div id="op-tarefas-hoje" style="display:flex;flex-direction:column;gap:8px"></div>
+        <!-- Abas -->
+        <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap">
+          <div class="op-tab active" data-tab="hoje" onclick="tarefasTab('hoje')">📋 Hoje</div>
+          <div class="op-tab" data-tab="agenda" onclick="tarefasTab('agenda')">📅 Agenda</div>
+          <div class="op-tab" data-tab="cadastro" onclick="tarefasTab('cadastro')">🗂️ Cadastro</div>
+          <div class="op-tab" data-tab="concluidas" onclick="tarefasTab('concluidas')">✅ Concluídas</div>
         </div>
 
-        <!-- Todas as tarefas / agenda -->
-        <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
-          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px">📅 Todas as Tarefas Cadastradas</div>
-          <div id="op-tarefas-todas" style="display:flex;flex-direction:column;gap:8px"></div>
+        <!-- ABA: HOJE -->
+        <div id="ttab-hoje" style="display:block">
+          <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+            <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+              <span style="background:#2a9d5c;border-radius:6px;padding:2px 8px;font-size:11px">HOJE</span>
+              Tarefas do dia
+            </div>
+            <div id="op-tarefas-hoje" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+
+        <!-- ABA: AGENDA (filtro por data) -->
+        <div id="ttab-agenda" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Ver tarefas do dia:</label>
+            <input type="date" id="agenda-data-filtro" onchange="loadAgendaTarefas()"
+              style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
+            <button onclick="document.getElementById('agenda-data-filtro').value=hojeISO();loadAgendaTarefas()" 
+              style="padding:7px 12px;font-size:12px;background:rgba(255,255,255,.06);border:none;border-radius:8px;color:rgba(255,255,255,.7);cursor:pointer;font-weight:600">Hoje</button>
+          </div>
+          <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+            <div id="op-agenda-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+
+        <!-- ABA: CADASTRO (todas, editar/excluir, criado por) -->
+        <div id="ttab-cadastro" style="display:none">
+          <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+            <div id="op-cadastro-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+
+        <!-- ABA: CONCLUÍDAS (histórico) -->
+        <div id="ttab-concluidas" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Filtrar por data:</label>
+            <input type="date" id="concluidas-data-filtro" onchange="loadConcluidasTarefas()"
+              style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
+            <button onclick="document.getElementById('concluidas-data-filtro').value='';loadConcluidasTarefas()" 
+              style="padding:7px 12px;font-size:12px;background:rgba(255,255,255,.06);border:none;border-radius:8px;color:rgba(255,255,255,.7);cursor:pointer;font-weight:600">Limpar</button>
+          </div>
+          <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+            <div id="op-concluidas-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
         </div>
       </div>
 
@@ -1544,6 +1583,17 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 }
 .op-nav-item:hover { background:rgba(255,255,255,.04); color:rgba(255,255,255,.85); }
 .op-nav-item.active { background:rgba(42,157,92,.15); color:#4ade80; }
+.op-tab {
+  padding:10px 16px;font-size:13px;font-weight:700;color:rgba(255,255,255,.45);
+  cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;
+}
+.op-tab:hover { color:rgba(255,255,255,.7); }
+.op-tab.active { color:#4ade80;border-bottom-color:#4ade80; }
+.op-status-pendente  { background:rgba(251,191,36,.15);color:#fbbf24; }
+.op-status-atrasada  { background:rgba(239,68,68,.15);color:#f87171; }
+.op-status-aguardando{ background:rgba(148,163,184,.15);color:#94a3b8; }
+.op-status-concluida { background:rgba(34,197,94,.15);color:#4ade80; }
+.op-status-badge { font-size:9px;padding:2px 8px;border-radius:5px;font-weight:700;text-transform:uppercase }
 </style>
 
 <style>
@@ -17176,7 +17226,7 @@ async function operadorPage(page) {
   document.getElementById('opage-'+page).style.display = 'block';
   document.getElementById('onav-'+page).classList.add('active');
 
-  if (page === 'tarefas')   await loadTarefasOperador();
+  if (page === 'tarefas')   tarefasTab('hoje');
   if (page === 'empresas')  await loadEmpresasOperador();
   if (page === 'mensagens') await loadOperadoresLista();
 }
@@ -17244,18 +17294,7 @@ async function loadTarefasOperador() {
   const diaSemanaHoje = hoje.getDay();
   const diaMesHoje = hoje.getDate();
 
-  // Empresas vinculadas ao operador (para filtrar tarefas)
-  const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
-
-  // Buscar todas as tarefas ativas (gerais OU das empresas do operador)
-  let query = sb.from('tarefas_operador').select('*, empresas(nome)').eq('ativo', true);
-  if (empresaIds.length) {
-    query = query.or(`empresa_id.is.null,empresa_id.in.(${empresaIds.join(',')})`);
-  } else {
-    query = query.is('empresa_id', null);
-  }
-  const { data: tarefas } = await query.order('criado_em');
-  const todasTarefas = tarefas || [];
+  const todasTarefas = await buscarTarefasAtivas();
 
   // Tarefas que valem para hoje
   const tarefasHoje = todasTarefas.filter(t => tarefaValeParaHoje(t, hojeStr, diaSemanaHoje, diaMesHoje));
@@ -17278,43 +17317,11 @@ async function loadTarefasOperador() {
       🎉 Nenhuma tarefa pendente para hoje!
     </div>`;
   } else {
-    containerHoje.innerHTML = pendentesHoje.map(t => `
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
-        <input type="checkbox" onchange="concluirTarefaHoje('${t.id}', this)" 
-          style="margin-top:2px;cursor:pointer;width:16px;height:16px;accent-color:#2a9d5c">
-        <div style="flex:1">
-          <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
-          ${t.descricao ? `<div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:2px">${t.descricao}</div>` : ''}
-          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-            ${t.empresas?.nome ? `<span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 7px;border-radius:5px;font-weight:700">${t.empresas.nome}</span>` : `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">GERAL</span>`}
-            ${recorrenciaLabel(t)}
-          </div>
-        </div>
-        <button onclick="abrirModalTarefa('${t.id}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:13px">✏️</button>
-      </div>
-    `).join('');
-  }
-
-  // Render: Todas as tarefas cadastradas (para edição)
-  const containerTodas = document.getElementById('op-tarefas-todas');
-  if (!todasTarefas.length) {
-    containerTodas.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">
-      Nenhuma tarefa cadastrada ainda.
-    </div>`;
-  } else {
-    containerTodas.innerHTML = todasTarefas.map(t => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.04)">
-        <div style="flex:1">
-          <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
-          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-            ${t.empresas?.nome ? `<span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 7px;border-radius:5px;font-weight:700">${t.empresas.nome}</span>` : `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">GERAL</span>`}
-            ${recorrenciaLabel(t)}
-          </div>
-        </div>
-        <button onclick="abrirModalTarefa('${t.id}')" 
-          style="padding:5px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-weight:600">✏️ Editar</button>
-      </div>
-    `).join('');
+    containerHoje.innerHTML = pendentesHoje.map(t => renderLinhaTarefa(t, {
+      status: 'pendente',
+      dataRef: hojeStr,
+      mostrarConcluir: true,
+    })).join('');
   }
 }
 
@@ -17326,31 +17333,6 @@ function recorrenciaLabel(t) {
     case 'mensal':  return `<span style="font-size:9px;background:rgba(251,146,60,.15);color:#fb923c;padding:2px 7px;border-radius:5px;font-weight:700">🔁 DIA ${t.dia_mes} DO MÊS</span>`;
     case 'unica':   return `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">📅 ${t.data_referencia?.split('-').reverse().join('/')}</span>`;
     default: return '';
-  }
-}
-
-async function concluirTarefaHoje(tarefaId, checkbox) {
-  checkbox.disabled = true;
-  const { error } = await sb.from('tarefas_conclusoes').insert({
-    tarefa_id: tarefaId,
-    data_referencia: hojeISO(),
-    concluido_por: _vnUser?.id || null,
-  });
-  if (error) {
-    showToast('Erro: ' + error.message, 'error');
-    checkbox.disabled = false;
-    checkbox.checked = false;
-    return;
-  }
-  // Anima e remove da lista
-  const item = checkbox.closest('div[style*="border-radius:8px"]');
-  if (item) {
-    item.style.transition = 'opacity .3s, transform .3s';
-    item.style.opacity = '0';
-    item.style.transform = 'translateX(20px)';
-    setTimeout(() => loadTarefasOperador(), 300);
-  } else {
-    loadTarefasOperador();
   }
 }
 
@@ -17611,6 +17593,238 @@ async function voltarAoPainelOperador() {
   document.getElementById('painel-operador').style.display = 'block';
   atualizarBotoesVoltarOperador();
   await operadorPage(_vindoDoMasterControladoria ? 'empresas' : 'tarefas');
+}
+
+// ─── ABAS DE TAREFAS ────────────────────────────────────
+
+function tarefasTab(tab) {
+  ['hoje','agenda','cadastro','concluidas'].forEach(t => {
+    const el = document.getElementById('ttab-'+t);
+    if (el) el.style.display = t===tab ? 'block' : 'none';
+    const tabEl = document.querySelector(`.op-tab[data-tab="${t}"]`);
+    if (tabEl) tabEl.classList.toggle('active', t===tab);
+  });
+  if (tab === 'hoje')       loadTarefasOperador();
+  if (tab === 'agenda') {
+    const el = document.getElementById('agenda-data-filtro');
+    if (el && !el.value) el.value = hojeISO();
+    loadAgendaTarefas();
+  }
+  if (tab === 'cadastro')   loadCadastroTarefas();
+  if (tab === 'concluidas') loadConcluidasTarefas();
+}
+
+// Calcula status de uma tarefa para uma data específica
+function statusTarefaNaData(concluida, dataStr) {
+  if (concluida) return 'concluida';
+  const hoje = hojeISO();
+  if (dataStr < hoje) return 'atrasada';
+  if (dataStr > hoje) return 'aguardando';
+  return 'pendente';
+}
+
+function statusBadgeHtml(status) {
+  const labels = { pendente:'⏳ Pendente', atrasada:'🔴 Atrasada', aguardando:'⏸️ Aguardando', concluida:'✅ Concluída' };
+  return `<span class="op-status-badge op-status-${status}">${labels[status]||status}</span>`;
+}
+
+// Busca todas as tarefas ativas visíveis para este usuário (gerais + empresas vinculadas)
+async function buscarTarefasAtivas() {
+  const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
+  let query = sb.from('tarefas_operador').select('*, empresas(nome)').eq('ativo', true);
+  if (empresaIds.length) {
+    query = query.or(`empresa_id.is.null,empresa_id.in.(${empresaIds.join(',')})`);
+  } else {
+    query = query.is('empresa_id', null);
+  }
+  const { data } = await query.order('criado_em');
+  return data || [];
+}
+
+// Renderiza uma linha de tarefa reutilizável
+function renderLinhaTarefa(t, opts={}) {
+  const empresaTag = t.empresas?.nome
+    ? `<span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 7px;border-radius:5px;font-weight:700">${t.empresas.nome}</span>`
+    : `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">GERAL</span>`;
+
+  const botoes = [];
+  if (opts.mostrarConcluir) {
+    botoes.push(`<button onclick="concluirTarefaData('${t.id}','${opts.dataRef}',this)"
+      style="padding:5px 12px;background:rgba(34,197,94,.15);border:none;border-radius:6px;color:#4ade80;font-size:11px;cursor:pointer;font-weight:700">✓ Concluir</button>`);
+  }
+  if (opts.mostrarDesfazer) {
+    botoes.push(`<button onclick="desfazerConclusao('${t.id}','${opts.dataRef}',this)"
+      style="padding:5px 12px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;font-weight:700">↩️ Desfazer</button>`);
+  }
+  if (opts.mostrarEditar !== false) {
+    botoes.push(`<button onclick="abrirModalTarefa('${t.id}')"
+      style="padding:5px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer">✏️</button>`);
+  }
+  if (opts.mostrarExcluir) {
+    botoes.push(`<button onclick="excluirTarefaDireta('${t.id}')"
+      style="padding:5px 10px;background:rgba(239,68,68,.1);border:none;border-radius:6px;color:#f87171;font-size:11px;cursor:pointer">🗑️</button>`);
+  }
+
+  return `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+      <div style="flex:1;min-width:0">
+        <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
+        ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+          ${empresaTag}
+          ${recorrenciaLabel(t)}
+          ${opts.status ? statusBadgeHtml(opts.status) : ''}
+          ${opts.infoExtra || ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">${botoes.join('')}</div>
+    </div>
+  `;
+}
+
+// ─── ABA: AGENDA ────────────────────────────────────────
+
+async function loadAgendaTarefas() {
+  const dataFiltro = document.getElementById('agenda-data-filtro').value || hojeISO();
+  const d = new Date(dataFiltro + 'T12:00:00');
+  const diaSemana = d.getDay();
+  const diaMes = d.getDate();
+
+  const todasTarefas = await buscarTarefasAtivas();
+  const valeData = todasTarefas.filter(t => tarefaValeParaHoje(t, dataFiltro, diaSemana, diaMes));
+
+  const ids = valeData.map(t=>t.id);
+  let concluidoSet = new Set();
+  if (ids.length) {
+    const { data: concl } = await sb.from('tarefas_conclusoes')
+      .select('tarefa_id').eq('data_referencia', dataFiltro).in('tarefa_id', ids);
+    (concl||[]).forEach(c => concluidoSet.add(c.tarefa_id));
+  }
+
+  const container = document.getElementById('op-agenda-lista');
+  if (!valeData.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma tarefa para esta data.</div>`;
+    return;
+  }
+
+  container.innerHTML = valeData.map(t => {
+    const concluida = concluidoSet.has(t.id);
+    const status = statusTarefaNaData(concluida, dataFiltro);
+    return renderLinhaTarefa(t, {
+      status,
+      dataRef: dataFiltro,
+      mostrarConcluir: !concluida,
+      mostrarDesfazer: concluida,
+    });
+  }).join('');
+}
+
+// ─── ABA: CADASTRO ──────────────────────────────────────
+
+async function loadCadastroTarefas() {
+  const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
+  let query = sb.from('tarefas_operador').select('*, empresas(nome), criador:vn_usuarios!criado_por(nome,email)').eq('ativo', true);
+  if (empresaIds.length) {
+    query = query.or(`empresa_id.is.null,empresa_id.in.(${empresaIds.join(',')})`);
+  } else {
+    query = query.is('empresa_id', null);
+  }
+  const { data: tarefas } = await query.order('criado_em', {ascending:false});
+
+  const container = document.getElementById('op-cadastro-lista');
+  if (!tarefas?.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma tarefa cadastrada ainda.</div>`;
+    return;
+  }
+
+  container.innerHTML = tarefas.map(t => {
+    const criadorNome = t.criador?.nome || t.criador?.email || '—';
+    const criadoEm = t.criado_em ? new Date(t.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const infoExtra = `<span style="font-size:9px;color:rgba(255,255,255,.35)">Criado por ${criadorNome} em ${criadoEm}</span>`;
+    return renderLinhaTarefa(t, { mostrarEditar:true, mostrarExcluir:true, infoExtra });
+  }).join('');
+}
+
+async function excluirTarefaDireta(id) {
+  if (!confirm('Excluir esta tarefa? Esta ação não pode ser desfeita.')) return;
+  const { error } = await sb.from('tarefas_operador').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Tarefa excluída!', 'success');
+  loadCadastroTarefas();
+}
+
+// ─── ABA: CONCLUÍDAS (histórico) ────────────────────────
+
+async function loadConcluidasTarefas() {
+  const dataFiltro = document.getElementById('concluidas-data-filtro').value;
+
+  let query = sb.from('tarefas_conclusoes')
+    .select('*, tarefas_operador(titulo,descricao,empresa_id,empresas(nome)), usuario:vn_usuarios!concluido_por(nome,email)')
+    .order('concluido_em', {ascending:false})
+    .limit(200);
+
+  if (dataFiltro) query = query.eq('data_referencia', dataFiltro);
+
+  const { data: concl } = await query;
+
+  const container = document.getElementById('op-concluidas-lista');
+  if (!concl?.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma tarefa concluída ${dataFiltro ? 'nesta data' : 'ainda'}.</div>`;
+    return;
+  }
+
+  container.innerHTML = concl.map(c => {
+    const t = c.tarefas_operador;
+    if (!t) return '';
+    const nomeUsr = c.usuario?.nome || c.usuario?.email || '—';
+    const dataRefBr = c.data_referencia.split('-').reverse().join('/');
+    const concluidoEm = new Date(c.concluido_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const empresaTag = t.empresas?.nome
+      ? `<span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 7px;border-radius:5px;font-weight:700">${t.empresas.nome}</span>`
+      : `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">GERAL</span>`;
+    return `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+        <div style="flex:1;min-width:0">
+          <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
+          ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+            ${empresaTag}
+            ${statusBadgeHtml('concluida')}
+            <span style="font-size:9px;color:rgba(255,255,255,.35)">Referente a ${dataRefBr} · concluído por ${nomeUsr} em ${concluidoEm}</span>
+          </div>
+        </div>
+        <button onclick="desfazerConclusao('${c.tarefa_id}','${c.data_referencia}',this,true)"
+          style="padding:5px 12px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;font-weight:700;flex-shrink:0">↩️ Desfazer</button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─── AÇÕES DE CONCLUSÃO ──────────────────────────────────
+
+async function concluirTarefaData(tarefaId, dataStr, el) {
+  if (el) el.disabled = true;
+  const { error } = await sb.from('tarefas_conclusoes').insert({
+    tarefa_id: tarefaId,
+    data_referencia: dataStr,
+    concluido_por: _vnUser?.id || null,
+  });
+  if (error) { showToast('Erro: ' + error.message, 'error'); if(el) el.disabled=false; return; }
+  showToast('Tarefa concluída!', 'success');
+  // Recarrega a aba ativa
+  const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
+  tarefasTab(ativa);
+}
+
+async function desfazerConclusao(tarefaId, dataStr, el, recarregaConcluidas) {
+  if (el) el.disabled = true;
+  const { error } = await sb.from('tarefas_conclusoes')
+    .delete().eq('tarefa_id', tarefaId).eq('data_referencia', dataStr);
+  if (error) { showToast('Erro: ' + error.message, 'error'); if(el) el.disabled=false; return; }
+  showToast('Conclusão desfeita.', 'success');
+  if (recarregaConcluidas) { loadConcluidasTarefas(); return; }
+  const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
+  tarefasTab(ativa);
 }
 
 // ─── INIT ────────────────────────────────────────────
