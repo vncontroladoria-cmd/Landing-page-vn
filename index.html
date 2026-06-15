@@ -1013,6 +1013,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <span style="font-size:16px;line-height:1">📋</span>
         Controladoria
       </div>
+      <div class="master-nav-item" onclick="masterPage('produtividade')" id="mnav-produtividade">
+        <span style="font-size:16px;line-height:1">📊</span>
+        Produtividade
+      </div>
       <div class="master-nav-item" onclick="masterPage('dados')" id="mnav-dados">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></polyline></svg>
         Limpar Dados
@@ -1150,6 +1154,37 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </div>
       <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
         <div id="master-logs-table" style="overflow-x:auto"></div>
+      </div>
+    </div>
+
+    <!-- PAGE: PRODUTIVIDADE -->
+    <div id="mpage-produtividade" style="display:none">
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Produtividade dos Operadores</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px">Tempo gasto por tarefa concluída, por operador</div>
+
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-end">
+        <div>
+          <label style="display:block;font-size:11px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:4px">De</label>
+          <input type="date" id="prod-data-ini" style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:4px">Até</label>
+          <input type="date" id="prod-data-fim" style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;color:rgba(255,255,255,.4);font-weight:600;margin-bottom:4px">Operador</label>
+          <select id="prod-operador-filtro" style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif;min-width:160px">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <button onclick="masterLoadProdutividade()" 
+          style="padding:8px 18px;background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer;font-weight:700;font-family:'Outfit',sans-serif">Filtrar</button>
+      </div>
+
+      <div id="prod-resumo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px"></div>
+
+      <div style="background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06);overflow-x:auto">
+        <div id="prod-tabela" style="padding:4px"></div>
       </div>
     </div>
 
@@ -1645,6 +1680,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 .op-status-aguardando{ background:rgba(148,163,184,.15);color:#94a3b8; }
 .op-status-concluida { background:rgba(34,197,94,.15);color:#4ade80; }
 .op-status-badge { font-size:9px;padding:2px 8px;border-radius:5px;font-weight:700;text-transform:uppercase }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 </style>
 
 <style>
@@ -14708,7 +14744,7 @@ async function showPainelMaster() {
 
 async function masterPage(page) {
   // Esconde todas as páginas
-  ['dashboard','empresas','usuarios','base','planos','logs','notificacoes','dados'].forEach(p => {
+  ['dashboard','empresas','usuarios','base','planos','logs','notificacoes','produtividade','dados'].forEach(p => {
     const el = document.getElementById('mpage-'+p);
     if (el) el.style.display = 'none';
     const nav = document.getElementById('mnav-'+p);
@@ -14728,6 +14764,7 @@ async function masterPage(page) {
   if (page === 'planos')        await masterLoadPlanos();
   if (page === 'logs')          await masterLoadLogs();
   if (page === 'notificacoes')  { await masterLoadNotificacoes(); await masterCarregarEmpresasNotif(); }
+  if (page === 'produtividade') await masterLoadProdutividade();
   if (page === 'dados')         await masterLoadDadosInit();
 }
 
@@ -17365,17 +17402,25 @@ async function loadTarefasOperador() {
   const pendentesHoje = tarefasHoje.filter(t => !concluidasHoje.has(t.id));
   const containerHoje = document.getElementById('op-tarefas-hoje');
 
+  limparCronometrosAtivos();
+  window._pendingTimers = [];
+
   if (!pendentesHoje.length) {
     containerHoje.innerHTML = `<div style="text-align:center;padding:24px;color:rgba(255,255,255,.3);font-size:13px">
       🎉 Nenhuma tarefa pendente para hoje!
     </div>`;
   } else {
+    const temposMap = await buscarTemposTarefas(pendentesHoje.map(t=>t.id), hojeStr);
     containerHoje.innerHTML = pendentesHoje.map(t => renderLinhaTarefa(t, {
       status: 'pendente',
       dataRef: hojeStr,
       mostrarConcluir: true,
+      mostrarTimer: true,
+      tempoInfo: temposMap[t.id],
     })).join('');
   }
+
+  (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
 }
 
 function recorrenciaLabel(t) {
@@ -17804,7 +17849,16 @@ function empresaTagsHtml(t) {
 function renderLinhaTarefa(t, opts={}) {
   const empresaTag = empresaTagsHtml(t);
 
+  // Timer (play/pause/cronômetro) — só quando mostrarTimer e dataRef disponível
+  let timerHtml = '';
+  if (opts.mostrarTimer && opts.dataRef) {
+    const r = timerControlHtml(t.id, opts.dataRef, opts.tempoInfo);
+    timerHtml = r.html;
+    if (r.pendingTimer) (window._pendingTimers = window._pendingTimers || []).push(r.pendingTimer);
+  }
+
   const botoes = [];
+  if (timerHtml) botoes.push(timerHtml);
   if (opts.mostrarConcluir) {
     const labelBtn = t.tipo === 'pendencia_cliente' ? '✓ Respondido' : '✓ Concluir';
     botoes.push(`<button onclick="concluirTarefaData('${t.id}','${opts.dataRef}',this)"
@@ -17862,10 +17916,15 @@ async function loadAgendaTarefas() {
   }
 
   const container = document.getElementById('op-agenda-lista');
+  limparCronometrosAtivos();
+  window._pendingTimers = [];
+
   if (!valeData.length) {
     container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma tarefa para esta data.</div>`;
     return;
   }
+
+  const temposMap = await buscarTemposTarefas(valeData.map(t=>t.id), dataFiltro);
 
   container.innerHTML = valeData.map(t => {
     const concluida = concluidoSet.has(t.id);
@@ -17875,8 +17934,12 @@ async function loadAgendaTarefas() {
       dataRef: dataFiltro,
       mostrarConcluir: !concluida,
       mostrarDesfazer: concluida,
+      mostrarTimer: !concluida,
+      tempoInfo: temposMap[t.id],
     });
   }).join('');
+
+  (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
 }
 
 // ─── ABA: CADASTRO ──────────────────────────────────────
@@ -17948,7 +18011,7 @@ async function loadConcluidasTarefas() {
           <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
             ${empresaTag}
             ${statusBadgeHtml('concluida')}
-            <span style="font-size:9px;color:rgba(255,255,255,.35)">Referente a ${dataRefBr} · concluído por ${nomeUsr} em ${concluidoEm}</span>
+            <span style="font-size:9px;color:rgba(255,255,255,.35)">Referente a ${dataRefBr} · concluído por ${nomeUsr} em ${concluidoEm}${c.tempo_total_segundos ? ' · ⏱️ ' + formatarDuracao(c.tempo_total_segundos) : ''}</span>
           </div>
           ${c.observacao ? `<div style="margin-top:6px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:6px;font-size:11px;color:rgba(255,255,255,.6);border-left:2px solid rgba(74,222,128,.4)">💬 ${c.observacao.replace(/</g,'&lt;')}</div>` : ''}
         </div>
@@ -17973,11 +18036,32 @@ async function confirmarConclusao(comObs) {
   const dataStr  = document.getElementById('concluir-data-ref').value;
   const obs      = comObs ? document.getElementById('concluir-observacao').value.trim() : '';
 
+  // Fecha qualquer sessão de tempo aberta e soma o tempo total gasto
+  let tempoTotal = 0;
+  let iniciadoEm = null;
+  if (_vnUser?.id) {
+    const { data: sessoes } = await sb.from('tarefa_sessoes_tempo')
+      .select('*').eq('tarefa_id', tarefaId).eq('usuario_id', _vnUser.id).eq('data_referencia', dataStr);
+
+    for (const s of sessoes||[]) {
+      if (!iniciadoEm || new Date(s.inicio) < new Date(iniciadoEm)) iniciadoEm = s.inicio;
+      if (!s.fim) {
+        const fimAgora = new Date().toISOString();
+        await sb.from('tarefa_sessoes_tempo').update({ fim: fimAgora }).eq('id', s.id);
+        tempoTotal += Math.floor((new Date(fimAgora) - new Date(s.inicio))/1000);
+      } else {
+        tempoTotal += Math.floor((new Date(s.fim) - new Date(s.inicio))/1000);
+      }
+    }
+  }
+
   const { error } = await sb.from('tarefas_conclusoes').insert({
     tarefa_id: tarefaId,
     data_referencia: dataStr,
     concluido_por: _vnUser?.id || null,
     observacao: obs || null,
+    tempo_total_segundos: tempoTotal || null,
+    iniciado_em: iniciadoEm || null,
   });
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
 
@@ -18019,17 +18103,247 @@ async function loadPendenciasTarefas() {
   }
 
   const hojeStr = hojeISO();
+  limparCronometrosAtivos();
+  window._pendingTimers = [];
+
+  const idsRef = abertas.map(t => t.id);
+  const temposMap = await buscarTemposTarefas(idsRef, hojeStr);
+
   container.innerHTML = abertas.map(t => {
     const dataEnvio = t.data_referencia ? t.data_referencia.split('-').reverse().join('/') : '—';
     const infoExtra = `<span style="font-size:9px;color:rgba(255,255,255,.35)">Enviado em ${dataEnvio}</span>`;
     return renderLinhaTarefa(t, {
       status: 'aguardando',
-      dataRef: t.data_referencia || hojeStr,
+      dataRef: hojeStr,
       mostrarConcluir: true,
       mostrarEditar: true,
+      mostrarTimer: true,
+      tempoInfo: temposMap[t.id],
       infoExtra,
     });
   }).join('');
+
+  (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
+}
+
+// ═══════════════════════════════════════════════════════
+// TIMER DE PRODUTIVIDADE (Play/Pause por tarefa)
+// ═══════════════════════════════════════════════════════
+let _cronometrosAtivos = {}; // elId -> intervalId
+
+function formatarDuracao(seg) {
+  seg = Math.max(0, Math.floor(seg));
+  const h = Math.floor(seg/3600);
+  const m = Math.floor((seg%3600)/60);
+  const s = seg%60;
+  if (h>0) return `${h}h ${String(m).padStart(2,'0')}m`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function limparCronometrosAtivos() {
+  Object.values(_cronometrosAtivos).forEach(clearInterval);
+  _cronometrosAtivos = {};
+}
+
+// Para um conjunto de tarefas + data, retorna {tarefaId: {tempoBase, ativa}}
+async function buscarTemposTarefas(tarefaIds, dataStr) {
+  if (!tarefaIds.length || !_vnUser?.id) return {};
+  const { data } = await sb.from('tarefa_sessoes_tempo')
+    .select('*')
+    .eq('usuario_id', _vnUser.id)
+    .eq('data_referencia', dataStr)
+    .in('tarefa_id', tarefaIds);
+
+  const mapa = {};
+  (data||[]).forEach(s => {
+    if (!mapa[s.tarefa_id]) mapa[s.tarefa_id] = { tempoBase: 0, ativa: null };
+    if (s.fim) {
+      mapa[s.tarefa_id].tempoBase += Math.floor((new Date(s.fim) - new Date(s.inicio))/1000);
+    } else {
+      mapa[s.tarefa_id].ativa = s;
+    }
+  });
+  return mapa;
+}
+
+async function iniciarTimerTarefa(tarefaId, dataRef) {
+  if (!_vnUser?.id) return;
+  const { error } = await sb.from('tarefa_sessoes_tempo').insert({
+    tarefa_id: tarefaId, usuario_id: _vnUser.id, data_referencia: dataRef, inicio: new Date().toISOString(),
+  });
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
+  tarefasTab(ativa);
+}
+
+async function pausarTimerTarefa(sessaoId) {
+  const { error } = await sb.from('tarefa_sessoes_tempo').update({ fim: new Date().toISOString() }).eq('id', sessaoId);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
+  tarefasTab(ativa);
+}
+
+// Inicia o cronômetro visual de um elemento (chamar APÓS inserir no DOM)
+function iniciarCronometroVisual(elId, inicioISO, tempoBaseSeg) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const inicioMs = new Date(inicioISO).getTime();
+  const update = () => {
+    const totalSeg = tempoBaseSeg + Math.floor((Date.now() - inicioMs)/1000);
+    const elAtual = document.getElementById(elId);
+    if (elAtual) elAtual.textContent = formatarDuracao(totalSeg);
+  };
+  update();
+  _cronometrosAtivos[elId] = setInterval(update, 1000);
+}
+
+// Renderiza o bloco de controle de timer (play/pause/cronômetro) para uma tarefa.
+// Retorna { html, pendingTimer } — pendingTimer é {elId, inicio, tempoBase} ou null,
+// para chamar iniciarCronometroVisual após inserir no DOM.
+function timerControlHtml(tarefaId, dataRef, tempoInfo) {
+  tempoInfo = tempoInfo || { tempoBase: 0, ativa: null };
+  if (tempoInfo.ativa) {
+    const elId = `timer-${tarefaId}`;
+    return {
+      html: `
+        <div style="display:flex;align-items:center;gap:6px;background:rgba(34,197,94,.1);border-radius:6px;padding:4px 8px">
+          <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;animation:pulse 1.5s infinite"></span>
+          <span id="${elId}" style="font-family:'DM Mono',monospace;font-size:12px;color:#4ade80;font-weight:700;min-width:42px">00:00</span>
+          <button onclick="pausarTimerTarefa('${tempoInfo.ativa.id}')" 
+            style="background:none;border:none;cursor:pointer;color:#4ade80;font-size:13px;padding:0">⏸️</button>
+        </div>`,
+      pendingTimer: { elId, inicio: tempoInfo.ativa.inicio, tempoBase: tempoInfo.tempoBase }
+    };
+  }
+  const label = tempoInfo.tempoBase > 0
+    ? `▶️ Retomar (${formatarDuracao(tempoInfo.tempoBase)})`
+    : '▶️ Iniciar';
+  return {
+    html: `<button onclick="iniciarTimerTarefa('${tarefaId}','${dataRef}')"
+      style="padding:5px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-weight:700;white-space:nowrap">${label}</button>`,
+    pendingTimer: null
+  };
+}
+
+// ─── ADMIN: PÁGINA DE PRODUTIVIDADE ─────────────────────
+
+async function masterLoadProdutividade() {
+  const elIni = document.getElementById('prod-data-ini');
+  const elFim = document.getElementById('prod-data-fim');
+  if (!elIni.value) elIni.value = hojeISO();
+  if (!elFim.value) elFim.value = hojeISO();
+
+  // Popula select de operadores (uma vez)
+  const selOp = document.getElementById('prod-operador-filtro');
+  if (selOp.options.length <= 1) {
+    const { data: ops } = await sb.from('vn_usuarios').select('id,nome,email').eq('perfil','operador').order('nome');
+    selOp.innerHTML = '<option value="">Todos</option>' +
+      (ops||[]).map(o => `<option value="${o.id}">${o.nome||o.email}</option>`).join('');
+  }
+
+  const dataIni = elIni.value;
+  const dataFim = elFim.value;
+  const opFiltro = selOp.value;
+
+  let query = sb.from('tarefas_conclusoes')
+    .select('*, tarefas_operador(titulo,descricao,empresa_id,empresa_ids,tipo), usuario:vn_usuarios!concluido_por(nome,email)')
+    .gte('data_referencia', dataIni)
+    .lte('data_referencia', dataFim)
+    .order('concluido_em', { ascending: false });
+
+  if (opFiltro) query = query.eq('concluido_por', opFiltro);
+
+  const { data: registros } = await query;
+  const regs = registros || [];
+
+  // Mapa de empresas para tags
+  const { data: empresasTodas } = await sb.from('empresas').select('id,nome');
+  const empMap = {};
+  (empresasTodas||[]).forEach(e => empMap[e.id] = e.nome);
+
+  // ─── Resumo por operador ───
+  const porOperador = {};
+  regs.forEach(r => {
+    const nome = r.usuario?.nome || r.usuario?.email || 'Desconhecido';
+    if (!porOperador[nome]) porOperador[nome] = { qtd: 0, tempo: 0 };
+    porOperador[nome].qtd += 1;
+    porOperador[nome].tempo += r.tempo_total_segundos || 0;
+  });
+
+  const resumo = document.getElementById('prod-resumo');
+  const nomes = Object.keys(porOperador);
+  if (!nomes.length) {
+    resumo.innerHTML = `<div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,.06);text-align:center;color:rgba(255,255,255,.4);font-size:13px;grid-column:1/-1">Nenhuma tarefa concluída no período.</div>`;
+  } else {
+    resumo.innerHTML = nomes.map(nome => `
+      <div style="background:#1e293b;border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,.06)">
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px">${nome}</div>
+        <div style="display:flex;gap:16px">
+          <div>
+            <div style="font-size:20px;font-weight:800;color:#4ade80">${porOperador[nome].qtd}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4)">tarefas</div>
+          </div>
+          <div>
+            <div style="font-size:20px;font-weight:800;color:#60a5fa">${formatarDuracao(porOperador[nome].tempo)}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4)">tempo total</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ─── Tabela detalhada ───
+  const tabela = document.getElementById('prod-tabela');
+  if (!regs.length) {
+    tabela.innerHTML = `<div style="text-align:center;padding:24px;color:rgba(255,255,255,.3);font-size:13px">Nenhum registro encontrado.</div>`;
+    return;
+  }
+
+  const empresaTagInline = (t) => {
+    if (!t) return '—';
+    if (t.empresa_id) return empMap[t.empresa_id] || '—';
+    if (t.empresa_ids?.length) return t.empresa_ids.map(id => empMap[id]||'—').join(', ');
+    return 'Geral';
+  };
+
+  tabela.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.08)">
+          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Operador</th>
+          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Tarefa</th>
+          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Empresa</th>
+          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Data</th>
+          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Início</th>
+          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Fim</th>
+          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Duração</th>
+          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Observação</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${regs.map(r => {
+          const t = r.tarefas_operador;
+          const nomeUsr = r.usuario?.nome || r.usuario?.email || '—';
+          const dataRefBr = r.data_referencia.split('-').reverse().join('/');
+          const horaInicio = r.iniciado_em ? new Date(r.iniciado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
+          const horaFim = r.concluido_em ? new Date(r.concluido_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
+          const duracao = r.tempo_total_segundos ? formatarDuracao(r.tempo_total_segundos) : '—';
+          return `
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+              <td style="padding:9px 12px;color:#fff;font-weight:600">${nomeUsr}</td>
+              <td style="padding:9px 12px;color:#fff">${t?.titulo || '—'}</td>
+              <td style="padding:9px 12px;color:rgba(255,255,255,.6)">${empresaTagInline(t)}</td>
+              <td style="padding:9px 12px;color:rgba(255,255,255,.6)">${dataRefBr}</td>
+              <td style="padding:9px 12px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace">${horaInicio}</td>
+              <td style="padding:9px 12px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace">${horaFim}</td>
+              <td style="padding:9px 12px;color:#4ade80;font-weight:700;font-family:'DM Mono',monospace">${duracao}</td>
+              <td style="padding:9px 12px;color:rgba(255,255,255,.5);max-width:240px">${r.observacao || '—'}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 // ─── INIT ────────────────────────────────────────────
