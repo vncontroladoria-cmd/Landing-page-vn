@@ -17833,8 +17833,9 @@ async function buscarTarefasAtivas(filtroTipo) {
 
   let query = sb.from('tarefas_operador').select('*, empresas(nome)').eq('ativo', true);
 
-  // Cada operador só vê tarefas onde é responsável ou criador (ou sem responsável definido = geral)
-  if (_vnUser?.perfil === 'operador' && uid) {
+  // Cada usuário só vê tarefas onde é responsável ou criador (exceto admin no Master)
+  const _ehAdminMaster = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
+  if (uid && !_ehAdminMaster) {
     query = query.or(`responsavel_id.is.null,responsavel_id.eq.${uid},criado_por.eq.${uid}`);
   }
 
@@ -17967,8 +17968,9 @@ async function loadCadastroTarefas() {
   const uid = _vnUser?.id;
   let query = sb.from('tarefas_operador').select('*, empresas(nome), criador:vn_usuarios!criado_por(nome,email)').eq('ativo', true);
 
-  // Operador só vê as suas próprias tarefas no Cadastro
-  if (_vnUser?.perfil === 'operador' && uid) {
+  // Cada usuário só vê as suas próprias tarefas (exceto admin no Master)
+  const _ehAdminMstr = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
+  if (uid && !_ehAdminMstr) {
     query = query.or(`responsavel_id.is.null,responsavel_id.eq.${uid},criado_por.eq.${uid}`);
   }
 
@@ -18010,9 +18012,11 @@ async function loadConcluidasTarefas() {
     .order('concluido_em', {ascending:false})
     .limit(200);
 
-  // Operador só vê as próprias conclusões
-  if (_vnUser?.perfil === 'operador' && _vnUser?.id) {
-    query = query.eq('concluido_por', _vnUser.id);
+  // Cada usuário só vê suas próprias conclusões (exceto admin no Master, não na Controladoria)
+  const _uid = _vnUser?.id;
+  const _ehAdminNoMaster = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
+  if (_uid && !_ehAdminNoMaster) {
+    query = query.eq('concluido_por', _uid);
   }
   if (dataFiltro) query = query.eq('data_referencia', dataFiltro);
 
