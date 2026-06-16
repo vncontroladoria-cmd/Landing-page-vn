@@ -1459,13 +1459,19 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: HOJE -->
         <div id="ttab-hoje" style="display:block">
-          <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
-            <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-              <span style="background:#2a9d5c;border-radius:6px;padding:2px 8px;font-size:11px">HOJE</span>
-              Tarefas do dia
-            </div>
-            <div id="op-tarefas-hoje" style="display:flex;flex-direction:column;gap:8px"></div>
+          <!-- Busca + filtro -->
+          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+            <input type="text" id="hoje-busca" placeholder="🔍 Buscar tarefa..." oninput="filtrarCardsHoje()"
+              style="flex:1;min-width:180px;padding:8px 12px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
+            <select id="hoje-filtro-status" onchange="filtrarCardsHoje()"
+              style="padding:8px 12px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
+              <option value="">Todas</option>
+              <option value="pendente">⏳ Pendentes</option>
+              <option value="concluida">✅ Concluídas</option>
+            </select>
           </div>
+          <!-- Cards por empresa -->
+          <div id="op-tarefas-hoje" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
         </div>
 
         <!-- ABA: AGENDA (filtro por data) -->
@@ -17397,6 +17403,9 @@ function tarefaValeParaHoje(t, hojeStr, diaSemanaHoje, diaMesHoje) {
   }
 }
 
+// Estado global dos cards para filtro
+let _hojeCardsData = [];
+
 async function loadTarefasOperador() {
   const hojeStr = hojeISO();
   const hoje = new Date();
@@ -17405,7 +17414,7 @@ async function loadTarefasOperador() {
 
   const todasTarefas = await buscarTarefasAtivas();
 
-  // Tarefas que valem para hoje (exclui pendências de cliente, que têm aba própria)
+  // Tarefas que valem para hoje (exclui pendências de cliente)
   const tarefasHoje = todasTarefas
     .filter(t => t.tipo !== 'pendencia_cliente')
     .filter(t => tarefaValeParaHoje(t, hojeStr, diaSemanaHoje, diaMesHoje));
@@ -17419,29 +17428,152 @@ async function loadTarefasOperador() {
     (concl||[]).forEach(c => concluidasHoje.add(c.tarefa_id));
   }
 
-  // Render: Tarefas de hoje (não concluídas)
-  const pendentesHoje = tarefasHoje.filter(t => !concluidasHoje.has(t.id));
-  const containerHoje = document.getElementById('op-tarefas-hoje');
+  // Montar grupos por empresa (+ Geral)
+  const grupos = {};
 
+  // Grupo Geral (sem empresa ou empresa_ids múltiplas)
+  tarefasHoje.forEach(t => {
+    const empresas = [];
+    if (t.empresa_id) {
+      empresas.push({ id: t.empresa_id, nome: t.empresas?.nome || '—' });
+    } else if (t.empresa_ids?.length) {
+      t.empresa_ids.forEach(eid => {
+        const emp = (_todasEmpresas||[]).find(e=>e.id===eid);
+        if (emp) empresas.push({ id: emp.id, nome: emp.nome });
+      });
+    } else {
+      empresas.push({ id: 'geral', nome: '🌐 Geral' });
+    }
+    empresas.forEach(emp => {
+      if (!grupos[emp.id]) grupos[emp.id] = { nome: emp.nome, tarefas: [] };
+      grupos[emp.id].tarefas.push(t);
+    });
+  });
+
+  // Garantir que todas as empresas do operador tenham uma caixinha (mesmo sem tarefas)
+  (_todasEmpresas||[]).forEach(e => {
+    if (!grupos[e.id]) grupos[e.id] = { nome: e.nome, tarefas: [] };
+  });
+  if (!grupos['geral']) grupos['geral'] = { nome: '🌐 Geral', tarefas: [] };
+
+  // Buscar tempos de todas as tarefas de hoje
   limparCronometrosAtivos();
   window._pendingTimers = [];
+  const temposMap = idsHoje.length ? await buscarTemposTarefas(idsHoje, hojeStr) : {};
 
-  if (!pendentesHoje.length) {
-    containerHoje.innerHTML = `<div style="text-align:center;padding:24px;color:rgba(255,255,255,.3);font-size:13px">
-      🎉 Nenhuma tarefa pendente para hoje!
-    </div>`;
-  } else {
-    const temposMap = await buscarTemposTarefas(pendentesHoje.map(t=>t.id), hojeStr);
-    containerHoje.innerHTML = pendentesHoje.map(t => renderLinhaTarefa(t, {
-      status: 'pendente',
-      dataRef: hojeStr,
-      mostrarConcluir: true,
-      mostrarTimer: true,
-      tempoInfo: temposMap[t.id],
-    })).join('');
-  }
+  // Guardar estado para filtro
+  _hojeCardsData = Object.entries(grupos).map(([empId, grupo]) => {
+    const total = grupo.tarefas.length;
+    const concluidas = grupo.tarefas.filter(t => concluidasHoje.has(t.id)).length;
+    const pendentes = total - concluidas;
+    const tudo_concluido = total > 0 && pendentes === 0;
+    return { empId, nome: grupo.nome, tarefas: grupo.tarefas, total, concluidas, pendentes, tudo_concluido, concluidasHoje, temposMap, hojeStr };
+  }).sort((a,b) => {
+    if (a.empId==='geral') return 1;
+    if (b.empId==='geral') return -1;
+    return a.nome.localeCompare(b.nome);
+  });
 
+  renderCardsHoje();
   (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
+}
+
+function renderCardsHoje() {
+  const busca = (document.getElementById('hoje-busca')?.value||'').toLowerCase();
+  const filtroStatus = document.getElementById('hoje-filtro-status')?.value||'';
+  const container = document.getElementById('op-tarefas-hoje');
+  if (!container) return;
+
+  const cards = _hojeCardsData.map(g => {
+    // Filtrar tarefas conforme busca/status
+    const tarefasFiltradas = g.tarefas.filter(t => {
+      if (busca && !t.titulo.toLowerCase().includes(busca)) return false;
+      if (filtroStatus === 'pendente' && g.concluidasHoje.has(t.id)) return false;
+      if (filtroStatus === 'concluida' && !g.concluidasHoje.has(t.id)) return false;
+      return true;
+    });
+
+    const cor = g.tudo_concluido ? '#2a9d5c' : g.pendentes === 0 && g.total === 0 ? '#334155' : '#1e293b';
+    const bordaCor = g.tudo_concluido ? 'rgba(42,157,92,.4)' : 'rgba(255,255,255,.06)';
+    const cardId = `card-emp-${g.empId.replace(/-/g,'')}`;
+
+    const linhasTarefas = tarefasFiltradas.map(t => {
+      const concluida = g.concluidasHoje.has(t.id);
+      const { html: timerHtml, pendingTimer } = g.total > 0 && !concluida
+        ? timerControlHtml(t.id, g.hojeStr, g.temposMap[t.id])
+        : { html: '', pendingTimer: null };
+      if (pendingTimer) (window._pendingTimers = window._pendingTimers||[]).push(pendingTimer);
+
+      return `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+          <input type="checkbox" ${concluida?'checked':''} onchange="concluirTarefaData('${t.id}','${g.hojeStr}',this)"
+            ${concluida?'disabled':''} style="cursor:pointer;accent-color:#2a9d5c;width:15px;height:15px;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;color:${concluida?'rgba(255,255,255,.35)':'#fff'};text-decoration:${concluida?'line-through':'none'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.titulo}</div>
+            ${t.descricao?`<div style="font-size:10px;color:rgba(255,255,255,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.descricao}</div>`:''}
+          </div>
+          ${timerHtml}
+          <button onclick="abrirModalTarefa('${t.id}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.2);font-size:11px;flex-shrink:0">✏️</button>
+        </div>`;
+    }).join('');
+
+    const resumoBadge = g.total === 0
+      ? `<span style="font-size:10px;color:rgba(255,255,255,.3)">Sem tarefas hoje</span>`
+      : g.tudo_concluido
+        ? `<span style="font-size:10px;font-weight:700;color:#4ade80">✅ ${g.concluidas}/${g.total} concluídas</span>`
+        : `<span style="font-size:10px;font-weight:700;color:#fbbf24">⏳ ${g.pendentes} pendente${g.pendentes>1?'s':''} · ${g.concluidas}/${g.total}</span>`;
+
+    return `
+      <div style="background:${cor};border-radius:12px;border:1px solid ${bordaCor};overflow:hidden;transition:all .2s">
+        <div onclick="toggleCardEmpresa('${cardId}')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;gap:10px">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:3px">${g.nome}</div>
+            ${resumoBadge}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            ${g.tudo_concluido ? '<span style="font-size:18px">🎉</span>' : ''}
+            <span id="arrow-${cardId}" style="color:rgba(255,255,255,.4);font-size:12px;transition:transform .2s">▼</span>
+          </div>
+        </div>
+        <div id="${cardId}" style="display:none;padding:0 16px 14px">
+          ${tarefasFiltradas.length
+            ? linhasTarefas
+            : `<div style="text-align:center;padding:12px;color:rgba(255,255,255,.3);font-size:12px">${busca||filtroStatus?'Nenhuma tarefa encontrada.':'Nenhuma tarefa para hoje.'}</div>`
+          }
+          <button onclick="event.stopPropagation();abrirModalTarefaComEmpresa('${g.empId}','${g.nome}')"
+            style="margin-top:10px;width:100%;padding:7px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.4);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">
+            + Adicionar tarefa para ${g.nome}
+          </button>
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = cards.join('') || `<div style="color:rgba(255,255,255,.3);font-size:13px;padding:20px;text-align:center">Nenhuma empresa cadastrada.</div>`;
+}
+
+function toggleCardEmpresa(cardId) {
+  const el = document.getElementById(cardId);
+  const arrow = document.getElementById('arrow-'+cardId);
+  if (!el) return;
+  const aberto = el.style.display !== 'none';
+  el.style.display = aberto ? 'none' : 'block';
+  if (arrow) arrow.style.transform = aberto ? '' : 'rotate(180deg)';
+}
+
+function filtrarCardsHoje() {
+  renderCardsHoje();
+  (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
+}
+
+function abrirModalTarefaComEmpresa(empId, empNome) {
+  abrirModalTarefa(null).then(() => {
+    if (empId === 'geral') {
+      document.getElementById('tarefa-emp-todas').checked = true;
+    } else {
+      const cb = document.querySelector(`.tarefa-emp-check[value="${empId}"]`);
+      if (cb) { cb.checked = true; onChangeEmpresaCheck(); }
+    }
+  });
 }
 
 function recorrenciaLabel(t) {
