@@ -17836,7 +17836,7 @@ async function buscarTarefasAtivas(filtroTipo) {
   // Cada usuário só vê tarefas onde é responsável ou criador (exceto admin no Master)
   const _ehAdminMaster = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
   if (uid && !_ehAdminMaster) {
-    query = query.or(`responsavel_id.is.null,responsavel_id.eq.${uid},criado_por.eq.${uid}`);
+    query = query.or(`responsavel_id.eq.${uid},criado_por.eq.${uid}`);
   }
 
   if (empresaIds.length) {
@@ -17971,7 +17971,7 @@ async function loadCadastroTarefas() {
   // Cada usuário só vê as suas próprias tarefas (exceto admin no Master)
   const _ehAdminMstr = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
   if (uid && !_ehAdminMstr) {
-    query = query.or(`responsavel_id.is.null,responsavel_id.eq.${uid},criado_por.eq.${uid}`);
+    query = query.or(`responsavel_id.eq.${uid},criado_por.eq.${uid}`);
   }
 
   if (empresaIds.length) {
