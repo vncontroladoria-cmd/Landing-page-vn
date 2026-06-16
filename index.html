@@ -392,6 +392,10 @@ thead th.no-sort:hover { color: var(--text2); }
 tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: var(--bg3); }
+/* Painel master e operador têm fundo escuro — hover precisa ser escuro também */
+#painel-master tbody tr:hover,
+#painel-operador tbody tr:hover,
+#mpage-produtividade tbody tr:hover { background: rgba(255,255,255,.04) !important; }
 
 /* BADGES */
 .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em; }
@@ -17819,7 +17823,15 @@ function statusBadgeHtml(status) {
 // Busca todas as tarefas ativas visíveis para este usuário (gerais + empresas vinculadas)
 async function buscarTarefasAtivas(filtroTipo) {
   const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
+  const uid = _vnUser?.id;
+
   let query = sb.from('tarefas_operador').select('*, empresas(nome)').eq('ativo', true);
+
+  // Cada operador só vê tarefas onde é responsável ou criador (ou sem responsável definido = geral)
+  if (_vnUser?.perfil === 'operador' && uid) {
+    query = query.or(`responsavel_id.is.null,responsavel_id.eq.${uid},criado_por.eq.${uid}`);
+  }
+
   if (empresaIds.length) {
     const lista = empresaIds.join(',');
     query = query.or(`empresa_id.is.null,empresa_id.in.(${lista}),empresa_ids.ov.{${lista}}`);
@@ -18276,16 +18288,16 @@ async function masterLoadProdutividade() {
     resumo.innerHTML = `<div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,.06);text-align:center;color:rgba(255,255,255,.4);font-size:13px;grid-column:1/-1">Nenhuma tarefa concluída no período.</div>`;
   } else {
     resumo.innerHTML = nomes.map(nome => `
-      <div style="background:#1e293b;border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,.06)">
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px">${nome}</div>
-        <div style="display:flex;gap:16px">
+      <div style="background:linear-gradient(135deg,#1e293b,#162032);border-radius:12px;padding:16px 20px;border:1px solid rgba(255,255,255,.06)">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">${nome}</div>
+        <div style="display:flex;gap:20px;align-items:flex-end">
           <div>
-            <div style="font-size:20px;font-weight:800;color:#4ade80">${porOperador[nome].qtd}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.4)">tarefas</div>
+            <div style="font-size:28px;font-weight:800;color:#4ade80;line-height:1">${porOperador[nome].qtd}</div>
+            <div style="font-size:10px;color:#475569;margin-top:2px">tarefas</div>
           </div>
           <div>
-            <div style="font-size:20px;font-weight:800;color:#60a5fa">${formatarDuracao(porOperador[nome].tempo)}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.4)">tempo total</div>
+            <div style="font-size:28px;font-weight:800;color:#60a5fa;line-height:1;font-family:'DM Mono',monospace">${formatarDuracao(porOperador[nome].tempo)}</div>
+            <div style="font-size:10px;color:#475569;margin-top:2px">tempo total</div>
           </div>
         </div>
       </div>
@@ -18310,14 +18322,14 @@ async function masterLoadProdutividade() {
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead>
         <tr style="border-bottom:1px solid rgba(255,255,255,.08)">
-          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Operador</th>
-          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Tarefa</th>
-          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Empresa</th>
-          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Data</th>
-          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Início</th>
-          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Fim</th>
-          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Duração</th>
-          <th style="padding:10px 12px;text-align:left;color:rgba(255,255,255,.4);font-weight:700;font-size:10px;text-transform:uppercase">Observação</th>
+          <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;background:#1e293b">Operador</th>
+          <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;background:#1e293b">Tarefa</th>
+          <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;background:#1e293b">Empresa</th>
+          <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;background:#1e293b">Data</th>
+          <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;background:#1e293b">Início</th>
+          <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;background:#1e293b">Fim</th>
+          <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;background:#1e293b">Duração</th>
+          <th style="padding:10px 12px;text-align:left;color:#64748b;font-weight:700;font-size:10px;text-transform:uppercase;background:#1e293b">Observação</th>
         </tr>
       </thead>
       <tbody>
@@ -18329,15 +18341,17 @@ async function masterLoadProdutividade() {
           const horaFim = r.concluido_em ? new Date(r.concluido_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—';
           const duracao = r.tempo_total_segundos ? formatarDuracao(r.tempo_total_segundos) : '—';
           return `
-            <tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+            <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s;background:transparent"
+              onmouseover="this.style.background='rgba(255,255,255,.04)'"
+              onmouseout="this.style.background='transparent'">
               <td style="padding:9px 12px;color:#fff;font-weight:600">${nomeUsr}</td>
-              <td style="padding:9px 12px;color:#fff">${t?.titulo || '—'}</td>
-              <td style="padding:9px 12px;color:rgba(255,255,255,.6)">${empresaTagInline(t)}</td>
-              <td style="padding:9px 12px;color:rgba(255,255,255,.6)">${dataRefBr}</td>
-              <td style="padding:9px 12px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace">${horaInicio}</td>
-              <td style="padding:9px 12px;color:rgba(255,255,255,.6);font-family:'DM Mono',monospace">${horaFim}</td>
+              <td style="padding:9px 12px;color:#e2e8f0">${t?.titulo || '—'}</td>
+              <td style="padding:9px 12px;color:#94a3b8">${empresaTagInline(t)}</td>
+              <td style="padding:9px 12px;color:#94a3b8">${dataRefBr}</td>
+              <td style="padding:9px 12px;color:#94a3b8;font-family:'DM Mono',monospace">${horaInicio}</td>
+              <td style="padding:9px 12px;color:#94a3b8;font-family:'DM Mono',monospace">${horaFim}</td>
               <td style="padding:9px 12px;color:#4ade80;font-weight:700;font-family:'DM Mono',monospace">${duracao}</td>
-              <td style="padding:9px 12px;color:rgba(255,255,255,.5);max-width:240px">${r.observacao || '—'}</td>
+              <td style="padding:9px 12px;color:#64748b;max-width:240px">${r.observacao || '—'}</td>
             </tr>
           `;
         }).join('')}
