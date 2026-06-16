@@ -17745,6 +17745,12 @@ async function abrirControladoriaDoMaster() {
   document.getElementById('painel-operador').style.display = 'block';
   _vindoDoMasterControladoria = true;
 
+  // Admin precisa ter _todasEmpresas para mostrar tags nas tarefas
+  if (!_todasEmpresas?.length) {
+    const { data: emps } = await sb.from('empresas').select('*').order('nome');
+    _todasEmpresas = emps || [];
+  }
+
   const el = id => document.getElementById(id);
   if (el('op-user-email')) el('op-user-email').textContent = _vnUser?.nome || _vnUser?.email || '';
 
@@ -17958,11 +17964,17 @@ async function loadAgendaTarefas() {
 
 async function loadCadastroTarefas() {
   const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
+  const uid = _vnUser?.id;
   let query = sb.from('tarefas_operador').select('*, empresas(nome), criador:vn_usuarios!criado_por(nome,email)').eq('ativo', true);
+
+  // Operador só vê as suas próprias tarefas no Cadastro
+  if (_vnUser?.perfil === 'operador' && uid) {
+    query = query.or(`responsavel_id.is.null,responsavel_id.eq.${uid},criado_por.eq.${uid}`);
+  }
+
   if (empresaIds.length) {
-    query = query.or(`empresa_id.is.null,empresa_id.in.(${empresaIds.join(',')})`);
-  } else {
-    query = query.is('empresa_id', null);
+    const lista = empresaIds.join(',');
+    query = query.or(`empresa_id.is.null,empresa_id.in.(${lista}),empresa_ids.ov.{${lista}}`);
   }
   const { data: tarefas } = await query.order('criado_em', {ascending:false});
 
@@ -17998,6 +18010,10 @@ async function loadConcluidasTarefas() {
     .order('concluido_em', {ascending:false})
     .limit(200);
 
+  // Operador só vê as próprias conclusões
+  if (_vnUser?.perfil === 'operador' && _vnUser?.id) {
+    query = query.eq('concluido_por', _vnUser.id);
+  }
   if (dataFiltro) query = query.eq('data_referencia', dataFiltro);
 
   const { data: concl } = await query;
@@ -18242,7 +18258,10 @@ function timerControlHtml(tarefaId, dataRef, tempoInfo) {
 async function masterLoadProdutividade() {
   const elIni = document.getElementById('prod-data-ini');
   const elFim = document.getElementById('prod-data-fim');
-  if (!elIni.value) elIni.value = hojeISO();
+  if (!elIni.value) {
+    const hoje = new Date();
+    elIni.value = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-01`;
+  }
   if (!elFim.value) elFim.value = hojeISO();
 
   // Popula select de operadores (uma vez)
