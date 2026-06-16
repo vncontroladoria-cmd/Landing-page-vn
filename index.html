@@ -1397,11 +1397,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- PAINEL OPERADOR -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<div id="painel-operador" style="display:none;min-height:100vh;background:#0f172a;font-family:'Outfit',sans-serif">
-  <div style="display:flex;min-height:100vh">
+<div id="painel-operador" style="display:none;height:100vh;overflow:hidden;background:#0f172a;font-family:'Outfit',sans-serif">
+  <div style="display:flex;height:100vh;overflow:hidden">
 
     <!-- Sidebar -->
-    <div style="width:220px;background:#1e293b;border-right:1px solid rgba(255,255,255,.06);padding:20px 14px;display:flex;flex-direction:column;flex-shrink:0">
+    <div style="width:220px;background:#1e293b;border-right:1px solid rgba(255,255,255,.06);padding:20px 14px;display:flex;flex-direction:column;flex-shrink:0;height:100vh;overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;padding:0 6px">
         <div style="width:36px;height:36px;background:#2a9d5c;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">📋</div>
         <div>
@@ -1433,7 +1433,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
     </div>
 
     <!-- Conteúdo -->
-    <div style="flex:1;padding:24px;overflow-y:auto;max-height:100vh">
+    <div style="flex:1;padding:24px;overflow-y:auto;height:100vh">
 
       <!-- PÁGINA: TAREFAS -->
       <div id="opage-tarefas" style="display:block">
@@ -18207,30 +18207,41 @@ async function loadConcluidasTarefas() {
     return;
   }
 
-  container.innerHTML = concl.map(c => {
+  const rows = concl.map(c => {
     const t = c.tarefas_operador;
     if (!t) return '';
     const nomeUsr = c.usuario?.nome || c.usuario?.email || '—';
     const dataRefBr = c.data_referencia.split('-').reverse().join('/');
     const concluidoEm = new Date(c.concluido_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const empresaTag = empresaTagsHtml(t);
-    return `
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
-        <div style="flex:1;min-width:0">
-          <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
-          ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
-          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
-            ${empresaTag}
-            ${statusBadgeHtml('concluida')}
-            <span style="font-size:9px;color:rgba(255,255,255,.35)">Referente a ${dataRefBr} · concluído por ${nomeUsr} em ${concluidoEm}${c.tempo_total_segundos ? ' · ⏱️ ' + formatarDuracao(c.tempo_total_segundos) : ''}</span>
-          </div>
-          ${c.observacao ? `<div style="margin-top:6px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:6px;font-size:11px;color:rgba(255,255,255,.6);border-left:2px solid rgba(74,222,128,.4)">💬 ${c.observacao.replace(/</g,'&lt;')}</div>` : ''}
-        </div>
-        <button onclick="desfazerConclusao('${c.tarefa_id}','${c.data_referencia}',this,true)"
-          style="padding:5px 12px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;font-weight:700;flex-shrink:0">↩️ Desfazer</button>
-      </div>
-    `;
+    const empNome = t.empresas?.nome || '—';
+    const tempo = c.tempo_total_segundos ? formatarDuracao(c.tempo_total_segundos) : '—';
+    const obs = c.observacao ? `<span title="${c.observacao.replace(/"/g,"'")}" style="cursor:help;color:rgba(74,222,128,.7)">💬</span>` : '';
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background='transparent'">
+      <td style="padding:8px 10px;color:#fff;font-size:12px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.titulo} ${obs}</td>
+      <td style="padding:8px 10px;font-size:11px;white-space:nowrap"><span style="padding:2px 8px;border-radius:4px;background:rgba(42,157,92,.15);color:#4ade80;font-weight:700;font-size:10px">${empNome}</span></td>
+      <td style="padding:8px 10px;color:rgba(255,255,255,.5);font-size:11px;white-space:nowrap">${dataRefBr}</td>
+      <td style="padding:8px 10px;color:rgba(255,255,255,.4);font-size:11px;white-space:nowrap">${concluidoEm}</td>
+      <td style="padding:8px 10px;color:rgba(255,255,255,.4);font-size:11px;white-space:nowrap">${nomeUsr}</td>
+      <td style="padding:8px 10px;color:rgba(255,255,255,.35);font-size:11px;white-space:nowrap">${tempo}</td>
+      <td style="padding:8px 10px;text-align:right"><button onclick="desfazerConclusao('${c.tarefa_id}','${c.data_referencia}',this,true)" style="padding:3px 10px;background:rgba(255,255,255,.06);border:none;border-radius:5px;color:rgba(255,255,255,.5);font-size:10px;cursor:pointer;font-weight:700">↩️ Desfazer</button></td>
+    </tr>`;
   }).join('');
+
+  container.innerHTML = `
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.1)">
+          <th style="padding:6px 10px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase">Tarefa</th>
+          <th style="padding:6px 10px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase">Empresa</th>
+          <th style="padding:6px 10px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase">Ref.</th>
+          <th style="padding:6px 10px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase">Concluído em</th>
+          <th style="padding:6px 10px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase">Por</th>
+          <th style="padding:6px 10px;text-align:left;font-size:10px;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase">Tempo</th>
+          <th style="padding:6px 10px"></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 // ─── AÇÕES DE CONCLUSÃO ──────────────────────────────────
