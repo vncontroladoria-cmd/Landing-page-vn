@@ -17439,13 +17439,30 @@ function recorrenciaLabel(t) {
 }
 
 function toggleCamposRecorrencia() {
-  const rec = document.getElementById('tarefa-recorrencia').value;
-  document.getElementById('tarefa-campo-data').style.display = rec === 'unica' ? 'block' : 'none';
-  document.getElementById('tarefa-campo-dia-semana').style.display = rec === 'semanal' ? 'block' : 'none';
-  document.getElementById('tarefa-campo-dia-mes').style.display = rec === 'mensal' ? 'block' : 'none';
+  const rec = document.getElementById('tarefa-recorrencia')?.value;
+  if (!rec) return;
+  const set = (id, show) => { const el = document.getElementById(id); if(el) el.style.display = show ? 'block' : 'none'; };
+  set('tarefa-campo-data',       rec === 'unica');
+  set('tarefa-campo-dia-semana', rec === 'semanal');
+  set('tarefa-campo-dia-mes',    rec === 'mensal');
 }
 
 async function abrirModalTarefa(tarefaId) {
+  // Buscar empresas se não carregadas ainda
+  if (!_todasEmpresas?.length) {
+    const uid = _vnUser?.id;
+    if (_vnUser?.perfil === 'operador' && uid) {
+      const { data: perms } = await sb.from('usuario_empresas')
+        .select('empresas(*)')
+        .eq('usuario_id', uid)
+        .eq('ativo', true);
+      _todasEmpresas = (perms||[]).map(p => p.empresas).filter(Boolean);
+    } else {
+      const { data: emps } = await sb.from('empresas').select('*').order('nome');
+      _todasEmpresas = emps || [];
+    }
+  }
+
   // Popular checkboxes de empresas
   const cont = document.getElementById('tarefa-emp-checkboxes');
   cont.innerHTML = (_todasEmpresas||[]).map(e => `
@@ -17455,11 +17472,12 @@ async function abrirModalTarefa(tarefaId) {
     </label>
   `).join('');
 
-  // Popular select de responsáveis (operadores)
+  // Popular select de responsáveis — só outros operadores (não o próprio usuário)
   const { data: operadores } = await sb.from('vn_usuarios').select('id,nome,email').eq('perfil','operador').eq('ativo',true);
   const selResp = document.getElementById('tarefa-responsavel');
-  selResp.innerHTML = '<option value="">— Eu mesmo —</option>' +
-    (operadores||[]).map(o => `<option value="${o.id}">${o.nome||o.email}</option>`).join('');
+  const meuNome = _vnUser?.nome || _vnUser?.email || 'Eu mesmo';
+  selResp.innerHTML = `<option value="${_vnUser?.id||''}">— ${meuNome} (eu) —</option>` +
+    (operadores||[]).filter(o => o.id !== _vnUser?.id).map(o => `<option value="${o.id}">${o.nome||o.email}</option>`).join('');
 
   if (tarefaId) {
     const { data } = await sb.from('tarefas_operador').select('*').eq('id', tarefaId).single();
@@ -17565,7 +17583,7 @@ async function salvarTarefa() {
     data_referencia: (recorrencia === 'unica' || tipo === 'pendencia_cliente') ? (document.getElementById('tarefa-data').value || hojeISO()) : null,
     dia_semana: recorrencia === 'semanal' ? parseInt(document.getElementById('tarefa-dia-semana').value) : null,
     dia_mes: recorrencia === 'mensal' ? parseInt(document.getElementById('tarefa-dia-mes').value) : null,
-    responsavel_id: document.getElementById('tarefa-responsavel').value || null,
+    responsavel_id: document.getElementById('tarefa-responsavel').value || _vnUser?.id || null,
   };
 
   let error;
