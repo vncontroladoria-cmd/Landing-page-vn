@@ -1633,16 +1633,30 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <input type="date" id="tarefa-data" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
       </div>
       <div class="form-group" id="tarefa-campo-dia-semana" style="display:none">
-        <label>Dia da semana</label>
-        <select id="tarefa-dia-semana" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
-          <option value="1">Segunda-feira</option>
-          <option value="2">Terça-feira</option>
-          <option value="3">Quarta-feira</option>
-          <option value="4">Quinta-feira</option>
-          <option value="5">Sexta-feira</option>
-          <option value="6">Sábado</option>
-          <option value="0">Domingo</option>
-        </select>
+        <label>Dias da semana</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3)">
+            <input type="checkbox" class="dia-sem-check" value="1" style="cursor:pointer"> Seg
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3)">
+            <input type="checkbox" class="dia-sem-check" value="2" style="cursor:pointer"> Ter
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3)">
+            <input type="checkbox" class="dia-sem-check" value="3" style="cursor:pointer"> Qua
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3)">
+            <input type="checkbox" class="dia-sem-check" value="4" style="cursor:pointer"> Qui
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3)">
+            <input type="checkbox" class="dia-sem-check" value="5" style="cursor:pointer"> Sex
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3)">
+            <input type="checkbox" class="dia-sem-check" value="6" style="cursor:pointer"> Sáb
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3)">
+            <input type="checkbox" class="dia-sem-check" value="0" style="cursor:pointer"> Dom
+          </label>
+        </div>
       </div>
       <div class="form-group" id="tarefa-campo-dia-mes" style="display:none">
         <label>Dia do mês</label>
@@ -17373,7 +17387,10 @@ function hojeISO() {
 function tarefaValeParaHoje(t, hojeStr, diaSemanaHoje, diaMesHoje) {
   switch (t.recorrencia) {
     case 'diaria':  return true;
-    case 'semanal': return Number(t.dia_semana) === diaSemanaHoje;
+    case 'semanal':
+      // Suporta dias_semana[] (múltiplos) ou dia_semana (legado)
+      if (t.dias_semana?.length) return t.dias_semana.map(Number).includes(diaSemanaHoje);
+      return Number(t.dia_semana) === diaSemanaHoje;
     case 'mensal':  return Number(t.dia_mes) === diaMesHoje;
     case 'unica':   return t.data_referencia === hojeStr;
     default: return false;
@@ -17431,7 +17448,12 @@ function recorrenciaLabel(t) {
   const diasSem = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
   switch (t.recorrencia) {
     case 'diaria':  return `<span style="font-size:9px;background:rgba(34,197,94,.15);color:#4ade80;padding:2px 7px;border-radius:5px;font-weight:700">🔁 TODOS OS DIAS</span>`;
-    case 'semanal': return `<span style="font-size:9px;background:rgba(168,85,247,.15);color:#c084fc;padding:2px 7px;border-radius:5px;font-weight:700">🔁 ${diasSem[t.dia_semana]?.toUpperCase()}</span>`;
+    case 'semanal': {
+      const dias = t.dias_semana?.length
+        ? t.dias_semana.map(d => (diasSem[d]||'').toUpperCase()).join(', ')
+        : (diasSem[t.dia_semana]?.toUpperCase() || '');
+      return `<span style="font-size:9px;background:rgba(168,85,247,.15);color:#c084fc;padding:2px 7px;border-radius:5px;font-weight:700">🔁 ${dias}</span>`;
+    }
     case 'mensal':  return `<span style="font-size:9px;background:rgba(251,146,60,.15);color:#fb923c;padding:2px 7px;border-radius:5px;font-weight:700">🔁 DIA ${t.dia_mes} DO MÊS</span>`;
     case 'unica':   return `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);padding:2px 7px;border-radius:5px;font-weight:700">📅 ${t.data_referencia?.split('-').reverse().join('/')}</span>`;
     default: return '';
@@ -17489,7 +17511,13 @@ async function abrirModalTarefa(tarefaId) {
       document.getElementById('tarefa-tipo').value = data.tipo || 'tarefa';
       document.getElementById('tarefa-recorrencia').value = data.recorrencia || 'unica';
       document.getElementById('tarefa-data').value = data.data_referencia || '';
-      document.getElementById('tarefa-dia-semana').value = data.dia_semana ?? '1';
+      // Marcar checkboxes dos dias da semana (suporta dias_semana[] ou dia_semana legado)
+      document.querySelectorAll('.dia-sem-check').forEach(cb => cb.checked = false);
+      const diasArr = data.dias_semana?.length ? data.dias_semana : (data.dia_semana != null ? [data.dia_semana] : []);
+      diasArr.forEach(d => {
+        const cb = document.querySelector(`.dia-sem-check[value="${d}"]`);
+        if (cb) cb.checked = true;
+      });
       document.getElementById('tarefa-dia-mes').value = data.dia_mes || '';
       document.getElementById('tarefa-responsavel').value = data.responsavel_id || '';
       document.getElementById('tarefa-btn-excluir').style.display = 'block';
@@ -17517,7 +17545,7 @@ async function abrirModalTarefa(tarefaId) {
     document.getElementById('tarefa-tipo').value = 'tarefa';
     document.getElementById('tarefa-recorrencia').value = 'unica';
     document.getElementById('tarefa-data').value = hojeISO();
-    document.getElementById('tarefa-dia-semana').value = '1';
+    document.querySelectorAll('.dia-sem-check').forEach(cb => cb.checked = false);
     document.getElementById('tarefa-dia-mes').value = '';
     document.getElementById('tarefa-responsavel').value = '';
     document.getElementById('tarefa-btn-excluir').style.display = 'none';
@@ -17581,7 +17609,8 @@ async function salvarTarefa() {
     tipo,
     recorrencia,
     data_referencia: (recorrencia === 'unica' || tipo === 'pendencia_cliente') ? (document.getElementById('tarefa-data').value || hojeISO()) : null,
-    dia_semana: recorrencia === 'semanal' ? parseInt(document.getElementById('tarefa-dia-semana').value) : null,
+    dias_semana: recorrencia === 'semanal' ? Array.from(document.querySelectorAll('.dia-sem-check:checked')).map(cb => parseInt(cb.value)) : null,
+    dia_semana: recorrencia === 'semanal' ? (parseInt(document.querySelector('.dia-sem-check:checked')?.value) ?? null) : null,
     dia_mes: recorrencia === 'mensal' ? parseInt(document.getElementById('tarefa-dia-mes').value) : null,
     responsavel_id: document.getElementById('tarefa-responsavel').value || _vnUser?.id || null,
   };
