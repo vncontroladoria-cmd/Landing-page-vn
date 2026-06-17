@@ -18375,7 +18375,7 @@ async function loadPendenciasTarefas() {
 
     // Data de início = a mais antiga data de criação das tarefas ativas
     const dataInicio = naoClientePending.reduce((min, t) => {
-      const c = t.criado_em ? t.criado_em.slice(0,10) : hojeStr;
+      const c = t.criado_em ? utcParaDataLocal(t.criado_em) : hojeStr;
       return c < min ? c : min;
     }, hojeStr);
 
@@ -18405,8 +18405,8 @@ async function loadPendenciasTarefas() {
       const diaSem = dObj.getDay();
       const diaMes = dObj.getDate();
       naoClientePending.forEach(t => {
-        // Só a partir da data de criação
-        const criadoEm = t.criado_em ? t.criado_em.slice(0,10) : '2000-01-01';
+        // Só a partir da data de criação (converte UTC → local para evitar bug de fuso)
+        const criadoEm = t.criado_em ? utcParaDataLocal(t.criado_em) : '2000-01-01';
         if (dataStr < criadoEm) return;
         if (tarefaValeParaHoje(t, dataStr, diaSem, diaMes)) {
           if (!conclSet.has(`${t.id}_${dataStr}`)) {
@@ -18707,6 +18707,14 @@ let _msgUltimaVerificacao = null;
 let _msgNaoLidas = 0;
 
 // Inicia o polling de mensagens (chama ao entrar no painel operador ou controladoria)
+// Converte timestamp UTC do Supabase para data local (DD-MM-YYYY não, YYYY-MM-DD)
+// Evita bug de fuso: "2026-06-17T02:00:00+00" → slice daria "2026-06-17" mas localmente já é 17
+function utcParaDataLocal(tsUtc) {
+  if (!tsUtc) return '2000-01-01';
+  const d = new Date(tsUtc);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 async function verificarPendenciasCount() {
   if (!_vnUser?.id) return;
   const uid = _vnUser.id;
@@ -18724,7 +18732,7 @@ async function verificarPendenciasCount() {
 
   // Verifica todos os dias desde a criação mais antiga até ontem
   const dataInicio = tarefas.reduce((min, t) => {
-    const c = t.criado_em?.slice(0,10) || ontemStr;
+    const c = t.criado_em ? utcParaDataLocal(t.criado_em) : ontemStr;
     return c < min ? c : min;
   }, ontemStr);
 
@@ -18746,7 +18754,7 @@ async function verificarPendenciasCount() {
   datas.forEach(dataStr => {
     const dObj = new Date(dataStr+'T12:00:00');
     tarefas.forEach(t => {
-      const criadoEm = t.criado_em?.slice(0,10) || '2000-01-01';
+      const criadoEm = t.criado_em ? utcParaDataLocal(t.criado_em) : '2000-01-01';
       if (dataStr < criadoEm) return;
       if (tarefaValeParaHoje(t, dataStr, dObj.getDay(), dObj.getDate())) {
         if (!conclSet.has(`${t.id}_${dataStr}`)) count++;
