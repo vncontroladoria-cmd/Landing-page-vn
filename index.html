@@ -1459,19 +1459,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="op-tab" data-tab="cadastro" onclick="tarefasTab('cadastro')">🗂️ Cadastro</div>
           <div class="op-tab" data-tab="concluidas" onclick="tarefasTab('concluidas')">✅ Concluídas</div>
 
-          <!-- Seletor de mês global -->
-          <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
-            <select id="tarefas-mes-sel" onchange="tarefasMesMudou()"
-              style="padding:5px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif">
-            </select>
-            <select id="tarefas-ano-sel" onchange="tarefasMesMudou()"
-              style="padding:5px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif">
-            </select>
-          </div>
         </div>
 
         <!-- ABA: HOJE -->
         <div id="ttab-hoje" style="display:block">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+            <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
+            <select id="hoje-mes" onchange="recarregarAba('hoje')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+            <select id="hoje-ano" onchange="recarregarAba('hoje')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+          </div>
           <!-- Busca + filtro -->
           <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
             <input type="text" id="hoje-busca" placeholder="🔍 Buscar tarefa..." oninput="filtrarCardsHoje()"
@@ -1489,6 +1485,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: AGENDA (filtro por data) -->
         <div id="ttab-agenda" style="display:none">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+            <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
+            <select id="agenda-mes" onchange="recarregarAba('agenda')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+            <select id="agenda-ano" onchange="recarregarAba('agenda')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+          </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
             <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Dia:</label>
             <input type="date" id="agenda-data-filtro" onchange="loadAgendaTarefas()"
@@ -1503,6 +1504,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: PENDÊNCIAS -->
         <div id="ttab-pendencias" style="display:none">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+            <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
+            <select id="pendencias-mes" onchange="recarregarAba('pendencias')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+            <select id="pendencias-ano" onchange="recarregarAba('pendencias')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+          </div>
           <!-- Sub-abas: Não concluídas / Aguardando cliente -->
           <div style="display:flex;gap:4px;margin-bottom:14px">
             <button id="pend-sub-atrasadas" onclick="pendenciasSubTab('atrasadas')"
@@ -1521,6 +1527,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: CADASTRO (todas, editar/excluir, criado por) -->
         <div id="ttab-cadastro" style="display:none">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+            <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
+            <select id="cadastro-mes" onchange="recarregarAba('cadastro')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+            <select id="cadastro-ano" onchange="recarregarAba('cadastro')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+          </div>
           <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
             <div id="op-cadastro-lista" style="display:flex;flex-direction:column;gap:8px"></div>
           </div>
@@ -1528,6 +1539,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: CONCLUÍDAS (histórico) -->
         <div id="ttab-concluidas" style="display:none">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+            <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
+            <select id="concluidas-mes" onchange="recarregarAba('concluidas')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+            <select id="concluidas-ano" onchange="recarregarAba('concluidas')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+          </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
             <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Dia específico:</label>
             <input type="date" id="concluidas-data-filtro" onchange="loadConcluidasTarefas()"
@@ -1891,11 +1907,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             📋 Controladoria
           </button>
 
-          <!-- Badge de mensagens não lidas (visível em qualquer tela) -->
-          <button id="btn-msg-topbar" onclick="irParaMensagens()" title="Mensagens não lidas"
-            style="display:none;position:relative;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;align-items:center;gap:6px">
-            💬 <span id="topbar-msg-count">0</span> nova(s)
-          </button>
 
           <!-- Ícone de notificações -->
           <button id="btn-notificacoes" title="Notificações (em breve)"
@@ -18015,8 +18026,8 @@ async function voltarAoPainelOperador() {
 // ─── ABAS DE TAREFAS ────────────────────────────────────
 
 function tarefasTab(tab) {
-  // Inicializar seletor de mês se ainda não foi feito
-  if (!document.getElementById('tarefas-mes-sel')?.options.length) inicializarSeletorMes();
+  // Inicializar seletor de mês da aba que está sendo aberta
+  inicializarSeletorMesAba(tab);
 
   ['hoje','agenda','pendencias','cadastro','concluidas'].forEach(t => {
     const el = document.getElementById('ttab-'+t);
@@ -18230,7 +18241,7 @@ async function excluirTarefaDireta(id) {
 async function loadConcluidasTarefas() {
   const dataFiltro = document.getElementById('concluidas-data-filtro').value;
 
-  const { ini: mesIni, fim: mesFim } = rangeDoMes();
+  const { ini: mesIni, fim: mesFim } = rangeDoMesAba('concluidas');
   let query = sb.from('tarefas_conclusoes')
     .select('*, tarefas_operador(titulo,descricao,empresa_id,empresa_ids,empresas(nome)), usuario:vn_usuarios!concluido_por(nome,email)')
     .order('concluido_em', {ascending:false})
@@ -18348,7 +18359,7 @@ async function desfazerConclusao(tarefaId, dataStr, el, recarregaConcluidas) {
 
 async function loadPendenciasTarefas() {
   const hojeStr = hojeISO();
-  const { ini: mesIni, fim: mesFim } = rangeDoMes();
+  const { ini: mesIni, fim: mesFim } = rangeDoMesAba('concluidas');
   const container = document.getElementById('op-pendencias-lista');
   limparCronometrosAtivos();
   window._pendingTimers = [];
@@ -18773,18 +18784,6 @@ function atualizarBadgeMensagens(qtd) {
     }
   }
 
-  // Badge no topbar do app normal
-  const btnTopbar = document.getElementById('btn-msg-topbar');
-  const countEl = document.getElementById('topbar-msg-count');
-  if (btnTopbar) {
-    if (qtd > 0) {
-      btnTopbar.style.display = 'flex';
-      if (countEl) countEl.textContent = qtd > 99 ? '99+' : qtd;
-    } else {
-      btnTopbar.style.display = 'none';
-    }
-  }
-
   // Badge na sidebar do master
   const masterBadge = document.getElementById('master-msg-badge');
   const masterCount = document.getElementById('master-msg-count');
@@ -18945,46 +18944,49 @@ document.addEventListener('click', e => {
 let _tarefasMesFiltro = { ano: null, mes: null }; // null = mês atual
 let _pendenciasSubTabAtual = 'atrasadas';
 
-function inicializarSeletorMes() {
-  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const _MESES_NOMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Popula os selects de mês/ano de uma aba específica
+function inicializarSeletorMesAba(aba) {
   const hoje = new Date();
   const anoAtual = hoje.getFullYear();
-
-  const selMes = document.getElementById('tarefas-mes-sel');
-  const selAno = document.getElementById('tarefas-ano-sel');
-  if (!selMes || !selAno) return;
-
-  selMes.innerHTML = meses.map((m,i) => `<option value="${i}" ${i===hoje.getMonth()?'selected':''}>${m}</option>`).join('');
+  const selMes = document.getElementById(`${aba}-mes`);
+  const selAno = document.getElementById(`${aba}-ano`);
+  if (!selMes || selMes.options.length > 0) return; // já populado
+  selMes.innerHTML = _MESES_NOMES.map((m,i) => `<option value="${i}" ${i===hoje.getMonth()?'selected':''}>${m}</option>`).join('');
   selAno.innerHTML = [anoAtual-1, anoAtual, anoAtual+1].map(a => `<option value="${a}" ${a===anoAtual?'selected':''}>${a}</option>`).join('');
-
-  _tarefasMesFiltro = { ano: anoAtual, mes: hoje.getMonth() };
 }
 
-function tarefasMesMudou() {
-  const mes = parseInt(document.getElementById('tarefas-mes-sel').value);
-  const ano = parseInt(document.getElementById('tarefas-ano-sel').value);
-  _tarefasMesFiltro = { ano, mes };
-
-  // Recarregar a aba ativa com o novo mês
-  const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
-  tarefasTab(ativa);
-}
-
-// Retorna primeiro e último dia do mês filtrado (ISO string)
-function rangeDoMes() {
-  const { ano, mes } = _tarefasMesFiltro;
-  if (ano == null) {
-    const hoje = new Date();
-    return {
-      ini: `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-01`,
-      fim: hojeISO()
-    };
-  }
+// Lê o mês/ano selecionado de uma aba e retorna {ini, fim}
+function rangeDoMesAba(aba) {
+  const selMes = document.getElementById(`${aba}-mes`);
+  const selAno = document.getElementById(`${aba}-ano`);
+  const hoje = new Date();
+  const mes = selMes ? parseInt(selMes.value) : hoje.getMonth();
+  const ano = selAno ? parseInt(selAno.value) : hoje.getFullYear();
   const ini = `${ano}-${String(mes+1).padStart(2,'0')}-01`;
   const ultimo = new Date(ano, mes+1, 0).getDate();
   const fim = `${ano}-${String(mes+1).padStart(2,'0')}-${String(ultimo).padStart(2,'0')}`;
-  return { ini, fim };
+  return { ini, fim, mes, ano };
 }
+
+// Mantém compatibilidade com código existente que chama rangeDoMes()
+function rangeDoMes() {
+  const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
+  return rangeDoMesAba(ativa);
+}
+
+function recarregarAba(aba) {
+  if (aba==='hoje')       loadTarefasOperador();
+  if (aba==='agenda')     loadAgendaTarefas();
+  if (aba==='pendencias') loadPendenciasTarefas();
+  if (aba==='cadastro')   loadCadastroTarefas();
+  if (aba==='concluidas') loadConcluidasTarefas();
+}
+
+// Stub para compatibilidade (seletor global removido)
+function inicializarSeletorMes() {}
+function tarefasMesMudou() {}
 
 // ─── PENDÊNCIAS: SUB-ABAS ────────────────────────────────
 
