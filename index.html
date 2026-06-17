@@ -18381,6 +18381,9 @@ async function loadPendenciasTarefas() {
       const diaSem = dObj.getDay();
       const diaMes = dObj.getDate();
       naoClientePending.forEach(t => {
+        // Só gera pendência a partir da data de criação da tarefa
+        const criadoEm = t.criado_em ? t.criado_em.slice(0,10) : '2000-01-01';
+        if (dataStr < criadoEm) return;
         if (tarefaValeParaHoje(t, dataStr, diaSem, diaMes)) {
           if (!conclSet.has(`${t.id}_${dataStr}`)) {
             atrasadas.push({ ...t, _dataAtrasada: dataStr });
@@ -18388,6 +18391,9 @@ async function loadPendenciasTarefas() {
         }
       });
     });
+
+    _pendenciasCount = atrasadas.length;
+    atualizarTituloAba();
 
     if (!atrasadas.length) {
       container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">🎉 Nenhuma tarefa atrasada no período!</div>`;
@@ -18677,6 +18683,44 @@ let _msgUltimaVerificacao = null;
 let _msgNaoLidas = 0;
 
 // Inicia o polling de mensagens (chama ao entrar no painel operador ou controladoria)
+async function verificarPendenciasCount() {
+  if (!_vnUser?.id) return;
+  const uid = _vnUser.id;
+  const hoje = new Date();
+  const ontemStr = new Date(hoje.getTime()-86400000).toISOString().slice(0,10);
+
+  // Buscar tarefas ativas do usuário
+  let query = sb.from('tarefas_operador')
+    .select('id,recorrencia,data_referencia,dia_semana,dias_semana,dia_mes,tipo,criado_em')
+    .eq('ativo', true)
+    .neq('tipo', 'pendencia_cliente')
+    .or(`responsavel_id.eq.${uid},criado_por.eq.${uid}`);
+  const { data: tarefas } = await query;
+
+  if (!tarefas?.length) { _pendenciasCount = 0; atualizarTituloAba(); return; }
+
+  // Só verificar ontem (pendências do dia anterior)
+  const dOntem = new Date(ontemStr+'T12:00:00');
+  const diaSemOntem = dOntem.getDay();
+  const diaMesOntem = dOntem.getDate();
+
+  const vencidas = tarefas.filter(t => {
+    const criadoEm = t.criado_em?.slice(0,10) || '2000-01-01';
+    if (ontemStr < criadoEm) return false;
+    return tarefaValeParaHoje(t, ontemStr, diaSemOntem, diaMesOntem);
+  });
+
+  if (!vencidas.length) { _pendenciasCount = 0; atualizarTituloAba(); return; }
+
+  const { data: concl } = await sb.from('tarefas_conclusoes')
+    .select('tarefa_id').eq('data_referencia', ontemStr)
+    .in('tarefa_id', vencidas.map(t=>t.id));
+  const conclSet = new Set((concl||[]).map(c=>c.tarefa_id));
+
+  _pendenciasCount = vencidas.filter(t => !conclSet.has(t.id)).length;
+  atualizarTituloAba();
+}
+
 function iniciarPollingMensagens() {
   pararPollingMensagens();
   verificarMensagensNovas();
@@ -18698,6 +18742,9 @@ async function verificarMensagensNovas() {
   const msgs = data || [];
   const qtd = msgs.length;
   atualizarBadgeMensagens(qtd);
+
+  // Verificar pendências atrasadas para o título
+  await verificarPendenciasCount();
 
   // Notificar mensagens novas desde a última verificação
   if (_msgUltimaVerificacao && qtd > 0) {
@@ -18746,12 +18793,17 @@ function atualizarBadgeMensagens(qtd) {
     if (masterCount) masterCount.textContent = qtd > 99 ? '99+' : qtd;
   }
 
-  // Título da aba com contador
-  if (qtd > 0) {
-    document.title = `(${qtd}) VN Controladoria`;
-  } else {
-    document.title = 'VN Controladoria';
-  }
+  // Título da aba unificado (msgs + pendências)
+  atualizarTituloAba();
+}
+
+let _pendenciasCount = 0;
+
+function atualizarTituloAba() {
+  const partes = [];
+  if (_msgNaoLidas > 0) partes.push(`${_msgNaoLidas}💬`);
+  if (_pendenciasCount > 0) partes.push(`${_pendenciasCount}🔴`);
+  document.title = partes.length ? `(${partes.join(' ')}) VN Controladoria` : 'VN Controladoria';
 }
 
 // Ir para mensagens de qualquer tela
