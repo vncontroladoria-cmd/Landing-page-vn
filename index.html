@@ -17752,13 +17752,15 @@ function toggleEmpresaTodas() {
   onChangeEmpresaCheck();
 }
 
-// Ao marcar uma empresa específica, desmarca "Todas"; mostra/esconde seletor separado/único
 function onChangeEmpresaCheck() {
+  const todasCk = document.getElementById('tarefa-emp-todas');
   const marcadas = Array.from(document.querySelectorAll('.tarefa-emp-check:checked'));
-  if (marcadas.length > 0) document.getElementById('tarefa-emp-todas').checked = false;
+  if (marcadas.length > 0) todasCk.checked = false;
 
   const campoModo = document.getElementById('tarefa-campo-modo-multi');
-  campoModo.style.display = marcadas.length > 1 ? 'block' : 'none';
+  // Aparece quando "Todas" está marcada OU quando 2+ empresas individuais
+  const mostrar = todasCk?.checked || marcadas.length > 1;
+  campoModo.style.display = mostrar ? 'block' : 'none';
 }
 
 // Esconde campos de recorrência quando tipo = pendência (sempre única, data de hoje)
