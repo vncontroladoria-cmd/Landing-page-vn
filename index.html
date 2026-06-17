@@ -1029,7 +1029,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
     <!-- User + Sair -->
     <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,.08)">
-      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:4px" id="master-user-email"></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:8px" id="master-user-email"></div>
+      <button id="master-msg-badge" onclick="irParaMensagens()" style="display:none;width:100%;padding:7px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;margin-bottom:6px">
+        💬 <span id="master-msg-count">0</span> mensagem(s) não lida(s)
+      </button>
       <button onclick="doLogout()" style="width:100%;padding:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif">
         Sair
       </button>
@@ -1455,6 +1458,16 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="op-tab" data-tab="pendencias" onclick="tarefasTab('pendencias')">⏸️ Pendências</div>
           <div class="op-tab" data-tab="cadastro" onclick="tarefasTab('cadastro')">🗂️ Cadastro</div>
           <div class="op-tab" data-tab="concluidas" onclick="tarefasTab('concluidas')">✅ Concluídas</div>
+
+          <!-- Seletor de mês global -->
+          <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+            <select id="tarefas-mes-sel" onchange="tarefasMesMudou()"
+              style="padding:5px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif">
+            </select>
+            <select id="tarefas-ano-sel" onchange="tarefasMesMudou()"
+              style="padding:5px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif">
+            </select>
+          </div>
         </div>
 
         <!-- ABA: HOJE -->
@@ -1476,8 +1489,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: AGENDA (filtro por data) -->
         <div id="ttab-agenda" style="display:none">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Ver tarefas do dia:</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+            <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Dia:</label>
             <input type="date" id="agenda-data-filtro" onchange="loadAgendaTarefas()"
               style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
             <button onclick="document.getElementById('agenda-data-filtro').value=hojeISO();loadAgendaTarefas()" 
@@ -1488,10 +1501,18 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
         </div>
 
-        <!-- ABA: PENDÊNCIAS (aguardando retorno do cliente) -->
+        <!-- ABA: PENDÊNCIAS -->
         <div id="ttab-pendencias" style="display:none">
-          <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:14px">
-            Perguntas/atividades enviadas ao dono da empresa, aguardando retorno.
+          <!-- Sub-abas: Não concluídas / Aguardando cliente -->
+          <div style="display:flex;gap:4px;margin-bottom:14px">
+            <button id="pend-sub-atrasadas" onclick="pendenciasSubTab('atrasadas')"
+              style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:rgba(239,68,68,.2);color:#f87171;font-family:'Outfit',sans-serif">
+              🔴 Não concluídas
+            </button>
+            <button id="pend-sub-cliente" onclick="pendenciasSubTab('cliente')"
+              style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-family:'Outfit',sans-serif">
+              ⏸️ Aguardando cliente
+            </button>
           </div>
           <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
             <div id="op-pendencias-lista" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -1507,8 +1528,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: CONCLUÍDAS (histórico) -->
         <div id="ttab-concluidas" style="display:none">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Filtrar por data:</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+            <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Dia específico:</label>
             <input type="date" id="concluidas-data-filtro" onchange="loadConcluidasTarefas()"
               style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
             <button onclick="document.getElementById('concluidas-data-filtro').value='';loadConcluidasTarefas()" 
@@ -1868,6 +1889,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <!-- Botão Voltar à Controladoria (operador ou admin via Controladoria) -->
           <button id="btn-voltar-controladoria" onclick="voltarAoPainelOperador()" title="Voltar à Controladoria" style="display:none;background:rgba(42,157,92,.12);border:1px solid rgba(42,157,92,.3);border-radius:8px;color:#2a9d5c;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;align-items:center;gap:6px">
             📋 Controladoria
+          </button>
+
+          <!-- Badge de mensagens não lidas (visível em qualquer tela) -->
+          <button id="btn-msg-topbar" onclick="irParaMensagens()" title="Mensagens não lidas"
+            style="display:none;position:relative;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;align-items:center;gap:6px">
+            💬 <span id="topbar-msg-count">0</span> nova(s)
           </button>
 
           <!-- Ícone de notificações -->
@@ -5057,6 +5084,9 @@ async function iniciarSessaoMultiEmpresa() {
 async function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+
+  // Inicia polling de mensagens em qualquer tela
+  iniciarPollingMensagens();
 
   // Aplica tema da empresa atual
   if (_empresaAtual) aplicarTemaEmpresa(_empresaAtual);
@@ -14768,6 +14798,7 @@ function donutOpts(labels, data, cores, fmtFn) {
 async function showPainelMaster() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'none';
+  iniciarPollingMensagens();
   document.getElementById('painel-master').style.display = 'block';
 
   const el = id => document.getElementById(id);
@@ -17984,6 +18015,9 @@ async function voltarAoPainelOperador() {
 // ─── ABAS DE TAREFAS ────────────────────────────────────
 
 function tarefasTab(tab) {
+  // Inicializar seletor de mês se ainda não foi feito
+  if (!document.getElementById('tarefas-mes-sel')?.options.length) inicializarSeletorMes();
+
   ['hoje','agenda','pendencias','cadastro','concluidas'].forEach(t => {
     const el = document.getElementById('ttab-'+t);
     if (el) el.style.display = t===tab ? 'block' : 'none';
@@ -18196,10 +18230,11 @@ async function excluirTarefaDireta(id) {
 async function loadConcluidasTarefas() {
   const dataFiltro = document.getElementById('concluidas-data-filtro').value;
 
+  const { ini: mesIni, fim: mesFim } = rangeDoMes();
   let query = sb.from('tarefas_conclusoes')
     .select('*, tarefas_operador(titulo,descricao,empresa_id,empresa_ids,empresas(nome)), usuario:vn_usuarios!concluido_por(nome,email)')
     .order('concluido_em', {ascending:false})
-    .limit(200);
+    .limit(500);
 
   // Cada usuário só vê suas próprias conclusões (exceto admin no Master, não na Controladoria)
   const _uid = _vnUser?.id;
@@ -18207,7 +18242,13 @@ async function loadConcluidasTarefas() {
   if (_uid && !_ehAdminNoMaster) {
     query = query.eq('concluido_por', _uid);
   }
-  if (dataFiltro) query = query.eq('data_referencia', dataFiltro);
+
+  if (dataFiltro) {
+    query = query.eq('data_referencia', dataFiltro);
+  } else {
+    // Filtrar pelo mês selecionado
+    query = query.gte('data_referencia', mesIni).lte('data_referencia', mesFim);
+  }
 
   const { data: concl } = await query;
 
@@ -18306,43 +18347,98 @@ async function desfazerConclusao(tarefaId, dataStr, el, recarregaConcluidas) {
 // ─── ABA: PENDÊNCIAS (aguardando retorno do cliente) ────
 
 async function loadPendenciasTarefas() {
-  const pendencias = await buscarTarefasAtivas('pendencia_cliente');
-
-  // Filtrar as que NUNCA foram concluídas (sem registro em conclusões)
-  const ids = pendencias.map(t=>t.id);
-  let concluidoSet = new Set();
-  if (ids.length) {
-    const { data: concl } = await sb.from('tarefas_conclusoes').select('tarefa_id').in('tarefa_id', ids);
-    (concl||[]).forEach(c => concluidoSet.add(c.tarefa_id));
-  }
-  const abertas = pendencias.filter(t => !concluidoSet.has(t.id));
-
-  const container = document.getElementById('op-pendencias-lista');
-  if (!abertas.length) {
-    container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma pendência aguardando retorno.</div>`;
-    return;
-  }
-
   const hojeStr = hojeISO();
+  const { ini: mesIni, fim: mesFim } = rangeDoMes();
+  const container = document.getElementById('op-pendencias-lista');
   limparCronometrosAtivos();
   window._pendingTimers = [];
 
-  const idsRef = abertas.map(t => t.id);
-  const temposMap = await buscarTemposTarefas(idsRef, hojeStr);
+  if (_pendenciasSubTabAtual === 'atrasadas') {
+    // Tarefas recorrentes ou únicas que já venceram e não foram concluídas no período
+    const todasTarefas = await buscarTarefasAtivas();
+    const naoClientePending = todasTarefas.filter(t => t.tipo !== 'pendencia_cliente');
 
-  container.innerHTML = abertas.map(t => {
-    const dataEnvio = t.data_referencia ? t.data_referencia.split('-').reverse().join('/') : '—';
-    const infoExtra = `<span style="font-size:9px;color:rgba(255,255,255,.35)">Enviado em ${dataEnvio}</span>`;
-    return renderLinhaTarefa(t, {
-      status: 'aguardando',
-      dataRef: hojeStr,
-      mostrarConcluir: true,
-      mostrarEditar: true,
-      mostrarTimer: true,
-      tempoInfo: temposMap[t.id],
-      infoExtra,
+    // Gerar lista de datas do mês (até ontem)
+    const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
+    const datas = [];
+    let d = new Date(mesIni + 'T12:00:00');
+    const limite = new Date(Math.min(ontem.getTime(), new Date(mesFim+'T23:59:59').getTime()));
+    while (d <= limite) {
+      datas.push(d.toISOString().slice(0,10));
+      d.setDate(d.getDate()+1);
+    }
+
+    // Para cada data, verificar quais tarefas valiam e não foram concluídas
+    const { data: conclusoesRange } = await sb.from('tarefas_conclusoes')
+      .select('tarefa_id,data_referencia')
+      .gte('data_referencia', mesIni)
+      .lte('data_referencia', mesFim);
+    const conclSet = new Set((conclusoesRange||[]).map(c => `${c.tarefa_id}_${c.data_referencia}`));
+
+    const atrasadas = [];
+    datas.forEach(dataStr => {
+      const dObj = new Date(dataStr+'T12:00:00');
+      const diaSem = dObj.getDay();
+      const diaMes = dObj.getDate();
+      naoClientePending.forEach(t => {
+        if (tarefaValeParaHoje(t, dataStr, diaSem, diaMes)) {
+          if (!conclSet.has(`${t.id}_${dataStr}`)) {
+            atrasadas.push({ ...t, _dataAtrasada: dataStr });
+          }
+        }
+      });
     });
-  }).join('');
+
+    if (!atrasadas.length) {
+      container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">🎉 Nenhuma tarefa atrasada no período!</div>`;
+      return;
+    }
+
+    const temposMap = await buscarTemposTarefas([...new Set(atrasadas.map(t=>t.id))], hojeStr);
+    container.innerHTML = atrasadas.map(t => {
+      const dataBr = t._dataAtrasada.split('-').reverse().join('/');
+      const infoExtra = `<span style="font-size:9px;color:#f87171;font-weight:700">Não concluída em ${dataBr}</span>`;
+      return renderLinhaTarefa(t, {
+        status: 'atrasada',
+        dataRef: t._dataAtrasada,
+        mostrarConcluir: true,
+        mostrarTimer: true,
+        tempoInfo: temposMap[t.id],
+        infoExtra,
+      });
+    }).join('');
+
+  } else {
+    // Sub-aba: Aguardando cliente (pendencia_cliente)
+    const pendencias = await buscarTarefasAtivas('pendencia_cliente');
+    const ids = pendencias.map(t=>t.id);
+    let concluidoSet = new Set();
+    if (ids.length) {
+      const { data: concl } = await sb.from('tarefas_conclusoes').select('tarefa_id').in('tarefa_id', ids);
+      (concl||[]).forEach(c => concluidoSet.add(c.tarefa_id));
+    }
+    const abertas = pendencias.filter(t => !concluidoSet.has(t.id));
+
+    if (!abertas.length) {
+      container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma pendência aguardando retorno.</div>`;
+      return;
+    }
+
+    const temposMap = await buscarTemposTarefas(abertas.map(t=>t.id), hojeStr);
+    container.innerHTML = abertas.map(t => {
+      const dataEnvio = t.data_referencia ? t.data_referencia.split('-').reverse().join('/') : '—';
+      const infoExtra = `<span style="font-size:9px;color:rgba(255,255,255,.35)">Enviado em ${dataEnvio}</span>`;
+      return renderLinhaTarefa(t, {
+        status: 'aguardando',
+        dataRef: hojeStr,
+        mostrarConcluir: true,
+        mostrarEditar: true,
+        mostrarTimer: true,
+        tempoInfo: temposMap[t.id],
+        infoExtra,
+      });
+    }).join('');
+  }
 
   (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
 }
@@ -18617,14 +18713,55 @@ async function verificarMensagensNovas() {
 
 function atualizarBadgeMensagens(qtd) {
   _msgNaoLidas = qtd;
+
+  // Badge no nav do painel operador
   const badge = document.getElementById('op-msg-badge');
-  if (!badge) return;
+  if (badge) {
+    if (qtd > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent = qtd > 99 ? '99+' : qtd;
+    } else {
+      badge.style.display = 'none';
+      badge.textContent = '';
+    }
+  }
+
+  // Badge no topbar do app normal
+  const btnTopbar = document.getElementById('btn-msg-topbar');
+  const countEl = document.getElementById('topbar-msg-count');
+  if (btnTopbar) {
+    if (qtd > 0) {
+      btnTopbar.style.display = 'flex';
+      if (countEl) countEl.textContent = qtd > 99 ? '99+' : qtd;
+    } else {
+      btnTopbar.style.display = 'none';
+    }
+  }
+
+  // Badge na sidebar do master
+  const masterBadge = document.getElementById('master-msg-badge');
+  const masterCount = document.getElementById('master-msg-count');
+  if (masterBadge) {
+    masterBadge.style.display = qtd > 0 ? 'block' : 'none';
+    if (masterCount) masterCount.textContent = qtd > 99 ? '99+' : qtd;
+  }
+
+  // Título da aba com contador
   if (qtd > 0) {
-    badge.style.display = 'inline-block';
-    badge.textContent = qtd > 99 ? '99+' : qtd;
+    document.title = `(${qtd}) VN Controladoria`;
   } else {
-    badge.style.display = 'none';
-    badge.textContent = '';
+    document.title = 'VN Controladoria';
+  }
+}
+
+// Ir para mensagens de qualquer tela
+async function irParaMensagens() {
+  const painelOp = document.getElementById('painel-operador');
+  if (painelOp && painelOp.style.display !== 'none') {
+    await operadorPage('mensagens');
+  } else {
+    await voltarAoPainelOperador();
+    setTimeout(() => operadorPage('mensagens'), 300);
   }
 }
 
@@ -18750,6 +18887,69 @@ document.addEventListener('click', e => {
     picker.style.display = 'none';
   }
 });
+
+// ─── SELETOR DE MÊS GLOBAL ───────────────────────────────
+
+let _tarefasMesFiltro = { ano: null, mes: null }; // null = mês atual
+let _pendenciasSubTabAtual = 'atrasadas';
+
+function inicializarSeletorMes() {
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+
+  const selMes = document.getElementById('tarefas-mes-sel');
+  const selAno = document.getElementById('tarefas-ano-sel');
+  if (!selMes || !selAno) return;
+
+  selMes.innerHTML = meses.map((m,i) => `<option value="${i}" ${i===hoje.getMonth()?'selected':''}>${m}</option>`).join('');
+  selAno.innerHTML = [anoAtual-1, anoAtual, anoAtual+1].map(a => `<option value="${a}" ${a===anoAtual?'selected':''}>${a}</option>`).join('');
+
+  _tarefasMesFiltro = { ano: anoAtual, mes: hoje.getMonth() };
+}
+
+function tarefasMesMudou() {
+  const mes = parseInt(document.getElementById('tarefas-mes-sel').value);
+  const ano = parseInt(document.getElementById('tarefas-ano-sel').value);
+  _tarefasMesFiltro = { ano, mes };
+
+  // Recarregar a aba ativa com o novo mês
+  const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
+  tarefasTab(ativa);
+}
+
+// Retorna primeiro e último dia do mês filtrado (ISO string)
+function rangeDoMes() {
+  const { ano, mes } = _tarefasMesFiltro;
+  if (ano == null) {
+    const hoje = new Date();
+    return {
+      ini: `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-01`,
+      fim: hojeISO()
+    };
+  }
+  const ini = `${ano}-${String(mes+1).padStart(2,'0')}-01`;
+  const ultimo = new Date(ano, mes+1, 0).getDate();
+  const fim = `${ano}-${String(mes+1).padStart(2,'0')}-${String(ultimo).padStart(2,'0')}`;
+  return { ini, fim };
+}
+
+// ─── PENDÊNCIAS: SUB-ABAS ────────────────────────────────
+
+function pendenciasSubTab(sub) {
+  _pendenciasSubTabAtual = sub;
+  const btnAt = document.getElementById('pend-sub-atrasadas');
+  const btnCl = document.getElementById('pend-sub-cliente');
+  if (btnAt) {
+    btnAt.style.background = sub==='atrasadas' ? 'rgba(239,68,68,.2)' : 'rgba(255,255,255,.06)';
+    btnAt.style.color = sub==='atrasadas' ? '#f87171' : 'rgba(255,255,255,.6)';
+  }
+  if (btnCl) {
+    btnCl.style.background = sub==='cliente' ? 'rgba(148,163,184,.15)' : 'rgba(255,255,255,.06)';
+    btnCl.style.color = sub==='cliente' ? '#94a3b8' : 'rgba(255,255,255,.6)';
+  }
+  loadPendenciasTarefas();
+}
 
 // ─── INIT ────────────────────────────────────────────
 checkSession();
