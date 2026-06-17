@@ -18369,21 +18369,32 @@ async function loadPendenciasTarefas() {
     const todasTarefas = await buscarTarefasAtivas();
     const naoClientePending = todasTarefas.filter(t => t.tipo !== 'pendencia_cliente');
 
-    // Gera datas desde a mais antiga criação até ontem (sem limite de mês)
-    const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
-    const ontemStr = ontem.toISOString().slice(0,10);
+    // ontem em horário local (não UTC)
+    const ontemLocal = new Date();
+    ontemLocal.setDate(ontemLocal.getDate()-1);
+    const ontemStr = utcParaDataLocal(ontemLocal.toISOString());
 
-    // Data de início = a mais antiga data de criação das tarefas ativas
+    // Data de início = criação mais antiga de CADA tarefa individualmente
+    // Não usar o mínimo global — cada tarefa filtra por sua própria data de criação
+    // Usamos o mínimo só para limitar o range de busca no banco
     const dataInicio = naoClientePending.reduce((min, t) => {
       const c = t.criado_em ? utcParaDataLocal(t.criado_em) : hojeStr;
       return c < min ? c : min;
-    }, hojeStr);
+    }, ontemStr); // começa no máximo em ontem
+
+    if (dataInicio > ontemStr) {
+      // Todas as tarefas foram criadas hoje ou depois — nenhuma pendência
+      _pendenciasCount = 0;
+      atualizarTituloAba();
+      container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">🎉 Nenhuma tarefa atrasada!</div>`;
+      return;
+    }
 
     const datas = [];
     let d = new Date(dataInicio + 'T12:00:00');
-    const limite = new Date(ontemStr + 'T23:59:59');
+    const limite = new Date(ontemStr + 'T12:00:00');
     while (d <= limite) {
-      datas.push(d.toISOString().slice(0,10));
+      datas.push(utcParaDataLocal(d.toISOString()));
       d.setDate(d.getDate()+1);
     }
 
@@ -18718,8 +18729,8 @@ function utcParaDataLocal(tsUtc) {
 async function verificarPendenciasCount() {
   if (!_vnUser?.id) return;
   const uid = _vnUser.id;
-  const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
-  const ontemStr = ontem.toISOString().slice(0,10);
+  const ontemLocal = new Date(); ontemLocal.setDate(ontemLocal.getDate()-1);
+  const ontemStr = utcParaDataLocal(ontemLocal.toISOString());
 
   let query = sb.from('tarefas_operador')
     .select('id,recorrencia,data_referencia,dia_semana,dias_semana,dia_mes,tipo,criado_em')
@@ -18736,10 +18747,12 @@ async function verificarPendenciasCount() {
     return c < min ? c : min;
   }, ontemStr);
 
+  if (dataInicio > ontemStr) { _pendenciasCount = 0; atualizarTituloAba(); return; }
+
   const datas = [];
   let d = new Date(dataInicio+'T12:00:00');
-  while (d.toISOString().slice(0,10) <= ontemStr) {
-    datas.push(d.toISOString().slice(0,10));
+  while (utcParaDataLocal(d.toISOString()) <= ontemStr) {
+    datas.push(utcParaDataLocal(d.toISOString()));
     d.setDate(d.getDate()+1);
   }
 
