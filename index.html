@@ -18361,32 +18361,43 @@ async function desfazerConclusao(tarefaId, dataStr, el, recarregaConcluidas) {
 
 async function loadPendenciasTarefas() {
   const hojeStr = hojeISO();
-  const { ini: mesIni, fim: mesFim } = rangeDoMesAba('concluidas');
   const container = document.getElementById('op-pendencias-lista');
   limparCronometrosAtivos();
   window._pendingTimers = [];
 
   if (_pendenciasSubTabAtual === 'atrasadas') {
-    // Tarefas recorrentes ou únicas que já venceram e não foram concluídas no período
     const todasTarefas = await buscarTarefasAtivas();
     const naoClientePending = todasTarefas.filter(t => t.tipo !== 'pendencia_cliente');
 
-    // Gerar lista de datas do mês (até ontem)
+    // Gera datas desde a mais antiga criação até ontem (sem limite de mês)
     const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
+    const ontemStr = ontem.toISOString().slice(0,10);
+
+    // Data de início = a mais antiga data de criação das tarefas ativas
+    const dataInicio = naoClientePending.reduce((min, t) => {
+      const c = t.criado_em ? t.criado_em.slice(0,10) : hojeStr;
+      return c < min ? c : min;
+    }, hojeStr);
+
     const datas = [];
-    let d = new Date(mesIni + 'T12:00:00');
-    const limite = new Date(Math.min(ontem.getTime(), new Date(mesFim+'T23:59:59').getTime()));
+    let d = new Date(dataInicio + 'T12:00:00');
+    const limite = new Date(ontemStr + 'T23:59:59');
     while (d <= limite) {
       datas.push(d.toISOString().slice(0,10));
       d.setDate(d.getDate()+1);
     }
 
-    // Para cada data, verificar quais tarefas valiam e não foram concluídas
-    const { data: conclusoesRange } = await sb.from('tarefas_conclusoes')
-      .select('tarefa_id,data_referencia')
-      .gte('data_referencia', mesIni)
-      .lte('data_referencia', mesFim);
-    const conclSet = new Set((conclusoesRange||[]).map(c => `${c.tarefa_id}_${c.data_referencia}`));
+    // Buscar todas as conclusões (sem limite de mês)
+    const todosIds = naoClientePending.map(t=>t.id);
+    let conclSet = new Set();
+    if (todosIds.length && datas.length) {
+      const { data: conclusoesRange } = await sb.from('tarefas_conclusoes')
+        .select('tarefa_id,data_referencia')
+        .gte('data_referencia', dataInicio)
+        .lte('data_referencia', ontemStr)
+        .in('tarefa_id', todosIds);
+      conclSet = new Set((conclusoesRange||[]).map(c => `${c.tarefa_id}_${c.data_referencia}`));
+    }
 
     const atrasadas = [];
     datas.forEach(dataStr => {
@@ -18394,7 +18405,7 @@ async function loadPendenciasTarefas() {
       const diaSem = dObj.getDay();
       const diaMes = dObj.getDate();
       naoClientePending.forEach(t => {
-        // Só gera pendência a partir da data de criação da tarefa
+        // Só a partir da data de criação
         const criadoEm = t.criado_em ? t.criado_em.slice(0,10) : '2000-01-01';
         if (dataStr < criadoEm) return;
         if (tarefaValeParaHoje(t, dataStr, diaSem, diaMes)) {
@@ -18699,10 +18710,9 @@ let _msgNaoLidas = 0;
 async function verificarPendenciasCount() {
   if (!_vnUser?.id) return;
   const uid = _vnUser.id;
-  const hoje = new Date();
-  const ontemStr = new Date(hoje.getTime()-86400000).toISOString().slice(0,10);
+  const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
+  const ontemStr = ontem.toISOString().slice(0,10);
 
-  // Buscar tarefas ativas do usuário
   let query = sb.from('tarefas_operador')
     .select('id,recorrencia,data_referencia,dia_semana,dias_semana,dia_mes,tipo,criado_em')
     .eq('ativo', true)
@@ -18712,25 +18722,39 @@ async function verificarPendenciasCount() {
 
   if (!tarefas?.length) { _pendenciasCount = 0; atualizarTituloAba(); return; }
 
-  // Só verificar ontem (pendências do dia anterior)
-  const dOntem = new Date(ontemStr+'T12:00:00');
-  const diaSemOntem = dOntem.getDay();
-  const diaMesOntem = dOntem.getDate();
+  // Verifica todos os dias desde a criação mais antiga até ontem
+  const dataInicio = tarefas.reduce((min, t) => {
+    const c = t.criado_em?.slice(0,10) || ontemStr;
+    return c < min ? c : min;
+  }, ontemStr);
 
-  const vencidas = tarefas.filter(t => {
-    const criadoEm = t.criado_em?.slice(0,10) || '2000-01-01';
-    if (ontemStr < criadoEm) return false;
-    return tarefaValeParaHoje(t, ontemStr, diaSemOntem, diaMesOntem);
-  });
-
-  if (!vencidas.length) { _pendenciasCount = 0; atualizarTituloAba(); return; }
+  const datas = [];
+  let d = new Date(dataInicio+'T12:00:00');
+  while (d.toISOString().slice(0,10) <= ontemStr) {
+    datas.push(d.toISOString().slice(0,10));
+    d.setDate(d.getDate()+1);
+  }
 
   const { data: concl } = await sb.from('tarefas_conclusoes')
-    .select('tarefa_id').eq('data_referencia', ontemStr)
-    .in('tarefa_id', vencidas.map(t=>t.id));
-  const conclSet = new Set((concl||[]).map(c=>c.tarefa_id));
+    .select('tarefa_id,data_referencia')
+    .gte('data_referencia', dataInicio)
+    .lte('data_referencia', ontemStr)
+    .in('tarefa_id', tarefas.map(t=>t.id));
+  const conclSet = new Set((concl||[]).map(c=>`${c.tarefa_id}_${c.data_referencia}`));
 
-  _pendenciasCount = vencidas.filter(t => !conclSet.has(t.id)).length;
+  let count = 0;
+  datas.forEach(dataStr => {
+    const dObj = new Date(dataStr+'T12:00:00');
+    tarefas.forEach(t => {
+      const criadoEm = t.criado_em?.slice(0,10) || '2000-01-01';
+      if (dataStr < criadoEm) return;
+      if (tarefaValeParaHoje(t, dataStr, dObj.getDay(), dObj.getDate())) {
+        if (!conclSet.has(`${t.id}_${dataStr}`)) count++;
+      }
+    });
+  });
+
+  _pendenciasCount = count;
   atualizarTituloAba();
 }
 
