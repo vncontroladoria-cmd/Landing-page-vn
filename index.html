@@ -9189,14 +9189,13 @@ async function loadLucratividade() {
   const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a','#9333ea','#ea580c','#0e7490'];
 
   // ── Donut composição: Custo Serviço · Custo Comissão · Lucro ──
-  const ctxComp = el('luc-chart-comp')?.getContext('2d');
-  if (ctxComp) {
+  if (el('luc-chart-comp')) {
     if (_lucChart1) _lucChart1.destroy();
-    _lucChart1 = new Chart(ctxComp, donutOpts(
+    _lucChart1 = criarBarChart('luc-chart-comp', 
       ['Comissão','Custo Serviço','Lucro Líquido'],
       [totalComissao, totalServico, Math.max(0,totalLucro)],
       ['#f59e0b','#3b82f6','#22c55e'], fmtBRL
-    ));
+    );
   }
   const totalCompGeral = totalComissao + totalServico + Math.max(0,totalLucro);
   renderDonutLegend('luc-comp-legend', [
@@ -9273,12 +9272,11 @@ async function loadLucratividade() {
   const catArr = Object.entries(byCat).sort((a,b) => b[1].fat - a[1].fat);
 
   // Donut categorias
-  const ctxCat = el('luc-chart-cat')?.getContext('2d');
-  if (ctxCat) {
+  if (el('luc-chart-cat')) {
     if (_lucChart2) _lucChart2.destroy();
-    _lucChart2 = new Chart(ctxCat, donutOpts(
+    _lucChart2 = criarBarChart('luc-chart-cat', 
       catArr.map(([c])=>c), catArr.map(([,d])=>d.fat), CORES, fmtBRL
-    ));
+    );
   }
   const totalCatFat = catArr.reduce((s,[,d])=>s+d.fat,0);
   renderDonutLegend('luc-cat-legend', catArr.map(([cat,d],i) => ({
@@ -9996,7 +9994,7 @@ function renderProdutos(rows) {
   const ctxCat = el('prod-chart-cat')?.getContext('2d');
   if (ctxCat) {
     if (_prodChartCat) _prodChartCat.destroy();
-    _prodChartCat = new Chart(ctxCat, donutOpts(catRank.map(([n])=>n), catRank.map(([,v])=>v), CORES, fmtBRL));
+    _prodChartCat = criarBarChart('prod-chart-cat', catRank.map(([n])=>n), catRank.map(([,v])=>v), CORES, fmtBRL);
   }
   const totalProdCat = catRank.reduce((s,[,v])=>s+v,0);
   renderDonutLegend('prod-cat-legend', catRank.map(([cat,v],i) => ({label:cat, value:fmtBRL(v), color:CORES[i%CORES.length], pct:totalProdCat>0?v/totalProdCat*100:0})));
@@ -10226,10 +10224,9 @@ async function loadPerformance() {
   }
 
   // ── Gráfico donut profissionais ────────────────────────
-  const ctxProf = el('perf-chart-prof')?.getContext('2d');
-  if (ctxProf) {
+  if (el('perf-chart-prof')) {
     if (_perfChartProf) _perfChartProf.destroy();
-     _perfChartProf = new Chart(ctxProf, donutOpts(profRank.map(([n])=>n), profRank.map(([,v])=>v.fat), CORES, fmtBRL));
+     _perfChartProf = criarBarChart('perf-chart-prof', profRank.map(([n])=>n), profRank.map(([,v])=>v.fat), CORES, fmtBRL);
    }
    const totalPerfFat = profRank.reduce((s,[,v])=>s+v.fat,0);
    renderDonutLegend('perf-prof-legend', profRank.map(([prof,v],i) => ({label:prof.split(' ')[0], value:fmtBRL(v.fat), color:CORES[i%CORES.length], pct:totalPerfFat>0?v.fat/totalPerfFat*100:0})));
@@ -12058,7 +12055,7 @@ function renderSrvCharts(catRanking, profRanking) {
   const ctxCat = document.getElementById('srv-chart-cat')?.getContext('2d');
   if (ctxCat) {
     if (_srvChartCat) _srvChartCat.destroy();
-     _srvChartCat = new Chart(ctxCat, donutOpts(catRanking.map(([n])=>n), catRanking.map(([,v])=>v.total), CORES, fmtBRL));
+     _srvChartCat = criarBarChart('srv-chart-cat', catRanking.map(([n])=>n), catRanking.map(([,v])=>v.total), CORES, fmtBRL);
    }
    const totalSrvCat = catRanking.reduce((s,[,v])=>s+v.total,0);
    renderDonutLegend('srv-cat-legend', catRanking.map(([cat,v],i) => ({label:cat, value:fmtBRL(v.total), color:CORES[i%CORES.length], pct:totalSrvCat>0?v.total/totalSrvCat*100:0})));
@@ -14838,8 +14835,25 @@ function renderDonutLegend(elId, items) {
   ).join('');
 }
 
+// Cria/atualiza chart de barras horizontais com altura dinâmica (28px por barra)
+function criarBarChart(canvasId, labels, data, cores, fmtFn) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  // Altura dinâmica: 28px por item + margem
+  const altura = Math.max(120, labels.length * 32 + 40);
+  canvas.style.height = altura + 'px';
+  canvas.parentElement.style.height = altura + 'px';
+
+  // Destruir chart anterior se existir
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+
+  return new Chart(canvas.getContext('2d'), donutOpts(labels, data, cores, fmtFn));
+}
+
 function donutOpts(labels, data, cores, fmtFn) {
-  // Barras verticais — mais compacto e legível que rosca
+  // Barras horizontais: nome na frente, barra, valor dentro, % fora
+  const total = data.reduce((s,v) => s + Math.abs(v), 0) || 1;
   return {
     type: 'bar',
     data: {
@@ -14847,42 +14861,46 @@ function donutOpts(labels, data, cores, fmtFn) {
       datasets: [{
         data,
         backgroundColor: cores,
-        borderRadius: 6,
+        borderRadius: 4,
         borderSkipped: false,
-        maxBarThickness: 40,
+        maxBarThickness: 22,
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: c => ` ${fmtFn ? fmtFn(c.raw) : c.raw}`
+            label: c => {
+              const pct = ((Math.abs(c.raw)/total)*100).toFixed(1);
+              return ` ${fmtFn ? fmtFn(c.raw) : c.raw}  (${pct}%)`;
+            }
           }
-        }
+        },
+        datalabels: { display: false }
       },
       scales: {
         x: {
-          ticks: {
-            color: 'rgba(255,255,255,.5)',
-            font: { size: 10 },
-            maxRotation: 30,
-            callback: function(val, idx) {
-              const lbl = this.getLabelForValue(val);
-              return lbl?.length > 12 ? lbl.substring(0, 12) + '…' : lbl;
-            }
-          },
-          grid: { color: 'rgba(255,255,255,.05)' }
-        },
-        y: {
           ticks: {
             color: 'rgba(255,255,255,.4)',
             font: { size: 10 },
             callback: v => fmtFn ? fmtFn(v) : v
           },
-          grid: { color: 'rgba(255,255,255,.05)' }
+          grid: { color: 'rgba(255,255,255,.06)' }
+        },
+        y: {
+          ticks: {
+            color: 'rgba(255,255,255,.7)',
+            font: { size: 11, weight: '600' },
+            callback: function(val) {
+              const lbl = this.getLabelForValue(val);
+              return lbl?.length > 14 ? lbl.substring(0, 14) + '…' : lbl;
+            }
+          },
+          grid: { display: false }
         }
       }
     }
