@@ -10049,7 +10049,7 @@ async function initPerformance() {
   if (tipoAlvo) {
     const mapaNomes = tipoPerf ? await carregarMapaProfissionais() : null;
     const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoAlvo.id).limit(15000);
-    const rows = (data||[]).map(r => tipoPerf ? parsePerfRow(r.colunas, mapaNomes) : parseSrvRow(r.colunas));
+    const rows = (data||[]).map(r => tipoPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas));
     const anos  = [...new Set(rows.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
     const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
     const selA = document.getElementById('perf-ano');
@@ -10087,7 +10087,7 @@ async function loadPerformance() {
   if (tipoAlvo) {
     const mapaNomes = tipoPerf ? await carregarMapaProfissionais() : null;
     const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id',tipoAlvo.id).limit(15000);
-    rows = (data||[]).map(r => tipoPerf ? parsePerfRow(r.colunas, mapaNomes) : parseSrvRow(r.colunas)).filter(r => r.servico || r.profissional);
+    rows = (data||[]).map(r => tipoPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas)).filter(r => r.servico || r.profissional);
   }
 
   if (ano)  rows = rows.filter(r => r.data_comanda?.startsWith(ano));
@@ -11594,12 +11594,10 @@ async function initServicos() {
 // usa parseSrvRow para os campos normais, mas troca o profissional
 // pelo nome cadastrado em Métricas via mapa_profissionais_relatorio.
 // Se não houver vínculo, usa o nome original da última coluna.
-function parsePerfRow(colunas, mapaNomes) {
+function parsePerfRow(colunas) {
   const base = parseSrvRow(colunas);
-  const keys = Object.keys(colunas || {});
-  const ultimaCol = keys[keys.length - 1];
-  const nomeOriginal = String(colunas?.[ultimaCol] ?? '').trim();
-  const nomeFinal = (mapaNomes && mapaNomes[nomeOriginal]) || nomeOriginal || base.profissional;
+  // O nome do profissional é adicionado na coluna 'Profissional' ao importar
+  const nomeFinal = String(colunas?.['Profissional'] ?? '').trim() || base.profissional;
   return { ...base, profissional: nomeFinal };
 }
 
@@ -17218,24 +17216,8 @@ async function iniciarImportPerformance(input) {
     if (!rows.length) { showToast('Arquivo vazio ou inválido.', 'error'); return; }
 
     _perfImportRows = rows;
-    _perfImportCols = Object.keys(rows[0]);
 
-    // Última coluna = nome do profissional
-    const colProf = _perfImportCols[_perfImportCols.length - 1];
-
-    // Extrair nomes únicos não vazios dessa coluna
-    const nomes = new Set();
-    rows.forEach(r => {
-      const v = String(r[colProf] ?? '').trim();
-      if (v) nomes.add(v);
-    });
-    _perfNomesUnicos = Array.from(nomes);
-
-    if (!_perfNomesUnicos.length) {
-      showToast('Não foi possível identificar o profissional na última coluna do arquivo.', 'error');
-      return;
-    }
-
+    // Abrir modal para escolher o profissional
     await abrirModalVincularProf();
 
   } catch(e) {
@@ -17249,34 +17231,24 @@ async function abrirModalVincularProf() {
   const { data: profs } = await qE('profissionais').select('*').order('nome');
   const listaProfs = profs || [];
 
-  // Buscar mapeamentos já existentes para pré-selecionar
-  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
-  const { data: mapaExistente } = await sb.from('mapa_profissionais_relatorio')
-    .select('nome_relatorio,profissional_id')
-    .eq('empresa_id', empId)
-    .in('nome_relatorio', _perfNomesUnicos);
-
-  const mapaPrevio = {};
-  (mapaExistente||[]).forEach(m => { mapaPrevio[m.nome_relatorio] = m.profissional_id; });
+  if (!listaProfs.length) {
+    showToast('Nenhum profissional cadastrado em Métricas. Cadastre primeiro.', 'error');
+    return;
+  }
 
   const lista = document.getElementById('vincular-prof-lista');
-  lista.innerHTML = _perfNomesUnicos.map((nome, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
-      <div style="flex:1">
-        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:2px">Nome no relatório</div>
-        <div style="font-size:13px;font-weight:600">${nome}</div>
+  lista.innerHTML = `
+    <div style="padding:4px 0">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
+        Arquivo: <strong>${_perfImportRows.length} registros</strong>. Selecione o profissional deste relatório:
       </div>
-      <span style="color:var(--text3)">→</span>
-      <div style="flex:1">
-        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:2px">Profissional cadastrado</div>
-        <select id="vincular-prof-${i}" data-nome="${nome.replace(/"/g,'&quot;')}"
-          style="width:100%;padding:6px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text)">
-          <option value="">— Selecionar —</option>
-          ${listaProfs.map(p => `<option value="${p.id}" ${mapaPrevio[nome]===p.id?'selected':''}>${p.nome}</option>`).join('')}
-        </select>
-      </div>
+      <select id="vincular-prof-0"
+        style="width:100%;padding:10px 12px;font-size:14px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif">
+        <option value="">— Selecione o profissional —</option>
+        ${listaProfs.map(p => `<option value="${p.nome}">${p.nome}</option>`).join('')}
+      </select>
     </div>
-  `).join('');
+  `;
 
   document.getElementById('modal-vincular-prof').classList.add('open');
 }
@@ -17285,33 +17257,15 @@ async function confirmarVinculoEImportarPerformance() {
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   if (!empId) { showToast('empresa_id ausente','error'); return; }
 
-  // Coletar vínculos selecionados
-  const vinculos = [];
-  let semVinculo = 0;
-  _perfNomesUnicos.forEach((nome, i) => {
-    const sel = document.getElementById('vincular-prof-' + i);
-    const profId = sel?.value || '';
-    if (!profId) { semVinculo++; return; }
-    vinculos.push({ empresa_id: empId, nome_relatorio: nome, profissional_id: profId });
-  });
-
-  if (semVinculo > 0) {
-    const ok = confirm(`${semVinculo} profissional(is) sem vínculo selecionado. Continuar mesmo assim?\n\n(Esses dados aparecerão com o nome original do relatório)`);
-    if (!ok) return;
-  }
+  const sel = document.getElementById('vincular-prof-0');
+  const nomeProfissional = sel?.value?.trim();
+  if (!nomeProfissional) { showToast('Selecione o profissional.', 'error'); return; }
 
   const btn = document.querySelector('#modal-vincular-prof .btn-primary');
   btn.textContent = '⏳ Salvando...';
   btn.disabled = true;
 
   try {
-    // Salvar/atualizar mapeamentos
-    if (vinculos.length) {
-      const { error: errMapa } = await sb.from('mapa_profissionais_relatorio')
-        .upsert(vinculos, { onConflict: 'empresa_id,nome_relatorio' });
-      if (errMapa) throw new Error(errMapa.message);
-    }
-
     // Garantir tipo "Performance" em rel_tipos
     let { data: tipoPerf } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').limit(1);
     let tipoId;
@@ -17325,11 +17279,11 @@ async function confirmarVinculoEImportarPerformance() {
       tipoId = novoTipo.id;
     }
 
-    // Salvar dados brutos
+    // Salvar dados brutos adicionando o nome do profissional na última coluna
     const linhas = _perfImportRows.map((r, i) => ({
       tipo_id: tipoId,
       linha_numero: i + 1,
-      colunas: r,
+      colunas: { ...r, Profissional: nomeProfissional },
     }));
 
     const lote = 500;
@@ -17341,12 +17295,10 @@ async function confirmarVinculoEImportarPerformance() {
     }
 
     closeModal('modal-vincular-prof');
-    showToast(`✅ ${inseridos} registros importados!`, 'success');
+    showToast(`✅ ${inseridos} registros importados para ${nomeProfissional}!`, 'success');
 
     // Limpa estado
     _perfImportRows = [];
-    _perfImportCols = [];
-    _perfNomesUnicos = [];
 
     await loadPerformance();
 
