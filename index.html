@@ -14835,74 +14835,57 @@ function renderDonutLegend(elId, items) {
   ).join('');
 }
 
-// Cria/atualiza chart de barras horizontais com altura dinâmica (28px por barra)
+// Renderiza barras horizontais em HTML dentro de um canvas substituído por div
+// Formato: [Nome] [Valor] [████████] [%]
 function criarBarChart(canvasId, labels, data, cores, fmtFn) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return null;
-  // Altura dinâmica: 28px por item + margem
-  const altura = Math.max(120, labels.length * 32 + 40);
-  canvas.style.height = altura + 'px';
-  canvas.parentElement.style.height = altura + 'px';
 
-  // Destruir chart anterior se existir
-  const existing = Chart.getChart(canvas);
-  if (existing) existing.destroy();
+  // Substituir canvas por div se ainda não foi feito
+  let container = document.getElementById('barchart-' + canvasId);
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'barchart-' + canvasId;
+    canvas.parentNode.insertBefore(container, canvas);
+    canvas.style.display = 'none';
+  }
 
-  return new Chart(canvas.getContext('2d'), donutOpts(labels, data, cores, fmtFn));
+  const total = data.reduce((s,v) => s + Math.abs(v), 0) || 1;
+  const max = Math.max(...data.map(Math.abs)) || 1;
+
+  container.innerHTML = labels.map((lbl, i) => {
+    const val = data[i] || 0;
+    const pct = ((Math.abs(val)/total)*100).toFixed(1);
+    const barW = ((Math.abs(val)/max)*100).toFixed(1);
+    const cor = Array.isArray(cores) ? (cores[i % cores.length] || '#2a9d5c') : (cores || '#2a9d5c');
+    const lblCurto = lbl.length > 16 ? lbl.substring(0,16)+'…' : lbl;
+    const valFmt = fmtFn ? fmtFn(val) : val;
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        <div style="width:110px;font-size:11px;font-weight:600;color:var(--text);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${lbl}">${lblCurto}</div>
+        <div style="width:80px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text2);flex-shrink:0;text-align:right">${valFmt}</div>
+        <div style="flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;min-width:60px;position:relative">
+          <div style="height:100%;width:${barW}%;background:${cor};border-radius:4px;transition:width .4s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;min-width:${pct>5?'auto':'0'}">
+            ${parseFloat(barW)>18?`<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9)">${pct}%</span>`:''}
+          </div>
+          ${parseFloat(barW)<=18?`<span style="position:absolute;left:calc(${barW}% + 4px);top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:var(--text2)">${pct}%</span>`:''}
+        </div>
+      </div>`;
+  }).join('');
+
+  return { destroy: () => { container.innerHTML = ''; } };
 }
 
+// Mantém donutOpts para compatibilidade com qualquer chamada direta restante
 function donutOpts(labels, data, cores, fmtFn) {
-  // Barras horizontais: nome na frente, barra, valor dentro, % fora
   const total = data.reduce((s,v) => s + Math.abs(v), 0) || 1;
   return {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        data,
-        backgroundColor: cores,
-        borderRadius: 4,
-        borderSkipped: false,
-        maxBarThickness: 22,
-      }]
-    },
+    data: { labels, datasets: [{ data, backgroundColor: cores, borderRadius:4, maxBarThickness:20 }] },
     options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: c => {
-              const pct = ((Math.abs(c.raw)/total)*100).toFixed(1);
-              return ` ${fmtFn ? fmtFn(c.raw) : c.raw}  (${pct}%)`;
-            }
-          }
-        },
-        datalabels: { display: false }
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: 'rgba(255,255,255,.4)',
-            font: { size: 10 },
-            callback: v => fmtFn ? fmtFn(v) : v
-          },
-          grid: { color: 'rgba(255,255,255,.06)' }
-        },
-        y: {
-          ticks: {
-            color: 'rgba(255,255,255,.7)',
-            font: { size: 11, weight: '600' },
-            callback: function(val) {
-              const lbl = this.getLabelForValue(val);
-              return lbl?.length > 14 ? lbl.substring(0, 14) + '…' : lbl;
-            }
-          },
-          grid: { display: false }
-        }
-      }
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: c => ` ${fmtFn?fmtFn(c.raw):c.raw} (${((Math.abs(c.raw)/total)*100).toFixed(1)}%)` }}},
+      scales: { x:{display:false}, y:{ticks:{color:'rgba(255,255,255,.6)',font:{size:10}},grid:{display:false}} }
     }
   };
 }
