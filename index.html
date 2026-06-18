@@ -5329,6 +5329,27 @@ const pageTitles = {
   'plano-contas':'Plano de Contas', usuarios:'Usuários'
 };
 
+// Seta o mês atual em um select de mês (se ainda estiver em "Todos")
+function setMesAtual(selId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  if (sel.value === '') {
+    const mes = String(new Date().getMonth() + 1).padStart(2, '0');
+    // Verifica se a opção existe antes de setar
+    if (sel.querySelector(`option[value="${mes}"]`)) sel.value = mes;
+  }
+}
+
+// Seta o ano atual em um select de ano
+function setAnoAtual(selId) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  if (sel.value === '') {
+    const ano = String(new Date().getFullYear());
+    if (sel.querySelector(`option[value="${ano}"]`)) sel.value = ano;
+  }
+}
+
 function showPage(id, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -5346,6 +5367,23 @@ function showPage(id, el) {
   // Mostra select de mês só no dashboard
   const selMes = document.getElementById('global-mes');
   if (selMes) selMes.style.display = id === 'dashboard' ? '' : 'none';
+
+  // Setar mês atual ao abrir a página
+  const _mesSels = {
+    'dashboard':     ['dash-mes'],
+    'lancamentos':   [],
+    'lucratividade': ['luc-mes'],
+    'servicos':      ['srv-mes'],
+    'clientes':      ['cli-mes'],
+    'produtos':      ['prod-mes'],
+    'performance':   ['perf-mes'],
+    'importacao':    ['imp-filtro-mes'],
+    'contas-pagar':  ['cp-mes'],
+    'contas-receber':['cr-mes'],
+  };
+  (_mesSels[id]||[]).forEach(selId => setMesAtual(selId));
+  // Ano atual no dashboard
+  if (id === 'dashboard') setAnoAtual('dash-ano');
 
   if (id === 'pdv') initPDV();
   if (id === 'servicos') { preencherFiltrosServicos(); initServicos(); }
@@ -16807,17 +16845,29 @@ function selecionarCatCC(nome, demo) {
 
 // ── Importar Fatura ───────────────────────────────────
 let _ccFaturaRows = [];
+let _ccFaturaPdfDireto = false;
 
 function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-preview').style.display = 'none';
+  document.getElementById('cc-imp-loading').style.display = 'none';
   document.getElementById('cc-imp-arquivo').value = '';
+  document.getElementById('cc-imp-mapa').style.display = 'block';
   _ccFaturaRows = [];
+  _ccFaturaPdfDireto = false;
   document.getElementById('modal-importar-cc').classList.add('open');
 }
 
 function previewFaturaCC(input) {
   const file = input.files[0];
   if (!file) return;
+
+  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+  if (isPdf) {
+    processarPdfFaturaCC(file);
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = e => {
     const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
@@ -16836,6 +16886,9 @@ function previewFaturaCC(input) {
       { label:'Valor',    key:'cc-map-valor',  guess: findCol(['valor','value','amount','debito','saida']) },
     ];
 
+    document.getElementById('cc-imp-preview-label').textContent = 'Colunas detectadas — confirme o mapeamento:';
+    document.getElementById('cc-imp-pdf-resumo').style.display = 'none';
+    mapaEl.style.display = 'block';
     mapaEl.innerHTML = mapaFields.map(f => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="font-size:12px;width:60px;font-weight:700">${f.label}</span>
@@ -16850,14 +16903,95 @@ function previewFaturaCC(input) {
   reader.readAsArrayBuffer(file);
 }
 
+// ── Importação de fatura em PDF via IA ──────────────────────
+async function processarPdfFaturaCC(file) {
+  document.getElementById('cc-imp-loading').style.display = 'block';
+  document.getElementById('cc-imp-preview').style.display = 'none';
+
+  try {
+    const base64Data = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Falha ao ler arquivo'));
+      r.readAsDataURL(file);
+    });
+
+    const promptSistema = `Você é um extrator de dados de faturas de cartão de crédito. Leia o PDF anexado (fatura de cartão de crédito) e extraia TODOS os lançamentos (compras, parcelas, estornos) listados nela.
+
+Responda APENAS com um JSON válido, sem nenhum texto antes ou depois, sem markdown, no seguinte formato exato:
+{"lancamentos":[{"data":"DD/MM/AAAA","descricao":"texto do lançamento","valor":123.45}]}
+
+Regras:
+- "data" é a data da compra/lançamento no formato DD/MM/AAAA.
+- "descricao" é o nome do estabelecimento/lançamento, sem o valor.
+- "valor" é sempre um número positivo (não incluir o sinal negativo), use ponto como separador decimal.
+- NÃO inclua o "total da fatura", "pagamento mínimo", "saldo anterior" ou linhas de resumo — apenas lançamentos individuais de compras/parcelas.
+- NÃO inclua nenhum texto explicativo, apenas o JSON.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 4000,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64Data } },
+            { type: "text", text: promptSistema }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const textBlocks = (data.content || []).filter(b => b.type === 'text').map(b => b.text);
+    let textoResp = textBlocks.join('\n').trim();
+    textoResp = textoResp.replace(/```json|```/g, '').trim();
+
+    const parsed = JSON.parse(textoResp);
+    const lancs = parsed.lancamentos || [];
+
+    if (!lancs.length) {
+      showToast('Nenhum lançamento encontrado no PDF.', 'error');
+      document.getElementById('cc-imp-loading').style.display = 'none';
+      return;
+    }
+
+    // Popula _ccFaturaRows no mesmo formato que o Excel usaria, já mapeado
+    _ccFaturaRows = lancs.map(l => ({ Data: l.data, Descricao: l.descricao, Valor: l.valor }));
+    _ccFaturaPdfDireto = true; // flag: já vem pronto, sem precisar de mapeamento manual
+
+    document.getElementById('cc-imp-loading').style.display = 'none';
+    document.getElementById('cc-imp-preview-label').textContent = `✅ ${lancs.length} lançamentos extraídos do PDF:`;
+    document.getElementById('cc-imp-mapa').style.display = 'none';
+
+    const resumoEl = document.getElementById('cc-imp-pdf-resumo');
+    resumoEl.style.display = 'block';
+    const totalPdf = lancs.reduce((s,l) => s + (Number(l.valor)||0), 0);
+    resumoEl.innerHTML = `
+      <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px">
+        ${lancs.map(l => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <span>${l.data} — ${(l.descricao||'').substring(0,40)}</span>
+          <span style="font-family:'DM Mono',monospace">${fmtBRL(l.valor)}</span>
+        </div>`).join('')}
+      </div>
+      <div style="font-weight:700;text-align:right">Total: ${fmtBRL(totalPdf)}</div>
+    `;
+
+    document.getElementById('cc-imp-preview').style.display = 'block';
+
+  } catch (e) {
+    console.error(e);
+    showToast('Erro ao processar PDF: ' + e.message, 'error');
+    document.getElementById('cc-imp-loading').style.display = 'none';
+  }
+}
+
 async function processarFaturaCC() {
   const cartaoId = document.getElementById('cc-imp-cartao')?.value;
   if (!cartaoId) { showToast('Selecione o cartão','error'); return; }
   if (!_ccFaturaRows.length) { showToast('Nenhum dado encontrado','error'); return; }
-
-  const colData  = document.getElementById('cc-map-data')?.value;
-  const colExt   = document.getElementById('cc-map-ext')?.value;
-  const colValor = document.getElementById('cc-map-valor')?.value;
 
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   const parseD = v => {
@@ -16870,13 +17004,28 @@ async function processarFaturaCC() {
   };
   const parseV = v => { if (!v&&v!==0) return 0; if (typeof v==='number') return Math.abs(v); const s=String(v).replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'); return Math.abs(parseFloat(s)||0); };
 
-  const rows = _ccFaturaRows.map(r => {
-    const data = parseD(colData ? r[colData] : null);
-    const valor = parseV(colValor ? r[colValor] : null);
-    if (!data || !valor) return null;
-    const mes = data.substring(0,7);
-    return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
-  }).filter(Boolean);
+  let rows;
+  if (_ccFaturaPdfDireto) {
+    // Veio do PDF já pré-mapeado (Data, Descricao, Valor)
+    rows = _ccFaturaRows.map(r => {
+      const data = parseD(r.Data);
+      const valor = parseV(r.Valor);
+      if (!data || !valor) return null;
+      const mes = data.substring(0,7);
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: String(r.Descricao||''), valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao_pdf' };
+    }).filter(Boolean);
+  } else {
+    const colData  = document.getElementById('cc-map-data')?.value;
+    const colExt   = document.getElementById('cc-map-ext')?.value;
+    const colValor = document.getElementById('cc-map-valor')?.value;
+    rows = _ccFaturaRows.map(r => {
+      const data = parseD(colData ? r[colData] : null);
+      const valor = parseV(colValor ? r[colValor] : null);
+      if (!data || !valor) return null;
+      const mes = data.substring(0,7);
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+    }).filter(Boolean);
+  }
 
   if (!rows.length) { showToast('Nenhum lançamento válido encontrado','error'); return; }
 
@@ -16888,6 +17037,7 @@ async function processarFaturaCC() {
 
   if (erros) { showToast('Erro em alguns lançamentos','error'); return; }
   showToast(`✅ ${rows.length} lançamentos importados!`,'success');
+  _ccFaturaPdfDireto = false;
   closeModal('modal-importar-cc');
   await loadCartaoLancamentos();
 }
@@ -19761,12 +19911,16 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         </select>
       </div>
       <div class="form-group">
-        <label>Arquivo Excel (.xlsx)</label>
-        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv" onchange="previewFaturaCC(this)">
+        <label>Arquivo (Excel ou PDF da fatura)</label>
+        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv,.pdf" onchange="previewFaturaCC(this)">
+      </div>
+      <div id="cc-imp-loading" style="display:none;text-align:center;padding:16px;font-size:13px;color:var(--text2)">
+        ⏳ Lendo PDF e extraindo lançamentos com IA...
       </div>
       <div id="cc-imp-preview" style="display:none">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Colunas detectadas — confirme o mapeamento:</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px" id="cc-imp-preview-label">Colunas detectadas — confirme o mapeamento:</div>
         <div id="cc-imp-mapa"></div>
+        <div id="cc-imp-pdf-resumo" style="display:none;font-size:12px;color:var(--text2)"></div>
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
