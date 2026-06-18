@@ -14839,14 +14839,51 @@ function renderDonutLegend(elId, items) {
 }
 
 function donutOpts(labels, data, cores, fmtFn) {
+  // Barras verticais — mais compacto e legível que rosca
   return {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data, backgroundColor: cores, borderWidth: 1, borderColor: '#fff', hoverOffset: 4 }] },
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: cores,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 40,
+      }]
+    },
     options: {
-      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: c => ` ${c.label}: ${fmtFn ? fmtFn(c.raw) : c.raw}` } }
+        tooltip: {
+          callbacks: {
+            label: c => ` ${fmtFn ? fmtFn(c.raw) : c.raw}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: 'rgba(255,255,255,.5)',
+            font: { size: 10 },
+            maxRotation: 30,
+            callback: function(val, idx) {
+              const lbl = this.getLabelForValue(val);
+              return lbl?.length > 12 ? lbl.substring(0, 12) + '…' : lbl;
+            }
+          },
+          grid: { color: 'rgba(255,255,255,.05)' }
+        },
+        y: {
+          ticks: {
+            color: 'rgba(255,255,255,.4)',
+            font: { size: 10 },
+            callback: v => fmtFn ? fmtFn(v) : v
+          },
+          grid: { color: 'rgba(255,255,255,.05)' }
+        }
       }
     }
   };
