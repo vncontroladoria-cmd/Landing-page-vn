@@ -18369,69 +18369,53 @@ async function loadPendenciasTarefas() {
     const todasTarefas = await buscarTarefasAtivas();
     const naoClientePending = todasTarefas.filter(t => t.tipo !== 'pendencia_cliente');
 
-    // ontem em horário local (não UTC)
-    const ontemLocal = new Date();
-    ontemLocal.setDate(ontemLocal.getDate()-1);
-    const ontemStr = utcParaDataLocal(ontemLocal.toISOString());
-
-    // Data de início = criação mais antiga de CADA tarefa individualmente
-    // Não usar o mínimo global — cada tarefa filtra por sua própria data de criação
-    // Usamos o mínimo só para limitar o range de busca no banco
-    const dataInicio = naoClientePending.reduce((min, t) => {
-      const c = t.criado_em ? utcParaDataLocal(t.criado_em) : hojeStr;
-      return c < min ? c : min;
-    }, ontemStr); // começa no máximo em ontem
-
-    if (dataInicio > ontemStr) {
-      // Todas as tarefas foram criadas hoje ou depois — nenhuma pendência
-      _pendenciasCount = 0;
-      atualizarTituloAba();
-      container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">🎉 Nenhuma tarefa atrasada!</div>`;
-      return;
-    }
-
-    const datas = [];
-    let d = new Date(dataInicio + 'T12:00:00');
-    const limite = new Date(ontemStr + 'T12:00:00');
-    while (d <= limite) {
-      datas.push(utcParaDataLocal(d.toISOString()));
-      d.setDate(d.getDate()+1);
-    }
-
-    // Buscar todas as conclusões (sem limite de mês)
-    const todosIds = naoClientePending.map(t=>t.id);
-    let conclSet = new Set();
-    if (todosIds.length && datas.length) {
-      const { data: conclusoesRange } = await sb.from('tarefas_conclusoes')
-        .select('tarefa_id,data_referencia')
-        .gte('data_referencia', dataInicio)
-        .lte('data_referencia', ontemStr)
-        .in('tarefa_id', todosIds);
-      conclSet = new Set((conclusoesRange||[]).map(c => `${c.tarefa_id}_${c.data_referencia}`));
-    }
+    // Data de hoje e ontem em horário LOCAL
+    const agoraLocal = new Date();
+    const hojeLocal = `${agoraLocal.getFullYear()}-${String(agoraLocal.getMonth()+1).padStart(2,'0')}-${String(agoraLocal.getDate()).padStart(2,'0')}`;
+    const ontemD = new Date(agoraLocal); ontemD.setDate(ontemD.getDate()-1);
+    const ontemLocal = `${ontemD.getFullYear()}-${String(ontemD.getMonth()+1).padStart(2,'0')}-${String(ontemD.getDate()).padStart(2,'0')}`;
 
     const atrasadas = [];
-    datas.forEach(dataStr => {
-      const dObj = new Date(dataStr+'T12:00:00');
-      const diaSem = dObj.getDay();
-      const diaMes = dObj.getDate();
-      naoClientePending.forEach(t => {
-        // Só a partir da data de criação (converte UTC → local para evitar bug de fuso)
-        const criadoEm = t.criado_em ? utcParaDataLocal(t.criado_em) : '2000-01-01';
-        if (dataStr < criadoEm) return;
-        if (tarefaValeParaHoje(t, dataStr, diaSem, diaMes)) {
-          if (!conclSet.has(`${t.id}_${dataStr}`)) {
-            atrasadas.push({ ...t, _dataAtrasada: dataStr });
-          }
+
+    for (const t of naoClientePending) {
+      // Data de criação em horário LOCAL (não UTC)
+      const criadoD = new Date(t.criado_em);
+      const criadoLocal = `${criadoD.getFullYear()}-${String(criadoD.getMonth()+1).padStart(2,'0')}-${String(criadoD.getDate()).padStart(2,'0')}`;
+
+      // Só processa dias APÓS a criação e ANTES de hoje
+      // Se foi criada hoje ou depois — sem pendências
+      if (criadoLocal >= hojeLocal) continue;
+
+      // Gera datas do dia SEGUINTE à criação até ontem
+      const inicio = new Date(criadoD); inicio.setDate(inicio.getDate()+1);
+      const fim = new Date(ontemD);
+
+      // Buscar conclusões desta tarefa no período
+      const { data: concl } = await sb.from('tarefas_conclusoes')
+        .select('data_referencia')
+        .eq('tarefa_id', t.id)
+        .gte('data_referencia', criadoLocal)
+        .lte('data_referencia', ontemLocal);
+      const conclDatas = new Set((concl||[]).map(c=>c.data_referencia));
+
+      // Verificar cada dia no range
+      let cur = new Date(inicio);
+      while (cur <= fim) {
+        const curStr = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+        const diaSem = cur.getDay();
+        const diaMes = cur.getDate();
+        if (tarefaValeParaHoje(t, curStr, diaSem, diaMes) && !conclDatas.has(curStr)) {
+          atrasadas.push({ ...t, _dataAtrasada: curStr });
         }
-      });
-    });
+        cur.setDate(cur.getDate()+1);
+      }
+    }
 
     _pendenciasCount = atrasadas.length;
     atualizarTituloAba();
 
     if (!atrasadas.length) {
-      container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">🎉 Nenhuma tarefa atrasada no período!</div>`;
+      container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">🎉 Nenhuma tarefa atrasada!</div>`;
       return;
     }
 
@@ -18729,51 +18713,39 @@ function utcParaDataLocal(tsUtc) {
 async function verificarPendenciasCount() {
   if (!_vnUser?.id) return;
   const uid = _vnUser.id;
-  const ontemLocal = new Date(); ontemLocal.setDate(ontemLocal.getDate()-1);
-  const ontemStr = utcParaDataLocal(ontemLocal.toISOString());
 
-  let query = sb.from('tarefas_operador')
+  const agoraLocal = new Date();
+  const hojeLocal = `${agoraLocal.getFullYear()}-${String(agoraLocal.getMonth()+1).padStart(2,'0')}-${String(agoraLocal.getDate()).padStart(2,'0')}`;
+  const ontemD = new Date(agoraLocal); ontemD.setDate(ontemD.getDate()-1);
+  const ontemLocal = `${ontemD.getFullYear()}-${String(ontemD.getMonth()+1).padStart(2,'0')}-${String(ontemD.getDate()).padStart(2,'0')}`;
+
+  const { data: tarefas } = await sb.from('tarefas_operador')
     .select('id,recorrencia,data_referencia,dia_semana,dias_semana,dia_mes,tipo,criado_em')
     .eq('ativo', true)
     .neq('tipo', 'pendencia_cliente')
     .or(`responsavel_id.eq.${uid},criado_por.eq.${uid}`);
-  const { data: tarefas } = await query;
 
   if (!tarefas?.length) { _pendenciasCount = 0; atualizarTituloAba(); return; }
 
-  // Verifica todos os dias desde a criação mais antiga até ontem
-  const dataInicio = tarefas.reduce((min, t) => {
-    const c = t.criado_em ? utcParaDataLocal(t.criado_em) : ontemStr;
-    return c < min ? c : min;
-  }, ontemStr);
-
-  if (dataInicio > ontemStr) { _pendenciasCount = 0; atualizarTituloAba(); return; }
-
-  const datas = [];
-  let d = new Date(dataInicio+'T12:00:00');
-  while (utcParaDataLocal(d.toISOString()) <= ontemStr) {
-    datas.push(utcParaDataLocal(d.toISOString()));
-    d.setDate(d.getDate()+1);
-  }
-
-  const { data: concl } = await sb.from('tarefas_conclusoes')
-    .select('tarefa_id,data_referencia')
-    .gte('data_referencia', dataInicio)
-    .lte('data_referencia', ontemStr)
-    .in('tarefa_id', tarefas.map(t=>t.id));
-  const conclSet = new Set((concl||[]).map(c=>`${c.tarefa_id}_${c.data_referencia}`));
-
   let count = 0;
-  datas.forEach(dataStr => {
-    const dObj = new Date(dataStr+'T12:00:00');
-    tarefas.forEach(t => {
-      const criadoEm = t.criado_em ? utcParaDataLocal(t.criado_em) : '2000-01-01';
-      if (dataStr < criadoEm) return;
-      if (tarefaValeParaHoje(t, dataStr, dObj.getDay(), dObj.getDate())) {
-        if (!conclSet.has(`${t.id}_${dataStr}`)) count++;
-      }
-    });
-  });
+  for (const t of tarefas) {
+    const criadoD = new Date(t.criado_em);
+    const criadoLocal = `${criadoD.getFullYear()}-${String(criadoD.getMonth()+1).padStart(2,'0')}-${String(criadoD.getDate()).padStart(2,'0')}`;
+    if (criadoLocal >= hojeLocal) continue;
+
+    const { data: concl } = await sb.from('tarefas_conclusoes')
+      .select('data_referencia').eq('tarefa_id', t.id)
+      .gte('data_referencia', criadoLocal).lte('data_referencia', ontemLocal);
+    const conclDatas = new Set((concl||[]).map(c=>c.data_referencia));
+
+    const inicio = new Date(criadoD); inicio.setDate(inicio.getDate()+1);
+    let cur = new Date(inicio);
+    while (cur <= ontemD) {
+      const curStr = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+      if (tarefaValeParaHoje(t, curStr, cur.getDay(), cur.getDate()) && !conclDatas.has(curStr)) count++;
+      cur.setDate(cur.getDate()+1);
+    }
+  }
 
   _pendenciasCount = count;
   atualizarTituloAba();
