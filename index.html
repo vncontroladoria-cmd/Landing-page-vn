@@ -9090,11 +9090,12 @@ async function loadLucratividade() {
   const catFiltro  = el('luc-cat')?.value  || '';
 
   // Busca dados — tenta rel_lucratividade primeiro, fallback para rel_dados_brutos
-  let q = qE('rel_lucratividade').select('*')
+  const empIdLuc = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
+  let q = sb.from('rel_lucratividade').select('*').eq('empresa_id', empIdLuc)
     .gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
   if (mes) {
     const ultimo = new Date(parseInt(ano), parseInt(mes), 0).getDate();
-    q = qE('rel_lucratividade').select('*')
+    q = sb.from('rel_lucratividade').select('*').eq('empresa_id', empIdLuc)
       .gte('data_comanda', `${ano}-${mes}-01`)
       .lte('data_comanda', `${ano}-${mes}-${String(ultimo).padStart(2,'0')}`);
   }
