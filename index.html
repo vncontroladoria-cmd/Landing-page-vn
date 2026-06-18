@@ -16851,6 +16851,7 @@ function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-preview').style.display = 'none';
   document.getElementById('cc-imp-loading').style.display = 'none';
   document.getElementById('cc-imp-arquivo').value = '';
+  document.getElementById('cc-imp-senha').value = '';
   document.getElementById('cc-imp-mapa').style.display = 'block';
   _ccFaturaRows = [];
   _ccFaturaPdfDireto = false;
@@ -16869,9 +16870,22 @@ async function previewFaturaCC(input) {
   }
 
   const XLSX = await loadXLSX();
+  const senha = document.getElementById('cc-imp-senha')?.value || '';
   const reader = new FileReader();
   reader.onload = e => {
-    const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+    let wb;
+    try {
+      const opts = {type:'array'};
+      if (senha) opts.password = senha;
+      wb = XLSX.read(new Uint8Array(e.target.result), opts);
+    } catch (err) {
+      if (String(err.message||'').toLowerCase().includes('password')) {
+        showToast(senha ? 'Senha incorreta. Verifique e tente novamente.' : 'Arquivo protegido por senha. Preencha o campo "Senha do arquivo" acima e selecione o arquivo de novo.', 'error');
+      } else {
+        showToast('Erro ao ler arquivo: ' + err.message, 'error');
+      }
+      return;
+    }
     const ws = wb.Sheets[wb.SheetNames[0]];
     _ccFaturaRows = XLSX.utils.sheet_to_json(ws, {defval:''});
     if (!_ccFaturaRows.length) return;
@@ -19906,6 +19920,11 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         <select id="cc-imp-cartao" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
           <option value="">Selecione</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>Senha do arquivo (se houver)</label>
+        <input type="text" id="cc-imp-senha" placeholder="Deixe em branco se não tiver senha"
+          style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
       </div>
       <div class="form-group">
         <label>Arquivo (Excel ou PDF da fatura)</label>
