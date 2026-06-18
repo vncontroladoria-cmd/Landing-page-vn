@@ -17227,17 +17227,17 @@ async function loadProjecaoCaixa() {
 
   // 3. Buscar contas a pagar do mês
   const { data: contas } = await sb.from('contas_pagar')
-    .select('valor_total,data_vencimento,status')
+    .select('valor,data_vencimento,status')
     .eq('empresa_id', empId)
     .gte('data_vencimento', iniStr)
     .lte('data_vencimento', fimStr)
-    .not('status','eq','pago');
+    .neq('status','pago');
 
   const contasPorDia = {};
   let totalContas = 0;
   (contas||[]).forEach(c => {
     const d = parseInt(c.data_vencimento.split('-')[2]);
-    const v = Number(c.valor_total||0);
+    const v = Number(c.valor||0);
     contasPorDia[d] = (contasPorDia[d]||0) + v;
     totalContas += v;
   });
