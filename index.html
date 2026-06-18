@@ -14820,7 +14820,7 @@ function fornecedorBate(f, extrato) {
 function renderDonutLegend(elId, items) {
   // items = [{label, value, color, pct}]
   const el = document.getElementById(elId);
-  if (!el) return;
+  if (!el || el.style.display === 'none') return; // escondida pelo criarBarChart
   el.innerHTML = items.map(it => `
     <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;padding:2px 0">
       <div style="display:flex;align-items:center;gap:7px;min-width:0">
@@ -14837,9 +14837,27 @@ function renderDonutLegend(elId, items) {
 
 // Renderiza barras horizontais em HTML dentro de um canvas substituído por div
 // Formato: [Nome] [Valor] [████████] [%]
+// Mapa canvas → id da legenda associada (para esconder quando usa barras HTML)
+const _barChartLegendMap = {
+  'perf-chart-prof':  'perf-prof-legend',
+  'luc-chart-comp':   'luc-comp-legend',
+  'luc-chart-cat':    'luc-cat-legend',
+  'srv-chart-cat':    'srv-cat-legend',
+  'prod-chart-cat':   'prod-cat-legend',
+  'cli-chart-canal':  'cli-canal-legenda',
+  'cp-chart-cat':     'cp-cat-legend',
+};
+
 function criarBarChart(canvasId, labels, data, cores, fmtFn) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return null;
+
+  // Esconder legenda antiga (duplicaria os dados)
+  const legendId = _barChartLegendMap[canvasId];
+  if (legendId) {
+    const leg = document.getElementById(legendId);
+    if (leg) leg.style.display = 'none';
+  }
 
   // Substituir canvas por div se ainda não foi feito
   let container = document.getElementById('barchart-' + canvasId);
