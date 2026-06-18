@@ -5697,6 +5697,10 @@ async function carregarDadosTipo(tipoId, tipoNome) {
   container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
 
   // Busca todos os registros com paginação (Supabase limita 1000 por request)
+  // Zera contador imediatamente ao trocar de tipo
+  const countElInit = document.getElementById('imp-count-total');
+  if (countElInit) countElInit.textContent = 'Carregando...';
+
   let allData = [];
   let from = 0;
   const pageSize = 1000;
@@ -5715,6 +5719,8 @@ async function carregarDadosTipo(tipoId, tipoNome) {
   const data = allData;
 
   if (!data.length) {
+    const countElEmpty = document.getElementById('imp-count-total');
+    if (countElEmpty) countElEmpty.textContent = '0 registros';
     container.innerHTML = '<div class="empty">Nenhum dado importado para este tipo ainda.</div>';
     if (btnLimpar) btnLimpar.style.display = 'none';
     return;
