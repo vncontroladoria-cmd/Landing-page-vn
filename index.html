@@ -19453,12 +19453,12 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
 
 
 <!-- MODAL: VINCULAR PROFISSIONAIS DO RELATÓRIO -->
-<div id="modal-vincular-prof" class="modal-overlay">
-  <div class="modal" style="max-width:520px;max-height:85vh;display:flex;flex-direction:column">
+<div id="modal-vincular-prof" class="modal-overlay" style="z-index:9999">
+  <div class="modal" style="max-width:480px;display:flex;flex-direction:column">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
       <div>
-        <div class="modal-title" style="margin-bottom:2px">👤 Vincular Profissionais</div>
-        <div style="font-size:12px;color:var(--text2)">Identifique quem é cada profissional do relatório importado</div>
+        <div class="modal-title" style="margin-bottom:2px">👤 Selecionar Profissional</div>
+        <div style="font-size:12px;color:var(--text2)">A quem pertence esse relatório de performance?</div>
       </div>
       <button onclick="closeModal('modal-vincular-prof')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">×</button>
     </div>
