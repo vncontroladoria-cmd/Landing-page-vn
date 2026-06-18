@@ -9089,7 +9089,7 @@ async function loadLucratividade() {
   const profFiltro = el('luc-prof')?.value || '';
   const catFiltro  = el('luc-cat')?.value  || '';
 
-  // Busca dados
+  // Busca dados — tenta rel_lucratividade primeiro, fallback para rel_dados_brutos
   let q = qE('rel_lucratividade').select('*')
     .gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
   if (mes) {
@@ -9098,7 +9098,49 @@ async function loadLucratividade() {
       .gte('data_comanda', `${ano}-${mes}-01`)
       .lte('data_comanda', `${ano}-${mes}-${String(ultimo).padStart(2,'0')}`);
   }
-  let { data: rows } = await q.limit(10000);
+  let { data: rowsLuc } = await q.limit(10000);
+
+  let rows = rowsLuc || [];
+
+  // Se não tem dados em rel_lucratividade, busca em rel_dados_brutos
+  if (!rows.length) {
+    const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
+    const tipoLuc = (tipos||[]).find(t => t.nome.toLowerCase().includes('lucrat'));
+    if (tipoLuc) {
+      const { data: brutos } = await qE('rel_dados_brutos').select('colunas')
+        .eq('tipo_id', tipoLuc.id).limit(15000);
+      rows = (brutos||[]).map(r => {
+        const c = r.colunas || {};
+        const dataRaw = c['Data'] || '';
+        // Converte DD/MM/YYYY → YYYY-MM-DD
+        let data_comanda = null;
+        if (dataRaw.includes('/')) {
+          const [d,m,a] = dataRaw.split('/');
+          data_comanda = `${a}-${m?.padStart(2,'0')}-${d?.padStart(2,'0')}`;
+        } else {
+          data_comanda = dataRaw;
+        }
+        return {
+          data_comanda,
+          numero_comanda: String(c['Número Comanda']||''),
+          profissional:   c['Profissional']||null,
+          servico:        c['Serviço']||null,
+          categoria:      c['Categoria']||null,
+          faturado:       Number(c['Faturado']||0),
+          quantidade:     Number(c['Qtd.']||1),
+          comissao_pct:   Number(c['Comissão (%)']||0),
+          custo_servico:  Number(c['Custo Serviço']||0),
+          custo_comissao: Number(c['Custo Comissão']||0),
+          lucro:          Number(c['Lucro']||0),
+          lucratividade_pct: Number(c['Lucratividade (%)']||0),
+        };
+      });
+    }
+  }
+
+  // Filtrar por ano/mês
+  rows = rows.filter(r => r.data_comanda?.startsWith(ano));
+  if (mes) rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
   if (!rows?.length) {
     ['luc-fat','luc-lucro','luc-pct','luc-custo','luc-atend','luc-ticket','luc-comissao','luc-custoserv']
       .forEach(id => { if(el(id)) el(id).textContent = '—'; });
