@@ -3570,16 +3570,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div style="font-size:11px;color:var(--text2);margin-bottom:1rem" id="perf-info-bar"></div>
 
           <!-- LINHA 1: Ranking + Donut mesmo tamanho -->
-          <!-- TOP 5 CARDS -->
-          <div id="perf-top5-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px"></div>
-
           <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:start">
             <div class="card" style="padding:0;overflow:hidden">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
                 <div style="font-weight:600;font-size:13px">🏆 Ranking de Profissionais</div>
                 <div style="font-size:11px;color:var(--text2);margin-top:1px" id="perf-rank-sub"></div>
               </div>
-              <div id="perf-ranking-prof" style="overflow-x:auto;max-height:320px;overflow-y:auto">
+              <div id="perf-ranking-prof" style="overflow-x:auto;max-height:280px;overflow-y:auto">
                 <div class="empty">Sem dados</div>
               </div>
             </div>
@@ -10103,8 +10100,7 @@ async function loadPerformance() {
     ['perf-ranking-prof','perf-servicos','perf-clientes'].forEach(id => {
       const e = el(id); if(e) e.innerHTML = '<div class="empty">Nenhum dado. Importe o relatório de Serviços.</div>';
     });
-    const top5Clear = el('perf-top5-cards');
-    if (top5Clear) { top5Clear.innerHTML = ''; top5Clear.style.display = 'none'; }
+
     ['perf-fat','perf-atend','perf-comissao','perf-ticket'].forEach(id => { const e=el(id); if(e) e.textContent='—'; });
     return;
   }
@@ -10142,39 +10138,6 @@ async function loadPerformance() {
   const maxFatProf = profRank[0]?.[1].fat || 1;
 
   if(el('perf-rank-sub')) el('perf-rank-sub').textContent = `${profRank.length} profissional(is)`;
-
-  // ── Top 5 Cards ───────────────────────────────────────
-  const TOP5_CORES = [
-    { bg:'linear-gradient(135deg,#f59e0b,#d97706)', txt:'#fff', medalha:'🥇', label:'1º lugar' },
-    { bg:'linear-gradient(135deg,#94a3b8,#64748b)', txt:'#fff', medalha:'🥈', label:'2º lugar' },
-    { bg:'linear-gradient(135deg,#b45309,#92400e)', txt:'#fff', medalha:'🥉', label:'3º lugar' },
-    { bg:'linear-gradient(135deg,#3b82f6,#1d4ed8)', txt:'#fff', medalha:'4º',  label:'4º lugar' },
-    { bg:'linear-gradient(135deg,#8b5cf6,#6d28d9)', txt:'#fff', medalha:'5º',  label:'5º lugar' },
-  ];
-  const top5El = el('perf-top5-cards');
-  if (top5El) {
-    const top5 = profRank.slice(0,5);
-    top5El.style.display = top5.length ? 'grid' : 'none';
-    top5El.innerHTML = top5.map(([nome,v], i) => {
-      const cor = TOP5_CORES[i];
-      const pct = ((v.fat / (profRank[0]?.[1].fat||1))*100).toFixed(0);
-      return `
-        <div style="background:${cor.bg};border-radius:12px;padding:14px 16px;position:relative;overflow:hidden">
-          <div style="position:absolute;top:8px;right:10px;font-size:22px;opacity:.25">${cor.medalha}</div>
-          <div style="font-size:10px;font-weight:700;color:${cor.txt};opacity:.8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${cor.label}</div>
-          <div style="font-size:13px;font-weight:800;color:${cor.txt};margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</div>
-          <div style="font-size:18px;font-weight:800;color:${cor.txt};font-family:'DM Mono',monospace;margin-bottom:4px">${fmtBRL(v.fat)}</div>
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:${cor.txt};opacity:.8">
-            <span>${v.atend.size} atend.</span>
-            <span>${pct}%</span>
-          </div>
-          <!-- barra de progresso -->
-          <div style="margin-top:8px;height:3px;background:rgba(255,255,255,.25);border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:rgba(255,255,255,.7);border-radius:2px"></div>
-          </div>
-        </div>`;
-    }).join('');
-  }
 
   const rankEl = el('perf-ranking-prof');
   if (rankEl) {
