@@ -16690,7 +16690,7 @@ function filtrarCartaoLanc(termo) {
 // ── Modal Cartão ──────────────────────────────────────
 async function abrirModalCartao() {
   _ccCartaoEditId = null;
-  ['cc-nome','cc-limite','cc-vencimento'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+  ['cc-nome','cc-limite','cc-vencimento','cc-senha-fatura'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
   document.getElementById('cc-bandeira').value = '';
   document.getElementById('cc-banco-id').value = '';
   await renderListaCartoes();
@@ -16727,6 +16727,7 @@ async function salvarCartao() {
     limite: parseFloat(document.getElementById('cc-limite')?.value) || 0,
     vencimento_dia: parseInt(document.getElementById('cc-vencimento')?.value) || null,
     banco_id: document.getElementById('cc-banco-id')?.value || null,
+    senha_fatura: document.getElementById('cc-senha-fatura')?.value.trim() || null,
     ativo: true,
   };
   const { error } = _ccCartaoEditId
@@ -16749,6 +16750,7 @@ async function editarCartao(id) {
   document.getElementById('cc-limite').value = data.limite || '';
   document.getElementById('cc-vencimento').value = data.vencimento_dia || '';
   document.getElementById('cc-banco-id').value = data.banco_id || '';
+  document.getElementById('cc-senha-fatura').value = data.senha_fatura || '';
   document.getElementById('modal-cartao-title').textContent = 'Editar Cartão';
 }
 
@@ -16865,10 +16867,16 @@ function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-preview').style.display = 'none';
   document.getElementById('cc-imp-loading').style.display = 'none';
   document.getElementById('cc-imp-arquivo').value = '';
-  document.getElementById('cc-imp-senha').value = '';
   document.getElementById('cc-imp-mapa').style.display = 'block';
   _ccFaturaRows = [];
   _ccFaturaPdfDireto = false;
+
+  // Preencher senha automaticamente do cadastro do cartão selecionado
+  const cartaoId = document.getElementById('cc-imp-cartao')?.value;
+  const cartao = _cartoes?.find(c => c.id === cartaoId);
+  const senhaEl = document.getElementById('cc-imp-senha');
+  if (senhaEl) senhaEl.value = cartao?.senha_fatura || '';
+
   document.getElementById('modal-importar-cc').classList.add('open');
 }
 
@@ -19902,6 +19910,12 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         <select id="cc-banco-id" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
           <option value="">Nenhum</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>Senha do arquivo de fatura (opcional)</label>
+        <input type="text" id="cc-senha-fatura" placeholder="Ex: 12345678 — salva para preencher automaticamente ao importar"
+          style="font-family:monospace">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">⚠️ Salva localmente no sistema apenas para facilitar a importação.</div>
       </div>
     </div>
     <div id="cc-lista-cartoes" style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px"></div>
