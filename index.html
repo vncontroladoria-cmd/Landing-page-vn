@@ -10491,7 +10491,7 @@ function loadOfficeCrypto() {
   if (officeCryptoLoaded) return Promise.resolve(officeCryptoLoaded);
   return new Promise((res, rej) => {
     const s = document.createElement('script');
-    s.src = 'https://raw.githubusercontent.com/vncontroladoria-cmd/landing-page-vn/main/lib/office-crypto.min.js';
+    s.src = '/lib/office-crypto.min.js';
     s.onload = () => { officeCryptoLoaded = window.OfficeCrypto; res(window.OfficeCrypto); };
     s.onerror = () => rej(new Error('Não foi possível carregar o decriptador de arquivos protegidos'));
     document.head.appendChild(s);
