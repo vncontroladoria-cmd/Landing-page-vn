@@ -16894,13 +16894,19 @@ async function previewFaturaCC(input) {
     document.getElementById('cc-imp-loading').textContent = '🔓 Descriptografando arquivo...';
     document.getElementById('cc-imp-preview').style.display = 'none';
     try {
+      console.log('[CC-IMPORT] Carregando OfficeCrypto...');
       const OfficeCrypto = await loadOfficeCrypto();
-      const ofile = new OfficeCrypto.OOXMLFile(arrBuf);
+      console.log('[CC-IMPORT] OfficeCrypto carregado:', !!OfficeCrypto, typeof OfficeCrypto?.OfficeFile);
+      // OfficeFile() detecta automaticamente se é .xlsx (OOXML) ou .xls (BIFF8/Xls97)
+      const ofile = OfficeCrypto.OfficeFile(arrBuf);
+      console.log('[CC-IMPORT] Tipo detectado:', ofile.constructor.name, '| isEncrypted:', ofile.isEncrypted());
       if (ofile.isEncrypted()) {
         ofile.loadKey({ password: senha });
         arrBuf = ofile.decrypt();
+        console.log('[CC-IMPORT] Decriptado, novo tamanho:', arrBuf.length);
       }
     } catch (err) {
+      console.error('[CC-IMPORT] ERRO:', err.constructor.name, err.message, err);
       document.getElementById('cc-imp-loading').style.display = 'none';
       if (err.constructor.name === 'InvalidKeyError' || String(err.message||'').toLowerCase().includes('password') || String(err.message||'').toLowerCase().includes('key')) {
         showToast('Senha incorreta. Verifique e tente novamente.', 'error');
