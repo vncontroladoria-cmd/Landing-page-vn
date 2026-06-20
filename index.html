@@ -14769,7 +14769,7 @@ function atualizarSelecao() {
     selecionados.forEach(cb => {
       const id = cb.dataset.id;
       const lanc = (_lancamentos||[]).find(l => l.id === id);
-      if (!lanc) return;
+      if (!lanc || isLancContabil(lanc)) return;
       totalEnt += Number(lanc.entrada || (lanc.tipo==='ENTRADA' ? lanc.valor : 0) || 0);
       totalSai += Number(lanc.saida   || (lanc.tipo==='SAIDA'   ? lanc.valor : 0) || 0);
     });
