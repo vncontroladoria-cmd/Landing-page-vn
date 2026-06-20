@@ -162,7 +162,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .nav-item.active::before { background: #34d399; }
 .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
 .nav-item .nav-icon { width: 16px; flex-shrink: 0; text-align: center; font-size: 14px; }
-.nav-label { white-space: nowrap; }
+.nav-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
 .submenu { display: none; flex-direction: column; }
 .submenu.open { display: flex; }
 .submenu-item {
@@ -8395,6 +8395,36 @@ function parseItauXLSX(ws, XLSX) {
 }
 
 // Parser Stone Excel — linhas já em objeto
+// Parser do formato próprio: DATA | EXTRATO | ENTRADA | SAIDA | DESCRICAO | CATEGORIA | (PLANO) | (BANCO)
+// DESCRICAO é o texto livre que vira o "extrato" pra busca de fornecedor.
+// CATEGORIA é repassada como _catExcel para já vincular automaticamente no plano de contas.
+function parseFormatoProprio(rows) {
+  const getCol = (r, names) => {
+    const keys = Object.keys(r);
+    const key = keys.find(k => names.includes(k.trim().toUpperCase()));
+    return key ? r[key] : '';
+  };
+  const parseValorBR = v => {
+    if (v === '' || v == null) return 0;
+    if (typeof v === 'number') return Math.abs(v);
+    const s = String(v).replace(/[R$\s()]/g,'').replace(/\./g,'').replace(',','.');
+    return Math.abs(parseFloat(s) || 0);
+  };
+  return rows.map(r => {
+    const dataRaw = String(getCol(r, ['DATA']) || '').trim();
+    const data = parseDateBR(dataRaw.substring(0,10));
+    const entrada = parseValorBR(getCol(r, ['ENTRADA']));
+    const saida = parseValorBR(getCol(r, ['SAIDA','SAÍDA']));
+    const descricao = String(getCol(r, ['DESCRICAO','DESCRIÇÃO']) || '').trim();
+    const extratoOriginal = String(getCol(r, ['EXTRATO']) || '').trim();
+    const categoria = String(getCol(r, ['CATEGORIA']) || '').trim();
+    // Usa DESCRICAO como texto principal (é o que o usuário escreveu manualmente);
+    // se vier vazio, cai no EXTRATO original do banco.
+    const extrato = descricao || extratoOriginal;
+    return { data, extrato, entrada, saida, _catExcel: categoria || null };
+  }).filter(r => r.data);
+}
+
 function parseStoneRows(rows) {
   return rows.map(r => {
     const mov = String(r['Movimentação'] || r['Movimentacao'] || '').toLowerCase();
@@ -10480,20 +10510,6 @@ function loadXLSX() {
       s2.onerror = () => rej(new Error('Não foi possível carregar XLSX'));
       document.head.appendChild(s2);
     };
-    document.head.appendChild(s);
-  });
-}
-
-let officeCryptoLoaded = null;
-function loadOfficeCrypto() {
-  // Decriptador de XLSX/DOCX/PPTX protegidos por senha (office-crypto bundlado)
-  if (window.OfficeCrypto) { officeCryptoLoaded = window.OfficeCrypto; return Promise.resolve(window.OfficeCrypto); }
-  if (officeCryptoLoaded) return Promise.resolve(officeCryptoLoaded);
-  return new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = '/lib/office-crypto.min.js';
-    s.onload = () => { officeCryptoLoaded = window.OfficeCrypto; res(window.OfficeCrypto); };
-    s.onerror = () => rej(new Error('Não foi possível carregar o decriptador de arquivos protegidos'));
     document.head.appendChild(s);
   });
 }
@@ -14134,13 +14150,21 @@ async function lerColunaExcel() {
   _excelColunas.forEach(c => {
     const n = norm(c.nome);
     if (/^data$|^date$/.test(n))                    document.getElementById('excel-col-data').value     = c.idx;
-    if (/extrato|histor|lancam/.test(n))             document.getElementById('excel-col-desc').value     = c.idx;
     if (/entrada|credit|receita/.test(n))            document.getElementById('excel-col-entrada').value  = c.idx;
     if (/saida|saída|debit|debito/.test(n))          document.getElementById('excel-col-saida').value    = c.idx;
     if (/^valor$|^value$|amount/.test(n))            document.getElementById('excel-col-valor').value    = c.idx;
-    if (/descri|anot|obs|nota/.test(n))              document.getElementById('excel-col-anotacao').value = c.idx;
     if (/categ/.test(n))                             document.getElementById('excel-col-cat').value      = c.idx;
   });
+  // Campo principal de descrição: prioriza DESCRICAO (texto real/manual) sobre EXTRATO (genérico do banco).
+  // EXTRATO, se existir junto com DESCRICAO, vira só a anotação/complemento.
+  const colDescricao = _excelColunas.find(c => /^descri/.test(norm(c.nome)));
+  const colExtrato   = _excelColunas.find(c => /extrato|histor|lancam/.test(norm(c.nome)));
+  if (colDescricao) {
+    document.getElementById('excel-col-desc').value = colDescricao.idx;
+    if (colExtrato) document.getElementById('excel-col-anotacao').value = colExtrato.idx;
+  } else if (colExtrato) {
+    document.getElementById('excel-col-desc').value = colExtrato.idx;
+  }
 
   document.getElementById('excel-passo1').style.display = 'none';
   document.getElementById('excel-passo2').style.display = 'block';
@@ -14288,7 +14312,9 @@ async function iniciarConciliacao() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
       const isItau = raw.some(r => String(Object.values(r)[0]||'').trim() === 'Data' || String(Object.values(r)[0]||'').trim() === 'Lançamentos');
-      _concRows = isItau ? parseItauXLSX(ws, XLSX) : parseStoneRows(raw);
+      const colunas = raw.length ? Object.keys(raw[0]) : [];
+      const isFormatoProprio = colunas.some(c => c.trim().toUpperCase() === 'DESCRICAO') && colunas.some(c => c.trim().toUpperCase() === 'CATEGORIA');
+      _concRows = isFormatoProprio ? parseFormatoProprio(raw) : (isItau ? parseItauXLSX(ws, XLSX) : parseStoneRows(raw));
     }
   } catch(e) {
     container.innerHTML = `<div class="empty">Erro ao ler arquivo: ${e.message}</div>`;
@@ -15623,17 +15649,29 @@ async function copiarPlanoBaseParaEmpresa(novaEmpId) {
 
   // Inserir em lotes
   for (let i = 0; i < novasCats.length; i += 100) {
-    await sb.from('plano_contas').insert(novasCats.slice(i, i+100));
+    const { error: errCats } = await sb.from('plano_contas').insert(novasCats.slice(i, i+100));
+    if (errCats) console.error('Erro ao copiar plano_contas (lote):', errCats);
   }
 
-  // Copiar categorias do PDV
-  const { data: catsPDV } = await sb.from('pdv_categorias').select('*').eq('empresa_id', baseEmpId);
+  // Copiar categorias do PDV — usa a empresa com MAIS pdv_categorias como base
+  // (pode ser diferente da empresa-base do plano de contas)
+  let basePdvEmpId = baseEmpId;
+  let maxCatsPDV = 0;
+  for (const e of emps) {
+    const { count } = await sb.from('pdv_categorias').select('id',{count:'exact',head:true}).eq('empresa_id', e.id);
+    if ((count||0) > maxCatsPDV) { maxCatsPDV = count; basePdvEmpId = e.id; }
+  }
+
+  const { data: catsPDV } = await sb.from('pdv_categorias').select('*').eq('empresa_id', basePdvEmpId);
   if (catsPDV?.length) {
     const novasCatsPDV = catsPDV.map(c => {
       const { id, empresa_id, created_at, ...rest } = c;
       return { ...rest, empresa_id: novaEmpId };
     });
-    await sb.from('pdv_categorias').insert(novasCatsPDV);
+    const { error: errPDV } = await sb.from('pdv_categorias').insert(novasCatsPDV);
+    if (errPDV) console.error('Erro ao copiar pdv_categorias:', errPDV);
+  } else {
+    console.warn('Nenhuma empresa tem pdv_categorias cadastradas — nova empresa ficará sem categorias de PDV.');
   }
 }
 
@@ -16690,7 +16728,7 @@ function filtrarCartaoLanc(termo) {
 // ── Modal Cartão ──────────────────────────────────────
 async function abrirModalCartao() {
   _ccCartaoEditId = null;
-  ['cc-nome','cc-limite','cc-vencimento','cc-senha-fatura'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
+  ['cc-nome','cc-limite','cc-vencimento'].forEach(id => { const el=document.getElementById(id); if(el)el.value=''; });
   document.getElementById('cc-bandeira').value = '';
   document.getElementById('cc-banco-id').value = '';
   await renderListaCartoes();
@@ -16727,7 +16765,6 @@ async function salvarCartao() {
     limite: parseFloat(document.getElementById('cc-limite')?.value) || 0,
     vencimento_dia: parseInt(document.getElementById('cc-vencimento')?.value) || null,
     banco_id: document.getElementById('cc-banco-id')?.value || null,
-    senha_fatura: document.getElementById('cc-senha-fatura')?.value.trim() || null,
     ativo: true,
   };
   const { error } = _ccCartaoEditId
@@ -16750,7 +16787,6 @@ async function editarCartao(id) {
   document.getElementById('cc-limite').value = data.limite || '';
   document.getElementById('cc-vencimento').value = data.vencimento_dia || '';
   document.getElementById('cc-banco-id').value = data.banco_id || '';
-  document.getElementById('cc-senha-fatura').value = data.senha_fatura || '';
   document.getElementById('modal-cartao-title').textContent = 'Editar Cartão';
 }
 
@@ -16861,22 +16897,12 @@ function selecionarCatCC(nome, demo) {
 
 // ── Importar Fatura ───────────────────────────────────
 let _ccFaturaRows = [];
-let _ccFaturaPdfDireto = false;
 
 function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-preview').style.display = 'none';
-  document.getElementById('cc-imp-loading').style.display = 'none';
   document.getElementById('cc-imp-arquivo').value = '';
   document.getElementById('cc-imp-mapa').style.display = 'block';
   _ccFaturaRows = [];
-  _ccFaturaPdfDireto = false;
-
-  // Preencher senha automaticamente do cadastro do cartão selecionado
-  const cartaoId = document.getElementById('cc-imp-cartao')?.value;
-  const cartao = _cartoes?.find(c => c.id === cartaoId);
-  const senhaEl = document.getElementById('cc-imp-senha');
-  if (senhaEl) senhaEl.value = cartao?.senha_fatura || '';
-
   document.getElementById('modal-importar-cc').classList.add('open');
 }
 
@@ -16884,54 +16910,16 @@ async function previewFaturaCC(input) {
   const file = input.files[0];
   if (!file) return;
 
-  const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-
-  if (isPdf) {
-    processarPdfFaturaCC(file);
-    return;
-  }
-
   const XLSX = await loadXLSX();
-  const senha = document.getElementById('cc-imp-senha')?.value || '';
   const buf = await file.arrayBuffer();
-  let arrBuf = new Uint8Array(buf);
-
-  // Se tem senha, decripta de verdade ANTES de passar pro XLSX
-  if (senha) {
-    document.getElementById('cc-imp-loading').style.display = 'block';
-    document.getElementById('cc-imp-loading').textContent = '🔓 Descriptografando arquivo...';
-    document.getElementById('cc-imp-preview').style.display = 'none';
-    try {
-      console.log('[CC-IMPORT] Carregando OfficeCrypto...');
-      const OfficeCrypto = await loadOfficeCrypto();
-      console.log('[CC-IMPORT] OfficeCrypto carregado:', !!OfficeCrypto, typeof OfficeCrypto?.OfficeFile);
-      // OfficeFile() detecta automaticamente se é .xlsx (OOXML) ou .xls (BIFF8/Xls97)
-      const ofile = OfficeCrypto.OfficeFile(arrBuf);
-      console.log('[CC-IMPORT] Tipo detectado:', ofile.constructor.name, '| isEncrypted:', ofile.isEncrypted());
-      if (ofile.isEncrypted()) {
-        ofile.loadKey({ password: senha });
-        arrBuf = ofile.decrypt();
-        console.log('[CC-IMPORT] Decriptado, novo tamanho:', arrBuf.length);
-      }
-    } catch (err) {
-      console.error('[CC-IMPORT] ERRO:', err.constructor.name, err.message, err);
-      document.getElementById('cc-imp-loading').style.display = 'none';
-      if (err.constructor.name === 'InvalidKeyError' || String(err.message||'').toLowerCase().includes('password') || String(err.message||'').toLowerCase().includes('key')) {
-        showToast('Senha incorreta. Verifique e tente novamente.', 'error');
-      } else {
-        showToast('Erro ao descriptografar: ' + err.message, 'error');
-      }
-      return;
-    }
-    document.getElementById('cc-imp-loading').style.display = 'none';
-  }
+  const arrBuf = new Uint8Array(buf);
 
   let wb;
   try {
     wb = XLSX.read(arrBuf, {type:'array'});
   } catch (err) {
     if (String(err.message||'').toLowerCase().includes('password')) {
-      showToast('Arquivo protegido por senha. Preencha o campo "Senha do arquivo" acima e selecione o arquivo de novo.', 'error');
+      showToast('Arquivo protegido por senha. Remova a senha do arquivo antes de importar.', 'error');
     } else {
       showToast('Erro ao ler arquivo: ' + err.message, 'error');
     }
@@ -16940,7 +16928,7 @@ async function previewFaturaCC(input) {
   {
     const ws = wb.Sheets[wb.SheetNames[0]];
     _ccFaturaRows = XLSX.utils.sheet_to_json(ws, {defval:''});
-    if (!_ccFaturaRows.length) { showToast('Arquivo descriptografado mas sem dados.', 'error'); return; }
+    if (!_ccFaturaRows.length) { showToast('Arquivo sem dados.', 'error'); return; }
 
     const cols = Object.keys(_ccFaturaRows[0]);
     const normC = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -16954,7 +16942,6 @@ async function previewFaturaCC(input) {
     ];
 
     document.getElementById('cc-imp-preview-label').textContent = 'Colunas detectadas — confirme o mapeamento:';
-    document.getElementById('cc-imp-pdf-resumo').style.display = 'none';
     mapaEl.style.display = 'block';
     mapaEl.innerHTML = mapaFields.map(f => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -16966,87 +16953,6 @@ async function previewFaturaCC(input) {
       </div>`).join('');
 
     document.getElementById('cc-imp-preview').style.display = 'block';
-  }
-}
-
-// ── Importação de fatura em PDF via IA ──────────────────────
-async function processarPdfFaturaCC(file) {
-  document.getElementById('cc-imp-loading').style.display = 'block';
-  document.getElementById('cc-imp-preview').style.display = 'none';
-
-  try {
-    const base64Data = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = () => rej(new Error('Falha ao ler arquivo'));
-      r.readAsDataURL(file);
-    });
-
-    const promptSistema = `Você é um extrator de dados de faturas de cartão de crédito. Leia o PDF anexado (fatura de cartão de crédito) e extraia TODOS os lançamentos (compras, parcelas, estornos) listados nela.
-
-Responda APENAS com um JSON válido, sem nenhum texto antes ou depois, sem markdown, no seguinte formato exato:
-{"lancamentos":[{"data":"DD/MM/AAAA","descricao":"texto do lançamento","valor":123.45}]}
-
-Regras:
-- "data" é a data da compra/lançamento no formato DD/MM/AAAA.
-- "descricao" é o nome do estabelecimento/lançamento, sem o valor.
-- "valor" é sempre um número positivo (não incluir o sinal negativo), use ponto como separador decimal.
-- NÃO inclua o "total da fatura", "pagamento mínimo", "saldo anterior" ou linhas de resumo — apenas lançamentos individuais de compras/parcelas.
-- NÃO inclua nenhum texto explicativo, apenas o JSON.`;
-
-    // Chama a Edge Function do Supabase (evita CORS, mantém a chave da API segura no servidor)
-    const response = await fetch("https://yltzmauxsqtsridloasq.supabase.co/functions/v1/extrair-fatura-pdf", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + (window.SUPABASE_ANON_KEY || sb.supabaseKey || ""),
-      },
-      body: JSON.stringify({ base64Pdf: base64Data })
-    });
-
-    if (!response.ok) {
-      const errTxt = await response.text();
-      throw new Error(`Erro ${response.status}: ${errTxt.substring(0,300)}`);
-    }
-
-    const parsed = await response.json();
-    if (parsed.error) throw new Error(parsed.error);
-
-    const lancs = parsed.lancamentos || [];
-
-    if (!lancs.length) {
-      showToast('Nenhum lançamento encontrado no PDF.', 'error');
-      document.getElementById('cc-imp-loading').style.display = 'none';
-      return;
-    }
-
-    // Popula _ccFaturaRows no mesmo formato que o Excel usaria, já mapeado
-    _ccFaturaRows = lancs.map(l => ({ Data: l.data, Descricao: l.descricao, Valor: l.valor }));
-    _ccFaturaPdfDireto = true; // flag: já vem pronto, sem precisar de mapeamento manual
-
-    document.getElementById('cc-imp-loading').style.display = 'none';
-    document.getElementById('cc-imp-preview-label').textContent = `✅ ${lancs.length} lançamentos extraídos do PDF:`;
-    document.getElementById('cc-imp-mapa').style.display = 'none';
-
-    const resumoEl = document.getElementById('cc-imp-pdf-resumo');
-    resumoEl.style.display = 'block';
-    const totalPdf = lancs.reduce((s,l) => s + (Number(l.valor)||0), 0);
-    resumoEl.innerHTML = `
-      <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px">
-        ${lancs.map(l => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <span>${l.data} — ${(l.descricao||'').substring(0,40)}</span>
-          <span style="font-family:'DM Mono',monospace">${fmtBRL(l.valor)}</span>
-        </div>`).join('')}
-      </div>
-      <div style="font-weight:700;text-align:right">Total: ${fmtBRL(totalPdf)}</div>
-    `;
-
-    document.getElementById('cc-imp-preview').style.display = 'block';
-
-  } catch (e) {
-    console.error(e);
-    showToast('Erro ao processar PDF: ' + e.message, 'error');
-    document.getElementById('cc-imp-loading').style.display = 'none';
   }
 }
 
@@ -17066,28 +16972,16 @@ async function processarFaturaCC() {
   };
   const parseV = v => { if (!v&&v!==0) return 0; if (typeof v==='number') return Math.abs(v); const s=String(v).replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'); return Math.abs(parseFloat(s)||0); };
 
-  let rows;
-  if (_ccFaturaPdfDireto) {
-    // Veio do PDF já pré-mapeado (Data, Descricao, Valor)
-    rows = _ccFaturaRows.map(r => {
-      const data = parseD(r.Data);
-      const valor = parseV(r.Valor);
-      if (!data || !valor) return null;
-      const mes = data.substring(0,7);
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: String(r.Descricao||''), valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao_pdf' };
-    }).filter(Boolean);
-  } else {
-    const colData  = document.getElementById('cc-map-data')?.value;
-    const colExt   = document.getElementById('cc-map-ext')?.value;
-    const colValor = document.getElementById('cc-map-valor')?.value;
-    rows = _ccFaturaRows.map(r => {
-      const data = parseD(colData ? r[colData] : null);
-      const valor = parseV(colValor ? r[colValor] : null);
-      if (!data || !valor) return null;
-      const mes = data.substring(0,7);
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
-    }).filter(Boolean);
-  }
+  const colData  = document.getElementById('cc-map-data')?.value;
+  const colExt   = document.getElementById('cc-map-ext')?.value;
+  const colValor = document.getElementById('cc-map-valor')?.value;
+  const rows = _ccFaturaRows.map(r => {
+    const data = parseD(colData ? r[colData] : null);
+    const valor = parseV(colValor ? r[colValor] : null);
+    if (!data || !valor) return null;
+    const mes = data.substring(0,7);
+    return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+  }).filter(Boolean);
 
   if (!rows.length) { showToast('Nenhum lançamento válido encontrado','error'); return; }
 
@@ -17099,7 +16993,6 @@ async function processarFaturaCC() {
 
   if (erros) { showToast('Erro em alguns lançamentos','error'); return; }
   showToast(`✅ ${rows.length} lançamentos importados!`,'success');
-  _ccFaturaPdfDireto = false;
   closeModal('modal-importar-cc');
   await loadCartaoLancamentos();
 }
@@ -19911,12 +19804,6 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
           <option value="">Nenhum</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Senha do arquivo de fatura (opcional)</label>
-        <input type="text" id="cc-senha-fatura" placeholder="Ex: 12345678 — salva para preencher automaticamente ao importar"
-          style="font-family:monospace">
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">⚠️ Salva localmente no sistema apenas para facilitar a importação.</div>
-      </div>
     </div>
     <div id="cc-lista-cartoes" style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
@@ -19979,21 +19866,12 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         </select>
       </div>
       <div class="form-group">
-        <label>Senha do arquivo (se houver)</label>
-        <input type="text" id="cc-imp-senha" placeholder="Deixe em branco se não tiver senha"
-          style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
-      </div>
-      <div class="form-group">
-        <label>Arquivo (Excel ou PDF da fatura)</label>
-        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv,.pdf" onchange="previewFaturaCC(this)">
-      </div>
-      <div id="cc-imp-loading" style="display:none;text-align:center;padding:16px;font-size:13px;color:var(--text2)">
-        ⏳ Lendo PDF e extraindo lançamentos com IA...
+        <label>Arquivo Excel da fatura</label>
+        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv" onchange="previewFaturaCC(this)">
       </div>
       <div id="cc-imp-preview" style="display:none">
         <div style="font-size:12px;color:var(--text2);margin-bottom:8px" id="cc-imp-preview-label">Colunas detectadas — confirme o mapeamento:</div>
         <div id="cc-imp-mapa"></div>
-        <div id="cc-imp-pdf-resumo" style="display:none;font-size:12px;color:var(--text2)"></div>
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
