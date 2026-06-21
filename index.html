@@ -14407,12 +14407,8 @@ function renderConciliacao() {
         catDre = (catMatch.demonstrativo === 'DRE' || catMatch.demonstrativo === 'AMBOS') ? catMatch.nome : catDre;
         catNome = catMatch.nome;
         temSugestao = true;
-      } else {
-        // Usa o nome do Excel direto
-        catNome = r._catExcel;
-        catDfc = r._catExcel;
-        temSugestao = true;
       }
+      // Se não achou no plano de contas, mantém em branco (não força o texto da planilha)
     }
     const tipo = r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
     const qtdRep = contagem[r.extrato] || 1;
