@@ -2867,16 +2867,20 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <button class="modal-close" onclick="closeModal('modal-pdv-categorias')">×</button>
             </div>
             <div style="padding:1.25rem">
-              <div style="display:flex;gap:8px;margin-bottom:1rem">
+              <div style="display:flex;gap:8px;margin-bottom:0.5rem;align-items:center;flex-wrap:wrap">
                 <input type="number" id="nova-cat-pdv-ordem" placeholder="Nº" min="1" style="width:60px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;text-align:center">
-                <input type="text" id="nova-cat-pdv" placeholder="Nome da categoria..." style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
+                <input type="text" id="nova-cat-pdv" placeholder="Nome da categoria..." style="flex:1;min-width:140px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
                 <select id="nova-cat-pdv-tipo" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px">
                   <option value="ENTRADA">Entrada</option>
                   <option value="SAIDA">Saída</option>
                   <option value="AMBOS">Ambos</option>
                 </select>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);white-space:nowrap;padding:0 4px">
+                  <input type="checkbox" id="nova-cat-pdv-dre" checked style="cursor:pointer"> Aparece no DRE
+                </label>
                 <button class="btn btn-primary" onclick="salvarCategoriaPDV()">+ Adicionar</button>
               </div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:0.75rem">Desmarque "Aparece no DRE" pra categorias que não devem contar como receita no Demonstrativo de Resultado (ex: Entre Contas, transferências internas).</div>
               <div id="pdv-categorias-lista" style="max-height:350px;overflow-y:auto"></div>
             </div>
           </div>
@@ -6915,6 +6919,10 @@ async function loadDashboard() {
       // Agrega PDV para o período (mesmo cálculo do DRE)
       let pdvDRECat = {}; // { catNome|mes: valor }
       try {
+        const { data: catsPdvDreDash } = await qE('pdv_categorias').select('nome,aparece_dre');
+        const normCatDreDash = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+(master\s*card|visa|elo|amex|hipercard|hiper).*/i,'').trim();
+        const catsForaDreDash = new Set((catsPdvDreDash||[]).filter(c => c.aparece_dre === false).map(c => normCatDreDash(c.nome)));
+
         const { data: cxDRE } = await qE('pdv_caixas').select('id,data_caixa')
           .gte('data_caixa', ini).lte('data_caixa', fim);
         if (cxDRE?.length) {
@@ -6927,7 +6935,9 @@ async function loadDashboard() {
           }
           pdvIt.filter(it=>it.tipo==='ENTRADA').forEach(it=>{
             const m = cxMes[it.caixa_id]; if(!m) return;
-            const chave = (it.forma_pagamento||'').trim() + '|' + m;
+            const nomeIt = (it.forma_pagamento||'').trim();
+            if (catsForaDreDash.has(normCatDreDash(nomeIt))) return; // categoria marcada como fora do DRE
+            const chave = nomeIt + '|' + m;
             pdvDRECat[chave] = (pdvDRECat[chave]||0) + Number(it.valor||0);
           });
         }
@@ -7696,40 +7706,58 @@ function renderCategoriasPDV() {
     el.innerHTML = '<div style="text-align:center;color:var(--text3);padding:1rem;font-size:13px">Nenhuma categoria cadastrada</div>';
     return;
   }
-  el.innerHTML = _pdvCategorias.map(c => `
+  el.innerHTML = _pdvCategorias.map(c => {
+    const apareceDre = c.aparece_dre !== false; // default true se coluna não existir/for null
+    return `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
       <div>
         <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:24px;display:inline-block">${c.ordem||'—'}</span>
         <span style="font-size:13px;font-weight:500;margin-left:6px">${c.nome}</span>
         <span style="font-size:11px;color:var(--text3);margin-left:8px">${c.tipo}</span>
       </div>
-      <div style="display:flex;gap:6px">
-        <button onclick="editarCategoriaPDV('${c.id}','${c.nome.replace(/'/g,"\'")}','${c.tipo}',${c.ordem||0})"
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="toggleApareceDrePDV('${c.id}',${!apareceDre})" title="Clique pra alternar"
+          style="background:${apareceDre?'var(--green-dim)':'var(--bg3)'};border:1px solid ${apareceDre?'var(--accent)':'var(--border)'};border-radius:20px;padding:3px 10px;cursor:pointer;font-size:10px;font-weight:700;color:${apareceDre?'var(--accent)':'var(--text3)'};white-space:nowrap">
+          ${apareceDre?'✅ Aparece no DRE':'🚫 Fora do DRE'}
+        </button>
+        <button onclick="editarCategoriaPDV('${c.id}','${c.nome.replace(/'/g,"\'")}','${c.tipo}',${c.ordem||0},${apareceDre})"
           style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
         <button onclick="excluirCategoriaPDV('${c.id}')"
           style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+async function toggleApareceDrePDV(id, novoValor) {
+  const { error } = await sb.from('pdv_categorias').update({ aparece_dre: novoValor }).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  await carregarCategoriasPDV();
+  renderCategoriasPDV();
+  showToast(novoValor ? 'Agora aparece no DRE' : 'Removida do DRE', 'success');
 }
 
 async function salvarCategoriaPDV() {
   const nome = document.getElementById('nova-cat-pdv').value.trim();
   const tipo = document.getElementById('nova-cat-pdv-tipo').value;
   const ordem = parseInt(document.getElementById('nova-cat-pdv-ordem')?.value) || 0;
+  const apareceDre = document.getElementById('nova-cat-pdv-dre')?.checked !== false;
   if (!nome) return;
-  const { error } = await sb.from('pdv_categorias').insert(addEmpresaId({ nome, tipo, ordem }));
+  const { error } = await sb.from('pdv_categorias').insert(addEmpresaId({ nome, tipo, ordem, aparece_dre: apareceDre }));
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   document.getElementById('nova-cat-pdv').value = '';
   document.getElementById('nova-cat-pdv-ordem').value = '';
+  document.getElementById('nova-cat-pdv-dre').checked = true;
   await carregarCategoriasPDV();
   renderCategoriasPDV();
   showToast('Categoria salva!', 'success');
 }
 
-function editarCategoriaPDV(id, nome, tipo, ordem) {
+function editarCategoriaPDV(id, nome, tipo, ordem, apareceDre) {
   document.getElementById('nova-cat-pdv').value = nome;
   document.getElementById('nova-cat-pdv-tipo').value = tipo;
   document.getElementById('nova-cat-pdv-ordem').value = ordem;
+  document.getElementById('nova-cat-pdv-dre').checked = apareceDre !== false;
   // Muda botão para salvar edição
   const btn = document.querySelector('[onclick="salvarCategoriaPDV()"]');
   if (btn) {
@@ -7742,12 +7770,14 @@ async function salvarEdicaoCategoriaPDV(id) {
   const nome = document.getElementById('nova-cat-pdv').value.trim();
   const tipo = document.getElementById('nova-cat-pdv-tipo').value;
   const ordem = parseInt(document.getElementById('nova-cat-pdv-ordem')?.value) || 0;
+  const apareceDre = document.getElementById('nova-cat-pdv-dre')?.checked !== false;
   if (!nome) return;
-  const { error } = await sb.from('pdv_categorias').update({ nome, tipo, ordem }).eq('id', id);
+  const { error } = await sb.from('pdv_categorias').update({ nome, tipo, ordem, aparece_dre: apareceDre }).eq('id', id);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   // Restaura botão original
   document.getElementById('nova-cat-pdv').value = '';
   document.getElementById('nova-cat-pdv-ordem').value = '';
+  document.getElementById('nova-cat-pdv-dre').checked = true;
   const btn = document.querySelector('[onclick]');
   if (btn) { btn.textContent = '+ Adicionar'; btn.onclick = salvarCategoriaPDV; }
   await carregarCategoriasPDV();
@@ -7859,12 +7889,14 @@ async function initLancamentos() {
   if (document.getElementById('nl-data')) document.getElementById('nl-data').value = hoje;
 }
 
-async function loadLancamentos() {
+async function loadLancamentos(forcarBancoFilter) {
   const el = document.getElementById('lanc-tbody');
   if (!el) return;
 
   // Guarda o banco selecionado ANTES de recarregar a lista (carregarBancos reconstrói o <select> e perde a seleção)
-  const bancoSelecionadoAntes = document.getElementById('lanc-banco-filter')?.value || '';
+  const bancoSelecionadoAntes = forcarBancoFilter !== undefined
+    ? forcarBancoFilter
+    : (document.getElementById('lanc-banco-filter')?.value || '');
 
   // Sempre rebusca bancos do banco de dados
   await carregarBancos();
@@ -7876,7 +7908,7 @@ async function loadLancamentos() {
   const tipo = document.getElementById('lanc-tipo')?.value;
   const mes = document.getElementById('lanc-mes')?.value || '';
   const ano = document.getElementById('lanc-ano')?.value || '2026';
-  const bancoFilter = document.getElementById('lanc-banco-filter')?.value;
+  const bancoFilter = bancoSelecionadoAntes;
 
   let ini, fim;
   if (mes) {
@@ -12784,6 +12816,11 @@ async function loadDRE() {
   // { "NomeCategoria|MM": valor }
   let pdvPorCatMes = {};
   try {
+    // Categorias do PDV marcadas como "fora do DRE" — não devem contar como receita
+    const { data: catsPdvDre } = await qE('pdv_categorias').select('nome,aparece_dre');
+    const normCatDre = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+(master\s*card|visa|elo|amex|hipercard|hiper).*/i,'').trim();
+    const catsForaDre = new Set((catsPdvDre||[]).filter(c => c.aparece_dre === false).map(c => normCatDre(c.nome)));
+
     const { data: caixas } = await qE('pdv_caixas').select('id,data_caixa')
       .gte('data_caixa',`${ano}-01-01`).lte('data_caixa',`${ano}-12-31`);
     if (caixas?.length) {
@@ -12800,6 +12837,7 @@ async function loadDRE() {
         const mes = caixaMes[it.caixa_id];
         const nome = (it.forma_pagamento||'').trim();
         if (!mes || !nome) return;
+        if (catsForaDre.has(normCatDre(nome))) return; // categoria marcada como fora do DRE
         const chave = nome + '|' + mes;
         pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + Number(it.valor||0);
       });
@@ -14794,8 +14832,9 @@ function filtrarPorBanco(bancoId) {
   const sel = document.getElementById('lanc-banco-filter');
   if (!sel) return;
   // Toggle: clicou no mesmo banco já selecionado → limpa filtro
-  sel.value = (sel.value === bancoId) ? '' : bancoId;
-  loadLancamentos();
+  const novoValor = (sel.value === bancoId) ? '' : bancoId;
+  sel.value = novoValor;
+  loadLancamentos(novoValor);
 }
 
 function filtrarLancamentos(termo) {
