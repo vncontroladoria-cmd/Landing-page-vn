@@ -7759,6 +7759,24 @@ async function carregarBancos() {
 let _bancos = [];
 let _categorias = [];
 
+// Busca TODOS os lançamentos da empresa, sem o limite de 1000 do Supabase (paginação)
+async function buscarTodosLancamentosSaldo() {
+  let todos = [];
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await qE('lancamentos')
+      .select('entrada,saida,valor,tipo,banco_id,banco_nome,categoria,categoria_dfc,data_lancamento')
+      .range(from, from + pageSize - 1);
+    if (error) { console.error('buscarTodosLancamentosSaldo:', error); break; }
+    if (!data || !data.length) break;
+    todos = todos.concat(data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return todos;
+}
+
 // Garante que categorias estão carregadas antes de usar
 let _categoriasEmpresaId = null;
 async function garantirCategorias() {
@@ -7877,8 +7895,7 @@ async function loadLancamentos() {
 
   // ── SALDOS ──────────────────────────────────────────────
   // Busca TODOS os lançamentos com categoria para cálculo de saldo real
-  const { data: todosLancs } = await qE('lancamentos').select('entrada,saida,valor,tipo,banco_id,banco_nome,categoria,categoria_dfc');
-  const todos = todosLancs || [];
+  const todos = await buscarTodosLancamentosSaldo();
 
   // Valor líquido de um lançamento
   const vlLanc = l => {
