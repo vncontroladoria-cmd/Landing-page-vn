@@ -7019,11 +7019,24 @@ async function loadDashboard() {
   // ── Saldo em Caixa: último saldo acumulado de todos os bancos ──
   try {
     const empIdSaldo = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
-    // Busca todos os lançamentos ordenados por data para calcular saldo acumulado
-    const { data: todosLancSaldo } = await sb.from('lancamentos')
-      .select('entrada,saida,valor,tipo,categoria,data_lancamento')
-      .eq('empresa_id', empIdSaldo)
-      .order('data_lancamento', { ascending: true });
+    // Busca todos os lançamentos ordenados por data para calcular saldo acumulado (com paginação)
+    let todosLancSaldo = [];
+    {
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: pagina, error } = await sb.from('lancamentos')
+          .select('entrada,saida,valor,tipo,categoria,data_lancamento')
+          .eq('empresa_id', empIdSaldo)
+          .order('data_lancamento', { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) { console.error('saldo_caixa pagina:', error); break; }
+        if (!pagina || !pagina.length) break;
+        todosLancSaldo = todosLancSaldo.concat(pagina);
+        if (pagina.length < pageSize) break;
+        from += pageSize;
+      }
+    }
     
     let saldoTotal = 0;
     let ultimaData = '';
