@@ -7863,8 +7863,15 @@ async function loadLancamentos() {
   const el = document.getElementById('lanc-tbody');
   if (!el) return;
 
+  // Guarda o banco selecionado ANTES de recarregar a lista (carregarBancos reconstrói o <select> e perde a seleção)
+  const bancoSelecionadoAntes = document.getElementById('lanc-banco-filter')?.value || '';
+
   // Sempre rebusca bancos do banco de dados
   await carregarBancos();
+
+  // Restaura a seleção do banco
+  const selBancoFilter = document.getElementById('lanc-banco-filter');
+  if (selBancoFilter) selBancoFilter.value = bancoSelecionadoAntes;
 
   const tipo = document.getElementById('lanc-tipo')?.value;
   const mes = document.getElementById('lanc-mes')?.value || '';
