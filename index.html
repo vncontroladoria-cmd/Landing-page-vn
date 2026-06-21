@@ -14393,14 +14393,20 @@ function renderConciliacao() {
     let catNome = catDfc || catDre || '';
     let temSugestao = !!match;
 
-    // 2. Se não achou por fornecedor, tenta pela coluna CATEGORIA do Excel
-    if (r._catExcel) {
+    // 2. Só tenta pela coluna CATEGORIA do Excel se NENHUM fornecedor bateu
+    //    (categoria do fornecedor sempre tem prioridade sobre o texto da planilha)
+    if (!match && r._catExcel) {
       const normCat = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-      const catMatch = _categorias.find(c =>
-        normCat(c.nome) === normCat(r._catExcel) ||
-        normCat(c.nome).includes(normCat(r._catExcel)) ||
-        normCat(r._catExcel).includes(normCat(c.nome))
-      );
+      const ne = normCat(r._catExcel);
+      const catMatch = _categorias.find(c => {
+        const nc = normCat(c.nome);
+        if (nc === ne) return true;
+        // Substring só conta se o termo menor tiver pelo menos 5 letras —
+        // evita falso positivo tipo "Iss" dentro de "Comissão"
+        if (nc.length >= 5 && ne.includes(nc)) return true;
+        if (ne.length >= 5 && nc.includes(ne)) return true;
+        return false;
+      });
       if (catMatch) {
         // Achou no plano de contas — usa DFC/DRE corretamente
         catDfc = (catMatch.demonstrativo === 'DFC' || catMatch.demonstrativo === 'AMBOS') ? catMatch.nome : catDfc;
