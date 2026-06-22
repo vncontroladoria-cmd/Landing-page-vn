@@ -4157,6 +4157,14 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <label>Comissão (%)</label>
         <input type="number" id="prof-comissao" placeholder="0" min="0" max="100" step="0.1">
       </div>
+      <div class="form-group" style="grid-column:1/-1;position:relative">
+        <label>Categoria DRE <span style="font-size:11px;color:var(--text3);font-weight:400">(onde o custo desse profissional aparece no DRE)</span></label>
+        <input type="text" id="prof-cat-dre-busca" placeholder="Buscar categoria do Plano de Contas..." autocomplete="off"
+          oninput="buscarCatProfissional(this.value)" onfocus="buscarCatProfissional(this.value)"
+          onblur="setTimeout(()=>{const d=document.getElementById('prof-cat-dre-dd');if(d)d.style.display='none'},200)">
+        <input type="hidden" id="prof-cat-dre">
+        <div id="prof-cat-dre-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+      </div>
     </div>
     <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Metas Mensais (R$)</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem" id="prof-metas-grid">
@@ -14038,11 +14046,40 @@ async function salvarMetaProfissional(profId, valor, mes, ano) {
   loadMetricas();
 }
 
+function buscarCatProfissional(texto) {
+  const dd = document.getElementById('prof-cat-dre-dd');
+  if (!dd) return;
+  const termo = (texto||'').toLowerCase().trim();
+  const cats = (_categorias||[]).filter(c =>
+    (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') &&
+    c.tipo === 'SAIDA' &&
+    (!termo || c.nome.toLowerCase().includes(termo))
+  );
+  if (!cats.length) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = cats.map(c =>
+    `<div onmousedown="selecionarCatProfissional('${c.nome.replace(/'/g,"\\'")}')"
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong>
+      <span style="font-size:10px;color:var(--text3);margin-left:6px">${c.grupo||''}</span>
+    </div>`
+  ).join('');
+}
+
+function selecionarCatProfissional(nome) {
+  document.getElementById('prof-cat-dre-busca').value = nome;
+  document.getElementById('prof-cat-dre').value = nome;
+  document.getElementById('prof-cat-dre-dd').style.display = 'none';
+}
+
 function abrirModalProfissional(prof = null) {
   document.getElementById('prof-id').value = prof?.id || '';
   document.getElementById('prof-nome').value = prof?.nome || '';
   document.getElementById('prof-cargo').value = prof?.cargo || '';
   document.getElementById('prof-comissao').value = prof?.comissao || '';
+  document.getElementById('prof-cat-dre').value = prof?.categoria_dre || '';
+  document.getElementById('prof-cat-dre-busca').value = prof?.categoria_dre || '';
   document.getElementById('modal-prof-titulo').textContent = prof ? 'Editar Profissional' : 'Cadastrar Profissional';
   // Grade de metas mensais
   let grid = '';
@@ -14078,13 +14115,14 @@ async function salvarProfissional() {
   const id = document.getElementById('prof-id').value;
   const cargo = document.getElementById('prof-cargo').value.trim();
   const comissao = parseFloat(document.getElementById('prof-comissao').value) || 0;
+  const categoria_dre = document.getElementById('prof-cat-dre').value.trim() || null;
   const ano = document.getElementById('met-ano')?.value || '2026';
 
   let profId = id;
   if (id) {
-    await sb.from('profissionais').update({ nome, cargo, comissao }).eq('id', id);
+    await sb.from('profissionais').update({ nome, cargo, comissao, categoria_dre }).eq('id', id);
   } else {
-    const { data } = await sb.from('profissionais').insert(addEmpresaId({ nome, cargo, comissao })).select().single();
+    const { data } = await sb.from('profissionais').insert(addEmpresaId({ nome, cargo, comissao, categoria_dre })).select().single();
     profId = data?.id;
   }
 
@@ -15686,10 +15724,10 @@ async function salvarNovaEmpresa() {
   const { data: novaEmp, error } = await sb.from('empresas').insert(payload).select().single();
   if (error) { showToast('Erro: ' + error.message,'error'); return; }
 
-  // Copiar plano de contas base da empresa FME ou da primeira empresa ativa
+  // Cria a estrutura padrão (grupos e categorias com nomes corretos, que batem com os cálculos do DRE)
   try {
-    await copiarPlanoBaseParaEmpresa(novaEmp.id);
-    showToast('Empresa criada com plano de contas!','success');
+    await criarEstruturaBase(novaEmp.id);
+    showToast('Empresa criada com plano de contas padrão!','success');
   } catch(e) {
     showToast('Empresa criada! (plano de contas pendente)','success');
   }
