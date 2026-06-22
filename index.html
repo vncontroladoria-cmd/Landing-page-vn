@@ -5910,9 +5910,17 @@ function aplicarFiltrosImport() {
   }
 
   // Filtro data — busca a coluna que parece data
-  if ((ano || mes) && _impColunaData) {
+  // Se _impColunaData for null (ex: relatório de Clientes), tenta colunas específicas de clientes
+  const colData = _impColunaData || (() => {
+    if (!_impDadosCarregados.length) return null;
+    const cols = Object.keys(_impDadosCarregados[0].colunas || {});
+    const chavesClientes = ['ultima visita', 'ultimavisita', 'data cadastro', 'datacadastro', 'data atendimento'];
+    return cols.find(c => chavesClientes.some(k => c.toLowerCase().replace(/\s/g,'').includes(k.replace(/\s/g,'')))) || null;
+  })();
+
+  if ((ano || mes) && colData) {
     filtrado = filtrado.filter(r => {
-      const raw = r.colunas[_impColunaData];
+      const raw = r.colunas[colData];
       const rawStr = String(raw || '');
       // Aceita YYYY-MM-DD, DD/MM/YYYY ou número serial do Excel
       let anoVal = '', mesVal = '';
@@ -5963,14 +5971,7 @@ function preencherFiltroAno(data) {
 
 function detectarColunaData(cols) {
   // Tenta achar coluna de data pelas palavras-chave
-  const chaves = [
-    'data','date','dt','Data Comanda','DataComanda','Data Movimentação','data_comanda',
-    'Ultima Visita','UltimaVisita','Última Visita','ultima visita',
-    'Data Cadastro','DataCadastro','data cadastro',
-    'Data Atendimento','DataAtendimento',
-    'Data Nascimento','DataNascimento',
-    'Dt ','Dt.'
-  ];
+  const chaves = ['data','date','dt','Data Comanda','DataComanda','Data Movimentação','data_comanda'];
   for (const c of chaves) {
     const found = cols.find(col => col.toLowerCase().includes(c.toLowerCase()));
     if (found) return found;
