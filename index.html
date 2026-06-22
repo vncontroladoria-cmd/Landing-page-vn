@@ -5909,13 +5909,27 @@ function aplicarFiltrosImport() {
     );
   }
 
-  // Filtro data — busca a coluna que parece data
-  // Se _impColunaData for null (ex: relatório de Clientes), tenta colunas específicas de clientes
+  // Filtro data — usa _impColunaData ou detecta automaticamente pela coluna com valores de data
   const colData = _impColunaData || (() => {
     if (!_impDadosCarregados.length) return null;
     const cols = Object.keys(_impDadosCarregados[0].colunas || {});
-    const chavesClientes = ['ultima visita', 'ultimavisita', 'data cadastro', 'datacadastro', 'data atendimento'];
-    return cols.find(c => chavesClientes.some(k => c.toLowerCase().replace(/\s/g,'').includes(k.replace(/\s/g,'')))) || null;
+    const isDataVal = v => {
+      const s = String(v || '').trim();
+      if (!s) return false;
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return true;
+      if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return true;
+      const n = parseInt(s);
+      if (!isNaN(n) && n > 40000 && n < 60000 && /^\d+$/.test(s)) return true;
+      return false;
+    };
+    // Testa as primeiras 5 linhas pra cada coluna e escolhe a que tiver mais valores de data
+    const amostra = _impDadosCarregados.slice(0, 5);
+    let melhorCol = null, melhorScore = 0;
+    for (const col of cols) {
+      const score = amostra.filter(r => isDataVal(r.colunas[col])).length;
+      if (score > melhorScore) { melhorScore = score; melhorCol = col; }
+    }
+    return melhorScore >= 2 ? melhorCol : null; // exige ao menos 2 linhas com data pra ter certeza
   })();
 
   if ((ano || mes) && colData) {
