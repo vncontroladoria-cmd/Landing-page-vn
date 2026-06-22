@@ -5963,7 +5963,14 @@ function preencherFiltroAno(data) {
 
 function detectarColunaData(cols) {
   // Tenta achar coluna de data pelas palavras-chave
-  const chaves = ['data','date','dt','Data Comanda','DataComanda','Data Movimentação','data_comanda'];
+  const chaves = [
+    'data','date','dt','Data Comanda','DataComanda','Data Movimentação','data_comanda',
+    'Ultima Visita','UltimaVisita','Última Visita','ultima visita',
+    'Data Cadastro','DataCadastro','data cadastro',
+    'Data Atendimento','DataAtendimento',
+    'Data Nascimento','DataNascimento',
+    'Dt ','Dt.'
+  ];
   for (const c of chaves) {
     const found = cols.find(col => col.toLowerCase().includes(c.toLowerCase()));
     if (found) return found;
