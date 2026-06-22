@@ -5916,20 +5916,37 @@ function aplicarFiltrosImport() {
     const isDataVal = v => {
       const s = String(v || '').trim();
       if (!s) return false;
-      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return true;
-      if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return true;
-      const n = parseInt(s);
-      if (!isNaN(n) && n > 40000 && n < 60000 && /^\d+$/.test(s)) return true;
+      // Formato YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+        const ano = parseInt(s.substring(0,4));
+        return ano >= 2000 && ano <= 2035;
+      }
+      // Formato DD/MM/YYYY
+      if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) {
+        const ano = parseInt(s.substring(6,10));
+        return ano >= 2000 && ano <= 2035;
+      }
+      // Número serial Excel — só aceita se NÃO parece valor monetário (sem vírgula/ponto no original)
+      // e se o número inteiro produz um ano razoável
+      if (/^\d+$/.test(s)) {
+        const n = parseInt(s);
+        if (n > 40000 && n < 55000) {
+          const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+          const ano = d.getUTCFullYear();
+          return ano >= 2009 && ano <= 2030;
+        }
+      }
       return false;
     };
-    // Testa as primeiras 5 linhas pra cada coluna e escolhe a que tiver mais valores de data
-    const amostra = _impDadosCarregados.slice(0, 5);
+    // Testa as primeiras 10 linhas pra cada coluna e escolhe a que tiver mais valores de data
+    const amostra = _impDadosCarregados.slice(0, 10);
     let melhorCol = null, melhorScore = 0;
     for (const col of cols) {
       const score = amostra.filter(r => isDataVal(r.colunas[col])).length;
       if (score > melhorScore) { melhorScore = score; melhorCol = col; }
     }
-    return melhorScore >= 2 ? melhorCol : null; // exige ao menos 2 linhas com data pra ter certeza
+    // Exige ao menos 5 linhas com data nas 10 primeiras pra ter certeza (50%)
+    return melhorScore >= 5 ? melhorCol : null;
   })();
 
   if ((ano || mes) && colData) {
