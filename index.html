@@ -9561,18 +9561,31 @@ function renderClientesPage() {
     return;
   }
 
+  // ── Filtro de mês/ano ──────────────────────────────────
+  const mesSel = document.getElementById('cli-mes')?.value || '';
+  const anoSel = document.getElementById('cli-ano')?.value || '';
+
+  const dentroFiltro = data => {
+    if (!data) return !mesSel && !anoSel; // sem data, só aparece se não tiver filtro
+    if (anoSel && !data.startsWith(anoSel)) return false;
+    if (mesSel && data.substring(5,7) !== mesSel.padStart(2,'0')) return false;
+    return true;
+  };
+
   // Mapa de clientes novos pelo nome normalizado
   const novosSet  = new Set(_cliNovosData.map(c => _normCli(c.nome)));
   const novosInfo = {};
   _cliNovosData.forEach(c => { novosInfo[_normCli(c.nome)] = c; });
 
-  // Todos os clientes marcados como novo/recorrente
-  const todos = _cliTodosData.map(c => ({
-    ...c,
-    isNovo:       novosSet.has(_normCli(c.nome)),
-    canal:        novosInfo[_normCli(c.nome)]?.canal        || '—',
-    dataCadastro: novosInfo[_normCli(c.nome)]?.dataCadastro || '',
-  }));
+  // Todos os clientes marcados como novo/recorrente, filtrados por mês/ano
+  const todos = _cliTodosData
+    .filter(c => dentroFiltro(c.ultimaVisita))
+    .map(c => ({
+      ...c,
+      isNovo:       novosSet.has(_normCli(c.nome)),
+      canal:        novosInfo[_normCli(c.nome)]?.canal        || '—',
+      dataCadastro: novosInfo[_normCli(c.nome)]?.dataCadastro || '',
+    }));
 
   const novos       = todos.filter(c => c.isNovo);
   const recorrentes = todos.filter(c => !c.isNovo);
