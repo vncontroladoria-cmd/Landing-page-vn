@@ -5490,7 +5490,7 @@ function filtrarTipoImport(tipoId) {
   renderTiposGrid();
 
   if (tipoId) {
-    // Carrega dados do tipo selecionado
+    // Carrega dados do tipo selecionado automaticamente (chip clicado = só um card visível)
     const tipo = _impTipos.find(t => t.id === tipoId);
     if (tipo) carregarDadosTipo(tipo.id, tipo.nome);
   } else {
