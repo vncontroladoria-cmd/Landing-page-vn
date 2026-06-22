@@ -6023,8 +6023,19 @@ async function confirmarLimparDados() {
   if (!tipoId) return;
   if (!confirm(`Apagar TODOS os dados importados de "${tipoNome}"?\nEssa ação não pode ser desfeita.`)) return;
 
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+
+  // Apaga do rel_dados_brutos
   const { error } = await sb.from('rel_dados_brutos').delete().eq('tipo_id', tipoId);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  // Se for tipo Serviços, apaga também de rel_servicos e rel_lucratividade
+  const nomeNorm = (tipoNome||'').toLowerCase();
+  if (nomeNorm.includes('servi') || nomeNorm.includes('lucrat')) {
+    await sb.from('rel_servicos').delete().eq('empresa_id', empId);
+    await sb.from('rel_lucratividade').delete().eq('empresa_id', empId);
+  }
+
   showToast(`Dados de "${tipoNome}" removidos.`, 'success');
   document.getElementById('imp-tabela-container').innerHTML = '<div class="empty">Nenhum dado.</div>';
   if (btn) btn.style.display = 'none';
