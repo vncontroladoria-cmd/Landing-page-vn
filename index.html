@@ -9362,10 +9362,18 @@ async function loadLucratividade() {
   rows = rows.filter(r => r.data_comanda?.startsWith(ano));
   if (mes) rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
   if (!rows?.length) {
+    // Destroi charts antigos pra não mostrar dados de outra empresa/período
+    if (_lucChart1) { _lucChart1.destroy(); _lucChart1 = null; }
+    if (_lucChart2) { _lucChart2.destroy(); _lucChart2 = null; }
     ['luc-fat','luc-lucro','luc-pct','luc-custo','luc-atend','luc-ticket','luc-comissao','luc-custoserv']
       .forEach(id => { if(el(id)) el(id).textContent = '—'; });
     ['luc-rank-prof','luc-tab-cat','luc-top-lucro','luc-top-margem']
       .forEach(id => { if(el(id)) el(id).innerHTML = '<div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Importe o relatório de Lucratividade</div>'; });
+    // Limpa canvas dos charts
+    const c1 = el('luc-chart-comp'); if(c1) { const ctx = c1.getContext('2d'); ctx.clearRect(0,0,c1.width,c1.height); }
+    const c2 = el('luc-chart-cat');  if(c2) { const ctx = c2.getContext('2d'); ctx.clearRect(0,0,c2.width,c2.height); }
+    // Limpa legenda
+    ['luc-legend-comp','luc-legend-cat'].forEach(id => { if(el(id)) el(id).innerHTML = ''; });
     return;
   }
 
