@@ -5225,6 +5225,12 @@ async function trocarEmpresa(empresaId) {
   _categorias = [];
   _categoriasEmpresaId = null;
   _catMapAtual = {};
+  // Limpa cache de importação — tipos e dados pertencem à empresa anterior
+  _impTipos = [];
+  _impDadosCarregados = [];
+  _impTipoAtivo = null;
+  _impColunaData = null;
+  _impColunasCarregadas = [];
   atualizarTopbarEmpresa();
   aplicarTemaEmpresa(emp);
   aplicarPermissoes();
@@ -15406,7 +15412,12 @@ async function masterAcessarEmpresa(empresaId) {
   _categorias = [];
   _categoriasEmpresaId = null;
   _catMapAtual = {};
-  // Registra log de acesso à empresa
+  // Limpa cache de importação — tipos e dados pertencem à empresa anterior
+  _impTipos = [];
+  _impDadosCarregados = [];
+  _impTipoAtivo = null;
+  _impColunaData = null;
+  _impColunasCarregadas = [];
   if (_vnUser?.id) {
     sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
   }
@@ -17739,6 +17750,7 @@ async function operadorAcessarEmpresa(empresaId) {
   sessionStorage.setItem('vn_empresa_id', emp.id);
   localStorage.setItem('vn_empresa_id', emp.id);
   _categorias = []; _categoriasEmpresaId = null; _catMapAtual = {};
+  _impTipos = []; _impDadosCarregados = []; _impTipoAtivo = null; _impColunaData = null; _impColunasCarregadas = [];
   if (_vnUser?.id) {
     sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
   }
