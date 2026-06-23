@@ -8261,6 +8261,10 @@ async function loadLancamentos(forcarBancoFilter) {
     </tr>`;
   });
   el.innerHTML = html;
+
+  // Reaplicar filtro de busca se houver texto digitado
+  const termoBusca = document.getElementById('lanc-busca')?.value || '';
+  if (termoBusca.trim()) filtrarLancamentos(termoBusca);
 }
 
 async function darBaixaContaPagar(lancId) {
