@@ -6819,12 +6819,9 @@ function parsePDVTexto(text) {
   const prep = s => n(s.replace(/^[-–•]\s*/,'').replace(/\s*\(\d+\)\s*/g,' '));
 
   // Extrai primeiro valor monetário de uma string
-  // Aceita: 50,00 / 1.234,56 / 7.471,50
   const extraiValor = s => {
-    // Tenta com ponto de milhar primeiro, depois sem
     const ms = [...s.matchAll(/(\d{1,3}(?:\.\d{3})*,\d{2})/g)];
     if (!ms.length) {
-      // fallback: qualquer número com vírgula decimal
       const ms2 = [...s.matchAll(/(\d+,\d{2})/g)];
       for (const m of ms2) {
         const v = parseFloat(m[1].replace(',','.'));
@@ -6839,6 +6836,9 @@ function parsePDVTexto(text) {
     return 0;
   };
 
+  // Acumula valores por categoria — soma todos os matches (vários caixas no mesmo dia)
+  const acumulado = {}; // { catNome: { valor, tipo, categoria } }
+
   _pdvCategorias.forEach(cat => {
     const catN = n(cat.nome);
 
@@ -6846,25 +6846,27 @@ function parsePDVTexto(text) {
       const linha = linhas[i];
       const linhaN = prep(linha);
 
-      // Bate se começa com o nome da categoria (aceita plural: +s)
       if (!linhaN.startsWith(catN) && !linhaN.startsWith(catN + 's')) continue;
 
-      // Extrai valor da linha
-      let valor = extraiValor(linha);
-      if (!valor) continue; // valor zero = tenta próxima linha
+      const valor = extraiValor(linha);
+      if (!valor) continue;
 
-      itens.push({
-        forma_pagamento: cat.nome,
-        descricao: cat.nome,
-        valor,
-        tipo: cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA',
-        categoria: cat.nome
-      });
-      break;
+      // Soma ao acumulado em vez de parar no primeiro
+      if (!acumulado[cat.nome]) {
+        acumulado[cat.nome] = {
+          forma_pagamento: cat.nome,
+          descricao: cat.nome,
+          valor: 0,
+          tipo: cat.tipo === 'SAIDA' ? 'SAIDA' : 'ENTRADA',
+          categoria: cat.nome
+        };
+      }
+      acumulado[cat.nome].valor += valor;
+      // Não dá break — continua procurando mais ocorrências da mesma categoria
     }
   });
 
-  return itens;
+  return Object.values(acumulado);
 }
 
 function detectarCategoriaPDVTexto(forma) {
