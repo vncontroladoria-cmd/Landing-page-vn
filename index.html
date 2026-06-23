@@ -2368,6 +2368,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard blue"><div class="hcard-label">Saldo Final</div><div class="hcard-value sm" id="lanc-hero-saldo">—</div><div class="hcard-sub">todos os bancos</div><div class="hcard-icon">🏦</div></div>
             <div class="hcard purple"><div class="hcard-label">Lançamentos</div><div class="hcard-value" id="lanc-hero-n">—</div><div class="hcard-sub">no período</div><div class="hcard-icon">📋</div></div>
             <div class="hcard amber"><div class="hcard-label">Resultado</div><div class="hcard-value sm" id="lanc-hero-res">—</div><div class="hcard-sub">entradas − saídas</div><div class="hcard-icon">📊</div></div>
+            <div class="hcard dark" id="lanc-hero-semcat" onclick="filtrarSemCategoria()" style="cursor:pointer;border:2px solid transparent;transition:border .15s" title="Clique para ver os lançamentos sem categoria">
+              <div class="hcard-label">Sem Categoria</div>
+              <div class="hcard-value" id="lanc-hero-semcat-n">—</div>
+              <div class="hcard-sub" id="lanc-hero-semcat-sub">clique para filtrar</div>
+              <div class="hcard-icon">⚠️</div>
+            </div>
           </div>
 
           <!-- FILTROS E AÇÕES -->
@@ -8165,6 +8171,16 @@ async function loadLancamentos(forcarBancoFilter) {
   _ls('lanc-hero-saldo', fmtBRL(saldoTotal));
   _ls('lanc-hero-n', lancs.length.toLocaleString('pt-BR'));
   _ls('lanc-hero-res', fmtBRL(totalEntrada-totalSaida));
+
+  // Card Sem Categoria
+  const semCat = lancs.filter(l => !l.categoria && !isLancContabil(l));
+  const cardSemCat = document.getElementById('lanc-hero-semcat');
+  _ls('lanc-hero-semcat-n', semCat.length.toLocaleString('pt-BR'));
+  _ls('lanc-hero-semcat-sub', semCat.length > 0 ? 'clique para filtrar' : 'tudo categorizado ✅');
+  if (cardSemCat) {
+    cardSemCat.style.borderColor = semCat.length > 0 ? 'var(--amber)' : 'transparent';
+    cardSemCat.style.opacity = semCat.length > 0 ? '1' : '0.6';
+  }
 
   if (!lancs.length) {
     el.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
@@ -15107,6 +15123,38 @@ function filtrarPorBanco(bancoId) {
   const novoValor = (sel.value === bancoId) ? '' : bancoId;
   sel.value = novoValor;
   loadLancamentos(novoValor);
+}
+
+function filtrarSemCategoria() {
+  const semCat = (_lancamentos||[]).filter(l => !l.categoria && !isLancContabil(l));
+  const tbody = document.getElementById('lanc-tbody');
+  const card = document.getElementById('lanc-hero-semcat');
+
+  // Toggle: se já está filtrando, volta ao normal
+  if (card?.dataset.ativo === '1') {
+    card.dataset.ativo = '0';
+    card.style.borderColor = semCat.length > 0 ? 'var(--amber)' : 'transparent';
+    // Mostra todas as linhas
+    document.querySelectorAll('#lanc-tbody tr[id]').forEach(r => r.style.display = '');
+    return;
+  }
+
+  if (!semCat.length) { showToast('Todos os lançamentos têm categoria! ✅', 'success'); return; }
+
+  // Filtra visualmente só os sem categoria
+  const ids = new Set(semCat.map(l => 'lr-' + l.id));
+  document.querySelectorAll('#lanc-tbody tr[id]').forEach(r => {
+    r.style.display = ids.has(r.id) ? '' : 'none';
+  });
+
+  // Marca card como ativo
+  if (card) {
+    card.dataset.ativo = '1';
+    card.style.borderColor = '#f59e0b';
+    card.style.background = 'rgba(245,158,11,0.15)';
+  }
+
+  showToast(`Mostrando ${semCat.length} lançamento${semCat.length > 1 ? 's' : ''} sem categoria`, 'info');
 }
 
 function filtrarLancamentos(termo) {
