@@ -6237,26 +6237,67 @@ async function confirmarImportExcelPDV() {
 
     let caixasCriados = 0;
     for (const [data, linhas] of Object.entries(porData)) {
-      // Cria o caixa
-      const { data: caixa, error: errC } = await sb.from('pdv_caixas').insert(addEmpresaId({
-        data_caixa: data,
-        responsavel: '',
-        status: 'fechado'
-      })).select().single();
-      if (errC) throw new Error(errC.message);
+      // Verifica se já existe um caixa nessa data para essa empresa
+      const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+      const { data: caixaExistente } = await qE('pdv_caixas').select('id').eq('data_caixa', data).maybeSingle();
 
-      // Cria os itens
-      const itens = linhas.map(l => ({
-        caixa_id:        caixa.id,
-        forma_pagamento: l.catNome,
-        descricao:       l.extrato,
-        categoria:       l.catNome,
-        tipo:            l.tipo,
-        valor:           l.valor
-      }));
-      const { error: errI } = await sb.from('pdv_itens').insert(itens.map(r=>addEmpresaId(r)));
-      if (errI) throw new Error(errI.message);
-      caixasCriados++;
+      let caixaId;
+      if (caixaExistente?.id) {
+        // Já existe — soma os itens ao caixa existente
+        caixaId = caixaExistente.id;
+      } else {
+        // Cria o caixa novo
+        const { data: caixa, error: errC } = await sb.from('pdv_caixas').insert(addEmpresaId({
+          data_caixa: data,
+          responsavel: '',
+          status: 'fechado'
+        })).select().single();
+        if (errC) throw new Error(errC.message);
+        caixaId = caixa.id;
+        caixasCriados++;
+      }
+
+      // Busca itens já existentes nesse caixa para somar (evitar duplicata por forma_pagamento)
+      const { data: itensExistentes } = await qE('pdv_itens').select('id,forma_pagamento,valor,tipo').eq('caixa_id', caixaId);
+      const mapaExistente = {};
+      (itensExistentes||[]).forEach(it => {
+        const chave = (it.forma_pagamento||'') + '|' + it.tipo;
+        mapaExistente[chave] = it;
+      });
+
+      const novosItens = [];
+      const atualizarItens = [];
+
+      linhas.forEach(l => {
+        const chave = (l.catNome||'') + '|' + l.tipo;
+        if (mapaExistente[chave]) {
+          // Soma ao item existente
+          atualizarItens.push({
+            id: mapaExistente[chave].id,
+            novoValor: (mapaExistente[chave].valor || 0) + l.valor
+          });
+        } else {
+          novosItens.push({
+            caixa_id:        caixaId,
+            forma_pagamento: l.catNome,
+            descricao:       l.extrato,
+            categoria:       l.catNome,
+            tipo:            l.tipo,
+            valor:           l.valor
+          });
+        }
+      });
+
+      // Atualiza itens existentes com valor somado
+      for (const it of atualizarItens) {
+        await sb.from('pdv_itens').update({ valor: it.novoValor }).eq('id', it.id);
+      }
+
+      // Insere itens novos
+      if (novosItens.length) {
+        const { error: errI } = await sb.from('pdv_itens').insert(novosItens.map(r=>addEmpresaId(r)));
+        if (errI) throw new Error(errI.message);
+      }
     }
 
     closeModal('modal-pdv-excel');
