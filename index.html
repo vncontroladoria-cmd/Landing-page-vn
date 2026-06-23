@@ -8278,7 +8278,7 @@ async function darBaixaContaPagar(lancId) {
     .select('id, descricao, valor, data_vencimento, status')
     .eq('valor', valor)
     .gte('data_vencimento', mes + '-01')
-    .lte('data_vencimento', mes + '-31')
+    .lte('data_vencimento', (() => { const [a,m2] = mes.split('-'); return a+'-'+m2+'-'+String(new Date(parseInt(a),parseInt(m2),0).getDate()).padStart(2,'0'); })())
     .not('status', 'in', '(pago,Pago,paga,Paga,recebido,Recebido)');
 
   if (error) { showToast('Erro ao buscar: ' + error.message, 'error'); return; }
@@ -14897,7 +14897,7 @@ async function conciliarLinha(idx) {
         .select('id, descricao, valor')
         .eq('valor', valorSaida)
         .gte('data_vencimento', mesBaixa + '-01')
-        .lte('data_vencimento', mesBaixa + '-31')
+        .lte('data_vencimento', (() => { const [a,m2] = mesBaixa.split('-'); return a+'-'+m2+'-'+String(new Date(parseInt(a),parseInt(m2),0).getDate()).padStart(2,'0'); })())
         .not('status', 'in', '(pago,Pago,paga,Paga,recebido,Recebido)')
         .limit(1);
       if (contasMatch?.length) {
