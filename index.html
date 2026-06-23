@@ -2368,12 +2368,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard blue"><div class="hcard-label">Saldo Final</div><div class="hcard-value sm" id="lanc-hero-saldo">—</div><div class="hcard-sub">todos os bancos</div><div class="hcard-icon">🏦</div></div>
             <div class="hcard purple"><div class="hcard-label">Lançamentos</div><div class="hcard-value" id="lanc-hero-n">—</div><div class="hcard-sub">no período</div><div class="hcard-icon">📋</div></div>
             <div class="hcard amber"><div class="hcard-label">Resultado</div><div class="hcard-value sm" id="lanc-hero-res">—</div><div class="hcard-sub">entradas − saídas</div><div class="hcard-icon">📊</div></div>
-            <div class="hcard dark" id="lanc-hero-semcat" onclick="filtrarSemCategoria()" style="cursor:pointer;border:2px solid transparent;transition:border .15s" title="Clique para ver os lançamentos sem categoria">
-              <div class="hcard-label">Sem Categoria</div>
-              <div class="hcard-value" id="lanc-hero-semcat-n">—</div>
-              <div class="hcard-sub" id="lanc-hero-semcat-sub">clique para filtrar</div>
-              <div class="hcard-icon">⚠️</div>
-            </div>
           </div>
 
           <!-- FILTROS E AÇÕES -->
@@ -2411,6 +2405,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 oninput="filtrarLancamentos(this.value)"
                 style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
+              <button id="btn-sem-cat" onclick="filtrarSemCategoria()" style="display:none;padding:7px 12px;font-size:13px;border:1.5px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,0.1);color:#b45309;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;gap:6px;align-items:center">
+                ⚠️ Sem categoria: <span id="lanc-hero-semcat-n" style="background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:2px">0</span>
+              </button>
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-primary" onclick="toggleFormLanc()">+ Novo lançamento</button>
@@ -8172,14 +8169,16 @@ async function loadLancamentos(forcarBancoFilter) {
   _ls('lanc-hero-n', lancs.length.toLocaleString('pt-BR'));
   _ls('lanc-hero-res', fmtBRL(totalEntrada-totalSaida));
 
-  // Card Sem Categoria
+  // Botão Sem Categoria
   const semCat = lancs.filter(l => !l.categoria && !isLancContabil(l));
-  const cardSemCat = document.getElementById('lanc-hero-semcat');
-  _ls('lanc-hero-semcat-n', semCat.length.toLocaleString('pt-BR'));
-  _ls('lanc-hero-semcat-sub', semCat.length > 0 ? 'clique para filtrar' : 'tudo categorizado ✅');
-  if (cardSemCat) {
-    cardSemCat.style.borderColor = semCat.length > 0 ? 'var(--amber)' : 'transparent';
-    cardSemCat.style.opacity = semCat.length > 0 ? '1' : '0.6';
+  const btnSemCat = document.getElementById('btn-sem-cat');
+  const nSemCat = document.getElementById('lanc-hero-semcat-n');
+  if (nSemCat) nSemCat.textContent = semCat.length;
+  if (btnSemCat) {
+    btnSemCat.style.display = semCat.length > 0 ? 'inline-flex' : 'none';
+    btnSemCat.dataset.ativo = '0';
+    btnSemCat.style.background = 'rgba(245,158,11,0.1)';
+    btnSemCat.style.color = '#b45309';
   }
 
   if (!lancs.length) {
@@ -15127,31 +15126,28 @@ function filtrarPorBanco(bancoId) {
 
 function filtrarSemCategoria() {
   const semCat = (_lancamentos||[]).filter(l => !l.categoria && !isLancContabil(l));
-  const tbody = document.getElementById('lanc-tbody');
-  const card = document.getElementById('lanc-hero-semcat');
+  const btn = document.getElementById('btn-sem-cat');
 
   // Toggle: se já está filtrando, volta ao normal
-  if (card?.dataset.ativo === '1') {
-    card.dataset.ativo = '0';
-    card.style.borderColor = semCat.length > 0 ? 'var(--amber)' : 'transparent';
-    // Mostra todas as linhas
+  if (btn?.dataset.ativo === '1') {
+    btn.dataset.ativo = '0';
+    btn.style.background = 'rgba(245,158,11,0.1)';
+    btn.style.color = '#b45309';
     document.querySelectorAll('#lanc-tbody tr[id]').forEach(r => r.style.display = '');
     return;
   }
 
   if (!semCat.length) { showToast('Todos os lançamentos têm categoria! ✅', 'success'); return; }
 
-  // Filtra visualmente só os sem categoria
   const ids = new Set(semCat.map(l => 'lr-' + l.id));
   document.querySelectorAll('#lanc-tbody tr[id]').forEach(r => {
     r.style.display = ids.has(r.id) ? '' : 'none';
   });
 
-  // Marca card como ativo
-  if (card) {
-    card.dataset.ativo = '1';
-    card.style.borderColor = '#f59e0b';
-    card.style.background = 'rgba(245,158,11,0.15)';
+  if (btn) {
+    btn.dataset.ativo = '1';
+    btn.style.background = '#f59e0b';
+    btn.style.color = '#fff';
   }
 
   showToast(`Mostrando ${semCat.length} lançamento${semCat.length > 1 ? 's' : ''} sem categoria`, 'info');
