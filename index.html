@@ -2859,7 +2859,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 style="border:2px dashed var(--border);border-radius:10px;padding:1rem;text-align:center;cursor:pointer;background:var(--bg3)">
                 <div style="font-size:13px;font-weight:600">📄 Clique para selecionar arquivo (Excel, CSV)</div>
               </div>
-              <div id="pdv-import-preview" style="margin-top:1rem"></div>
+              <div id="pdv-import-preview" style="margin-top:1rem;max-height:340px;overflow-y:auto;overflow-x:hidden;border-radius:8px"></div>
               <div id="pdv-import-loading" style="display:none;text-align:center;padding:1rem;color:var(--text2)">
                 <div class="spin" style="display:inline-block;margin-right:8px"></div> Processando...
               </div>
@@ -8255,6 +8255,7 @@ async function loadLancamentos(forcarBancoFilter) {
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" title="Auditoria" onclick="verAuditoria('${l.id}')">🔍</button>
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="toggleInline('lr-${l.id}')">✏️</button>
         <button class="btn btn-sm btn-save-inline" style="display:none;padding:3px 8px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarLancamentoInline('${l.id}','lr-${l.id}')">💾</button>
+        ${l.tipo === 'SAIDA' && !isLancContabil(l) ? `<button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:#7c3aed;border-color:#7c3aed" title="Dar baixa em Contas a Pagar" onclick="darBaixaContaPagar('${l.id}')">💸</button>` : ''}
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="excluirLancamento('${l.id}')">🗑️</button>
       </td>
     </tr>`;
@@ -8262,7 +8263,80 @@ async function loadLancamentos(forcarBancoFilter) {
   el.innerHTML = html;
 }
 
-let _tipoLanc = 'ENTRADA';
+async function darBaixaContaPagar(lancId) {
+  const lanc = (_lancamentos||[]).find(l => l.id === lancId);
+  if (!lanc) return;
+
+  const valor = Number(lanc.saida || lanc.valor || 0);
+  const data  = lanc.data_lancamento || '';
+  const mes   = data.substring(0, 7); // YYYY-MM
+
+  if (!valor) { showToast('Lançamento sem valor', 'error'); return; }
+
+  // Busca contas a pagar com mesmo valor e mesmo mês, não pagas
+  const { data: contas, error } = await qE('contas_pagar')
+    .select('id, descricao, valor, data_vencimento, status')
+    .eq('valor', valor)
+    .gte('data_vencimento', mes + '-01')
+    .lte('data_vencimento', mes + '-31')
+    .not('status', 'in', '("pago","Pago","paga","Paga","recebido","Recebido")');
+
+  if (error) { showToast('Erro ao buscar: ' + error.message, 'error'); return; }
+  if (!contas?.length) {
+    showToast(`Nenhuma conta a pagar pendente com valor ${fmtBRL(valor)} em ${mes}`, 'info');
+    return;
+  }
+
+  // Se achou só uma, baixa direto. Se achou várias, mostra modal de seleção
+  if (contas.length === 1) {
+    const c = contas[0];
+    if (!confirm(`Dar baixa em:\n"${c.descricao}"\nValor: ${fmtBRL(c.valor)}\nVencimento: ${fmtDate(c.data_vencimento)}\n\nConfirmar?`)) return;
+    await executarBaixaContaPagar(c.id, data);
+  } else {
+    abrirModalSelecaoBaixa(contas, lancId, data);
+  }
+}
+
+function abrirModalSelecaoBaixa(contas, lancId, dataPagto) {
+  // Cria modal simples de seleção
+  const overlay = document.createElement('div');
+  overlay.id = 'modal-selecao-baixa';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border-radius:14px;padding:24px;width:460px;max-width:95vw;max-height:80vh;overflow-y:auto">
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">💸 Dar Baixa em Contas a Pagar</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Várias contas com o mesmo valor foram encontradas. Selecione qual deseja baixar:</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${contas.map(c => `
+          <div onclick="executarBaixaContaPagar('${c.id}','${dataPagto}');document.getElementById('modal-selecao-baixa').remove()"
+            style="padding:12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s"
+            onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--bg3)'"
+            onmouseout="this.style.borderColor='var(--border)';this.style.background=''">
+            <div style="font-size:13px;font-weight:600">${c.descricao || '—'}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:3px">Venc: ${fmtDate(c.data_vencimento)} · ${fmtBRL(c.valor)}</div>
+          </div>`).join('')}
+      </div>
+      <button onclick="document.getElementById('modal-selecao-baixa').remove()"
+        style="margin-top:16px;width:100%;padding:9px;border:1.5px solid var(--border);border-radius:8px;background:none;color:var(--text);cursor:pointer;font-size:12px">
+        Cancelar
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function executarBaixaContaPagar(contaId, dataPagto) {
+  const { error } = await sb.from('contas_pagar').update({
+    status: 'pago',
+    data_pagamento: dataPagto || new Date().toISOString().substring(0,10)
+  }).eq('id', contaId);
+
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('✅ Baixa realizada em Contas a Pagar!', 'success');
+  // Remove modal de seleção se estiver aberto
+  document.getElementById('modal-selecao-baixa')?.remove();
+}
+
+
 
 function selecionarTipoLanc(tipo) {
   _tipoLanc = tipo;
@@ -14813,6 +14887,28 @@ async function conciliarLinha(idx) {
   }));
 
   if (error) { showToast('Erro: '+error.message,'error'); return; }
+
+  // Baixa automática em Contas a Pagar: se for SAÍDA, busca conta com mesmo valor e mês
+  if (tipo === 'SAIDA' && (r.saida || r.valor)) {
+    const valorSaida = Number(r.saida || r.valor || 0);
+    const mesBaixa   = `${ano}-${m.padStart(2,'0')}`;
+    try {
+      const { data: contasMatch } = await qE('contas_pagar')
+        .select('id, descricao, valor')
+        .eq('valor', valorSaida)
+        .gte('data_vencimento', mesBaixa + '-01')
+        .lte('data_vencimento', mesBaixa + '-31')
+        .not('status', 'in', '("pago","Pago","paga","Paga","recebido","Recebido")')
+        .limit(1);
+      if (contasMatch?.length) {
+        await sb.from('contas_pagar').update({
+          status: 'pago',
+          data_pagamento: r.data
+        }).eq('id', contasMatch[0].id);
+        showToast(`✅ Baixa automática: "${contasMatch[0].descricao}"`, 'success');
+      }
+    } catch(e) { console.warn('baixa auto CP:', e); }
+  }
 
   // Marca linha como conciliada visualmente
   r._concluido = true;
