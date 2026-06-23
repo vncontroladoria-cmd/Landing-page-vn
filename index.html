@@ -7144,7 +7144,7 @@ async function loadDashboard() {
     // Total a Pagar: contas do mês, pendentes ou atrasadas (excluindo pagas)
     const { data: cpMes } = await qE('contas_pagar').select('valor,status,data_vencimento')
       .gte('data_vencimento', ini).lte('data_vencimento', fim)
-      .not('status', 'in', '("pago","Pago","paga","Paga","recebido","Recebido")');
+      .not('status', 'in', '(pago,Pago,paga,Paga,recebido,Recebido)');
     const somaAVencer = (cpAVencer||[]).reduce((s,c) => s + Number(c.valor||0), 0);
     const somaMes     = (cpMes||[]).reduce((s,c) => s + Number(c.valor||0), 0);
     if(el('m-avencer'))   el('m-avencer').textContent   = fmtBRL(somaAVencer);
@@ -8279,7 +8279,7 @@ async function darBaixaContaPagar(lancId) {
     .eq('valor', valor)
     .gte('data_vencimento', mes + '-01')
     .lte('data_vencimento', mes + '-31')
-    .not('status', 'in', '("pago","Pago","paga","Paga","recebido","Recebido")');
+    .not('status', 'in', '(pago,Pago,paga,Paga,recebido,Recebido)');
 
   if (error) { showToast('Erro ao buscar: ' + error.message, 'error'); return; }
   if (!contas?.length) {
@@ -14898,7 +14898,7 @@ async function conciliarLinha(idx) {
         .eq('valor', valorSaida)
         .gte('data_vencimento', mesBaixa + '-01')
         .lte('data_vencimento', mesBaixa + '-31')
-        .not('status', 'in', '("pago","Pago","paga","Paga","recebido","Recebido")')
+        .not('status', 'in', '(pago,Pago,paga,Paga,recebido,Recebido)')
         .limit(1);
       if (contasMatch?.length) {
         await sb.from('contas_pagar').update({
