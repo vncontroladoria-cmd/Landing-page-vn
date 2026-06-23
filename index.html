@@ -2520,8 +2520,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard dark"><div class="hcard-label">Total Mês</div><div class="hcard-value sm" id="cp-hero-total">—</div><div class="hcard-sub">soma do período</div><div class="hcard-icon">💰</div></div>
           </div>
 
-          <!-- LINHA 2: Gráfico vencimentos por dia + Donut por categoria -->
-          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px">
+          <!-- LINHA 2: Gráfico vencimentos por dia (largura total) -->
+          <div style="margin-bottom:14px">
             <div class="section-card">
               <div class="section-card-header">
                 <div class="section-card-title">
@@ -2536,6 +2536,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <canvas id="cp-chart-dias"></canvas>
               </div>
             </div>
+          </div>
+
+          <!-- LINHA 3: Por Categoria — lista à esquerda, rosca à direita -->
+          <div style="margin-bottom:14px">
             <div class="section-card">
               <div class="section-card-header">
                 <div class="section-card-title">
@@ -2546,10 +2550,14 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   </div>
                 </div>
               </div>
-              <div class="section-card-body" style="display:flex;align-items:center;gap:12px;padding:12px">
-                <div id="cp-cat-legend" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
-                <div style="position:relative;height:160px;width:160px;flex-shrink:0">
-                  <canvas id="cp-chart-cat"></canvas>
+              <div class="section-card-body" style="padding:16px">
+                <div style="display:grid;grid-template-columns:1fr 220px;gap:24px;align-items:center">
+                  <!-- Lista de categorias -->
+                  <div id="cp-cat-legend" style="display:flex;flex-direction:column;gap:5px"></div>
+                  <!-- Rosca -->
+                  <div style="position:relative;height:200px;width:200px;justify-self:center">
+                    <canvas id="cp-chart-cat"></canvas>
+                  </div>
                 </div>
               </div>
             </div>
@@ -8979,7 +8987,7 @@ async function loadContasPagar() {
     renderDonutLegend('cp-cat-legend', catArr.map(([cat,val],i)=>({
       label: cat, value: fmtBRL(val), color: CORES_CP[i%CORES_CP.length],
       pct: totalCat>0?val/totalCat*100:0
-    })));
+    })), { inline: true, showValue: true });
     if(document.getElementById('cp-cat-sub')) document.getElementById('cp-cat-sub').textContent = catArr.length+' categorias';
   }
 
@@ -15115,22 +15123,48 @@ function fornecedorBate(f, extrato) {
 }
 
 // ─── CONFIG PADRÃO DONUTS ────────────────────────────
-function renderDonutLegend(elId, items) {
+function renderDonutLegend(elId, items, opts) {
   // items = [{label, value, color, pct}]
   const el = document.getElementById(elId);
   if (!el) return;
-  el.innerHTML = items.map(it => `
-    <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;padding:2px 0">
-      <div style="display:flex;align-items:center;gap:7px;min-width:0">
-        <div style="width:11px;height:11px;border-radius:3px;background:${it.color};flex-shrink:0"></div>
-        <span style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.label}</span>
+  const linhas = items.map(it => `
+    <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:7px;min-width:0;flex:1">
+        <div style="width:10px;height:10px;border-radius:3px;background:${it.color};flex-shrink:0"></div>
+        <span style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.label}</span>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-        ${it.pct !== undefined ? `<span style="font-size:11px;font-weight:700;min-width:38px;text-align:right">${Number(it.pct).toFixed(1)}%</span>` : ''}
-        ${it.value !== undefined ? `<span style="font-size:11px;font-family:'DM Mono',monospace;min-width:80px;text-align:right">${it.value}</span>` : ''}
+      <div style="display:flex;gap:10px;align-items:center;flex-shrink:0">
+        ${it.pct !== undefined ? `<span style="font-size:11px;font-weight:700;color:var(--text2);min-width:38px;text-align:right">${Number(it.pct).toFixed(1)}%</span>` : ''}
+        ${it.value !== undefined ? `<span style="font-size:11px;font-family:'DM Mono',monospace;min-width:88px;text-align:right;font-weight:600">${it.value}</span>` : ''}
       </div>
     </div>`
   ).join('');
+
+  // Se tiver mais de 8 itens, usa duas colunas
+  if (items.length > 8) {
+    const mid = Math.ceil(items.length / 2);
+    const col1 = items.slice(0, mid);
+    const col2 = items.slice(mid);
+    const renderCol = arr => arr.map(it => `
+      <div style="display:flex;align-items:center;gap:6px;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1">
+          <div style="width:9px;height:9px;border-radius:2px;background:${it.color};flex-shrink:0"></div>
+          <span style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.label}</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          ${it.pct !== undefined ? `<span style="font-size:10px;font-weight:700;color:var(--text2);min-width:32px;text-align:right">${Number(it.pct).toFixed(1)}%</span>` : ''}
+          ${it.value !== undefined ? `<span style="font-size:10px;font-family:'DM Mono',monospace;min-width:72px;text-align:right">${it.value}</span>` : ''}
+        </div>
+      </div>`).join('');
+    el.style.display = 'grid';
+    el.style.gridTemplateColumns = '1fr 1fr';
+    el.style.gap = '0 20px';
+    el.innerHTML = `<div>${renderCol(col1)}</div><div>${renderCol(col2)}</div>`;
+  } else {
+    el.style.display = 'flex';
+    el.style.flexDirection = 'column';
+    el.innerHTML = linhas;
+  }
 }
 
 // Renderiza barras horizontais em HTML dentro de um canvas substituído por div
