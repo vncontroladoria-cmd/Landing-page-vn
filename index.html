@@ -1916,19 +1916,18 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </button>
 
           <!-- Mini Chat Popover -->
-          <div id="mini-chat" style="display:none;position:fixed;bottom:20px;right:20px;width:320px;height:420px;background:var(--bg2);border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:5000;flex-direction:column;overflow:hidden">
+          <div id="mini-chat" style="display:none;position:fixed;bottom:20px;right:20px;width:320px;height:440px;background:var(--bg2);border:1.5px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:5000;flex-direction:column;overflow:hidden">
             <!-- Header -->
-            <div style="padding:12px 16px;background:var(--accent);display:flex;align-items:center;justify-content:space-between">
-              <div style="display:flex;align-items:center;gap:8px">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                <span style="color:#fff;font-weight:700;font-size:13px">Chat da Equipe</span>
-              </div>
+            <div style="padding:12px 16px;background:var(--accent);display:flex;align-items:center;gap:8px">
+              <button id="chat-btn-voltar" onclick="voltarListaChat()" style="display:none;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;align-items:center;justify-content:center;flex-shrink:0">←</button>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              <span id="chat-header-nome" style="color:#fff;font-weight:700;font-size:13px;flex:1">Chat da Equipe</span>
               <button onclick="toggleMiniChat()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;width:24px;height:24px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">×</button>
             </div>
             <!-- Mensagens -->
-            <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0"></div>
-            <!-- Input -->
-            <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px">
+            <div id="chat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;min-height:0"></div>
+            <!-- Input (só visível na conversa) -->
+            <div id="chat-input-area" style="padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px">
               <input id="chat-input" type="text" placeholder="Digite uma mensagem..." maxlength="500"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarMensagemChat();}"
                 style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px;font-family:'Outfit',sans-serif">
@@ -6913,84 +6912,121 @@ function detectarCategoriaPDVTexto(forma) {
 // ─── MINI CHAT ────────────────────────────────────────────
 let _chatAberto = false;
 let _chatInterval = null;
-let _chatUltimoId = null;
+let _chatConversa = null;
+let _chatUsuarios = [];
 
 function toggleMiniChat() {
   _chatAberto = !_chatAberto;
   const el = document.getElementById('mini-chat');
   if (el) el.style.display = _chatAberto ? 'flex' : 'none';
   if (_chatAberto) {
-    carregarMensagensChat();
+    _chatConversa = null;
+    const btnVoltar = document.getElementById('chat-btn-voltar');
+    if (btnVoltar) btnVoltar.style.display = 'none';
+    const header = document.getElementById('chat-header-nome');
+    if (header) header.textContent = 'Chat da Equipe';
+    carregarUsuariosChat();
     zerarBadgeChat();
-    if (!_chatInterval) _chatInterval = setInterval(carregarMensagensChat, 8000);
-    setTimeout(() => document.getElementById('chat-input')?.focus(), 100);
+    clearInterval(_chatInterval);
+    _chatInterval = setInterval(verificarMsgNovas, 10000);
   } else {
     clearInterval(_chatInterval); _chatInterval = null;
   }
 }
 
-async function carregarMensagensChat() {
+async function carregarUsuariosChat() {
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   if (!empId) return;
-  const { data } = await sb.from('chat_mensagens')
-    .select('id,texto,autor_nome,criado_em,usuario_id')
-    .eq('empresa_id', empId)
-    .order('criado_em', { ascending: true })
-    .limit(100);
-  if (!data) return;
-
+  const { data } = await sb.from('vn_usuarios').select('id,nome,email,perfil').eq('empresa_id', empId).neq('id', _vnUser?.id);
+  _chatUsuarios = data || [];
+  const { data: naolidas } = await sb.from('chat_mensagens').select('remetente_id').eq('destinatario_id', _vnUser?.id).eq('empresa_id', empId).eq('lida', false);
+  const contagem = {};
+  (naolidas||[]).forEach(m => { contagem[m.remetente_id] = (contagem[m.remetente_id]||0)+1; });
   const el = document.getElementById('chat-msgs');
   if (!el) return;
-
-  // Badge: mensagens novas de outros usuários
-  const minhasNovas = data.filter(m => m.usuario_id !== _vnUser?.id && m.id > (_chatUltimoId||''));
-  if (minhasNovas.length && !_chatAberto) {
-    const badge = document.getElementById('chat-badge');
-    if (badge) { badge.style.display = 'flex'; badge.textContent = minhasNovas.length > 9 ? '9+' : minhasNovas.length; }
-  }
-  if (data.length) _chatUltimoId = data[data.length - 1].id;
-
-  const meuId = _vnUser?.id;
-  const scroll = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
-
-  el.innerHTML = data.length ? data.map(m => {
-    const meu = m.usuario_id === meuId;
-    const hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return `
-      <div style="display:flex;flex-direction:column;align-items:${meu?'flex-end':'flex-start'};gap:2px">
-        ${!meu ? `<span style="font-size:10px;color:var(--text3);margin-left:4px">${m.autor_nome||'?'}</span>` : ''}
-        <div style="max-width:85%;padding:8px 12px;border-radius:${meu?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${meu?'var(--accent)':'var(--bg3)'};color:${meu?'#fff':'var(--text)'};font-size:12px;line-height:1.4;word-break:break-word">
-          ${m.texto}
-        </div>
-        <span style="font-size:9px;color:var(--text3)">${hora}</span>
+  if (!_chatUsuarios.length) { el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:12px;padding:2rem">Nenhum outro usuário na empresa.</div>'; return; }
+  el.innerHTML = `<div style="font-size:10px;color:var(--text3);padding:4px 8px 8px;font-weight:600;text-transform:uppercase">Selecione um usuário</div>
+    ${_chatUsuarios.map(u => {
+      const n = contagem[u.id] || 0;
+      return `<div onclick="abrirConversaChat('${u.id}','${(u.nome||u.email).replace(/'/g,"\\'")}' )" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0">${(u.nome||u.email||'?')[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.nome||u.email}</div><div style="font-size:10px;color:var(--text3)">${u.perfil||''}</div></div>
+        ${n > 0 ? `<span style="background:#ef4444;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center">${n}</span>` : ''}
       </div>`;
-  }).join('') : '<div style="text-align:center;color:var(--text3);font-size:12px;padding:2rem 0">Nenhuma mensagem ainda.<br>Seja o primeiro! 👋</div>';
+    }).join('')}`;
+}
 
+async function abrirConversaChat(userId, userName) {
+  _chatConversa = { id: userId, nome: userName };
+  const header = document.getElementById('chat-header-nome');
+  if (header) header.textContent = userName;
+  const btnVoltar = document.getElementById('chat-btn-voltar');
+  if (btnVoltar) btnVoltar.style.display = 'flex';
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  await sb.from('chat_mensagens').update({ lida: true }).eq('destinatario_id', _vnUser?.id).eq('remetente_id', userId).eq('empresa_id', empId);
+  await carregarMensagensConversa();
+  document.getElementById('chat-input')?.focus();
+  clearInterval(_chatInterval);
+  _chatInterval = setInterval(carregarMensagensConversa, 5000);
+}
+
+function voltarListaChat() {
+  _chatConversa = null;
+  clearInterval(_chatInterval);
+  _chatInterval = setInterval(verificarMsgNovas, 10000);
+  const btnVoltar = document.getElementById('chat-btn-voltar');
+  if (btnVoltar) btnVoltar.style.display = 'none';
+  const header = document.getElementById('chat-header-nome');
+  if (header) header.textContent = 'Chat da Equipe';
+  carregarUsuariosChat();
+}
+
+async function carregarMensagensConversa() {
+  if (!_chatConversa) return;
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const meuId = _vnUser?.id;
+  const { data } = await sb.from('chat_mensagens').select('*').eq('empresa_id', empId)
+    .or(`and(remetente_id.eq.${meuId},destinatario_id.eq.${_chatConversa.id}),and(remetente_id.eq.${_chatConversa.id},destinatario_id.eq.${meuId})`)
+    .order('criado_em', { ascending: true }).limit(100);
+  const naolidas = (data||[]).filter(m => m.destinatario_id === meuId && !m.lida).map(m => m.id);
+  if (naolidas.length) await sb.from('chat_mensagens').update({ lida: true }).in('id', naolidas);
+  const el = document.getElementById('chat-msgs');
+  if (!el) return;
+  const scroll = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+  el.innerHTML = (data||[]).length ? (data||[]).map(m => {
+    const meu = m.remetente_id === meuId;
+    const hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return `<div style="display:flex;flex-direction:column;align-items:${meu?'flex-end':'flex-start'};gap:2px;margin-bottom:2px">
+      <div style="max-width:85%;padding:8px 12px;border-radius:${meu?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${meu?'var(--accent)':'var(--bg3)'};color:${meu?'#fff':'var(--text)'};font-size:12px;line-height:1.4;word-break:break-word">${m.texto}</div>
+      <span style="font-size:9px;color:var(--text3)">${hora}</span></div>`;
+  }).join('') : '<div style="text-align:center;color:var(--text3);font-size:12px;padding:2rem">Nenhuma mensagem.<br>Diga olá! 👋</div>';
   if (scroll) el.scrollTop = el.scrollHeight;
 }
 
-function zerarBadgeChat() {
+async function verificarMsgNovas() {
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!empId || !_vnUser?.id) return;
+  const { count } = await sb.from('chat_mensagens').select('id', { count: 'exact', head: true }).eq('destinatario_id', _vnUser.id).eq('empresa_id', empId).eq('lida', false);
   const badge = document.getElementById('chat-badge');
-  if (badge) badge.style.display = 'none';
+  if (!badge) return;
+  if (count > 0) { badge.style.display = 'flex'; badge.textContent = count > 9 ? '9+' : count; }
+  else badge.style.display = 'none';
 }
 
+function zerarBadgeChat() { const b = document.getElementById('chat-badge'); if (b) b.style.display = 'none'; }
+
 async function enviarMensagemChat() {
+  if (!_chatConversa) return;
   const input = document.getElementById('chat-input');
   const texto = input?.value.trim();
   if (!texto) return;
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-  if (!empId) return;
-
   input.value = '';
-  const { error } = await sb.from('chat_mensagens').insert({
-    empresa_id: empId,
-    usuario_id: _vnUser?.id,
-    autor_nome: _vnUser?.nome || _vnUser?.email || 'Usuário',
-    texto
-  });
-  if (error) { showToast('Erro ao enviar', 'error'); return; }
-  await carregarMensagensChat();
+  await sb.from('chat_mensagens').insert({ empresa_id: empId, remetente_id: _vnUser?.id, destinatario_id: _chatConversa.id, remetente_nome: _vnUser?.nome || _vnUser?.email || 'Usuário', texto, lida: false });
+  await carregarMensagensConversa();
 }
+
+function iniciarPollingChat() { clearInterval(_chatInterval); _chatInterval = setInterval(verificarMsgNovas, 10000); verificarMsgNovas(); }
 
 // ─── FIM MINI CHAT ────────────────────────────────────────
 async function loadDashboard() {
