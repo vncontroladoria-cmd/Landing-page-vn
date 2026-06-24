@@ -7081,20 +7081,35 @@ async function loadDashboard() {
   let srvRows = [], prodRows = [];
   const anoMes = mes ? `${ano}-${mes}` : ano;
 
-  // Busca rel_servicos direto — não depende de rel_tipos estar cadastrado
+  // Busca rel_servicos direto — filtra client-side pra não perder dados por formato de data
   try {
-    const { data } = await qE('rel_servicos').select('*')
-      .gte('data_comanda', ini).lte('data_comanda', fim).limit(15000);
-    srvRows = (data||[]);
-    srvRows.forEach(r => {
+    const { data } = await qE('rel_servicos').select('*').limit(15000);
+    let todos = (data||[]).map(r => {
       r.total = Number(r.total||0)||Number(r.valor||0)*Number(r.qtd||1);
+      // Normaliza data_comanda para YYYY-MM-DD
+      if (r.data_comanda && /^\d{2}\/\d{2}\/\d{4}/.test(r.data_comanda)) {
+        const [d,m2,a2] = r.data_comanda.split('/');
+        r.data_comanda = `${a2}-${m2}-${d}`;
+      }
+      return r;
     });
+    // Tenta filtrar pelo período selecionado
+    const filtrados = todos.filter(r => r.data_comanda >= ini && r.data_comanda <= fim);
+    // Se não tiver nada no período, usa tudo (relatório é de outro período)
+    srvRows = filtrados.length > 0 ? filtrados : todos;
+    if (filtrados.length === 0 && todos.length > 0) {
+      if(el('m-srv-d')) el('m-srv-d').textContent = 'todos os períodos · rel. serviços';
+    }
   } catch(e) { console.warn('rel_servicos:', e); }
 
   if (tipoProd) {
     const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id',tipoProd.id).limit(5000);
-    prodRows = (data||[]).map(r=>parseProdRow(r.colunas))
-      .filter(r=>r.produto && r.data && r.data >= ini && r.data <= fim);
+    const todos = (data||[]).map(r=>parseProdRow(r.colunas)).filter(r=>r.produto);
+    const filtrados = todos.filter(r=>r.data && r.data >= ini && r.data <= fim);
+    prodRows = filtrados.length > 0 ? filtrados : todos;
+    if (filtrados.length === 0 && todos.length > 0) {
+      if(el('m-prod-d')) el('m-prod-d').textContent = 'todos os períodos';
+    }
   }
 
   // ── Faturamento = soma PDV (Comanda + Crédito + Débito + Pix) ──
@@ -7143,7 +7158,11 @@ async function loadDashboard() {
   const diasComMov= new Set(srvRows.map(r=>r.data_comanda?.substring(0,10)).filter(Boolean)).size;
 
   // Clientes: usa relatório importado se disponível, senão rel_servicos
-  const nClientesRel = _cliTodosData?.length || 0;
+  // Se _cliTodosData ainda não foi carregado, tenta carregar agora
+  if (!_cliTodosData?.length) {
+    try { await initClientes(); } catch(e) {}
+  }
+  const nClientesRel = (_cliTodosData||[]).length;
   const nClientesSrv = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
   const nClientes    = nClientesRel > 0 ? nClientesRel : nClientesSrv;
   const nClientesSub = nClientesRel > 0 ? 'relatório clientes' : 'rel. serviços';
