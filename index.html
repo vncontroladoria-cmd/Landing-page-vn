@@ -10440,17 +10440,24 @@ async function loadProdutos() {
   }
 
   // Filtros locais
-  if (ano) rows = rows.filter(r => r.data?.startsWith(ano));
-  if (mes) rows = rows.filter(r => r.data?.substring(5,7) === mes);
-  if (cat) rows = rows.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
+  let rowsFiltrados = rows;
+  if (ano) rowsFiltrados = rowsFiltrados.filter(r => r.data?.startsWith(ano));
+  if (mes) rowsFiltrados = rowsFiltrados.filter(r => r.data?.substring(5,7) === mes);
+  if (cat) rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
 
-  _prodData = rows;
+  // Fallback: se período não tem dados, usa tudo
+  if (!rowsFiltrados.length && rows.length && (ano || mes)) {
+    _prodData = rows.filter(r => !cat || (r.categoria||'').toLowerCase() === cat.toLowerCase());
+    showToast('Dados do período não encontrados — exibindo todo o histórico importado.', 'info');
+  } else {
+    _prodData = rowsFiltrados;
+  }
 
   // Preenche filtros
   preencherFiltrosProdutos(rows, ano, mes, cat, tipoProd);
 
   const vazio = '<div class="empty">Nenhum dado. Importe o relatório de Produtos na página de Importação.</div>';
-  if (!rows.length) {
+  if (!_prodData.length) {
     ['prod-ranking','prod-por-prof','prod-por-cli'].forEach(id => {
       const el = document.getElementById(id); if(el) el.innerHTML = vazio;
     });
@@ -10460,7 +10467,7 @@ async function loadProdutos() {
     return;
   }
 
-  renderProdutos(rows);
+  renderProdutos(_prodData);
 }
 
 function preencherFiltrosProdutos(rows, ano, mes, cat, tipoProd) {
@@ -12298,12 +12305,23 @@ async function loadServicos() {
   }
 
   // Filtros locais
-  if (ano) rows = rows.filter(r => r.data_comanda?.startsWith(ano));
-  if (mes) rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
-  if (prof) rows = rows.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
-  if (cat)  rows = rows.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
+  let rowsFiltrados = rows;
+  if (ano) rowsFiltrados = rowsFiltrados.filter(r => r.data_comanda?.startsWith(ano));
+  if (mes) rowsFiltrados = rowsFiltrados.filter(r => r.data_comanda?.substring(5,7) === mes);
+  if (prof) rowsFiltrados = rowsFiltrados.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
+  if (cat)  rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
 
-  _srvData = rows;
+  // Fallback: se filtro de período não retornou nada mas há dados importados, usa tudo
+  if (!rowsFiltrados.length && rows.length && (ano || mes)) {
+    _srvData = rows.filter(r => {
+      if (prof && (r.profissional||'').toLowerCase() !== prof.toLowerCase()) return false;
+      if (cat && (r.categoria||'').toLowerCase() !== cat.toLowerCase()) return false;
+      return true;
+    });
+    showToast('Dados do período não encontrados — exibindo todo o histórico importado.', 'info');
+  } else {
+    _srvData = rowsFiltrados;
+  }
 
   if (!_srvData.length) {
     const msg = ano || mes
