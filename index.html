@@ -270,6 +270,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .hero-cards.cols-5 { grid-template-columns:repeat(5,1fr); }
 .hero-cards.cols-3 { grid-template-columns:repeat(3,1fr); }
 .hero-cards.cols-2 { grid-template-columns:repeat(2,1fr); }
+.hcards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:10px; }
 
 .hcard {
   border-radius:12px; padding:14px 16px; color:#fff;
@@ -2777,7 +2778,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- Cards -->
-          <div class="hcards" style="margin-bottom:16px">
+          <div class="hcards" style="margin-bottom:16px;grid-template-columns:repeat(4,1fr)">
             <div class="hcard green"><div class="hcard-label">Receitas DRE</div><div class="hcard-value sm" id="ldre-hero-rec">—</div><div class="hcard-sub">entradas contábeis</div><div class="hcard-icon">📈</div></div>
             <div class="hcard red"><div class="hcard-label">Despesas DRE</div><div class="hcard-value sm" id="ldre-hero-des">—</div><div class="hcard-sub">saídas contábeis</div><div class="hcard-icon">📉</div></div>
             <div class="hcard blue"><div class="hcard-label">Resultado</div><div class="hcard-value sm" id="ldre-hero-res">—</div><div class="hcard-sub">receitas − despesas</div><div class="hcard-icon">📊</div></div>
