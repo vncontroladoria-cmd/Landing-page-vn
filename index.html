@@ -1783,7 +1783,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </div>
       <div class="nav-item" data-page="lancamentos" onclick="showPage('lancamentos',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-        <span class="nav-label">Lançamentos</span>
+        <span class="nav-label">Lançamentos DFC</span>
+      </div>
+      <div class="nav-item" data-page="lancamentos-dre" onclick="showPage('lancamentos-dre',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+        <span class="nav-label">Lançamentos DRE</span>
       </div>
       <div class="nav-item" data-page="pdv" onclick="showPage('pdv',this)">
         <span class="nav-icon">🖥️</span><span class="nav-label">PDV / Caixa</span>
@@ -2748,6 +2752,96 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
+        </div>
+
+        <!-- LANÇAMENTOS DRE -->
+        <div class="page" id="page-lancamentos-dre">
+          <div class="pg-header">
+            <div><div class="pg-header-title">📋 Lançamentos DRE</div><div class="pg-header-sub">Entradas contábeis que afetam o resultado mas não o caixa</div></div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="ldre-mes" onchange="loadLancamentosDRE()" class="filter-select">
+                <option value="">Todos os meses</option>
+                <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+                <option value="03">Março</option><option value="04">Abril</option>
+                <option value="05">Maio</option><option value="06">Junho</option>
+                <option value="07">Julho</option><option value="08">Agosto</option>
+                <option value="09">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+              <select id="ldre-ano" onchange="loadLancamentosDRE()" class="filter-select">
+                <option value="2026">2026</option><option value="2025">2025</option>
+              </select>
+              <button class="btn" onclick="loadLancamentosDRE()">↻ Atualizar</button>
+              <button class="btn btn-primary" onclick="toggleFormLancDRE()">+ Novo lançamento DRE</button>
+            </div>
+          </div>
+
+          <!-- Cards -->
+          <div class="hcards" style="margin-bottom:16px">
+            <div class="hcard green"><div class="hcard-label">Receitas DRE</div><div class="hcard-value sm" id="ldre-hero-rec">—</div><div class="hcard-sub">entradas contábeis</div><div class="hcard-icon">📈</div></div>
+            <div class="hcard red"><div class="hcard-label">Despesas DRE</div><div class="hcard-value sm" id="ldre-hero-des">—</div><div class="hcard-sub">saídas contábeis</div><div class="hcard-icon">📉</div></div>
+            <div class="hcard blue"><div class="hcard-label">Resultado</div><div class="hcard-value sm" id="ldre-hero-res">—</div><div class="hcard-sub">receitas − despesas</div><div class="hcard-icon">📊</div></div>
+            <div class="hcard purple"><div class="hcard-label">Lançamentos</div><div class="hcard-value" id="ldre-hero-n">—</div><div class="hcard-sub">no período</div><div class="hcard-icon">📋</div></div>
+          </div>
+
+          <!-- Formulário novo lançamento DRE -->
+          <div id="form-lanc-dre" style="display:none;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+            <div style="font-size:14px;font-weight:700;margin-bottom:14px">Novo Lançamento DRE</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+              <div class="form-group">
+                <label>Data <span style="color:var(--red)">*</span></label>
+                <input type="date" id="ldre-data">
+              </div>
+              <div class="form-group">
+                <label>Tipo <span style="color:var(--red)">*</span></label>
+                <select id="ldre-tipo" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;width:100%">
+                  <option value="ENTRADA">Receita</option>
+                  <option value="SAIDA">Despesa</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Valor <span style="color:var(--red)">*</span></label>
+                <input type="number" id="ldre-valor" placeholder="0,00" min="0" step="0.01">
+              </div>
+              <div class="form-group" style="grid-column:1/-1;position:relative">
+                <label>Descrição</label>
+                <input type="text" id="ldre-descricao" placeholder="Ex: Depreciação equipamentos, Provisão férias...">
+              </div>
+              <div class="form-group" style="position:relative">
+                <label>Categoria DRE</label>
+                <input type="text" id="ldre-cat-busca" placeholder="Buscar categoria..." autocomplete="off"
+                  oninput="buscarCatDRE(this.value)" onfocus="buscarCatDRE(this.value)"
+                  onblur="setTimeout(()=>{const d=document.getElementById('ldre-cat-dd');if(d)d.style.display='none'},200)">
+                <input type="hidden" id="ldre-cat">
+                <div id="ldre-cat-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <button class="btn btn-primary" onclick="salvarLancamentoDRE()">💾 Salvar</button>
+              <button class="btn" onclick="toggleFormLancDRE()">Cancelar</button>
+            </div>
+          </div>
+
+          <!-- Tabela -->
+          <div class="section-card">
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse">
+                <thead>
+                  <tr style="background:var(--bg3)">
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border)">DATA</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border)">DESCRIÇÃO</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border)">CATEGORIA</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--green);border-bottom:1.5px solid var(--border)">RECEITA</th>
+                    <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--red);border-bottom:1.5px solid var(--border)">DESPESA</th>
+                    <th style="padding:10px 12px;border-bottom:1.5px solid var(--border)"></th>
+                  </tr>
+                </thead>
+                <tbody id="ldre-tbody">
+                  <tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--text3);font-size:13px">Carregando...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         <!-- PDV / CAIXA -->
@@ -4614,14 +4708,18 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </button>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="form-group">
-        <label>Data <span style="color:var(--red)">*</span></label>
+        <label>Data pagamento <span style="color:var(--red)">*</span></label>
         <input type="date" id="nl-data">
       </div>
       <div class="form-group">
         <label>Valor (R$) <span style="color:var(--red)">*</span></label>
         <input type="number" id="nl-valor" placeholder="0,00" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>Competência <span style="font-size:10px;color:var(--text3);font-weight:400">(se diferente do pagamento)</span></label>
+        <input type="month" id="nl-competencia" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;width:100%">
       </div>
     </div>
 
@@ -5374,7 +5472,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 const pageTitles = {
-  dashboard:'Dashboard', lancamentos:'Lançamentos', pdv:'PDV / Caixa',
+  dashboard:'Dashboard', lancamentos:'Lançamentos DFC', 'lancamentos-dre':'Lançamentos DRE', pdv:'PDV / Caixa',
   'contas-pagar':'Contas a Pagar',
   'cartao-credito':'Cartão de Crédito', importar:'Importar Dados',
   servicos:'Serviços', clientes:'Clientes',
@@ -5445,7 +5543,8 @@ function showPage(id, el) {
   if (id === 'servicos') { preencherFiltrosServicos(); initServicos(); }
   if (id === 'dfc') loadDFC();
   if (id === 'dre') loadDRE();
-  if (id === 'lancamentos')    loadLancamentos();
+  if (id === 'lancamentos')     loadLancamentos();
+  if (id === 'lancamentos-dre') loadLancamentosDRE();
   if (id === 'cartao-credito') initCartaoCredito();
   if (id === 'contas-pagar') { loadContasPagar(); loadDocumentos(); }
   if (id === 'contas-receber') loadContasReceber();
@@ -7029,6 +7128,148 @@ async function enviarMensagemChat() {
 function iniciarPollingChat() { clearInterval(_chatInterval); _chatInterval = setInterval(verificarMsgNovas, 10000); verificarMsgNovas(); }
 
 // ─── FIM MINI CHAT ────────────────────────────────────────
+// ─── LANÇAMENTOS DRE ──────────────────────────────────────
+let _lancDRE = [];
+
+function toggleFormLancDRE() {
+  const el = document.getElementById('form-lanc-dre');
+  if (!el) return;
+  const aberto = el.style.display !== 'none';
+  el.style.display = aberto ? 'none' : 'block';
+  if (!aberto) {
+    document.getElementById('ldre-data').value = new Date().toISOString().substring(0,10);
+    document.getElementById('ldre-valor').value = '';
+    document.getElementById('ldre-descricao').value = '';
+    document.getElementById('ldre-cat-busca').value = '';
+    document.getElementById('ldre-cat').value = '';
+    document.getElementById('ldre-tipo').value = 'SAIDA';
+    document.getElementById('ldre-valor')?.focus();
+  }
+}
+
+function buscarCatDRE(texto) {
+  const dd = document.getElementById('ldre-cat-dd');
+  if (!dd) return;
+  const termo = (texto||'').toLowerCase().trim();
+  const cats = (_categorias||[]).filter(c =>
+    (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') &&
+    (!termo || c.nome.toLowerCase().includes(termo))
+  );
+  if (!cats.length) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = cats.map(c =>
+    `<div onmousedown="selecionarCatDRE('${c.nome.replace(/'/g,"\\'")}')"
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong>
+      <span style="font-size:10px;color:var(--text3);margin-left:6px">${c.grupo||''}</span>
+    </div>`
+  ).join('');
+}
+
+function selecionarCatDRE(nome) {
+  document.getElementById('ldre-cat-busca').value = nome;
+  document.getElementById('ldre-cat').value = nome;
+  document.getElementById('ldre-cat-dd').style.display = 'none';
+}
+
+async function salvarLancamentoDRE() {
+  const data    = document.getElementById('ldre-data').value;
+  const valor   = parseFloat(document.getElementById('ldre-valor').value) || 0;
+  const tipo    = document.getElementById('ldre-tipo').value;
+  const descricao = document.getElementById('ldre-descricao').value.trim();
+  const catNome = document.getElementById('ldre-cat').value.trim() || document.getElementById('ldre-cat-busca').value.trim();
+
+  if (!data)  { showToast('Informe a data', 'error'); return; }
+  if (!valor) { showToast('Informe o valor', 'error'); return; }
+
+  const anoNum = data.substring(0,4);
+  const mNum   = data.substring(5,7);
+
+  const payload = {
+    data_lancamento: data,
+    extrato:   descricao || catNome || 'Lançamento DRE',
+    descricao: descricao || catNome || 'Lançamento DRE',
+    tipo,
+    valor,
+    entrada:  tipo === 'ENTRADA' ? valor : null,
+    saida:    tipo === 'SAIDA'   ? valor : null,
+    categoria: catNome,
+    mes:      `${anoNum}-${mNum}`,
+    status:   'pago',
+    aparece_dfc: false,   // NÃO aparece no DFC/fluxo de caixa
+  };
+
+  const { error } = await sb.from('lancamentos').insert(addEmpresaId(payload));
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('✓ Lançamento DRE salvo!', 'success');
+  toggleFormLancDRE();
+  loadLancamentosDRE();
+}
+
+async function loadLancamentosDRE() {
+  const mes = document.getElementById('ldre-mes')?.value || '';
+  const ano = document.getElementById('ldre-ano')?.value || '2026';
+  const tbody = document.getElementById('ldre-tbody');
+  if (!tbody) return;
+
+  let q = qE('lancamentos').select('*').eq('aparece_dfc', false);
+  if (ano) {
+    const ini = `${ano}-01-01`;
+    const fim = `${ano}-12-31`;
+    q = q.gte('data_lancamento', ini).lte('data_lancamento', fim);
+  }
+  q = q.order('data_lancamento', { ascending: false }).limit(1000);
+  const { data, error } = await q;
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  let lancs = data || [];
+  if (mes) lancs = lancs.filter(l => (l.data_lancamento||'').substring(5,7) === mes);
+  _lancDRE = lancs;
+
+  let totalRec = 0, totalDes = 0;
+  lancs.forEach(l => {
+    if (l.tipo === 'ENTRADA') totalRec += Number(l.valor||0);
+    else totalDes += Number(l.valor||0);
+  });
+
+  const _s = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+  _s('ldre-hero-rec', fmtBRL(totalRec));
+  _s('ldre-hero-des', fmtBRL(totalDes));
+  _s('ldre-hero-res', fmtBRL(totalRec - totalDes));
+  _s('ldre-hero-n', lancs.length.toLocaleString('pt-BR'));
+
+  if (!lancs.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--text3);font-size:13px">Nenhum lançamento DRE no período.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lancs.map(l => {
+    const rec = l.tipo === 'ENTRADA' ? Number(l.valor||0) : 0;
+    const des = l.tipo === 'SAIDA'   ? Number(l.valor||0) : 0;
+    const d   = (l.data_lancamento||'').substring(0,10).split('-').reverse().join('/');
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px;font-size:12px;color:var(--text2);white-space:nowrap">${d}</td>
+      <td style="padding:9px 12px;font-size:12px">${l.descricao||l.extrato||'—'}</td>
+      <td style="padding:9px 12px;font-size:12px;color:var(--text2)">${l.categoria||'—'}</td>
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${rec > 0 ? fmtBRL(rec).replace('R$\u00a0','').replace('R$ ','') : ''}</td>
+      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">${des > 0 ? fmtBRL(des).replace('R$\u00a0','').replace('R$ ','') : ''}</td>
+      <td style="padding:9px 12px;text-align:right">
+        <button onclick="excluirLancamentoDRE('${l.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function excluirLancamentoDRE(id) {
+  if (!confirm('Excluir este lançamento DRE?')) return;
+  const { error } = await sb.from('lancamentos').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Lançamento DRE removido.', 'success');
+  loadLancamentosDRE();
+}
+// ─── FIM LANÇAMENTOS DRE ──────────────────────────────────
+
 async function loadDashboard() {
   const el = id => document.getElementById(id);
   const hoje = new Date();
@@ -8632,6 +8873,7 @@ async function salvarLancamento() {
   const entrada = _tipoLanc === 'ENTRADA' ? valor : null;
   const saida = _tipoLanc === 'SAIDA' ? valor : null;
   const bancoNome = _bancos.find(b=>b.id===bancoId)?.nome || '';
+  const competencia = document.getElementById('nl-competencia')?.value || null; // YYYY-MM
 
   const payload = {
     data_lancamento: data,
@@ -8648,27 +8890,24 @@ async function salvarLancamento() {
     banco_nome: bancoNome,
     mes: `${anoNum}-${mNum}`,
     status: 'pago',
+    aparece_dfc: true,
+    competencia: competencia || null,
   };
 
   const { error } = await sb.from('lancamentos').insert(addEmpresaId(payload));
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('✓ Lançamento salvo!','success');
-  // Limpa campos para próximo lançamento
-  document.getElementById('nl-categoria-busca').value = '';
-  document.getElementById('nl-categoria').value = '';
-  document.getElementById('nl-extrato').value = '';
-  document.getElementById('nl-desc').value = '';
-  document.getElementById('lanc-valor').value = '';
 
-  // Limpa campos mas mantém modal aberto para próximo lançamento
-  document.getElementById('nl-valor').value = '';
-  document.getElementById('nl-extrato').value = '';
-  document.getElementById('nl-descricao').value = '';
-  document.getElementById('nl-categoria-busca').value = '';
-  document.getElementById('nl-categoria').value = '';
-  document.getElementById('nl-reconhecido').textContent = '';
-  document.getElementById('nl-data').value = new Date().toISOString().substring(0,10);
-  document.getElementById('nl-valor').focus();
+  // Limpa campos para próximo lançamento
+  ['nl-valor','nl-extrato','nl-descricao','nl-categoria-busca','nl-categoria','nl-competencia'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const reconh = document.getElementById('nl-reconhecido');
+  if (reconh) reconh.textContent = '';
+  const dataEl = document.getElementById('nl-data');
+  if (dataEl) dataEl.value = new Date().toISOString().substring(0,10);
+  document.getElementById('nl-valor')?.focus();
   loadLancamentos();
 }
 function reconhecerFornecedor(texto) {
@@ -13238,7 +13477,14 @@ async function loadDRE() {
   const grupos = (gruposAll||[]).filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
   const { data: catsAll } = await sb.from('plano_contas').select('*').eq('empresa_id', empIdDRE).order('codigo');
   const cats = (catsAll||[]).filter(c => c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS');
-  const { data: lancs } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+  // Busca lançamentos do ano (DFC + DRE com competência no período)
+  const { data: lancsBase } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+  const { data: lancsDREComp } = await qE('lancamentos').select('*').eq('aparece_dfc', false).gte('competencia',`${ano}-01`).lte('competencia',`${ano}-12`);
+  const todasIdsSet = new Set();
+  const lancs = [...(lancsBase||[]), ...(lancsDREComp||[])].filter(l => {
+    if (todasIdsSet.has(l.id)) return false;
+    todasIdsSet.add(l.id); return true;
+  }).map(l => ({ ...l, mes_dre: l.competencia || l.mes || (l.data_lancamento||'').substring(0,7) }));
 
   // Busca PDV: pdv_caixas (data) + pdv_itens (forma_pagamento = nome categoria, valor, tipo)
   // Agrega por: forma_pagamento (nome exato da categoria PDV) + mês
@@ -13307,9 +13553,9 @@ async function loadDRE() {
       }
     }
 
-    // ── 2. Lançamentos: campo categoria_dre ou categoria_dfc ou categoria
+    // ── 2. Lançamentos: usa mes_dre (competência quando disponível, senão data pagamento)
     const doLanc = (lancs||[])
-      .filter(l => l.data_lancamento?.substring(5,7) === mes && (
+      .filter(l => (l.mes_dre||'').substring(5,7) === mes && (
         normDRE(l.categoria_dre) === normNome ||
         normDRE(l.categoria_dfc) === normNome ||
         normDRE(l.categoria)     === normNome
