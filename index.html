@@ -5336,30 +5336,28 @@ function atualizarTopbarEmpresa() {
 // Aplica permissões de menu conforme perfil e empresa atual
 function aplicarPermissoes() {
   const perfil = _vnUser?.perfil || 'leitor';
-  const empId = _empresaAtual?.id;
+  const empId  = _empresaAtual?.id;
 
-  // Pega abas liberadas para esta empresa (vazio = todas)
+  // Páginas salvas no cadastro do usuário (campo paginas_liberadas)
+  const paginasUsuario = _vnUser?.paginas_liberadas || [];
+
+  // Permissões por empresa (tabela usuario_empresas)
   const abasEmp = (empId && _permissoes[empId]?.abas) || [];
-  const temRestricao = abasEmp.length > 0;
+
+  // Páginas efetivas: usa empresa-específico se existir, senão usa do cadastro do usuário
+  const paginasEfetivas = abasEmp.length > 0 ? abasEmp : paginasUsuario;
+  const temRestricao = paginasEfetivas.length > 0;
 
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     const page = item.dataset.page;
-    if (perfil === 'admin') {
-      item.style.display = '';
-      return;
-    }
-    if (temRestricao) {
-      // Mostra só o que foi liberado para esta empresa
-      item.style.display = abasEmp.includes(page) ? '' : 'none';
-    } else {
-      // Sem restrição: operador vê tudo, leitor vê padrão
-      item.style.display = perfil === 'operador' ? '' : 'none';
-    }
+    if (perfil === 'admin') { item.style.display = ''; return; }
+    if (perfil === 'operador') { item.style.display = temRestricao ? (paginasEfetivas.includes(page) ? '' : 'none') : ''; return; }
+    // leitor: mostra só páginas explicitamente liberadas
+    item.style.display = paginasEfetivas.includes(page) ? '' : 'none';
   });
 
   // Configurações só para admin
-  const configItems = document.querySelectorAll('[data-page="usuarios"],[data-page="empresas"]');
-  configItems.forEach(el => {
+  document.querySelectorAll('[data-page="usuarios"],[data-page="empresas"]').forEach(el => {
     el.style.display = perfil === 'admin' ? '' : 'none';
   });
 }
