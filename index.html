@@ -3079,6 +3079,18 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="projetado">Projetado</option>
                 <option value="ambos">Realizado × Projetado</option>
               </select>
+              <!-- Toggle Caixa / Competência -->
+              <div style="display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px">
+                <button id="dre-btn-caixa" onclick="setDRERegime('caixa')"
+                  style="padding:6px 12px;border:none;cursor:pointer;font-weight:600;background:var(--accent);color:#fff;transition:all .15s">
+                  💰 Caixa
+                </button>
+                <button id="dre-btn-competencia" onclick="setDRERegime('competencia')"
+                  style="padding:6px 12px;border:none;cursor:pointer;font-weight:600;background:var(--bg3);color:var(--text2);transition:all .15s">
+                  📅 Competência
+                </button>
+              </div>
+              <input type="hidden" id="dre-regime" value="caixa">
               <button class="btn" onclick="loadDRE()">↻ Atualizar</button>
             </div>
           </div>
@@ -13554,6 +13566,19 @@ function toggleDFCGrupo(gId) {
 }
 
 // ─── DRE ─────────────────────────────────────────────────
+function setDRERegime(regime) {
+  document.getElementById('dre-regime').value = regime;
+  const btnC = document.getElementById('dre-btn-caixa');
+  const btnK = document.getElementById('dre-btn-competencia');
+  if (btnC && btnK) {
+    btnC.style.background = regime === 'caixa' ? 'var(--accent)' : 'var(--bg3)';
+    btnC.style.color = regime === 'caixa' ? '#fff' : 'var(--text2)';
+    btnK.style.background = regime === 'competencia' ? 'var(--accent)' : 'var(--bg3)';
+    btnK.style.color = regime === 'competencia' ? '#fff' : 'var(--text2)';
+  }
+  loadDRE();
+}
+
 async function loadDRE() {
   const el = document.getElementById('dre-table');
   if (!el) return;
@@ -13567,14 +13592,24 @@ async function loadDRE() {
   const grupos = (gruposAll||[]).filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
   const { data: catsAll } = await sb.from('plano_contas').select('*').eq('empresa_id', empIdDRE).order('codigo');
   const cats = (catsAll||[]).filter(c => c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS');
-  // Busca lançamentos do ano (DFC + DRE com competência no período)
+  const regime = document.getElementById('dre-regime')?.value || 'caixa';
+
+  // Busca lançamentos do ano
   const { data: lancsBase } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
   const { data: lancsDREComp } = await qE('lancamentos').select('*').eq('aparece_dfc', false).gte('competencia',`${ano}-01`).lte('competencia',`${ano}-12`);
   const todasIdsSet = new Set();
-  const lancs = [...(lancsBase||[]), ...(lancsDREComp||[])].filter(l => {
+  const lancsRaw = [...(lancsBase||[]), ...(lancsDREComp||[])].filter(l => {
     if (todasIdsSet.has(l.id)) return false;
     todasIdsSet.add(l.id); return true;
-  }).map(l => ({ ...l, mes_dre: l.competencia || l.mes || (l.data_lancamento||'').substring(0,7) }));
+  });
+
+  // Define mes_dre baseado no regime selecionado
+  const lancs = lancsRaw.map(l => ({
+    ...l,
+    mes_dre: regime === 'competencia'
+      ? (l.competencia || l.mes || (l.data_lancamento||'').substring(0,7))
+      : (l.mes || (l.data_lancamento||'').substring(0,7))
+  }));
 
   // Busca PDV: pdv_caixas (data) + pdv_itens (forma_pagamento = nome categoria, valor, tipo)
   // Agrega por: forma_pagamento (nome exato da categoria PDV) + mês
@@ -13693,8 +13728,10 @@ async function loadDRE() {
   const recBrutaArr = mCols.map((_,i) => Math.abs(recBruta(i)));
 
   // Estilos
-  const thS = `padding:7px 5px;text-align:right;border-bottom:2px solid var(--border);font-size:9px;font-weight:600;color:var(--text2);white-space:nowrap`;
-  const thSL = `padding:7px 8px;text-align:left;border-bottom:2px solid var(--border);font-size:9px;font-weight:600;color:var(--text2)`;
+  const thS  = `padding:5px 4px;text-align:right;border-bottom:1.5px solid var(--border);border-right:1px solid rgba(128,128,128,0.08);font-size:8.5px;font-weight:600;color:var(--text2);white-space:nowrap`;
+  const thSL = `padding:5px 6px;text-align:left;border-bottom:1.5px solid var(--border);font-size:8.5px;font-weight:600;color:var(--text2)`;
+  // Estilo de célula de valor
+  const tdV  = `padding:4px 4px;text-align:right;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);font-size:8.5px;white-space:nowrap;font-family:'DM Mono',monospace`;
 
   // Monta colunas do header
   function colHeaders() {
@@ -13723,15 +13760,15 @@ async function loadDRE() {
       const r = realArr[i], p = projArr[i];
       const pct = recBArr[i] > 0 ? (Math.abs(r)/recBArr[i]*100).toFixed(1)+'%' : '';
       if (modo === 'ambos') return `
-        <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${r>0?'var(--green)':r<0?'var(--red)':'var(--text3)'}">${r!==0?fmtNum(Math.abs(r)):''}</td>
-        <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
-        <td style="padding:7px 5px;text-align:right;font-size:9px;color:var(--text2)">${pct}</td>`;
+        <td style="padding:3px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:8.5px;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);color:${r>0?'var(--green)':r<0?'var(--red)':'var(--text3)'}">${r!==0?fmtNum(Math.abs(r)):''}</td>
+        <td style="padding:3px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:8.5px;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
+        <td style="padding:3px 4px;text-align:right;font-size:8px;color:var(--text2);border-bottom:1px solid rgba(128,128,128,0.07)">${pct}</td>`;
       if (modo === 'projetado') return `
-        <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
-        <td style="padding:7px 5px;text-align:right;font-size:9px;color:var(--text2)">${pct}</td>`;
+        <td style="padding:3px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:8.5px;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
+        <td style="padding:3px 4px;text-align:right;font-size:8px;color:var(--text2);border-bottom:1px solid rgba(128,128,128,0.07)">${pct}</td>`;
       return `
-        <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${r>0?'var(--green)':r<0?'var(--red)':'var(--text3)'}">${r!==0?fmtNum(Math.abs(r)):''}</td>
-        <td style="padding:7px 5px;text-align:right;font-size:9px;color:var(--text2)">${pct}</td>`;
+        <td style="padding:3px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:8.5px;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);color:${r>0?'var(--green)':r<0?'var(--red)':'var(--text3)'}">${r!==0?fmtNum(Math.abs(r)):''}</td>
+        <td style="padding:3px 4px;text-align:right;font-size:8px;color:var(--text2);border-bottom:1px solid rgba(128,128,128,0.07)">${pct}</td>`;
     }).join('');
   }
 
@@ -13772,7 +13809,7 @@ async function loadDRE() {
   }
 
   let html = `<div style="overflow-x:auto;position:relative">
-  <table style="width:100%;border-collapse:collapse;font-size:10px" id="dre-tbl">
+  <table style="width:100%;border-collapse:collapse;font-size:9px" id="dre-tbl">
     <thead style="position:sticky;top:0;z-index:20;background:var(--bg3)">
       <tr>
         <th style="${thSL};min-width:180px;position:sticky;left:0;background:var(--bg3);z-index:30" rowspan="2">
@@ -13806,7 +13843,7 @@ async function loadDRE() {
       const projVals = mCols.map(m => calcProj(c.nome, m));
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr class="dre-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
-        <td style="padding:5px 10px 5px 20px;color:var(--text2);font-size:9px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
+        <td style="padding:3px 8px 3px 16px;color:var(--text2);font-size:8.5px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
         ${cellsGrupo(vals, projVals, recBrutaArr)}
         ${totaisCols(vals, recBrutaArr)}
       </tr>`;
