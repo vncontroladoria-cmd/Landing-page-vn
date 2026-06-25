@@ -11849,15 +11849,54 @@ async function salvarCategoriaInline(id, rowId) {
   if (!novoNome) { showToast('Nome obrigatório','error'); return; }
   const payload = { codigo: novoCodigo, nome: novoNome, competencia_tipo: novoCompTipo };
   if (novoDemo) payload.demonstrativo = novoDemo;
-  const { data: ant } = await qE('plano_contas').select('nome').eq('id', id).single();
+  const { data: ant } = await qE('plano_contas').select('nome,competencia_tipo').eq('id', id).single();
   const { error } = await sb.from('plano_contas').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
-  // Atualiza lançamentos que usam o nome antigo
+
+  let msgs = [];
+
+  // Se renomeou: atualiza lançamentos com nome antigo
   if (ant?.nome && ant.nome !== novoNome) {
-    await sb.from('lancamentos').update({ categoria: novoNome }).eq('categoria', ant.nome);
-    await sb.from('lancamentos').update({ categoria_dre: novoNome }).eq('categoria_dre', ant.nome);
+    const { count: c1 } = await qE('lancamentos').select('id',{count:'exact',head:true}).eq('categoria', ant.nome);
+    if (c1 > 0) {
+      await sb.from('lancamentos').update({ categoria: novoNome }).eq('categoria', ant.nome);
+      await sb.from('lancamentos').update({ categoria_dre: novoNome }).eq('categoria_dre', ant.nome);
+      msgs.push(`${c1} lançamento${c1>1?'s':''} renomeado${c1>1?'s':''}`);
+    }
   }
-  showToast('Salvo!','success');
+
+  // Se mudou para "anterior": propaga competência nos lançamentos sem competência definida
+  if (novoCompTipo === 'anterior' && ant?.competencia_tipo !== 'anterior') {
+    const catNomeAtual = novoNome;
+    const { data: semComp } = await qE('lancamentos')
+      .select('id,data_lancamento')
+      .eq('categoria', catNomeAtual)
+      .is('competencia', null);
+    if (semComp?.length) {
+      for (const l of semComp) {
+        if (!l.data_lancamento) continue;
+        const base = new Date(l.data_lancamento + 'T12:00:00');
+        base.setMonth(base.getMonth() - 1);
+        await sb.from('lancamentos').update({ competencia: base.toISOString().substring(0,7) }).eq('id', l.id);
+      }
+      msgs.push(`${semComp.length} competência${semComp.length>1?'s':''} atualizada${semComp.length>1?'s':''} para mês anterior`);
+    }
+  }
+
+  // Se mudou de "anterior" para "atual": limpa competências automáticas
+  if (novoCompTipo === 'atual' && ant?.competencia_tipo === 'anterior') {
+    const { count: cComp } = await qE('lancamentos').select('id',{count:'exact',head:true}).eq('categoria', novoNome).not('competencia','is',null);
+    if (cComp > 0 && confirm(`Remover as ${cComp} competências definidas automaticamente para "${novoNome}"?`)) {
+      await sb.from('lancamentos').update({ competencia: null }).eq('categoria', novoNome);
+      msgs.push(`${cComp} competência${cComp>1?'s':''} removida${cComp>1?'s':''}`);
+    }
+  }
+
+  if (msgs.length) {
+    showToast('✅ Salvo! ' + msgs.join(' · '), 'success');
+  } else {
+    showToast('Salvo!', 'success');
+  }
   loadPlanoContas();
 }
 
@@ -12010,8 +12049,28 @@ async function saveCategoria() {
 }
 
 async function excluirCategoria(id) {
-  if (!confirm('Excluir esta categoria?')) return;
-  await sb.from('plano_contas').delete().eq('id', id);
+  // Busca o nome da categoria antes de excluir
+  const cat = (_categorias||[]).find(c => c.id === id);
+  const nome = cat?.nome || '';
+
+  // Verifica lançamentos que usam essa categoria
+  if (nome) {
+    const { count } = await qE('lancamentos')
+      .select('id', { count: 'exact', head: true })
+      .or(`categoria.eq.${nome},categoria_dfc.eq.${nome},categoria_dre.eq.${nome}`);
+
+    if (count > 0) {
+      const msg = `⚠️ A categoria "${nome}" está sendo usada em ${count} lançamento${count > 1 ? 's' : ''}.\n\nExcluir a categoria deixará esses lançamentos sem categoria.\n\nDeseja continuar mesmo assim?`;
+      if (!confirm(msg)) return;
+    } else {
+      if (!confirm(`Excluir a categoria "${nome}"?`)) return;
+    }
+  } else {
+    if (!confirm('Excluir esta categoria?')) return;
+  }
+
+  const { error } = await sb.from('plano_contas').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   showToast('Categoria excluída!', 'success');
   loadPlanoContas();
 }
@@ -15694,10 +15753,48 @@ async function excluirSelecionados() {
 
 // ─── ATUALIZAR PÁGINAS ───────────────────────────────────
 async function atualizarLancamentos() {
-  // Rebusca bancos, categorias, fornecedores e lançamentos
-  _bancos = [];
-  _categorias = [];
-  _fornecedores = [];
+  const btn = document.querySelector('[onclick="atualizarLancamentos()"]');
+  if (btn) { btn.textContent = '⏳ Sincronizando...'; btn.disabled = true; }
+
+  // 1. Recarrega categorias, bancos, fornecedores
+  _bancos = []; _categorias = []; _fornecedores = [];
+
+  // 2. Busca todas as categorias com competencia_tipo definido
+  const { data: cats } = await qE('plano_contas').select('nome,competencia_tipo').neq('competencia_tipo', 'atual');
+  const catsAnterior = (cats||[]).filter(c => c.competencia_tipo === 'anterior');
+
+  let totalAtualizados = 0;
+
+  if (catsAnterior.length) {
+    // Para cada categoria com "mês anterior", busca lançamentos sem competência e aplica
+    for (const cat of catsAnterior) {
+      const { data: lancs } = await qE('lancamentos')
+        .select('id, data_lancamento, competencia')
+        .eq('categoria', cat.nome)
+        .is('competencia', null);
+
+      if (!lancs?.length) continue;
+
+      // Calcula competência = mês anterior ao pagamento
+      for (const l of lancs) {
+        if (!l.data_lancamento) continue;
+        const base = new Date(l.data_lancamento + 'T12:00:00');
+        base.setMonth(base.getMonth() - 1);
+        const comp = base.toISOString().substring(0, 7); // YYYY-MM
+        await sb.from('lancamentos').update({ competencia: comp }).eq('id', l.id);
+        totalAtualizados++;
+      }
+    }
+  }
+
+  if (btn) { btn.textContent = '↻ Atualizar'; btn.disabled = false; }
+
+  if (totalAtualizados > 0) {
+    showToast(`✅ ${totalAtualizados} lançamento${totalAtualizados > 1 ? 's' : ''} com competência atualizada automaticamente!`, 'success');
+  } else {
+    showToast('✓ Tudo sincronizado — nenhuma alteração necessária', 'info');
+  }
+
   await loadLancamentos();
 }
 
