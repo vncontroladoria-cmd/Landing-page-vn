@@ -10803,13 +10803,7 @@ async function loadProdutos() {
   if (mes) rowsFiltrados = rowsFiltrados.filter(r => r.data?.substring(5,7) === mes);
   if (cat) rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
 
-  // Fallback: se período não tem dados, usa tudo
-  if (!rowsFiltrados.length && rows.length && (ano || mes)) {
-    _prodData = rows.filter(r => !cat || (r.categoria||'').toLowerCase() === cat.toLowerCase());
-    showToast('Dados do período não encontrados — exibindo todo o histórico importado.', 'info');
-  } else {
-    _prodData = rowsFiltrados;
-  }
+  _prodData = rowsFiltrados;
 
   // Preenche filtros
   preencherFiltrosProdutos(rows, ano, mes, cat, tipoProd);
@@ -12755,17 +12749,8 @@ async function loadServicos() {
   if (prof) rowsFiltrados = rowsFiltrados.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
   if (cat)  rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
 
-  // Fallback: se filtro de período não retornou nada mas há dados importados, usa tudo
-  if (!rowsFiltrados.length && rows.length && (ano || mes)) {
-    _srvData = rows.filter(r => {
-      if (prof && (r.profissional||'').toLowerCase() !== prof.toLowerCase()) return false;
-      if (cat && (r.categoria||'').toLowerCase() !== cat.toLowerCase()) return false;
-      return true;
-    });
-    showToast('Dados do período não encontrados — exibindo todo o histórico importado.', 'info');
-  } else {
-    _srvData = rowsFiltrados;
-  }
+  // Sem fallback — se não tem dado no período, mostra vazio
+  _srvData = rowsFiltrados;
 
   if (!_srvData.length) {
     const msg = ano || mes
