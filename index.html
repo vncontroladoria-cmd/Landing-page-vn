@@ -4336,10 +4336,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <div class="form-group" style="grid-column:1/-1;position:relative">
         <label>Categoria DRE <span style="font-size:11px;color:var(--text3);font-weight:400">(onde o custo desse profissional aparece no DRE)</span></label>
         <input type="text" id="prof-cat-dre-busca" placeholder="Buscar categoria do Plano de Contas..." autocomplete="off"
-          oninput="buscarCatProfissional(this.value)" onfocus="buscarCatProfissional(this.value)"
+          oninput="buscarCatProfissional(this.value)" onfocus="buscarCatProfissionalAbrir(this)"
           onblur="setTimeout(()=>{const d=document.getElementById('prof-cat-dre-dd');if(d)d.style.display='none'},200)">
         <input type="hidden" id="prof-cat-dre">
-        <div id="prof-cat-dre-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+        <div id="prof-cat-dre-dd" style="display:none;position:fixed;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,.2);min-width:280px"></div>
       </div>
     </div>
     <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Metas Mensais (R$)</div>
@@ -14991,23 +14991,36 @@ async function salvarMetaProfissional(profId, valor, mes, ano) {
   loadMetricas();
 }
 
+function buscarCatProfissionalAbrir(inputEl) {
+  let dd = document.getElementById('prof-cat-dre-dd');
+  if (!dd || !inputEl) return;
+  // Move para o body para escapar do zoom do modal
+  if (dd.parentElement !== document.body) document.body.appendChild(dd);
+  const rect = inputEl.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  dd.style.width = Math.max(rect.width, 280) + 'px';
+  buscarCatProfissional(inputEl.value);
+}
+
 function buscarCatProfissional(texto) {
   const dd = document.getElementById('prof-cat-dre-dd');
   if (!dd) return;
   const termo = (texto||'').toLowerCase().trim();
-  const cats = (_categorias||[]).filter(c =>
-    (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') &&
-    c.tipo === 'SAIDA' &&
-    (!termo || c.nome.toLowerCase().includes(termo))
-  );
+  // Se não tiver categorias, tenta carregar
+  if (!_categorias?.length) {
+    garantirCategorias().then(() => buscarCatProfissional(texto));
+    return;
+  }
+  const cats = (_categorias||[]).filter(c => !termo || c.nome.toLowerCase().includes(termo));
   if (!cats.length) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = cats.map(c =>
-    `<div onmousedown="selecionarCatProfissional('${c.nome.replace(/'/g,"\\'")}')"
+    `<div onmousedown="selecionarCatProfissional('${c.nome.replace(/'/g,"\\'")}' )"
       style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
       onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
       <strong>${c.nome}</strong>
-      <span style="font-size:10px;color:var(--text3);margin-left:6px">${c.grupo||''}</span>
+      <span style="font-size:10px;color:var(--text3);margin-left:6px">${c.demonstrativo||''} · ${c.grupo||''}</span>
     </div>`
   ).join('');
 }
