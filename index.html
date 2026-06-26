@@ -2506,7 +2506,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--green);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">ENTRADA</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--red);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SAÍDA</th>
                     <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DESCRIÇÃO</th>
-                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">CATEGORIA DFC/DRE</th>
+                    <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:#1a56db;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DFC</th>
+                    <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:#166534;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DRE</th>
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer;max-width:90px" onclick="sortTable(this)">BANCO</th>
                     <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">MÊS</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SALDO</th>
@@ -8731,25 +8732,28 @@ async function loadLancamentos(forcarBancoFilter) {
         <span class="cell-view" style="font-size:12px">${l.descricao||'—'}</span>
         <input class="cell-edit" style="display:none;width:100%;font-size:12px" value="${l.descricao||''}">
       </td>
-      <td style="padding:9px 12px">
+      <td style="padding:6px 8px;min-width:110px">
         <span class="cell-view" style="font-size:11px;line-height:1.6">
           ${l.categoria ? `<strong>${l.categoria}</strong><br>` : ''}
-          ${l.categoria_dfc ? `<span class="badge badge-blue" style="font-size:10px;margin-right:2px">DFC: ${l.categoria_dfc}</span>` : ''}
-          ${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : ''}
-          ${!l.categoria && !l.categoria_dfc && !l.categoria_dre ? '—' : ''}
+          ${l.categoria_dfc ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '<span style="font-size:10px;color:var(--text3)">—</span>'}
         </span>
         <div class="cell-edit" style="display:none;position:relative">
-          <input type="text" id="lcat-${l.id}" value="${l.categoria||''}" placeholder="Digite ou clique para buscar..."
+          <input type="text" id="lcat-${l.id}" value="${l.categoria||''}" placeholder="Buscar categoria..."
             oninput="buscaCatInline(this.value,'${l.id}')"
             onfocus="buscaCatInline(this.value,'${l.id}')"
             onclick="buscaCatInline(this.value,'${l.id}')"
             onblur="setTimeout(()=>{const d=document.getElementById('lcat-dd-${l.id}');if(d)d.style.display='none'},200)"
-            style="width:200px;font-size:11px;border:1.5px solid ${!l.categoria?'var(--red)':'var(--border)'}"
+            style="width:180px;font-size:11px;border:1.5px solid ${!l.categoria?'var(--red)':'var(--border)'}"
             autocomplete="off">
           <input type="hidden" id="lcat-dfc-${l.id}" value="${l.categoria_dfc||''}">
           <input type="hidden" id="lcat-dre-${l.id}" value="${l.categoria_dre||''}">
-          <div id="lcat-dd-${l.id}" style="display:none;position:absolute;top:100%;left:0;width:240px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,0.15)"></div>
+          <div id="lcat-dd-${l.id}" style="display:none;position:absolute;top:100%;left:0;width:220px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,0.15)"></div>
         </div>
+      </td>
+      <td style="padding:6px 8px;min-width:100px">
+        <span class="cell-view" style="font-size:11px">
+          ${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '<span style="font-size:10px;color:var(--text3)">—</span>'}
+        </span>
       </td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         <span class="cell-view" title="${bancoNome}">${bancoNome}</span>
@@ -11936,7 +11940,7 @@ async function salvarCategoriaInline(id, rowId) {
   if (!novoNome) { showToast('Nome obrigatório','error'); return; }
   const payload = { codigo: novoCodigo, nome: novoNome, competencia_tipo: novoCompTipo };
   if (novoDemo) payload.demonstrativo = novoDemo;
-  const { data: ant } = await qE('plano_contas').select('nome,competencia_tipo').eq('id', id).single();
+  const { data: ant } = await qE('plano_contas').select('nome,competencia_tipo,demonstrativo').eq('id', id).single();
   const { error } = await sb.from('plano_contas').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
 
@@ -11949,6 +11953,27 @@ async function salvarCategoriaInline(id, rowId) {
       await sb.from('lancamentos').update({ categoria: novoNome }).eq('categoria', ant.nome);
       await sb.from('lancamentos').update({ categoria_dre: novoNome }).eq('categoria_dre', ant.nome);
       msgs.push(`${c1} lançamento${c1>1?'s':''} renomeado${c1>1?'s':''}`);
+    }
+  }
+
+  // Se mudou demonstrativo: limpa campos que não fazem mais parte
+  if (ant?.demonstrativo && ant.demonstrativo !== novoDemo) {
+    const nomeAtual = novoNome;
+    // Era AMBOS ou DFC, virou DRE → limpa categoria_dfc
+    if ((ant.demonstrativo === 'AMBOS' || ant.demonstrativo === 'DFC') && novoDemo === 'DRE') {
+      const { count: cF } = await qE('lancamentos').select('id',{count:'exact',head:true}).eq('categoria', nomeAtual).not('categoria_dfc','is',null);
+      if (cF > 0) {
+        await sb.from('lancamentos').update({ categoria_dfc: null }).eq('categoria', nomeAtual);
+        msgs.push(`${cF} lançamento${cF>1?'s':''} removido${cF>1?'s':''} do DFC`);
+      }
+    }
+    // Era AMBOS ou DRE, virou DFC → limpa categoria_dre
+    if ((ant.demonstrativo === 'AMBOS' || ant.demonstrativo === 'DRE') && novoDemo === 'DFC') {
+      const { count: cD } = await qE('lancamentos').select('id',{count:'exact',head:true}).eq('categoria', nomeAtual).not('categoria_dre','is',null);
+      if (cD > 0) {
+        await sb.from('lancamentos').update({ categoria_dre: null }).eq('categoria', nomeAtual);
+        msgs.push(`${cD} lançamento${cD>1?'s':''} removido${cD>1?'s':''} do DRE`);
+      }
     }
   }
 
