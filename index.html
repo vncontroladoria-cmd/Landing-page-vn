@@ -13388,13 +13388,13 @@ async function loadProjecaoDRE() {
 
   // Monta tabela
   container.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:900px">
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
       <thead style="position:sticky;top:0;z-index:10;background:var(--bg3)">
         <tr>
-          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);min-width:200px;border-bottom:1px solid var(--border)">CATEGORIA</th>
-          ${MESES_PROJ.map(m => `<th style="padding:8px 6px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);min-width:80px">${m}</th>`).join('')}
-          <th style="padding:8px 6px;text-align:center;font-size:10px;font-weight:700;color:var(--accent);border-bottom:1px solid var(--border);min-width:90px">REPLICAR</th>
-          <th style="padding:8px 6px;text-align:right;font-size:10px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border);min-width:90px">TOTAL ANO</th>
+          <th style="padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);min-width:130px;border-bottom:1px solid var(--border)">CATEGORIA</th>
+          ${MESES_PROJ.map(m => `<th style="padding:6px 2px;text-align:center;font-size:9px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border)">${m.substring(0,3)}</th>`).join('')}
+          <th style="padding:6px 4px;text-align:center;font-size:9px;font-weight:700;color:var(--accent);border-bottom:1px solid var(--border)">REP.</th>
+          <th style="padding:6px 4px;text-align:right;font-size:9px;font-weight:700;color:var(--text2);border-bottom:1px solid var(--border)">TOTAL</th>
         </tr>
       </thead>
       <tbody>
@@ -13404,28 +13404,26 @@ async function loadProjecaoDRE() {
             return s + Number(v);
           }, 0);
           return `<tr style="border-bottom:1px solid var(--border);${ci%2===1?'background:var(--bg3)':''}">
-            <td style="padding:7px 12px;font-size:11px;font-weight:600">${cat.nome}
-              <div style="font-size:10px;color:var(--text3);font-weight:400">${cat.codigo || ''}</div>
+            <td style="padding:5px 8px;font-size:10px;font-weight:600">${cat.nome}
+              <div style="font-size:9px;color:var(--text3);font-weight:400">${cat.codigo || ''}</div>
             </td>
             ${MESES_PROJ.map((_, mi) => {
               const val = projMap[`${cat.id}_${mi+1}`] || '';
-              return `<td style="padding:4px 4px;text-align:center">
+              return `<td style="padding:2px 2px;text-align:center">
                 <input type="number" step="0.01" min="0"
                   id="proj_${cat.id}_${mi+1}"
                   value="${val}"
                   placeholder="0"
                   onchange="recalcTotalAno('${cat.id}')"
-                  style="width:74px;padding:4px 6px;font-size:11px;text-align:right;border:1.5px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-family:'DM Mono',monospace">
+                  style="width:58px;padding:3px 4px;font-size:10px;text-align:right;border:1.5px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text);font-family:'DM Mono',monospace">
               </td>`;
             }).join('')}
-            <td style="padding:4px 6px;text-align:center">
+            <td style="padding:2px 4px;text-align:center">
               <button onclick="replicarParaTodos('${cat.id}')" 
-                style="padding:4px 10px;font-size:10px;font-weight:600;border:1.5px solid var(--accent);color:var(--accent);background:var(--bg2);border-radius:6px;cursor:pointer;white-space:nowrap"
-                title="Pega o valor do 1º mês preenchido e replica para todos">
-                ↦ Todos
-              </button>
+                style="padding:3px 6px;font-size:9px;font-weight:600;border:1.5px solid var(--accent);color:var(--accent);background:var(--bg2);border-radius:5px;cursor:pointer;white-space:nowrap"
+                title="Replica o valor para todos os meses">↦</button>
             </td>
-            <td style="padding:7px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--green)" id="proj-total-${cat.id}">
+            <td style="padding:5px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--green)" id="proj-total-${cat.id}">
               ${totalAno > 0 ? fmtBRL(totalAno) : '—'}
             </td>
           </tr>`;
