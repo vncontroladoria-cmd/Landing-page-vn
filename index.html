@@ -8282,13 +8282,21 @@ async function abrirModalPdvCategorias() {
 }
 
 function buscarCatPlanoPDVAbrir(inputEl) {
-  // Posiciona o dropdown abaixo do input usando position:fixed
-  const dd = document.getElementById('nova-cat-pdv-plano-dd');
+  let dd = document.getElementById('nova-cat-pdv-plano-dd');
   if (!dd || !inputEl) return;
+
+  // Move o dropdown para o body para escapar do zoom do modal
+  if (dd.parentElement !== document.body) {
+    document.body.appendChild(dd);
+  }
+
   const rect = inputEl.getBoundingClientRect();
-  dd.style.top = (rect.bottom + 4) + 'px';
+  dd.style.position = 'fixed';
+  dd.style.top  = (rect.bottom + 4) + 'px';
   dd.style.left = rect.left + 'px';
-  dd.style.width = rect.width + 'px';
+  dd.style.width = Math.max(rect.width, 300) + 'px';
+  dd.style.zIndex = '99999';
+
   buscarCatPlanoPDV(inputEl.value);
 }
 
