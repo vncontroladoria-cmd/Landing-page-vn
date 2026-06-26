@@ -3083,13 +3083,26 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <select id="dre-ano" onchange="loadDRE()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
                 <option value="2026">2026</option><option value="2025">2025</option>
               </select>
-              <select id="dre-mes" onchange="loadDRE()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
-                <option value="">Todos os meses</option>
-                <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
-                <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
-                <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
-                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
-              </select>
+              <!-- Multi-seletor de meses -->
+              <div style="position:relative">
+                <button onclick="toggleDREMesesDrop(event)" id="dre-mes-btn"
+                  style="padding:6px 12px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);cursor:pointer;min-width:145px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:6px">
+                  <span id="dre-mes-label">Todos os meses</span><span>▾</span>
+                </button>
+                <div id="dre-mes-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:8px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:200px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)">
+                    <button onclick="dreSetAllMeses(true)" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;color:var(--accent)">Todos</button>
+                    <button onclick="dreSetAllMeses(false)" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;color:var(--text2)">Nenhum</button>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">
+                    ${['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m,i) => `
+                    <label style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12px" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+                      <input type="checkbox" value="${String(i+1).padStart(2,'0')}" class="dre-mes-cb" onchange="dreAtualizarMeses()" checked style="accent-color:var(--accent)">
+                      ${m.substring(0,3)}
+                    </label>`).join('')}
+                  </div>
+                </div>
+              </div>
               <select id="dre-modo" onchange="loadDRE()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
                 <option value="realizado">Realizado</option>
                 <option value="projetado">Projetado</option>
@@ -13588,6 +13601,48 @@ function toggleDFCGrupo(gId) {
 }
 
 // ─── DRE ─────────────────────────────────────────────────
+function toggleDREMesesDrop(e) {
+  e?.stopPropagation();
+  const drop = document.getElementById('dre-mes-drop');
+  if (!drop) return;
+  const aberto = drop.style.display !== 'none';
+  drop.style.display = aberto ? 'none' : 'block';
+  if (!aberto) {
+    // Fecha ao clicar fora
+    setTimeout(() => {
+      document.addEventListener('click', function fechar(ev) {
+        if (!document.getElementById('dre-mes-drop')?.contains(ev.target) &&
+            ev.target.id !== 'dre-mes-btn' && !ev.target.closest('#dre-mes-btn')) {
+          document.getElementById('dre-mes-drop').style.display = 'none';
+          document.removeEventListener('click', fechar);
+        }
+      });
+    }, 10);
+  }
+}
+
+function dreGetMesesSelecionados() {
+  const cbs = document.querySelectorAll('.dre-mes-cb:checked');
+  return [...cbs].map(c => c.value);
+}
+
+function dreAtualizarMeses() {
+  const sel = dreGetMesesSelecionados();
+  const label = document.getElementById('dre-mes-label');
+  if (!label) return;
+  const NOMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  if (sel.length === 0) label.textContent = 'Nenhum mês';
+  else if (sel.length === 12) label.textContent = 'Todos os meses';
+  else if (sel.length <= 3) label.textContent = sel.map(m => NOMES[parseInt(m)-1]).join(', ');
+  else label.textContent = sel.length + ' meses';
+  loadDRE();
+}
+
+function dreSetAllMeses(marcar) {
+  document.querySelectorAll('.dre-mes-cb').forEach(cb => cb.checked = marcar);
+  dreAtualizarMeses();
+}
+
 function setDRERegime(regime) {
   document.getElementById('dre-regime').value = regime;
   const btnC = document.getElementById('dre-btn-caixa');
@@ -13606,7 +13661,6 @@ async function loadDRE() {
   if (!el) return;
   el.innerHTML = '<div class="loading"><div class="spin"></div> Calculando...</div>';
   const ano = document.getElementById('dre-ano')?.value || '2026';
-  const mesFiltro = document.getElementById('dre-mes')?.value || '';
   const modo = document.getElementById('dre-modo')?.value || 'realizado';
 
   const empIdDRE = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
@@ -13673,10 +13727,18 @@ async function loadDRE() {
     (metas||[]).forEach(m => { metasMap[m.categoria+'_'+m.mes] = Number(m.valor||0); });
   } catch(e) {}
 
+  const mesFiltro = document.getElementById('dre-mes')?.value || '';
+
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
 
-  const mCols = mesFiltro ? [mesFiltro] : MESES.map((_,i) => String(i+1).padStart(2,'0'));
-  const mNomes = mesFiltro ? [MESES[parseInt(mesFiltro)-1]] : MESES;
+  // Meses selecionados via checkboxes (ou todos se não houver seletor)
+  const mesesCbs = [...(document.querySelectorAll('.dre-mes-cb') || [])];
+  const mesesSel = mesesCbs.length > 0
+    ? mesesCbs.filter(c => c.checked).map(c => c.value).sort()
+    : ['01','02','03','04','05','06','07','08','09','10','11','12'];
+
+  const mCols = mesesSel.length > 0 ? mesesSel : ['01','02','03','04','05','06','07','08','09','10','11','12'];
+  const mNomes = mCols.map(m => MESES[parseInt(m)-1]);
   const nMeses = mCols.length;
   const mostrarProj = modo === 'projetado' || modo === 'ambos';
   const mostrarReal = modo === 'realizado' || modo === 'ambos';
