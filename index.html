@@ -13969,8 +13969,10 @@ async function loadDRE() {
     }).join('');
   }
 
-  function totaisCols(arr, recBArr) {
+  function totaisCols(realArr, recBArr, projArr) {
     if (mesFiltro) return '';
+    // Em modo projetado usa projetado, senão usa realizado
+    const arr = (modo === 'projetado' && projArr) ? projArr : realArr;
     const total = arr.reduce((s,v)=>s+v,0);
     const totalRec = recBArr.reduce((s,v)=>s+v,0);
     const pct = totalRec>0?(Math.abs(total)/totalRec*100).toFixed(1)+'%':'';
@@ -14032,7 +14034,7 @@ async function loadDRE() {
         <span style="font-weight:400;font-size:9px;color:var(--text2)">${g.sinal}</span>
       </td>
       ${cellsGrupo(g.realizado, g.projetado, recBrutaArr)}
-      ${totaisCols(g.realizado, recBrutaArr)}
+      ${totaisCols(g.realizado, recBrutaArr, g.projetado)}
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
@@ -14042,7 +14044,7 @@ async function loadDRE() {
       html += `<tr class="dre-cat-${gId}" style="border-bottom:1px solid rgba(0,0,0,0.04);display:none" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
         <td style="padding:4px 8px 4px 20px;color:var(--text2);font-size:9px;position:sticky;left:0;background:inherit;z-index:10;border-left:3px solid ${corG}30">${c.codigo} — ${c.nome}</td>
         ${cellsGrupo(vals, projVals, recBrutaArr)}
-        ${totaisCols(vals, recBrutaArr)}
+        ${totaisCols(vals, recBrutaArr, projVals)}
       </tr>`;
     });
 
