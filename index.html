@@ -3102,13 +3102,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                     <button onclick="dreSetAllMeses(true)" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;color:var(--accent)">Todos</button>
                     <button onclick="dreSetAllMeses(false)" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;cursor:pointer;color:var(--text2)">Nenhum</button>
                   </div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">
-                    ${['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m,i) => `
-                    <label style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12px" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-                      <input type="checkbox" value="${String(i+1).padStart(2,'0')}" class="dre-mes-cb" onchange="dreAtualizarMeses()" checked style="accent-color:var(--accent)">
-                      ${m.substring(0,3)}
-                    </label>`).join('')}
-                  </div>
+                  <div id="dre-mes-cbs" style="display:grid;grid-template-columns:1fr 1fr;gap:2px"></div>
                 </div>
               </div>
               <select id="dre-modo" onchange="loadDRE()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
@@ -13712,13 +13706,26 @@ function toggleDREMesesDrop(e) {
   const drop = document.getElementById('dre-mes-drop');
   if (!drop) return;
   const aberto = drop.style.display !== 'none';
+
+  // Gera os checkboxes na primeira abertura
+  const container = document.getElementById('dre-mes-cbs');
+  if (container && !container.innerHTML.trim()) {
+    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    container.innerHTML = nomes.map((m, i) => {
+      const val = String(i+1).padStart(2,'0');
+      return `<label style="display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:6px;cursor:pointer;font-size:12px" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <input type="checkbox" value="${val}" class="dre-mes-cb" onchange="dreAtualizarMeses()" checked style="accent-color:var(--accent)">
+        ${m.substring(0,3)}
+      </label>`;
+    }).join('');
+  }
+
   drop.style.display = aberto ? 'none' : 'block';
   if (!aberto) {
-    // Fecha ao clicar fora
     setTimeout(() => {
       document.addEventListener('click', function fechar(ev) {
         if (!document.getElementById('dre-mes-drop')?.contains(ev.target) &&
-            ev.target.id !== 'dre-mes-btn' && !ev.target.closest('#dre-mes-btn')) {
+            !ev.target.closest('#dre-mes-btn')) {
           document.getElementById('dre-mes-drop').style.display = 'none';
           document.removeEventListener('click', fechar);
         }
