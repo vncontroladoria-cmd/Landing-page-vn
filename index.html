@@ -7450,15 +7450,16 @@ async function loadDashboard() {
   const nProd     = prodRows.reduce((s,r)=>s+(r.qtd||1),0);
   const diasComMov= new Set(srvRows.map(r=>r.data_comanda?.substring(0,10)).filter(Boolean)).size;
 
-  // Clientes: usa relatório importado se disponível, senão rel_servicos
-  // Se _cliTodosData ainda não foi carregado, tenta carregar agora
+  // Clientes únicos no período (de rel_servicos, filtrado pelo período selecionado)
+  const nClientesSrv = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
+  // Total cadastrado (para referência)
   if (!_cliTodosData?.length) {
     try { await initClientes(); } catch(e) {}
   }
-  const nClientesRel = (_cliTodosData||[]).length;
-  const nClientesSrv = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
-  const nClientes    = nClientesRel > 0 ? nClientesRel : nClientesSrv;
-  const nClientesSub = nClientesRel > 0 ? 'relatório clientes' : 'rel. serviços';
+  const nClientesCad = (_cliTodosData||[]).length;
+  // Usa sempre clientes únicos do período como métrica principal
+  const nClientes    = nClientesSrv > 0 ? nClientesSrv : nClientesCad;
+  const nClientesSub = nClientesSrv > 0 ? `únicos no período` : 'total cadastrado';
 
   // Novos clientes: do relatório de clientes novos
   const nNovos = _cliNovosData?.length || 0;
