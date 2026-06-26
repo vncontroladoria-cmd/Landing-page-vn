@@ -7386,12 +7386,11 @@ async function loadDashboard() {
       }
       return r;
     });
-    // Tenta filtrar pelo período selecionado
+    // Filtra pelo período selecionado — se não tiver dado no período, mostra vazio
     const filtrados = todos.filter(r => r.data_comanda >= ini && r.data_comanda <= fim);
-    // Se não tiver nada no período, usa tudo (relatório é de outro período)
-    srvRows = filtrados.length > 0 ? filtrados : todos;
+    srvRows = filtrados;
     if (filtrados.length === 0 && todos.length > 0) {
-      if(el('m-srv-d')) el('m-srv-d').textContent = 'todos os períodos · rel. serviços';
+      if(el('m-srv-d')) el('m-srv-d').textContent = 'sem importação para o período';
     }
   } catch(e) { console.warn('rel_servicos:', e); }
 
@@ -7399,7 +7398,7 @@ async function loadDashboard() {
     const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id',tipoProd.id).limit(5000);
     const todos = (data||[]).map(r=>parseProdRow(r.colunas)).filter(r=>r.produto);
     const filtrados = todos.filter(r=>r.data && r.data >= ini && r.data <= fim);
-    prodRows = filtrados.length > 0 ? filtrados : todos;
+    prodRows = filtrados;
     if (filtrados.length === 0 && todos.length > 0) {
       if(el('m-prod-d')) el('m-prod-d').textContent = 'todos os períodos';
     }
