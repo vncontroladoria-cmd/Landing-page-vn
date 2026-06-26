@@ -272,6 +272,22 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .hero-cards.cols-2 { grid-template-columns:repeat(2,1fr); }
 .hcards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:10px; }
 
+/* ── Modo somente leitura (perfil leitor) ──────────────────── */
+.modo-leitura .btn-primary { display:none !important; }
+.modo-leitura [onclick*="salvar"],[onclick*="Salvar"] {}
+.modo-leitura button[onclick*="salvar"],
+.modo-leitura button[onclick*="Salvar"],
+.modo-leitura button[onclick*="excluir"],
+.modo-leitura button[onclick*="Excluir"],
+.modo-leitura button[onclick*="novo"],
+.modo-leitura button[onclick*="Novo"],
+.modo-leitura button[onclick*="criar"],
+.modo-leitura button[onclick*="toggleForm"],
+.modo-leitura button[onclick*="darBaixa"],
+.modo-leitura .btn-save-inline,
+.modo-leitura .cell-view button { display:none !important; }
+/* ─────────────────────────────────────────────────────────── */
+
 .hcard {
   border-radius:12px; padding:14px 16px; color:#fff;
   position:relative; overflow:hidden;
@@ -4682,7 +4698,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <button onclick="fecharSeletorEmpresas()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">×</button>
     </div>
     <div id="seletor-empresa-lista" style="display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto"></div>
-    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+    <div id="btn-gerenciar-empresas-wrap" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:none">
       <button class="btn btn-primary" onclick="fecharSeletorEmpresas();showPage('empresas',document.querySelector('[data-page=empresas]'))" style="width:100%;font-size:12px">
         ⚙️ Gerenciar Empresas & Usuários
       </button>
@@ -5338,21 +5354,17 @@ function aplicarPermissoes() {
   const perfil = _vnUser?.perfil || 'leitor';
   const empId  = _empresaAtual?.id;
 
-  // Páginas salvas no cadastro do usuário (campo paginas_liberadas)
+  // Páginas salvas no cadastro do usuário
   const paginasUsuario = _vnUser?.paginas_liberadas || [];
-
-  // Permissões por empresa (tabela usuario_empresas)
   const abasEmp = (empId && _permissoes[empId]?.abas) || [];
-
-  // Páginas efetivas: usa empresa-específico se existir, senão usa do cadastro do usuário
   const paginasEfetivas = abasEmp.length > 0 ? abasEmp : paginasUsuario;
   const temRestricao = paginasEfetivas.length > 0;
 
+  // Visibilidade do menu
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     const page = item.dataset.page;
     if (perfil === 'admin') { item.style.display = ''; return; }
     if (perfil === 'operador') { item.style.display = temRestricao ? (paginasEfetivas.includes(page) ? '' : 'none') : ''; return; }
-    // leitor: mostra só páginas explicitamente liberadas
     item.style.display = paginasEfetivas.includes(page) ? '' : 'none';
   });
 
@@ -5360,6 +5372,18 @@ function aplicarPermissoes() {
   document.querySelectorAll('[data-page="usuarios"],[data-page="empresas"]').forEach(el => {
     el.style.display = perfil === 'admin' ? '' : 'none';
   });
+
+  // Botão Gerenciar Empresas — só admin
+  const btnGer = document.getElementById('btn-gerenciar-empresas-wrap');
+  if (btnGer) btnGer.style.display = perfil === 'admin' ? 'block' : 'none';
+
+  // Modo somente leitura para leitor
+  const body = document.getElementById('app');
+  if (perfil === 'leitor') {
+    body?.classList.add('modo-leitura');
+  } else {
+    body?.classList.remove('modo-leitura');
+  }
 }
 
 // Troca de empresa (admin/operador)
