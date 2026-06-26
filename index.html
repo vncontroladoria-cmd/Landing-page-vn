@@ -13774,7 +13774,9 @@ async function loadDRE() {
         // Usa categoria vinculada ao plano se existir, senão usa o nome original
         const nomeAgregado = mapaCatPlano[nomeNorm] || nomeOrig;
         const chave = nomeAgregado + '|' + mes;
-        pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + Number(it.valor||0);
+        // SAIDA = valor negativo no DRE (despesa), ENTRADA = positivo (receita)
+        const sinal = it.tipo === 'SAIDA' ? -1 : 1;
+        pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + sinal * Number(it.valor||0);
       });
     }
   } catch(e) { console.warn('PDV DRE:', e); }
