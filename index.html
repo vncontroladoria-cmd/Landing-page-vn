@@ -13828,6 +13828,29 @@ async function loadDRE() {
 
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
 
+  // Realizado de profissionais por categoria DRE vinculada
+  // profCatMes[catNome|MM] = valor
+  let profCatMes = {};
+  try {
+    const { data: profsAll } = await qE('profissionais').select('nome,categoria_dre').not('categoria_dre','is',null);
+    if (profsAll?.length) {
+      const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+      // Busca performance do ano
+      const { data: srvAnual } = await qE('rel_servicos').select('profissional,total,data_comanda')
+        .gte('data_comanda',`${ano}-01-01`).lte('data_comanda',`${ano}-12-31`);
+      (srvAnual||[]).forEach(r => {
+        const mes = (r.data_comanda||'').substring(5,7);
+        if (!mes || !r.profissional) return;
+        const nomeNorm = normP(r.profissional);
+        // Acha o profissional cadastrado que corresponde
+        const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
+        if (!prof?.categoria_dre) return;
+        const chave = prof.categoria_dre + '|' + mes;
+        profCatMes[chave] = (profCatMes[chave]||0) + Number(r.total||0);
+      });
+    }
+  } catch(e) { console.warn('prof DRE:', e); }
+
   // Meses selecionados via checkboxes (ou todos se não houver seletor)
   const mesesCbs = [...(document.querySelectorAll('.dre-mes-cb') || [])];
   const mesesSel = mesesCbs.length > 0
@@ -13872,8 +13895,12 @@ async function loadDRE() {
         return s + (l.tipo==='ENTRADA' ? 1 : -1) * Number(l.valor||0);
       }, 0);
 
-    return doPDV + doLanc;
+    // ── 3. Performance de profissionais vinculados a esta categoria DRE
+    const doProf = profCatMes[catNome+'|'+mes] || 0;
+
+    return doPDV + doLanc + doProf;
   }
+
   function calcProj(catNome, mes) { return metasMap[catNome+'_'+mes] || 0; }
 
   // Monta dados por grupo
@@ -14971,18 +14998,40 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
     return;
   }
 
-  // Busca metas e realizados
+  // Busca metas
   const { data: metas } = await qE('metas_profissionais').select('*').eq('ano', ano).eq('mes', mes);
-  const { data: lancsProf } = await qE('lancamentos').select('entrada,descricao,extrato').eq('tipo','ENTRADA').gte('data_lancamento',ini).lte('data_lancamento',fim);
-
   const metaMap = {};
   (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
+
+  // Busca realizado da Performance importada (rel_servicos)
+  const { data: srvData } = await qE('rel_servicos').select('profissional,total,data_comanda').gte('data_comanda', ini).lte('data_comanda', fim);
+
+  // Agrupa por profissional normalizado → total faturado
+  const realMap = {};
+  (srvData||[]).forEach(r => {
+    const nome = (r.profissional||'').trim();
+    if (!nome) return;
+    realMap[nome] = (realMap[nome]||0) + Number(r.total||0);
+  });
+
+  // Normaliza nome para matching flexível
+  const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+
+  // Calcula realizado por profissional via matching de nome
+  const getRealizado = (profNome) => {
+    const nNome = normP(profNome);
+    let total = 0;
+    Object.entries(realMap).forEach(([k,v]) => {
+      if (normP(k).includes(nNome) || nNome.includes(normP(k))) total += v;
+    });
+    return total;
+  };
 
   let html = `<table style="width:100%;border-collapse:collapse">
     <thead><tr style="background:var(--bg3)">
       <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">PROFISSIONAL</th>
       <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">META</th>
-      <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">REALIZADO</th>
+      <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--green);border-bottom:1px solid var(--border)">REALIZADO</th>
       <th style="padding:10px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">%</th>
       <th style="padding:10px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">STATUS</th>
       <th style="padding:10px 12px;border-bottom:1px solid var(--border)"></th>
@@ -14990,10 +15039,7 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
 
   profs.forEach(p => {
     const meta = metaMap[p.id] || 0;
-    // Realizado: soma entradas onde descricao ou extrato contém nome do profissional
-    const nomeNorm = normText(p.nome);
-    const real = (lancsProf||[]).filter(l => normText(l.descricao||'').includes(nomeNorm) || normText(l.extrato||'').includes(nomeNorm))
-                                .reduce((s,l)=>s+Number(l.entrada||0),0);
+    const real = getRealizado(p.nome);
     const pct = meta > 0 ? Math.min(100,(real/meta)*100) : 0;
     const cor = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : pct > 0 ? 'var(--red)' : 'var(--text3)';
     const badge = pct >= 100 ? '✅ Atingiu' : pct >= 70 ? '⚡ Perto' : meta > 0 ? '⚠️ Abaixo' : '—';
@@ -15010,7 +15056,7 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
           onblur="salvarMetaProfissional('${p.id}', this.value, '${mes}', '${ano}')"
           style="width:100px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
       </td>
-      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${fmtBRL(real)}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${real > 0 ? fmtBRL(real) : '<span style="color:var(--text3)">—</span>'}</td>
       <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
         <div style="font-weight:700;font-size:13px;color:${cor}">${meta > 0 ? pct.toFixed(0)+'%' : '—'}</div>
         <div style="margin-top:4px;height:3px;background:var(--bg4);border-radius:3px;overflow:hidden">
