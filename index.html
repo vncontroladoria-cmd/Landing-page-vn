@@ -16014,6 +16014,25 @@ async function atualizarLancamentos() {
     }
   }
 
+  // 3. Limpa categoria_dfc/dre inconsistentes com o plano de contas atual
+  try {
+    const { data: plano } = await qE('plano_contas').select('nome,demonstrativo');
+    if (plano?.length) {
+      const soDRE  = plano.filter(c => c.demonstrativo === 'DRE').map(c => c.nome);
+      const soDFC  = plano.filter(c => c.demonstrativo === 'DFC').map(c => c.nome);
+      // Lançamentos com categoria DRE-only não devem ter categoria_dfc
+      for (let i = 0; i < soDRE.length; i += 50) {
+        const lote = soDRE.slice(i, i+50);
+        if (lote.length) await sb.from('lancamentos').update({ categoria_dfc: null }).in('categoria', lote).eq('empresa_id', empId).not('categoria_dfc','is',null);
+      }
+      // Lançamentos com categoria DFC-only não devem ter categoria_dre
+      for (let i = 0; i < soDFC.length; i += 50) {
+        const lote = soDFC.slice(i, i+50);
+        if (lote.length) await sb.from('lancamentos').update({ categoria_dre: null }).in('categoria', lote).eq('empresa_id', empId).not('categoria_dre','is',null);
+      }
+    }
+  } catch(e) { console.warn('limpeza categorias:', e); }
+
   if (btn) { btn.textContent = '↻ Atualizar'; btn.disabled = false; }
 
   if (totalAtualizados > 0) {
