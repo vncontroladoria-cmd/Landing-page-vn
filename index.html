@@ -13438,7 +13438,7 @@ async function loadProjecaoDRE() {
 function recalcTotalAno(catId) {
   let total = 0;
   for (let m = 1; m <= 12; m++) {
-    const v = parseFloat(document.getElementById(`proj-${catId}-${m}`)?.value) || 0;
+    const v = parseFloat(document.getElementById(`proj_${catId}_${m}`)?.value) || 0;
     total += v;
   }
   const el = document.getElementById(`proj-total-${catId}`);
@@ -13449,7 +13449,7 @@ function replicarParaTodos(catId) {
   // Pega o valor do primeiro campo preenchido
   let valor = 0;
   for (let m = 1; m <= 12; m++) {
-    const v = parseFloat(document.getElementById(`proj-${catId}-${m}`)?.value) || 0;
+    const v = parseFloat(document.getElementById(`proj_${catId}_${m}`)?.value) || 0;
     if (v > 0) { valor = v; break; }
   }
   if (!valor) {
@@ -13457,7 +13457,7 @@ function replicarParaTodos(catId) {
     return;
   }
   for (let m = 1; m <= 12; m++) {
-    const el = document.getElementById(`proj-${catId}-${m}`);
+    const el = document.getElementById(`proj_${catId}_${m}`);
     if (el) el.value = valor;
   }
   recalcTotalAno(catId);
@@ -13822,7 +13822,8 @@ async function loadDRE() {
     (catsAll||[]).forEach(c => { catIdNome[c.id] = c.nome; });
     (metas||[]).forEach(m => {
       const nome = catIdNome[m.categoria_id] || m.categoria_id;
-      metasMap[nome+'_'+m.mes] = Number(m.valor||0);
+      const mesStr = String(m.mes).padStart(2, '0'); // '1' → '01'
+      metasMap[nome+'_'+mesStr] = Number(m.valor||0);
     });
   } catch(e) {}
 
