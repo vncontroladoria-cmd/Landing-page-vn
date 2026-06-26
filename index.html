@@ -13750,10 +13750,9 @@ async function loadDRE() {
   const recBrutaArr = mCols.map((_,i) => Math.abs(recBruta(i)));
 
   // Estilos
-  const thS  = `padding:5px 4px;text-align:right;border-bottom:1.5px solid var(--border);border-right:1px solid rgba(128,128,128,0.08);font-size:8.5px;font-weight:600;color:var(--text2);white-space:nowrap`;
-  const thSL = `padding:5px 6px;text-align:left;border-bottom:1.5px solid var(--border);font-size:8.5px;font-weight:600;color:var(--text2)`;
-  // Estilo de célula de valor
-  const tdV  = `padding:4px 4px;text-align:right;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);font-size:8.5px;white-space:nowrap;font-family:'DM Mono',monospace`;
+  const thS  = `padding:6px 5px;text-align:right;border-bottom:2px solid var(--border);font-size:9px;font-weight:700;color:var(--text2);white-space:nowrap;background:var(--bg3)`;
+  const thSL = `padding:6px 8px;text-align:left;border-bottom:2px solid var(--border);font-size:9px;font-weight:700;color:var(--text2);background:var(--bg3)`;
+  const tdV  = `padding:5px 5px;text-align:right;font-size:9px;white-space:nowrap;font-family:'DM Mono',monospace`;
 
   // Monta colunas do header
   function colHeaders() {
@@ -13781,16 +13780,19 @@ async function loadDRE() {
     return mCols.map((_,i) => {
       const r = realArr[i], p = projArr[i];
       const pct = recBArr[i] > 0 ? (Math.abs(r)/recBArr[i]*100).toFixed(1)+'%' : '';
+      const clrR = r>0?'var(--green)':r<0?'var(--red)':'var(--text3)';
+      const base = `padding:5px 5px;text-align:right;font-size:9px;white-space:nowrap`;
+      const mono = `${base};font-family:'DM Mono',monospace`;
       if (modo === 'ambos') return `
-        <td style="padding:3px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:8.5px;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);color:${r>0?'var(--green)':r<0?'var(--red)':'var(--text3)'}">${r!==0?fmtNum(Math.abs(r)):''}</td>
-        <td style="padding:3px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:8.5px;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
-        <td style="padding:3px 4px;text-align:right;font-size:8px;color:var(--text2);border-bottom:1px solid rgba(128,128,128,0.07)">${pct}</td>`;
+        <td style="${mono};color:${clrR}">${r!==0?fmtNum(Math.abs(r)):''}</td>
+        <td style="${mono};color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
+        <td style="${base};color:var(--text3);font-size:8px">${pct}</td>`;
       if (modo === 'projetado') return `
-        <td style="padding:3px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:8.5px;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
-        <td style="padding:3px 4px;text-align:right;font-size:8px;color:var(--text2);border-bottom:1px solid rgba(128,128,128,0.07)">${pct}</td>`;
+        <td style="${mono};color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
+        <td style="${base};color:var(--text3);font-size:8px">${pct}</td>`;
       return `
-        <td style="padding:3px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:8.5px;border-bottom:1px solid rgba(128,128,128,0.07);border-right:1px solid rgba(128,128,128,0.06);color:${r>0?'var(--green)':r<0?'var(--red)':'var(--text3)'}">${r!==0?fmtNum(Math.abs(r)):''}</td>
-        <td style="padding:3px 4px;text-align:right;font-size:8px;color:var(--text2);border-bottom:1px solid rgba(128,128,128,0.07)">${pct}</td>`;
+        <td style="${mono};color:${clrR}">${r!==0?fmtNum(Math.abs(r)):''}</td>
+        <td style="${base};color:var(--text3);font-size:8px">${pct}</td>`;
     }).join('');
   }
 
@@ -13851,8 +13853,8 @@ async function loadDRE() {
     const gId = 'dre-g-' + gi;
     const totalReal = g.realizado.reduce((s,v)=>s+v,0);
 
-    html += `<tr style="background:${bgG};border-top:2px solid var(--border);cursor:pointer" onclick="toggleDREGrupo('${gId}')">
-      <td style="padding:8px 10px;font-weight:700;color:${corG};border-left:3px solid ${corG};position:sticky;left:0;background:${bgG};z-index:10;font-size:10px">
+    html += `<tr style="background:var(--bg3);border-top:1px solid var(--border);cursor:pointer" onclick="toggleDREGrupo('${gId}')">
+      <td style="padding:7px 10px;font-weight:700;color:${corG};border-left:3px solid ${corG};position:sticky;left:0;background:var(--bg3);z-index:10;font-size:10px">
         <span id="${gId}-arrow" style="margin-right:4px;font-size:9px">▶</span>${g.ordem}. ${g.nome}
         <span style="font-weight:400;font-size:9px;color:var(--text2)">${g.sinal}</span>
       </td>
@@ -13864,8 +13866,8 @@ async function loadDRE() {
       const vals = mCols.map(m => calcReal(c.nome, c.tipo, m));
       const projVals = mCols.map(m => calcProj(c.nome, m));
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
-      html += `<tr class="dre-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
-        <td style="padding:3px 8px 3px 16px;color:var(--text2);font-size:8.5px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
+      html += `<tr class="dre-cat-${gId}" style="border-bottom:1px solid rgba(0,0,0,0.04);display:none" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <td style="padding:4px 8px 4px 20px;color:var(--text2);font-size:9px;position:sticky;left:0;background:inherit;z-index:10;border-left:3px solid ${corG}30">${c.codigo} — ${c.nome}</td>
         ${cellsGrupo(vals, projVals, recBrutaArr)}
         ${totaisCols(vals, recBrutaArr)}
       </tr>`;
