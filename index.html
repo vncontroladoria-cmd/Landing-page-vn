@@ -13489,8 +13489,9 @@ async function salvarProjecaoToda() {
   }
 
   try {
-    // Apaga projeções do ano e recria
-    await sb.from('projecoes_dre').delete().eq('ano', ano);
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    // Apaga projeções do ano desta empresa e recria
+    await sb.from('projecoes_dre').delete().eq('ano', parseInt(ano)).eq('empresa_id', empId);
     const comValor = rows.filter(r => r.valor > 0);
     if (comValor.length) {
       const lote = 500;
@@ -13809,11 +13810,18 @@ async function loadDRE() {
     }
   } catch(e) { console.warn('PDV DRE:', e); }
 
-  // Busca metas projetadas
+  // Busca metas projetadas da tabela correta (projecoes_dre)
   let metasMap = {};
   try {
-    const { data: metas } = await sb.from('metas_dre').select('*').eq('ano', ano);
-    (metas||[]).forEach(m => { metasMap[m.categoria+'_'+m.mes] = Number(m.valor||0); });
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    const { data: metas } = await sb.from('projecoes_dre').select('*').eq('ano', parseInt(ano)).eq('empresa_id', empId);
+    // Monta mapa catId → nome para converter chave
+    const catIdNome = {};
+    (catsAll||[]).forEach(c => { catIdNome[c.id] = c.nome; });
+    (metas||[]).forEach(m => {
+      const nome = catIdNome[m.categoria_id] || m.categoria_id;
+      metasMap[nome+'_'+m.mes] = Number(m.valor||0);
+    });
   } catch(e) {}
 
   const mesFiltro = document.getElementById('dre-mes')?.value || '';
@@ -13881,15 +13889,24 @@ async function loadDRE() {
   const getG = (nome, arr) => { const g = gruposData.find(g => g.nome === nome); return g ? g[arr] : Array(nMeses).fill(0); };
 
   // Indicadores calculados por mês
-  const recBruta  = i => getG('Receita Bruta','realizado')[i];
-  const deducoes  = i => getG('Deduções de Faturamento','realizado')[i];
-  const custDir   = i => getG('Custos dos Serviços Direto','realizado')[i];
-  const custInd   = i => getG('Custos dos Serviços Indireto','realizado')[i];
-  const market    = i => getG('Market / Comercial','realizado')[i];
-  const admin     = i => getG('Administrativas','realizado')[i];
-  const equipe    = i => getG('Equipe / CLTs','realizado')[i];
-  const outrasRec = i => getG('Outras Receitas','realizado')[i];
-  const despFin   = i => getG('Despesas Financeiras','realizado')[i];
+  // Função auxiliar: usa realizado ou projetado conforme modo
+  const getVal = (grupoNome, i) => {
+    if (modo === 'projetado') {
+      const g = gruposData.find(x => x.nome === grupoNome);
+      return g ? g.projetado[i] : 0;
+    }
+    return getG(grupoNome,'realizado')[i];
+  };
+
+  const recBruta  = i => getVal('Receita Bruta', i);
+  const deducoes  = i => getVal('Deduções de Faturamento', i);
+  const custDir   = i => getVal('Custos dos Serviços Direto', i);
+  const custInd   = i => getVal('Custos dos Serviços Indireto', i);
+  const market    = i => getVal('Market / Comercial', i);
+  const admin     = i => getVal('Administrativas', i);
+  const equipe    = i => getVal('Equipe / CLTs', i);
+  const outrasRec = i => getVal('Outras Receitas', i);
+  const despFin   = i => getVal('Despesas Financeiras', i);
 
   const recLiq  = i => recBruta(i) - Math.abs(deducoes(i));
   const margem  = i => recLiq(i) - Math.abs(custDir(i)) - Math.abs(custInd(i));
