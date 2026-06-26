@@ -2506,6 +2506,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--green);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">ENTRADA</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--red);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SAÍDA</th>
                     <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DESCRIÇÃO</th>
+                    <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">CATEGORIA</th>
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:#1a56db;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DFC</th>
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:#166534;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DRE</th>
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer;max-width:90px" onclick="sortTable(this)">BANCO</th>
@@ -8733,10 +8734,7 @@ async function loadLancamentos(forcarBancoFilter) {
         <input class="cell-edit" style="display:none;width:100%;font-size:12px" value="${l.descricao||''}">
       </td>
       <td style="padding:6px 8px;min-width:110px">
-        <span class="cell-view" style="font-size:11px;line-height:1.6">
-          ${l.categoria ? `<strong>${l.categoria}</strong><br>` : ''}
-          ${l.categoria_dfc ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '<span style="font-size:10px;color:var(--text3)">—</span>'}
-        </span>
+        <span class="cell-view" style="font-size:12px;font-weight:600">${l.categoria || '—'}</span>
         <div class="cell-edit" style="display:none;position:relative">
           <input type="text" id="lcat-${l.id}" value="${l.categoria||''}" placeholder="Buscar categoria..."
             oninput="buscaCatInline(this.value,'${l.id}')"
@@ -8750,9 +8748,14 @@ async function loadLancamentos(forcarBancoFilter) {
           <div id="lcat-dd-${l.id}" style="display:none;position:absolute;top:100%;left:0;width:220px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,0.15)"></div>
         </div>
       </td>
-      <td style="padding:6px 8px;min-width:100px">
-        <span class="cell-view" style="font-size:11px">
-          ${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '<span style="font-size:10px;color:var(--text3)">—</span>'}
+      <td style="padding:6px 8px;min-width:90px">
+        <span class="cell-view" style="font-size:10px">
+          ${l.categoria_dfc ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '<span style="color:var(--text3)">—</span>'}
+        </span>
+      </td>
+      <td style="padding:6px 8px;min-width:90px">
+        <span class="cell-view" style="font-size:10px">
+          ${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '<span style="color:var(--text3)">—</span>'}
         </span>
       </td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
