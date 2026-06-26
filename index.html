@@ -3031,11 +3031,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <input type="text" id="nova-cat-pdv-plano-busca" placeholder="🔗 Vincular com categoria do Plano de Contas (DRE/DFC)..."
                   autocomplete="off"
                   oninput="buscarCatPlanoPDV(this.value)"
-                  onfocus="buscarCatPlanoPDV(this.value)"
+                  onfocus="buscarCatPlanoPDVAbrir(this)"
                   onblur="setTimeout(()=>{const d=document.getElementById('nova-cat-pdv-plano-dd');if(d)d.style.display='none'},200)"
                   style="width:100%;padding:8px 12px;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px">
                 <input type="hidden" id="nova-cat-pdv-plano">
-                <div id="nova-cat-pdv-plano-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+                <div id="nova-cat-pdv-plano-dd" style="display:none;position:fixed;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);min-width:300px"></div>
               </div>
               <div style="font-size:11px;color:var(--text3);margin-bottom:0.75rem">Vincule cada categoria do PDV com uma categoria do Plano de Contas. Ex: "Cartão Crédito" → "Receitas de Serviços". Os valores aparecerão automaticamente no DRE e DFC na categoria correspondente.</div>
               <div id="pdv-categorias-lista" style="max-height:320px;overflow-y:auto"></div>
@@ -8271,8 +8271,25 @@ async function confirmarImportePDV() {
 // ── CATEGORIAS PDV ──────────────────────────────────────
 async function abrirModalPdvCategorias() {
   await carregarCategoriasPDV();
+  // Garante que o Plano de Contas está carregado para o autocomplete
+  if (!_categorias?.length) {
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    const { data } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('codigo');
+    _categorias = data || [];
+  }
   renderCategoriasPDV();
   document.getElementById('modal-pdv-categorias').classList.add('open');
+}
+
+function buscarCatPlanoPDVAbrir(inputEl) {
+  // Posiciona o dropdown abaixo do input usando position:fixed
+  const dd = document.getElementById('nova-cat-pdv-plano-dd');
+  if (!dd || !inputEl) return;
+  const rect = inputEl.getBoundingClientRect();
+  dd.style.top = (rect.bottom + 4) + 'px';
+  dd.style.left = rect.left + 'px';
+  dd.style.width = rect.width + 'px';
+  buscarCatPlanoPDV(inputEl.value);
 }
 
 function buscarCatPlanoPDV(texto) {
