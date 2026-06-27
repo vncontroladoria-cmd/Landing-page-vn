@@ -15295,24 +15295,22 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   const metaMap = {};
   (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
 
-  // Busca realizado da Performance importada (rel_servicos) — faturamento
-  const { data: srvData } = await qE('rel_servicos').select('profissional,total,comissao_pct,data_comanda').gte('data_comanda', ini).lte('data_comanda', fim);
+  // Busca dados de performance do período via função centralizada
+  const srvData = await loadSrvPeriodo(ini, fim);
 
   // Busca comissão de rel_lucratividade se disponível
   const { data: lucData } = await qE('rel_lucratividade').select('profissional,custo_comissao,faturamento,data').gte('data', ini).lte('data', fim);
 
-  // Agrupa faturamento (valor_cobrado) e comissão (total) por profissional
+  // TOTAL = comissão | VALOR COBRADO = faturamento
   const fatMap = {}, comMap = {};
   (srvData||[]).forEach(r => {
     const nome = (r.profissional||'').trim();
     if (!nome) return;
-    // Valor Cobrado = faturamento; Total = comissão
-    const fat = Number(r.valor_cobrado||0);
-    const com = Number(r.total||0);
-    fatMap[nome] = (fatMap[nome]||0) + fat;
-    comMap[nome] = (comMap[nome]||0) + com;
+    fatMap[nome] = (fatMap[nome]||0) + Number(r.valor_cobrado||0);
+    comMap[nome] = (comMap[nome]||0) + Number(r.total||0);
   });
-  // Sobrescreve comissão com rel_lucratividade se existir (mais preciso)
+
+  // Sobrescreve comissão com rel_lucratividade se existir
   if (lucData?.length) {
     Object.keys(comMap).forEach(k => delete comMap[k]);
     (lucData||[]).forEach(r => {
