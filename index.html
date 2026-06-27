@@ -12848,6 +12848,7 @@ function parseSrvRow(colunas) {
     celular:        get('Celular','celular'),
     qtd:            parseN(qtdRaw) || 1,
     valor:          parseN(getValor()),
+    valor_cobrado:  parseN(get('Valor Cobrado','ValorCobrado','valor cobrado','preco','Preço','Preco')),
     desconto:       parseN(get('Desconto','desconto')),
     total,
     pacote:         get('Pacote','pacote'),
@@ -14107,8 +14108,8 @@ async function loadDRE() {
           profCatMes[chave] = (profCatMes[chave]||0) + Number(r.custo_comissao||0);
         });
       } else {
-        // Fallback: rel_servicos com comissao_pct cadastrado no profissional
-        const { data: srvAnual } = await qE('rel_servicos').select('profissional,total,comissao_pct,data_comanda')
+        // Fallback: rel_servicos — total = comissão
+        const { data: srvAnual } = await qE('rel_servicos').select('profissional,total,data_comanda')
           .gte('data_comanda',`${ano}-01-01`).lte('data_comanda',`${ano}-12-31`);
         (srvAnual||[]).forEach(r => {
           const mes = (r.data_comanda||'').substring(5,7);
@@ -14116,9 +14117,8 @@ async function loadDRE() {
           const nomeNorm = normP(r.profissional);
           const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
           if (!prof?.categoria_dre) return;
-          // Usa comissao_pct do rel_servicos ou do cadastro do profissional
-          const pct = Number(r.comissao_pct||0) || Number(prof.comissao||0);
-          const comissao = pct > 0 ? Number(r.total||0) * pct / 100 : 0;
+          // total = comissão no relatório de performance
+          const comissao = Number(r.total||0);
           const chave = prof.categoria_dre + '|' + mes;
           profCatMes[chave] = (profCatMes[chave]||0) + comissao;
         });
@@ -15301,15 +15301,16 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   // Busca comissão de rel_lucratividade se disponível
   const { data: lucData } = await qE('rel_lucratividade').select('profissional,custo_comissao,faturamento,data').gte('data', ini).lte('data', fim);
 
-  // Agrupa faturamento por profissional
+  // Agrupa faturamento (valor_cobrado) e comissão (total) por profissional
   const fatMap = {}, comMap = {};
   (srvData||[]).forEach(r => {
     const nome = (r.profissional||'').trim();
     if (!nome) return;
-    fatMap[nome] = (fatMap[nome]||0) + Number(r.total||0);
-    // comissão via % do rel_servicos
-    const pct = Number(r.comissao_pct||0);
-    if (pct > 0) comMap[nome] = (comMap[nome]||0) + Number(r.total||0) * pct / 100;
+    // Valor Cobrado = faturamento; Total = comissão
+    const fat = Number(r.valor_cobrado||0);
+    const com = Number(r.total||0);
+    fatMap[nome] = (fatMap[nome]||0) + fat;
+    comMap[nome] = (comMap[nome]||0) + com;
   });
   // Sobrescreve comissão com rel_lucratividade se existir (mais preciso)
   if (lucData?.length) {
