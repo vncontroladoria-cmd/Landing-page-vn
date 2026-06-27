@@ -13802,16 +13802,6 @@ async function loadDFC() {
     }, 0);
   });
 
-  // Fallback: RO no final se não havia grupos financeiros
-  if (!roInserido) {
-    const totalRO2 = resultadoOp.reduce((s,v)=>s+v,0);
-    html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
-      <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
-      ${resultadoOp.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>`).join('')}
-      ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>`}
-    </tr>`;
-  }
-
   // Resultado Líquido = RO - Despesas Financeiras - Atividades de Investimento - Atividades de Financiamento
   const gruposRL = ['Despesas Financeiras','Atividades de Investimento','Atividades de Financiamento'];
   const resultadoLiq = mCols.map((m,i) => {
@@ -13885,6 +13875,17 @@ async function loadDFC() {
       </tr>`;
     });
   });
+
+  // Fallback: insere RO se não havia grupos financeiros
+  if (!roInserido) {
+    const totalRO2 = resultadoOp.reduce((s,v)=>s+v,0);
+    html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
+      <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
+      ${resultadoOp.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>`).join('')}
+      ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>`}
+    </tr>`;
+  }
+
   // Resultado Líquido
   const totalRL = resultadoLiq.reduce((s,v)=>s+v,0);
   html += `<tr style="background:#1e293b">
