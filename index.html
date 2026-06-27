@@ -14153,10 +14153,21 @@ async function loadDRE() {
     // ── 3. Performance de profissionais vinculados a esta categoria DRE
     const doProf = profCatMes[catNome+'|'+mes] || 0;
 
-    // Se há comissão de profissionais para esta categoria, usa SÓ profCatMes
-    // (evita dupla contagem com lançamentos de pagamento ao profissional)
-    if (doProf > 0) return doPDV + doProf;
+    // DEBUG temporário — abre console do browser (F12) para ver origem
+    if (catNome && mes === '01') {
+      const lancContrib = (lancs||[]).filter(l => (l.mes_dre||'').substring(5,7) === mes && (
+        normDRE(l.categoria_dre) === normNome || normDRE(l.categoria_dfc) === normNome || normDRE(l.categoria) === normNome
+      ));
+      if (doLanc > 0 || doProf > 0) {
+        console.log(`[DRE JAN] ${catNome}:`);
+        console.log(`  doLanc = ${doLanc.toFixed(2)} (${lancContrib.length} lançamentos)`);
+        lancContrib.forEach(l => console.log(`    - ${l.descricao||l.extrato} | entrada=${l.entrada||0} saida=${l.saida||0}`));
+        console.log(`  doProf = ${doProf.toFixed(2)} (de profCatMes)`);
+        console.log(`  doPDV  = ${doPDV.toFixed(2)}`);
+      }
+    }
 
+    if (doProf > 0) return doPDV + doProf;
     return doPDV + doLanc;
   }
 
@@ -15328,7 +15339,7 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   }
 
   // Busca comissão de rel_lucratividade se disponível
-  const { data: lucData } = await qE('rel_lucratividade').select('profissional,custo_comissao,faturamento,data').gte('data', ini).lte('data', fim);
+  const { data: lucData } = await qE('rel_lucratividade').select('profissional,custo_comissao,data').gte('data', ini).lte('data', fim);
 
   // TOTAL = comissão | VALOR COBRADO = faturamento
   const fatMap = {}, comMap = {};
