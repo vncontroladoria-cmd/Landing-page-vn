@@ -5872,7 +5872,7 @@ async function confirmarImportacaoGlobal() {
 
     // Ações específicas por tipo
     const nomeT = _impTipoEscolhido.nome.toLowerCase();
-    if (nomeT.includes('servi') && !nomeT.includes('cliente')) {
+    if ((nomeT.includes('servi') && !nomeT.includes('cliente')) || nomeT.includes('perform')) {
       // Serviços → salva também em rel_servicos
       const srvRows = _impArquivoRows.map(r => parseSrvRow(r)).filter(r => r.servico || r.cliente);
       for (let i = 0; i < srvRows.length; i += lote) {
@@ -12763,7 +12763,33 @@ async function loadServicos() {
   if (prof) rowsFiltrados = rowsFiltrados.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
   if (cat)  rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
 
-  // Sem fallback — se não tem dado no período, mostra vazio
+  // Se não tem dado no período em rel_servicos, tenta rel_dados_brutos
+  if (!rowsFiltrados.length && rows.length > 0) {
+    // Tem dados mas não do período — provavelmente importado como "Performance"
+    // Busca de rel_dados_brutos para o período
+    const { data: tiposPerf } = await qE('rel_tipos').select('id,nome').ilike('nome','%perform%');
+    const { data: tiposServ } = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%');
+    const tiposIds = [...(tiposPerf||[]), ...(tiposServ||[])].map(t => t.id);
+    if (tiposIds.length) {
+      const { data: rawData } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', tiposIds).limit(20000);
+      const parsedRows = (rawData||[]).map(r => parseSrvRow(r.colunas || r)).filter(r => r.servico || r.cliente);
+      // Normaliza e filtra por período
+      const normalizados = parsedRows.map(r => {
+        if (r.data_comanda && /^\d{2}\/\d{2}\/\d{4}/.test(r.data_comanda)) {
+          const [d,m2,a2] = r.data_comanda.split('/');
+          r.data_comanda = `${a2}-${m2}-${d}`;
+        }
+        return r;
+      });
+      let filtradosRaw = normalizados;
+      if (ano) filtradosRaw = filtradosRaw.filter(r => getAno(r) === ano);
+      if (mes) filtradosRaw = filtradosRaw.filter(r => getMes(r) === mes);
+      if (prof) filtradosRaw = filtradosRaw.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
+      if (cat)  filtradosRaw = filtradosRaw.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
+      if (filtradosRaw.length) rowsFiltrados = filtradosRaw;
+    }
+  }
+
   _srvData = rowsFiltrados;
 
   if (!_srvData.length) {
@@ -21321,4 +21347,3 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
 
 </body>
 </html>
-        
