@@ -7386,7 +7386,14 @@ async function loadDashboard() {
       }
       return r;
     });
-    // Filtra pelo período selecionado — se não tiver dado no período, mostra vazio
+    // Normaliza datas — aceita YYYY-MM-DD e DD/MM/YYYY
+    todos = todos.map(r => {
+      if (r.data_comanda && /^\d{2}\/\d{2}\/\d{4}/.test(r.data_comanda)) {
+        const [d,m2,a2] = r.data_comanda.split('/');
+        r.data_comanda = `${a2}-${m2}-${d}`;
+      }
+      return r;
+    });
     const filtrados = todos.filter(r => r.data_comanda >= ini && r.data_comanda <= fim);
     srvRows = filtrados;
     if (filtrados.length === 0 && todos.length > 0) {
@@ -12736,10 +12743,23 @@ async function loadServicos() {
     from += 1000;
   }
 
-  // Filtros locais
+  // Normaliza datas e aplica filtros
+  const getMes = r => {
+    const d = r.data_comanda || '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.substring(5, 7); // YYYY-MM-DD
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(d)) return d.substring(3, 5); // DD/MM/YYYY
+    return '';
+  };
+  const getAno = r => {
+    const d = r.data_comanda || '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.substring(0, 4);
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(d)) return d.substring(6, 10);
+    return '';
+  };
+
   let rowsFiltrados = rows;
-  if (ano) rowsFiltrados = rowsFiltrados.filter(r => r.data_comanda?.startsWith(ano));
-  if (mes) rowsFiltrados = rowsFiltrados.filter(r => r.data_comanda?.substring(5,7) === mes);
+  if (ano) rowsFiltrados = rowsFiltrados.filter(r => getAno(r) === ano);
+  if (mes) rowsFiltrados = rowsFiltrados.filter(r => getMes(r) === mes);
   if (prof) rowsFiltrados = rowsFiltrados.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
   if (cat)  rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
 
@@ -21301,3 +21321,4 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
 
 </body>
 </html>
+        
