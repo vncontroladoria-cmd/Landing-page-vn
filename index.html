@@ -13806,11 +13806,11 @@ async function loadDFC() {
     return ro;
   });
 
-  // Resultado Líquido = RO - Despesas Financeiras - Atividades de Investimento - Atividades de Financiamento
-  const gruposRL = ['Despesas Financeiras','Atividades de Investimento','Atividades de Financiamento'];
-  const resultadoLiq = mCols.map((m,i) => {
-    const deducoes = gruposData.filter(g => gruposRL.includes(g.nome)).reduce((s,g) => s + Math.abs(g.totalGrupo[i]), 0);
-    return resultadoOp[i] - deducoes;
+  // Resultado Líquido = total entradas − total saídas (todos os lançamentos do período)
+  const resultadoLiq = mCols.map((m) => {
+    return (lancs||[])
+      .filter(l => l.data_lancamento?.substring(5,7) === m)
+      .reduce((s,l) => s + Number(l.entrada||0) - Number(l.saida||0), 0);
   });
 
   const thS = `padding:8px 6px;text-align:right;border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap`;
@@ -13899,10 +13899,10 @@ async function loadDFC() {
   </tr>`;
 
   // Saldo Acumulado
-  html += `<tr style="background:#111;color:#fff;border-top:3px solid var(--accent)">
-    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#111;z-index:10;font-size:11px">Saldo Acumulado</td>
+  html += `<tr style="background:#111;border-top:3px solid var(--accent)">
+    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#111;z-index:10;font-size:11px;color:#ffffff">Saldo Acumulado</td>
     ${saldoFinalMes.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>`).join('')}
-    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a"></td>`}
+    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a;color:#ffffff"></td>`}
   </tr>`;
 
   html += '</tbody></table></div>';
