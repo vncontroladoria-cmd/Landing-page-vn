@@ -14085,24 +14085,61 @@ async function loadDRE() {
 
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
 
-  // Comissão de profissionais por categoria DRE vinculada
-  // rel_servicos.total = comissão (campo "Total" do relatório de performance)
+  // Comissão de profissionais por categoria DRE — lê do rel_dados_brutos (TOTAL = comissão)
   let profCatMes = {};
   try {
     const { data: profsAll } = await qE('profissionais').select('nome,categoria_dre').not('categoria_dre','is',null);
     if (profsAll?.length) {
       const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-      const srvAnual = await loadSrvPeriodo(`${ano}-01-01`, `${ano}-12-31`);
-      srvAnual.forEach(r => {
-        const mes = (r.data_comanda||'').substring(5,7);
-        if (!mes || !r.profissional) return;
-        const nomeNorm = normP(r.profissional);
-        const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
-        if (!prof?.categoria_dre) return;
-        const comissao = Number(r.total||0); // total = comissão no relatório
-        const chave = prof.categoria_dre + '|' + mes;
-        profCatMes[chave] = (profCatMes[chave]||0) + comissao;
-      });
+
+      // Busca tipos de performance/serviços
+      const { data: tiposDRE } = await qE('rel_tipos').select('id,nome');
+      const tiposIdsDRE = (tiposDRE||[]).filter(t => {
+        const n = (t.nome||'').toLowerCase();
+        return n.includes('servi') || n.includes('perform');
+      }).map(t => t.id);
+
+      if (tiposIdsDRE.length) {
+        const { data: rawDRE } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', tiposIdsDRE).limit(50000);
+
+        const normKey = s => (s||'').toLowerCase().replace(/\s+/g,'').replace(/[^\w]/g,'');
+        const getCol  = (obj, ...names) => {
+          const keys = Object.keys(obj||{});
+          for (const n of names) {
+            const found = keys.find(k => normKey(k) === normKey(n));
+            if (found !== undefined && obj[found] !== null && obj[found] !== '') return obj[found];
+          }
+          return null;
+        };
+        const parseNum = v => v === null || v === undefined ? 0 : parseFloat(String(v).replace(/[^0-9.,-]/g,'').replace(',','.')) || 0;
+        const parseDate = v => {
+          if (!v) return null;
+          const s = String(v).trim();
+          const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+          if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+          if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+          return null;
+        };
+
+        (rawDRE||[]).forEach(r => {
+          const c = r.colunas || {};
+          const profNome  = String(getCol(c,'PROFISSIONAL','Profissional','profissional')||'').trim();
+          const data      = parseDate(getCol(c,'DATA','Data','data','DATA COMANDA','Data Comanda'));
+          const comissao  = parseNum(getCol(c,'TOTAL','Total','total')); // TOTAL = comissão
+          if (!profNome || !data || !comissao) return;
+
+          const mes = data.substring(5,7);
+          const anoRec = data.substring(0,4);
+          if (anoRec !== ano) return;
+
+          const nomeNorm = normP(profNome);
+          const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
+          if (!prof?.categoria_dre) return;
+
+          const chave = prof.categoria_dre + '|' + mes;
+          profCatMes[chave] = (profCatMes[chave]||0) + comissao;
+        });
+      }
     }
   } catch(e) { console.warn('prof DRE comissao:', e); }
 
