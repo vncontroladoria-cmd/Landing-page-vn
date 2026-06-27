@@ -14084,28 +14084,47 @@ async function loadDRE() {
 
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
 
-  // Realizado de profissionais por categoria DRE vinculada
-  // profCatMes[catNome|MM] = valor
+  // Comissão de profissionais por categoria DRE vinculada
+  // profCatMes[catNome|MM] = comissão (não faturamento)
   let profCatMes = {};
   try {
-    const { data: profsAll } = await qE('profissionais').select('nome,categoria_dre').not('categoria_dre','is',null);
+    const { data: profsAll } = await qE('profissionais').select('nome,categoria_dre,comissao').not('categoria_dre','is',null);
     if (profsAll?.length) {
       const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-      // Busca performance do ano
-      const { data: srvAnual } = await qE('rel_servicos').select('profissional,total,data_comanda')
-        .gte('data_comanda',`${ano}-01-01`).lte('data_comanda',`${ano}-12-31`);
-      (srvAnual||[]).forEach(r => {
-        const mes = (r.data_comanda||'').substring(5,7);
-        if (!mes || !r.profissional) return;
-        const nomeNorm = normP(r.profissional);
-        // Acha o profissional cadastrado que corresponde
-        const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
-        if (!prof?.categoria_dre) return;
-        const chave = prof.categoria_dre + '|' + mes;
-        profCatMes[chave] = (profCatMes[chave]||0) + Number(r.total||0);
-      });
+
+      // Tenta rel_lucratividade primeiro (tem custo_comissao direto)
+      const { data: lucAnual } = await qE('rel_lucratividade')
+        .select('profissional,custo_comissao,data').gte('data',`${ano}-01-01`).lte('data',`${ano}-12-31`);
+
+      if (lucAnual?.length) {
+        lucAnual.forEach(r => {
+          const mes = (r.data||'').substring(5,7);
+          if (!mes || !r.profissional) return;
+          const nomeNorm = normP(r.profissional);
+          const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
+          if (!prof?.categoria_dre) return;
+          const chave = prof.categoria_dre + '|' + mes;
+          profCatMes[chave] = (profCatMes[chave]||0) + Number(r.custo_comissao||0);
+        });
+      } else {
+        // Fallback: rel_servicos com comissao_pct cadastrado no profissional
+        const { data: srvAnual } = await qE('rel_servicos').select('profissional,total,comissao_pct,data_comanda')
+          .gte('data_comanda',`${ano}-01-01`).lte('data_comanda',`${ano}-12-31`);
+        (srvAnual||[]).forEach(r => {
+          const mes = (r.data_comanda||'').substring(5,7);
+          if (!mes || !r.profissional) return;
+          const nomeNorm = normP(r.profissional);
+          const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
+          if (!prof?.categoria_dre) return;
+          // Usa comissao_pct do rel_servicos ou do cadastro do profissional
+          const pct = Number(r.comissao_pct||0) || Number(prof.comissao||0);
+          const comissao = pct > 0 ? Number(r.total||0) * pct / 100 : 0;
+          const chave = prof.categoria_dre + '|' + mes;
+          profCatMes[chave] = (profCatMes[chave]||0) + comissao;
+        });
+      }
     }
-  } catch(e) { console.warn('prof DRE:', e); }
+  } catch(e) { console.warn('prof DRE comissao:', e); }
 
   // Meses selecionados via checkboxes (ou todos se não houver seletor)
   const mesesCbs = [...(document.querySelectorAll('.dre-mes-cb') || [])];
@@ -15276,35 +15295,54 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   const metaMap = {};
   (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
 
-  // Busca realizado da Performance importada (rel_servicos)
-  const { data: srvData } = await qE('rel_servicos').select('profissional,total,data_comanda').gte('data_comanda', ini).lte('data_comanda', fim);
+  // Busca realizado da Performance importada (rel_servicos) — faturamento
+  const { data: srvData } = await qE('rel_servicos').select('profissional,total,comissao_pct,data_comanda').gte('data_comanda', ini).lte('data_comanda', fim);
 
-  // Agrupa por profissional normalizado → total faturado
-  const realMap = {};
+  // Busca comissão de rel_lucratividade se disponível
+  const { data: lucData } = await qE('rel_lucratividade').select('profissional,custo_comissao,faturamento,data').gte('data', ini).lte('data', fim);
+
+  // Agrupa faturamento por profissional
+  const fatMap = {}, comMap = {};
   (srvData||[]).forEach(r => {
     const nome = (r.profissional||'').trim();
     if (!nome) return;
-    realMap[nome] = (realMap[nome]||0) + Number(r.total||0);
+    fatMap[nome] = (fatMap[nome]||0) + Number(r.total||0);
+    // comissão via % do rel_servicos
+    const pct = Number(r.comissao_pct||0);
+    if (pct > 0) comMap[nome] = (comMap[nome]||0) + Number(r.total||0) * pct / 100;
   });
-
-  // Normaliza nome para matching flexível
-  const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-
-  // Calcula realizado por profissional via matching de nome
-  const getRealizado = (profNome) => {
-    const nNome = normP(profNome);
-    let total = 0;
-    Object.entries(realMap).forEach(([k,v]) => {
-      if (normP(k).includes(nNome) || nNome.includes(normP(k))) total += v;
+  // Sobrescreve comissão com rel_lucratividade se existir (mais preciso)
+  if (lucData?.length) {
+    Object.keys(comMap).forEach(k => delete comMap[k]);
+    (lucData||[]).forEach(r => {
+      const nome = (r.profissional||'').trim();
+      if (!nome) return;
+      comMap[nome] = (comMap[nome]||0) + Number(r.custo_comissao||0);
     });
-    return total;
+  }
+
+  const normP2 = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const getFat = (profNome) => {
+    const nn = normP2(profNome);
+    return Object.entries(fatMap).filter(([k]) => normP2(k).includes(nn)||nn.includes(normP2(k))).reduce((s,[,v])=>s+v,0);
+  };
+  const getCom = (profNome) => {
+    // Usa % do cadastro do profissional se não tiver no rel
+    const prof = profs.find(p => normP2(p.nome) === normP2(profNome));
+    const nn = normP2(profNome);
+    const comRel = Object.entries(comMap).filter(([k]) => normP2(k).includes(nn)||nn.includes(normP2(k))).reduce((s,[,v])=>s+v,0);
+    if (comRel > 0) return comRel;
+    // Fallback: % cadastrado no profissional × faturamento
+    const pct = Number(prof?.comissao||0);
+    return pct > 0 ? getFat(profNome) * pct / 100 : 0;
   };
 
   let html = `<table style="width:100%;border-collapse:collapse">
     <thead><tr style="background:var(--bg3)">
       <th style="padding:10px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">PROFISSIONAL</th>
       <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">META</th>
-      <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--green);border-bottom:1px solid var(--border)">REALIZADO</th>
+      <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--green);border-bottom:1px solid var(--border)">FATURAMENTO</th>
+      <th style="padding:10px 12px;text-align:right;font-size:10px;font-weight:600;color:#f59e0b;border-bottom:1px solid var(--border)">COMISSÃO</th>
       <th style="padding:10px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">%</th>
       <th style="padding:10px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">STATUS</th>
       <th style="padding:10px 12px;border-bottom:1px solid var(--border)"></th>
@@ -15312,7 +15350,9 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
 
   profs.forEach(p => {
     const meta = metaMap[p.id] || 0;
-    const real = getRealizado(p.nome);
+    const fat  = getFat(p.nome);
+    const com  = getCom(p.nome);
+    const real = fat; // % de atingimento usa faturamento
     const pct = meta > 0 ? Math.min(100,(real/meta)*100) : 0;
     const cor = pct >= 100 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : pct > 0 ? 'var(--red)' : 'var(--text3)';
     const badge = pct >= 100 ? '✅ Atingiu' : pct >= 70 ? '⚡ Perto' : meta > 0 ? '⚠️ Abaixo' : '—';
@@ -15329,7 +15369,8 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
           onblur="salvarMetaProfissional('${p.id}', this.value, '${mes}', '${ano}')"
           style="width:100px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
       </td>
-      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${real > 0 ? fmtBRL(real) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${fat > 0 ? fmtBRL(fat) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:#f59e0b">${com > 0 ? fmtBRL(com) : '<span style="color:var(--text3)">—</span>'}</td>
       <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
         <div style="font-weight:700;font-size:13px;color:${cor}">${meta > 0 ? pct.toFixed(0)+'%' : '—'}</div>
         <div style="margin-top:4px;height:3px;background:var(--bg4);border-radius:3px;overflow:hidden">
