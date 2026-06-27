@@ -7451,14 +7451,8 @@ async function loadDashboard() {
 
   // Clientes únicos no período (de rel_servicos, filtrado pelo período selecionado)
   const nClientesSrv = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
-  // Total cadastrado (para referência)
-  if (!_cliTodosData?.length) {
-    try { await initClientes(); } catch(e) {}
-  }
-  const nClientesCad = (_cliTodosData||[]).length;
-  // Usa sempre clientes únicos do período como métrica principal
-  const nClientes    = nClientesSrv > 0 ? nClientesSrv : nClientesCad;
-  const nClientesSub = nClientesSrv > 0 ? `únicos no período` : 'total cadastrado';
+  const nClientes    = nClientesSrv;
+  const nClientesSub = nClientesSrv > 0 ? 'únicos no período' : 'sem importação para o período';
 
   // Novos clientes: do relatório de clientes novos
   const nNovos = _cliNovosData?.length || 0;
