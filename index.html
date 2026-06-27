@@ -14086,43 +14086,23 @@ async function loadDRE() {
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
 
   // Comissão de profissionais por categoria DRE vinculada
-  // profCatMes[catNome|MM] = comissão (não faturamento)
+  // rel_servicos.total = comissão (campo "Total" do relatório de performance)
   let profCatMes = {};
   try {
-    const { data: profsAll } = await qE('profissionais').select('nome,categoria_dre,comissao').not('categoria_dre','is',null);
+    const { data: profsAll } = await qE('profissionais').select('nome,categoria_dre').not('categoria_dre','is',null);
     if (profsAll?.length) {
       const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-
-      // Tenta rel_lucratividade primeiro (tem custo_comissao direto)
-      const { data: lucAnual } = await qE('rel_lucratividade')
-        .select('profissional,custo_comissao,data').gte('data',`${ano}-01-01`).lte('data',`${ano}-12-31`);
-
-      if (lucAnual?.length) {
-        lucAnual.forEach(r => {
-          const mes = (r.data||'').substring(5,7);
-          if (!mes || !r.profissional) return;
-          const nomeNorm = normP(r.profissional);
-          const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
-          if (!prof?.categoria_dre) return;
-          const chave = prof.categoria_dre + '|' + mes;
-          profCatMes[chave] = (profCatMes[chave]||0) + Number(r.custo_comissao||0);
-        });
-      } else {
-        // Fallback: rel_servicos — total = comissão
-        const { data: srvAnual } = await qE('rel_servicos').select('profissional,total,data_comanda')
-          .gte('data_comanda',`${ano}-01-01`).lte('data_comanda',`${ano}-12-31`);
-        (srvAnual||[]).forEach(r => {
-          const mes = (r.data_comanda||'').substring(5,7);
-          if (!mes || !r.profissional) return;
-          const nomeNorm = normP(r.profissional);
-          const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
-          if (!prof?.categoria_dre) return;
-          // total = comissão no relatório de performance
-          const comissao = Number(r.total||0);
-          const chave = prof.categoria_dre + '|' + mes;
-          profCatMes[chave] = (profCatMes[chave]||0) + comissao;
-        });
-      }
+      const srvAnual = await loadSrvPeriodo(`${ano}-01-01`, `${ano}-12-31`);
+      srvAnual.forEach(r => {
+        const mes = (r.data_comanda||'').substring(5,7);
+        if (!mes || !r.profissional) return;
+        const nomeNorm = normP(r.profissional);
+        const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
+        if (!prof?.categoria_dre) return;
+        const comissao = Number(r.total||0); // total = comissão no relatório
+        const chave = prof.categoria_dre + '|' + mes;
+        profCatMes[chave] = (profCatMes[chave]||0) + comissao;
+      });
     }
   } catch(e) { console.warn('prof DRE comissao:', e); }
 
@@ -15301,13 +15281,17 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   // Busca comissão de rel_lucratividade se disponível
   const { data: lucData } = await qE('rel_lucratividade').select('profissional,custo_comissao,faturamento,data').gte('data', ini).lte('data', fim);
 
-  // TOTAL = comissão | VALOR COBRADO = faturamento
+  // TOTAL = comissão | VALOR COBRADO = faturamento | comissao_pct = %
   const fatMap = {}, comMap = {};
   (srvData||[]).forEach(r => {
     const nome = (r.profissional||'').trim();
     if (!nome) return;
-    fatMap[nome] = (fatMap[nome]||0) + Number(r.valor_cobrado||0);
-    comMap[nome] = (comMap[nome]||0) + Number(r.total||0);
+    const com  = Number(r.total||0);
+    const pct  = Number(r.comissao_pct||0);
+    // Faturamento: usa valor_cobrado se disponível, senão calcula pela %
+    const fat  = Number(r.valor_cobrado||0) || (pct > 0 ? com / (pct/100) : 0);
+    fatMap[nome] = (fatMap[nome]||0) + fat;
+    comMap[nome] = (comMap[nome]||0) + com;
   });
 
   // Sobrescreve comissão com rel_lucratividade se existir
