@@ -13795,11 +13795,15 @@ async function loadDFC() {
   });
 
   // Resultado Operacional = Receita Operacional - Custo Variável - Marketing - Administrativa - Equipe - Impostos
-  const gruposRO = ['Receita Operacional','Custo Variável','Marketing','Administrativa','Equipe','Impostos'];
+  // Resultado Operacional = Grupo 1 − Grupos 3, 4, 5, 6, 7 (por ordem)
   const resultadoOp = mCols.map((m,i) => {
-    return gruposData.filter(g => gruposRO.includes(g.nome)).reduce((s,g) => {
-      return s + (g.sinal === '(+)' ? g.totalGrupo[i] : -Math.abs(g.totalGrupo[i]));
-    }, 0);
+    let ro = 0;
+    gruposData.forEach(g => {
+      const ord = Number(g.ordem);
+      if (ord === 1) ro += g.totalGrupo[i];          // Grupo 1: sempre soma
+      if ([3,4,5,6,7].includes(ord)) ro -= Math.abs(g.totalGrupo[i]); // Grupos 3-7: subtrai
+    });
+    return ro;
   });
 
   // Resultado Líquido = RO - Despesas Financeiras - Atividades de Investimento - Atividades de Financiamento
