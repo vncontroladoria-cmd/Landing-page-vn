@@ -7459,7 +7459,7 @@ async function renderFluxoCaixaChart(ini, fim) {
           position:'right',
           grid:{ drawOnChartArea:false },
           border:{ display:false },
-          ticks:{ font:{size:10}, color:'#d4a017', callback: v => 'R$'+(v/1000).toFixed(0)+'k' }
+          ticks:{ font:{size:10}, color:'#ffffff', callback: v => 'R$'+(v/1000).toFixed(0)+'k' }
         }
       }
     }
@@ -8009,13 +8009,32 @@ async function loadDashboard() {
 
   const dailyMap = pdvDiario; // compatibilidade
 
-  // ── 4. Donut entradas por categoria — PDV (forma de pagamento) ──
+  // ── 4. Donut entradas — forma de pagamento PDV ──────
   const entCatMap = {};
-  srvRows.forEach(r => {
-    const k = r.categoria || r.servico?.split(' ')[0] || 'Outros';
-    entCatMap[k] = (entCatMap[k]||0) + Number(r.total||0);
-  });
-  const entEntries = Object.entries(entCatMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  try {
+    // Busca itens PDV do período (entradas por forma de pagamento)
+    const { data: caixasPer } = await qE('pdv_caixas').select('id')
+      .gte('data_caixa', ini).lte('data_caixa', fim);
+    if (caixasPer?.length) {
+      const ids = caixasPer.map(c => c.id);
+      const { data: itensPdv } = await qE('pdv_itens').select('forma_pagamento,valor,tipo')
+        .in('caixa_id', ids).eq('tipo','ENTRADA');
+      (itensPdv||[]).forEach(it => {
+        const fp = (it.forma_pagamento||'Outros').trim();
+        // Normaliza nomes: agrupa variações
+        const k = fp.toLowerCase().includes('pix') ? 'PIX'
+          : fp.toLowerCase().includes('deb') ? 'Cartão Débito'
+          : fp.toLowerCase().includes('cred') ? 'Cartão Crédito'
+          : fp.toLowerCase().includes('caixa') || fp.toLowerCase().includes('dinheiro') ? 'Caixa'
+          : fp.toLowerCase().includes('boleto') ? 'Boleto'
+          : fp.toLowerCase().includes('voucher') ? 'Voucher'
+          : fp;
+        entCatMap[k] = (entCatMap[k]||0) + Number(it.valor||0);
+      });
+    }
+  } catch(e) {}
+
+  const entEntries = Object.entries(entCatMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
   if (chartEntCat) { chartEntCat.destroy(); chartEntCat = null; }
   const ctx3 = el('chart-ent-cat')?.getContext('2d');
   if (ctx3) {
@@ -8025,23 +8044,21 @@ async function loadDashboard() {
       renderDonutLegend('dash-ent-legend', entEntries.map(([n,v],i)=>({
         label:n, value:fmtBRL(v), color:CORES_ENT[i], pct:totalEnt>0?v/totalEnt*100:0
       })));
-      if(el('dash-ent-sub')) el('dash-ent-sub').textContent = `${entEntries.length} categorias · PDV · ${mesLabel}`;
+      if(el('dash-ent-sub')) el('dash-ent-sub').textContent = `forma de pagamento · PDV · ${mesLabel}`;
     } else {
-      if(el('dash-ent-legend')) el('dash-ent-legend').innerHTML = '<div style="color:var(--text2);font-size:12px;padding:8px">Sem dados no período</div>';
-      if(el('dash-ent-sub')) el('dash-ent-sub').textContent = '0 categorias';
+      if(el('dash-ent-legend')) el('dash-ent-legend').innerHTML = '<div style="color:var(--text2);font-size:12px;padding:8px">Sem dados PDV no período</div>';
+      if(el('dash-ent-sub')) el('dash-ent-sub').textContent = '—';
       ctx3.clearRect(0, 0, ctx3.canvas.width, ctx3.canvas.height);
     }
   }
 
-  // ── 5. Donut saídas por categoria — PDV (forma de pagamento) ──
-  const pdvCaixas = {};
-  // Agrupa por forma de pagamento via pdv_itens se disponível, senão usa categoria PDV
+  // ── 5. Donut saídas — todas as saídas DFC por categoria ──
   const saiCatMap = {};
-  // Usa lançamentos de saída vinculados ao PDV (categoria_dfc com "Taxa", "Comissão" etc)
-  (lancs||[]).filter(l=>l.tipo==='SAIDA'&&!isSaldoInicial(l)).forEach(l=>{
-    const k = l.categoria||l.categoria_dfc||'Outros'; saiCatMap[k]=(saiCatMap[k]||0)+Number(l.saida||l.valor||0);
+  (lancs||[]).filter(l => l.tipo==='SAIDA' && !isSaldoInicial(l)).forEach(l => {
+    const k = l.categoria || l.categoria_dfc || 'Outros';
+    saiCatMap[k] = (saiCatMap[k]||0) + Number(l.saida||l.valor||0);
   });
-  const saiEntries = Object.entries(saiCatMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const saiEntries = Object.entries(saiCatMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
   if (chartCat) { chartCat.destroy(); chartCat = null; }
   const ctx2 = el('chart-sai-cat')?.getContext('2d');
   if (ctx2) {
@@ -14155,12 +14172,14 @@ async function loadDRE() {
   const outrasRec = i => getVal('Outras Receitas', i);
   const despFin   = i => getVal('Despesas Financeiras', i);
 
-  const recLiq  = i => recBruta(i) - Math.abs(deducoes(i));
-  const margem  = i => recLiq(i) - Math.abs(custDir(i)) - Math.abs(custInd(i));
-  const despOp  = i => Math.abs(market(i)) + Math.abs(admin(i)) + Math.abs(equipe(i));
-  const ebitda  = i => margem(i) - despOp(i);
-  const pe      = i => { const pct = recLiq(i) > 0 ? margem(i)/recLiq(i) : 0; return pct > 0 ? despOp(i)/pct : 0; };
-  const resLiq  = i => ebitda(i) + Math.abs(outrasRec(i)) - Math.abs(despFin(i));
+  const recLiq    = i => recBruta(i) - Math.abs(deducoes(i));
+  const margem    = i => recLiq(i) - Math.abs(custDir(i)) - Math.abs(custInd(i));
+  const despOp    = i => Math.abs(market(i)) + Math.abs(admin(i)) + Math.abs(equipe(i));
+  // Resultado Operacional = Margem de Contribuição - Despesas Operacionais (market + adm + equipe + deduções já saíram)
+  const resOp     = i => margem(i) - despOp(i);
+  const ebitda    = i => resOp(i);
+  const pe        = i => { const pct = recLiq(i) > 0 ? margem(i)/recLiq(i) : 0; return pct > 0 ? despOp(i)/pct : 0; };
+  const resLiq    = i => resOp(i) + Math.abs(outrasRec(i)) - Math.abs(despFin(i));
 
   const recBrutaArr = mCols.map((_,i) => Math.abs(recBruta(i)));
 
@@ -14301,12 +14320,11 @@ async function loadDRE() {
     }
     if (g.nome === 'Custos dos Serviços Indireto') {
       html += indicadorRow('📊 Margem de Contribuição', mCols.map((_,i) => margem(i)), '#f0fdf4', 'var(--green)');
-      // Ponto de Equilíbrio
       const peArr = mCols.map((_,i) => pe(i));
       html += indicadorRow('⚖️ Ponto de Equilíbrio', peArr, '#fefce8', '#b45309', false);
     }
     if (g.nome === 'Equipe / CLTs') {
-      html += indicadorRow('💡 Resultado Op. (EBITDA)', mCols.map((_,i) => ebitda(i)), '#1e293b', '#4ade80');
+      html += indicadorRow('⚡ Resultado Operacional', mCols.map((_,i) => resOp(i)), '#0f172a', '#38bdf8');
     }
   });
 
