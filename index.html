@@ -14102,7 +14102,7 @@ async function loadDRE() {
       if (tiposIdsDRE.length) {
         const { data: rawDRE } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', tiposIdsDRE).limit(50000);
 
-        const normKey = s => (s||'').toLowerCase().replace(/\s+/g,'').replace(/[^\w]/g,'');
+        const normKey = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
         const getCol  = (obj, ...names) => {
           const keys = Object.keys(obj||{});
           for (const n of names) {
@@ -15339,7 +15339,7 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
     const { data: rawMet } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', tiposIdsMet).limit(30000);
 
     // Parser direto — busca chave ignorando case e espaços
-    const normKey = s => (s||'').toLowerCase().replace(/\s+/g,'').replace(/[^\w]/g,'');
+    const normKey = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').replace(/[^a-z0-9]/g,'');
     const getCol = (obj, ...names) => {
       const keys = Object.keys(obj||{});
       for (const n of names) {
