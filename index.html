@@ -14197,10 +14197,12 @@ async function loadDRE() {
   // Resultado Operacional = Margem de Contribuição - Despesas Operacionais (market + adm + equipe + deduções já saíram)
   const resOp     = i => margem(i) - despOp(i);
   const ebitda    = i => resOp(i);
-  const pe        = i => { const pct = recLiq(i) > 0 ? margem(i)/recLiq(i) : 0; return pct > 0 ? despOp(i)/pct : 0; };
+  const pe        = i => { const pctM = recLiq(i) > 0 ? margem(i)/recLiq(i) : 0; return pctM > 0 ? despOp(i)/pctM : 0; };
+  const despOpTotal = i => Math.abs(market(i)) + Math.abs(admin(i)) + Math.abs(equipe(i));
   const resLiq    = i => resOp(i) + Math.abs(outrasRec(i)) - Math.abs(despFin(i));
 
   const recBrutaArr = mCols.map((_,i) => Math.abs(recBruta(i)));
+  const recLiqArr   = mCols.map((_,i) => recLiq(i)); // base para % das categorias
 
   // Estilos
   const thS  = `padding:6px 5px;text-align:right;border-bottom:2px solid var(--border);font-size:9px;font-weight:700;color:var(--text2);white-space:nowrap;background:var(--bg3)`;
@@ -14233,10 +14235,12 @@ async function loadDRE() {
       (mesFiltro ? '' : `<th style="${thS};border-left:2px solid rgba(0,0,0,0.18);color:#1a56db">Total</th><th style="${thS};color:#166534">%</th><th style="${thS};color:#b45309">Méd</th>`);
   }
 
+  // cellsGrupo recebe recBArr como base do % (caller decide se passa Bruta ou Líquida)
   function cellsGrupo(realArr, projArr, recBArr) {
     return mCols.map((_,i) => {
       const r = realArr[i], p = projArr[i];
-      const pct = recBArr[i] > 0 ? (Math.abs(r)/recBArr[i]*100).toFixed(1)+'%' : '0.0%';
+      const base_ = recBArr[i];
+      const pct = base_ && Math.abs(base_) > 0 ? (Math.abs(r)/Math.abs(base_)*100).toFixed(1)+'%' : '0.0%';
       const clrR = r>0?'var(--green)':r<0?'var(--red)':'var(--text3)';
       const sep = i>0 ? 'border-left:1.5px solid rgba(0,0,0,0.08)' : '';
       const base = `padding:5px 5px;text-align:right;font-size:9px;white-space:nowrap`;
@@ -14256,11 +14260,10 @@ async function loadDRE() {
 
   function totaisCols(realArr, recBArr, projArr) {
     if (mesFiltro) return '';
-    // Em modo projetado usa projetado, senão usa realizado
     const arr = (modo === 'projetado' && projArr) ? projArr : realArr;
     const total = arr.reduce((s,v)=>s+v,0);
     const totalRec = recBArr.reduce((s,v)=>s+v,0);
-    const pct = totalRec>0?(Math.abs(total)/totalRec*100).toFixed(1)+'%':'';
+    const pct = totalRec && Math.abs(totalRec)>0?(Math.abs(total)/Math.abs(totalRec)*100).toFixed(1)+'%':'';
     const media = total/nMeses;
     if (modo === 'ambos') return `
       <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
@@ -14272,19 +14275,26 @@ async function loadDRE() {
       <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;background:#fef9f0;color:var(--text2)">${fmtNum(Math.abs(media))}</td>`;
   }
 
-  function indicadorRow(label, arr, bg, textColor, bold=true) {
+  // indicadorRow: pctBase = array de valores base para o % (recBruta ou recLiq)
+  function indicadorRow(label, arr, bg, textColor, bold=true, pctBase=null, showPct=true) {
+    const baseArr = pctBase || recLiqArr; // default: usa Receita Líquida
     const total = arr.reduce((s,v)=>s+v,0);
-    const totalRec = recBrutaArr.reduce((s,v)=>s+v,0);
+    const totalBase = baseArr.reduce((s,v)=>s+v,0);
     const cells = mCols.map((_,i) => {
       const v = arr[i];
-      const pct = recBrutaArr[i]>0?(v/recBrutaArr[i]*100).toFixed(1)+'%':'';
+      const b = baseArr[i];
+      const pct = showPct && b && Math.abs(b)>0 ? (v/Math.abs(b)*100).toFixed(1)+'%' : '';
       const cols = modo==='ambos' ? 3 : 2;
-      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:${bold?'700':'500'};font-size:11px;color:${v>=0?textColor:'var(--red)'}">${fmtNum(v)}</td>`;
+      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:${bold?'700':'500'};font-size:11px;color:${v>=0?textColor:'var(--red)'}">
+        ${fmtNum(v)}${pct?`<span style="font-size:8px;color:${textColor};opacity:0.7;margin-left:4px">${pct}</span>`:''}
+      </td>`;
     }).join('');
     const totCols = mesFiltro ? '' : (() => {
-      const pct = totalRec>0?(total/totalRec*100).toFixed(1)+'%':'';
+      const pct = showPct && totalBase && Math.abs(totalBase)>0 ? (total/Math.abs(totalBase)*100).toFixed(1)+'%' : '';
       const cols = modo==='ambos' ? 3 : 3;
-      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${total>=0?textColor:'var(--red)'}">${fmtNum(total)}</td>`;
+      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${total>=0?textColor:'var(--red)'}">
+        ${fmtNum(total)}${pct?`<span style="font-size:8px;opacity:0.7;margin-left:4px">${pct}</span>`:''}
+      </td>`;
     })();
     return `<tr style="background:${bg};border-top:2px solid var(--border)">
       <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:${bg};z-index:10;color:${textColor};font-size:11px">${label}</td>
@@ -14318,8 +14328,8 @@ async function loadDRE() {
         <span id="${gId}-arrow" style="margin-right:4px;font-size:9px">▶</span>${g.ordem}. ${g.nome}
         <span style="font-weight:400;font-size:9px;color:var(--text2)">${g.sinal}</span>
       </td>
-      ${cellsGrupo(g.realizado, g.projetado, recBrutaArr)}
-      ${totaisCols(g.realizado, recBrutaArr, g.projetado)}
+      ${cellsGrupo(g.realizado, g.projetado, g.nome === 'Receita Bruta' ? recBrutaArr : recLiqArr)}
+      ${totaisCols(g.realizado, g.nome === 'Receita Bruta' ? recBrutaArr : recLiqArr, g.projetado)}
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
@@ -14328,27 +14338,33 @@ async function loadDRE() {
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr class="dre-cat-${gId}" style="border-bottom:1px solid rgba(0,0,0,0.04);display:none" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
         <td style="padding:4px 8px 4px 20px;color:var(--text2);font-size:9px;position:sticky;left:0;background:inherit;z-index:10;border-left:3px solid ${corG}30">${c.codigo} — ${c.nome}</td>
-        ${cellsGrupo(vals, projVals, recBrutaArr)}
-        ${totaisCols(vals, recBrutaArr, projVals)}
+        ${cellsGrupo(vals, projVals, g.nome === 'Receita Bruta' ? recBrutaArr : recLiqArr)}
+        ${totaisCols(vals, g.nome === 'Receita Bruta' ? recBrutaArr : recLiqArr, projVals)}
       </tr>`;
     });
 
     // Indicadores após grupos específicos
     if (g.nome === 'Deduções de Faturamento') {
-      html += indicadorRow('📊 Receita Líquida', mCols.map((_,i) => recLiq(i)), '#eff6ff', '#1d4ed8');
+      // Receita Líquida: % em relação à Receita Bruta
+      html += indicadorRow('📊 Receita Líquida', mCols.map((_,i) => recLiq(i)), '#eff6ff', '#1d4ed8', true, recBrutaArr);
     }
     if (g.nome === 'Custos dos Serviços Indireto') {
-      html += indicadorRow('📊 Margem de Contribuição', mCols.map((_,i) => margem(i)), '#f0fdf4', 'var(--green)');
+      // Margem: % em relação à Receita Líquida
+      html += indicadorRow('📊 Margem de Contribuição', mCols.map((_,i) => margem(i)), '#f0fdf4', 'var(--green)', true, recLiqArr);
+      // PE: fórmula = DespOp / (Margem/RecLiq) — sem %
       const peArr = mCols.map((_,i) => pe(i));
-      html += indicadorRow('⚖️ Ponto de Equilíbrio', peArr, '#fefce8', '#b45309', false);
+      html += indicadorRow('⚖️ Ponto de Equilíbrio', peArr, '#fefce8', '#b45309', false, null, false);
+      // Despesa Operacional = grupos 5+6+7 — abaixo do PE
+      html += indicadorRow('📋 Despesa Operacional', mCols.map((_,i) => despOpTotal(i)), '#f8fafc', '#64748b', false, recLiqArr);
     }
     if (g.nome === 'Equipe / CLTs') {
-      html += indicadorRow('⚡ Resultado Operacional', mCols.map((_,i) => resOp(i)), '#0f172a', '#38bdf8');
+      // Resultado Operacional: % pela Líquida, cor azul
+      html += indicadorRow('⚡ Resultado Operacional', mCols.map((_,i) => resOp(i)), '#f0f9ff', '#0369a1', true, recLiqArr);
     }
   });
 
-  // Resultado Líquido Final
-  html += indicadorRow('🏆 Resultado Líquido', mCols.map((_,i) => resLiq(i)), '#111', '#4ade80');
+  // Resultado Líquido: % pela Receita Líquida, cor verde, fundo escuro azul (não preto)
+  html += indicadorRow('🏆 Resultado Líquido', mCols.map((_,i) => resLiq(i)), '#0c1a2e', '#4ade80', true, recLiqArr);
 
   html += '</tbody></table></div>';
   el.innerHTML = html;
