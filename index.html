@@ -2244,6 +2244,34 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
+          <!-- FLUXO DE CAIXA DIÁRIO -->
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+            <div style="padding:14px 20px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-weight:700;font-size:14px;letter-spacing:-0.3px">Fluxo de Caixa Diário</div>
+                <div style="font-size:10px;color:var(--text3);margin-top:1px">Entradas e saídas DFC · linha de saldo acumulado</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;font-size:10px;font-weight:600">
+                <span style="display:flex;align-items:center;gap:5px">
+                  <span style="width:12px;height:12px;background:rgba(16,185,129,0.85);border-radius:3px"></span>
+                  <span style="color:var(--text2)">Entradas</span>
+                </span>
+                <span style="display:flex;align-items:center;gap:5px">
+                  <span style="width:12px;height:12px;background:rgba(239,68,68,0.8);border-radius:3px"></span>
+                  <span style="color:var(--text2)">Saídas</span>
+                </span>
+                <span style="display:flex;align-items:center;gap:5px">
+                  <span style="width:18px;height:2px;background:#f59e0b;border-radius:2px;display:inline-block"></span>
+                  <span style="color:var(--text2)">Saldo</span>
+                </span>
+              </div>
+            </div>
+            <div style="padding:16px 20px 12px;height:300px;position:relative">
+              <canvas id="dash-fluxo-chart"></canvas>
+            </div>
+            <div id="dash-fluxo-resumo" style="display:flex;gap:0;border-top:1px solid var(--border)"></div>
+          </div>
+
           <!-- LINHA 4: TOP 3 CARDS -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
             <div class="card" style="padding:0;overflow:hidden">
@@ -2386,33 +2414,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- ÚLTIMOS LANÇAMENTOS -->
-          <div class="card" style="padding:0;overflow:hidden">
-            <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-              <div style="font-weight:600;font-size:13px">💳 Últimos Lançamentos</div>
-              <button class="btn btn-sm" onclick="showPage('lancamentos',document.querySelector('[data-page=lancamentos]'))">Ver todos →</button>
-            </div>
-            <div id="dash-lancamentos"><div class="loading"><div class="spin"></div> Carregando...</div></div>
-          </div>
 
-          <!-- Gráfico Fluxo de Caixa Diário -->
-          <div class="card" style="padding:0;overflow:hidden">
-            <div style="padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-              <div>
-                <div style="font-weight:600;font-size:13px">📊 Fluxo de Caixa Diário</div>
-                <div style="font-size:10px;color:var(--text3)">PDV · Entradas · Saídas · Saldo acumulado</div>
-              </div>
-              <div style="display:flex;gap:12px;font-size:10px;color:var(--text2)">
-                <span><span style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:2px;margin-right:4px"></span>PDV</span>
-                <span><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;margin-right:4px"></span>Entradas</span>
-                <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;margin-right:4px"></span>Saídas</span>
-                <span><span style="display:inline-block;width:10px;height:3px;background:#f59e0b;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Saldo</span>
-              </div>
-            </div>
-            <div style="padding:12px 16px;height:280px">
-              <canvas id="dash-fluxo-chart"></canvas>
-            </div>
-          </div>
 
         </div>
 
@@ -7341,64 +7343,119 @@ async function excluirLancamentoDRE(id) {
 }
 // ─── FIM LANÇAMENTOS DRE ──────────────────────────────────
 
-async function renderFluxoCaixaChart(ini, fim, srvRowsParam) {
+async function renderFluxoCaixaChart(ini, fim) {
   const canvas = document.getElementById('dash-fluxo-chart');
   if (!canvas) return;
 
-  // Gera array de dias do período
   const dias = [];
   const cur = new Date(ini + 'T12:00:00');
   const end = new Date(fim + 'T12:00:00');
   while (cur <= end) { dias.push(cur.toISOString().substring(0,10)); cur.setDate(cur.getDate()+1); }
   if (!dias.length) return;
 
-  // PDV por dia
-  const pdvDia = {};
-  (srvRowsParam||[]).forEach(r => {
-    const dia = (r.data_comanda||'').substring(0,10);
-    if (dias.includes(dia)) pdvDia[dia] = (pdvDia[dia]||0) + Number(r.total||0);
-  });
-
-  // Lançamentos DFC
   const { data: lancs } = await qE('lancamentos')
     .select('data_lancamento,entrada,saida')
     .gte('data_lancamento', ini).lte('data_lancamento', fim);
+
   const entDia = {}, saiDia = {};
   (lancs||[]).forEach(l => {
     const dia = l.data_lancamento;
     if (!dias.includes(dia)) return;
     if (Number(l.entrada||0) > 0) entDia[dia] = (entDia[dia]||0) + Number(l.entrada);
-    if (Number(l.saida||0) > 0)   saiDia[dia] = (saiDia[dia]||0) + Number(l.saida);
+    if (Number(l.saida||0)   > 0) saiDia[dia] = (saiDia[dia]||0) + Number(l.saida);
   });
 
-  // Saldo acumulado
   let acum = 0;
   const saldos = dias.map(dia => { acum += (entDia[dia]||0) - (saiDia[dia]||0); return +acum.toFixed(2); });
 
-  const labels = dias.map(d => d.substring(8,10));
+  const totalEnt = Object.values(entDia).reduce((s,v)=>s+v,0);
+  const totalSai = Object.values(saiDia).reduce((s,v)=>s+v,0);
+  const saldoFim = totalEnt - totalSai;
+
+  const resumo = document.getElementById('dash-fluxo-resumo');
+  if (resumo) resumo.innerHTML = [
+    ['Entradas','#10b981', totalEnt],
+    ['Saídas','#ef4444', totalSai],
+    ['Saldo do Período','#f59e0b', saldoFim]
+  ].map(([lbl,cor,val],i,arr) => `
+    <div style="flex:1;padding:10px 16px;text-align:center${i<arr.length-1?';border-right:1px solid var(--border)':''}">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.5px">${lbl}</div>
+      <div style="font-size:13px;font-weight:800;font-family:'DM Mono',monospace;color:${cor};margin-top:3px">${fmtBRL(Math.abs(val))}</div>
+    </div>`).join('');
 
   if (window._dashFluxoChart) { try { window._dashFluxoChart.destroy(); } catch(e){} }
 
-  const ctx = canvas.getContext('2d');
-  window._dashFluxoChart = new Chart(ctx, {
+  const labels = dias.map(d => d.substring(8,10));
+
+  window._dashFluxoChart = new Chart(canvas.getContext('2d'), {
     data: {
       labels,
       datasets: [
-        { type:'bar',  label:'PDV',          data: dias.map(d=>+(pdvDia[d]||0).toFixed(2)),   backgroundColor:'rgba(34,197,94,0.75)',  yAxisID:'y',  order:3 },
-        { type:'bar',  label:'Entradas DFC', data: dias.map(d=>+(entDia[d]||0).toFixed(2)),   backgroundColor:'rgba(59,130,246,0.65)', yAxisID:'y',  order:4 },
-        { type:'bar',  label:'Saídas',       data: dias.map(d=>-+(saiDia[d]||0).toFixed(2)),  backgroundColor:'rgba(239,68,68,0.65)',  yAxisID:'y',  order:5 },
-        { type:'line', label:'Saldo',        data: saldos, borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.08)',
-          borderWidth:2.5, pointRadius: dias.length>20?0:3, tension:0.3, fill:true, yAxisID:'y2', order:1 }
+        {
+          type:'bar', label:'Entradas',
+          data: dias.map(d => +(entDia[d]||0).toFixed(2)),
+          backgroundColor:'rgba(16,185,129,0.8)',
+          borderColor:'rgba(16,185,129,1)',
+          borderWidth:0, borderRadius:3,
+          yAxisID:'y', order:2
+        },
+        {
+          type:'bar', label:'Saídas',
+          data: dias.map(d => -+(saiDia[d]||0).toFixed(2)),
+          backgroundColor:'rgba(239,68,68,0.75)',
+          borderColor:'rgba(239,68,68,1)',
+          borderWidth:0, borderRadius:3,
+          yAxisID:'y', order:3
+        },
+        {
+          type:'line', label:'Saldo Acumulado',
+          data: saldos,
+          borderColor:'#f59e0b',
+          backgroundColor:'rgba(245,158,11,0.07)',
+          borderWidth:2.5,
+          pointRadius: dias.length > 22 ? 0 : 3,
+          pointBackgroundColor:'#f59e0b',
+          pointHoverRadius:5,
+          tension:0.4, fill:true,
+          yAxisID:'y2', order:1
+        }
       ]
     },
     options: {
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => ` ${c.dataset.label}: R$ ${Math.abs(c.parsed.y).toLocaleString('pt-BR',{minimumFractionDigits:2})}` } } },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:'rgba(15,23,42,0.92)',
+          titleColor:'#94a3b8', bodyColor:'#e2e8f0',
+          padding:10, cornerRadius:8, titleFont:{size:11},
+          callbacks:{
+            title: items => 'Dia ' + items[0].label,
+            label: c => {
+              const v = Math.abs(c.parsed.y);
+              if (c.dataset.label === 'Saldo Acumulado') return `  Saldo: R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+              const sign = c.dataset.label === 'Saídas' ? '−' : '+';
+              return `  ${c.dataset.label}: ${sign} R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+            }
+          }
+        }
+      },
       scales:{
-        x:{ grid:{color:'rgba(128,128,128,0.08)'}, ticks:{font:{size:9}, maxTicksLimit:20} },
-        y:{ position:'left', grid:{color:'rgba(128,128,128,0.08)'}, ticks:{font:{size:9}, callback: v=>'R$'+(Math.abs(v)/1000).toFixed(0)+'k'} },
-        y2:{ position:'right', grid:{drawOnChartArea:false}, ticks:{color:'#f59e0b', font:{size:9}, callback: v=>'R$'+(v/1000).toFixed(0)+'k'} }
+        x:{
+          grid:{ color:'rgba(148,163,184,0.07)', drawBorder:false },
+          ticks:{ font:{size:9}, color:'#64748b', maxTicksLimit:20, maxRotation:0 }
+        },
+        y:{
+          position:'left',
+          grid:{ color:'rgba(148,163,184,0.07)', drawBorder:false },
+          ticks:{ font:{size:9}, color:'#64748b', callback: v => v===0?'0':'R$'+(Math.abs(v)/1000).toFixed(1)+'k' }
+        },
+        y2:{
+          position:'right',
+          grid:{ drawOnChartArea:false },
+          ticks:{ font:{size:9}, color:'#f59e0b', callback: v => 'R$'+(v/1000).toFixed(1)+'k' }
+        }
       }
     }
   });
@@ -8170,7 +8227,7 @@ async function loadDashboard() {
   renderLancTable(recentes||[], 'dash-lancamentos', true);
 
   // ── 14. Gráfico fluxo de caixa diário ────────────────
-  renderFluxoCaixaChart(ini, fim, srvRows);
+  renderFluxoCaixaChart(ini, fim);
 }
 
 function parsePDVCSV(text) {
