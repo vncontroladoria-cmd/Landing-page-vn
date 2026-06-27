@@ -14153,7 +14153,11 @@ async function loadDRE() {
     // ── 3. Performance de profissionais vinculados a esta categoria DRE
     const doProf = profCatMes[catNome+'|'+mes] || 0;
 
-    return doPDV + doLanc + doProf;
+    // Se há comissão de profissionais para esta categoria, usa SÓ profCatMes
+    // (evita dupla contagem com lançamentos de pagamento ao profissional)
+    if (doProf > 0) return doPDV + doProf;
+
+    return doPDV + doLanc;
   }
 
   function calcProj(catNome, mes) { return metasMap[catNome+'_'+mes] || 0; }
