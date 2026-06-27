@@ -2245,31 +2245,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- FLUXO DE CAIXA DIÁRIO -->
-          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
-            <div style="padding:14px 20px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-              <div>
-                <div style="font-weight:700;font-size:14px;letter-spacing:-0.3px">Fluxo de Caixa Diário</div>
-                <div style="font-size:10px;color:var(--text3);margin-top:1px">Entradas e saídas DFC · linha de saldo acumulado</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:16px;font-size:10px;font-weight:600">
-                <span style="display:flex;align-items:center;gap:5px">
-                  <span style="width:12px;height:12px;background:rgba(16,185,129,0.85);border-radius:3px"></span>
-                  <span style="color:var(--text2)">Entradas</span>
-                </span>
-                <span style="display:flex;align-items:center;gap:5px">
-                  <span style="width:12px;height:12px;background:rgba(239,68,68,0.8);border-radius:3px"></span>
-                  <span style="color:var(--text2)">Saídas</span>
-                </span>
-                <span style="display:flex;align-items:center;gap:5px">
-                  <span style="width:18px;height:2px;background:#f59e0b;border-radius:2px;display:inline-block"></span>
-                  <span style="color:var(--text2)">Saldo</span>
-                </span>
-              </div>
+          <div class="card" style="padding:20px 24px;margin-bottom:14px">
+            <div style="margin-bottom:16px">
+              <div style="font-weight:700;font-size:16px;color:var(--text)">Fluxo de Caixa</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">Movimentação diária e evolução do saldo acumulado</div>
             </div>
-            <div style="padding:16px 20px 12px;height:300px;position:relative">
+            <div style="height:320px;position:relative">
               <canvas id="dash-fluxo-chart"></canvas>
             </div>
-            <div id="dash-fluxo-resumo" style="display:flex;gap:0;border-top:1px solid var(--border)"></div>
+            <div id="dash-fluxo-resumo" style="display:flex;gap:0;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"></div>
           </div>
 
           <!-- LINHA 4: TOP 3 CARDS -->
@@ -7392,32 +7376,29 @@ async function renderFluxoCaixaChart(ini, fim) {
       labels,
       datasets: [
         {
+          type:'line', label:'Saldo acumulado',
+          data: saldos,
+          borderColor:'#d4a017',
+          backgroundColor:'rgba(212,160,23,0.04)',
+          borderWidth:2.5,
+          pointRadius:0, pointHoverRadius:5,
+          pointHoverBackgroundColor:'#d4a017',
+          tension:0.4, fill:false,
+          yAxisID:'y2', order:1
+        },
+        {
           type:'bar', label:'Entradas',
           data: dias.map(d => +(entDia[d]||0).toFixed(2)),
-          backgroundColor:'rgba(16,185,129,0.8)',
-          borderColor:'rgba(16,185,129,1)',
-          borderWidth:0, borderRadius:3,
+          backgroundColor:'rgba(34,120,74,0.85)',
+          borderWidth:0, borderRadius:3, borderSkipped:false,
           yAxisID:'y', order:2
         },
         {
           type:'bar', label:'Saídas',
-          data: dias.map(d => -+(saiDia[d]||0).toFixed(2)),
-          backgroundColor:'rgba(239,68,68,0.75)',
-          borderColor:'rgba(239,68,68,1)',
-          borderWidth:0, borderRadius:3,
+          data: dias.map(d => +(saiDia[d]||0).toFixed(2)),
+          backgroundColor:'rgba(139,28,28,0.8)',
+          borderWidth:0, borderRadius:3, borderSkipped:false,
           yAxisID:'y', order:3
-        },
-        {
-          type:'line', label:'Saldo Acumulado',
-          data: saldos,
-          borderColor:'#f59e0b',
-          backgroundColor:'rgba(245,158,11,0.07)',
-          borderWidth:2.5,
-          pointRadius: dias.length > 22 ? 0 : 3,
-          pointBackgroundColor:'#f59e0b',
-          pointHoverRadius:5,
-          tension:0.4, fill:true,
-          yAxisID:'y2', order:1
         }
       ]
     },
@@ -7425,36 +7406,50 @@ async function renderFluxoCaixaChart(ini, fim) {
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
       plugins:{
-        legend:{ display:false },
+        legend:{
+          display:true, position:'bottom',
+          labels:{
+            usePointStyle:true, pointStyle:'circle',
+            font:{size:11}, color:'#64748b',
+            padding:20, boxWidth:8
+          }
+        },
         tooltip:{
-          backgroundColor:'rgba(15,23,42,0.92)',
-          titleColor:'#94a3b8', bodyColor:'#e2e8f0',
-          padding:10, cornerRadius:8, titleFont:{size:11},
+          backgroundColor:'rgba(15,23,42,0.9)',
+          titleColor:'#94a3b8', bodyColor:'#f1f5f9',
+          padding:12, cornerRadius:8,
+          titleFont:{size:11,weight:'600'},
+          bodyFont:{size:11},
           callbacks:{
             title: items => 'Dia ' + items[0].label,
-            label: c => {
-              const v = Math.abs(c.parsed.y);
-              if (c.dataset.label === 'Saldo Acumulado') return `  Saldo: R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
-              const sign = c.dataset.label === 'Saídas' ? '−' : '+';
-              return `  ${c.dataset.label}: ${sign} R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+            label: ctx => {
+              const v = ctx.parsed.y;
+              const abs = Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
+              if (ctx.dataset.label==='Saldo acumulado') return `  Saldo: R$ ${abs}`;
+              if (ctx.dataset.label==='Saídas') return `  Saídas: R$ ${abs}`;
+              return `  Entradas: R$ ${abs}`;
             }
           }
         }
       },
       scales:{
         x:{
-          grid:{ color:'rgba(148,163,184,0.07)', drawBorder:false },
-          ticks:{ font:{size:9}, color:'#64748b', maxTicksLimit:20, maxRotation:0 }
+          grid:{ color:'rgba(148,163,184,0.1)', drawBorder:false },
+          border:{ display:false },
+          ticks:{ font:{size:10}, color:'#94a3b8', maxRotation:0, maxTicksLimit:31 }
         },
         y:{
           position:'left',
-          grid:{ color:'rgba(148,163,184,0.07)', drawBorder:false },
-          ticks:{ font:{size:9}, color:'#64748b', callback: v => v===0?'0':'R$'+(Math.abs(v)/1000).toFixed(1)+'k' }
+          grid:{ color:'rgba(148,163,184,0.1)', drawBorder:false },
+          border:{ display:false },
+          ticks:{ font:{size:10}, color:'#94a3b8', callback: v => 'R$'+( v/1000).toFixed(0)+'k' },
+          stacked:false
         },
         y2:{
           position:'right',
           grid:{ drawOnChartArea:false },
-          ticks:{ font:{size:9}, color:'#f59e0b', callback: v => 'R$'+(v/1000).toFixed(1)+'k' }
+          border:{ display:false },
+          ticks:{ font:{size:10}, color:'#d4a017', callback: v => 'R$'+(v/1000).toFixed(0)+'k' }
         }
       }
     }
