@@ -7369,6 +7369,11 @@ async function renderFluxoCaixaChart(ini, fim) {
 
   if (window._dashFluxoChart) { try { window._dashFluxoChart.destroy(); } catch(e){} }
 
+  // Garante que o canvas tem o tamanho certo antes de criar o chart
+  const container = canvas.parentElement;
+  canvas.width  = container.offsetWidth;
+  canvas.height = container.offsetHeight;
+
   const labels = dias.map(d => d.substring(8,10));
 
   window._dashFluxoChart = new Chart(canvas.getContext('2d'), {
@@ -7381,8 +7386,10 @@ async function renderFluxoCaixaChart(ini, fim) {
           borderColor:'#d4a017',
           backgroundColor:'rgba(212,160,23,0.04)',
           borderWidth:2.5,
-          pointRadius:0, pointHoverRadius:5,
+          pointRadius:0, pointHoverRadius:6,
           pointHoverBackgroundColor:'#d4a017',
+          pointHoverBorderColor:'#fff',
+          pointHoverBorderWidth:2,
           tension:0.4, fill:false,
           yAxisID:'y2', order:1
         },
@@ -7404,7 +7411,10 @@ async function renderFluxoCaixaChart(ini, fim) {
     },
     options: {
       responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:'index', intersect:false },
+      interaction:{ mode:'index', intersect:false, axis:'x' },
+      onResize(chart, size) {
+        chart.canvas.parentNode.style.height = '320px';
+      },
       plugins:{
         legend:{
           display:true, position:'bottom',
