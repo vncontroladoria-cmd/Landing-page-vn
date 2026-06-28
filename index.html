@@ -11234,17 +11234,18 @@ async function loadPerformance() {
   }
 
   // ── Totais ────────────────────────────────────────────
-  const totalFat = rows.reduce((s,r)=>s+r.total,0);
-  // Comandas únicas por profissional+cliente
+  // valor_cobrado = faturamento (Valor Cobrado do relatório) | total = comissão
+  const n2 = v => Number(v)||0;
+  const getFatRow = r => n2(r.valor_cobrado) || (n2(r.comissao_pct) > 0 ? n2(r.total)/(n2(r.comissao_pct)/100) : n2(r.total));
+  const totalFat = rows.reduce((s,r)=>s+getFatRow(r),0);
+  const totalComissao = rows.reduce((s,r)=>s+n2(r.total),0);
   const comandasSet = new Set(rows.map(r=>(r.profissional||'x')+'|'+(r.numero_comanda||r.data_comanda||Math.random())));
   const totalAtend  = comandasSet.size;
   const ticket      = totalAtend > 0 ? totalFat/totalAtend : 0;
-  // Comissão estimada = 40% do faturamento (padrão salão — ajuste conforme regra)
-  const comissaoTotal = totalFat * 0.40;
 
   if(el('perf-fat'))     el('perf-fat').textContent     = fmtBRL(totalFat);
   if(el('perf-atend'))   el('perf-atend').textContent   = totalAtend.toLocaleString('pt-BR');
-  if(el('perf-comissao'))el('perf-comissao').textContent= fmtBRL(comissaoTotal);
+  if(el('perf-comissao'))el('perf-comissao').textContent= fmtBRL(totalComissao);
   if(el('perf-ticket'))  el('perf-ticket').textContent  = fmtBRL(ticket);
 
   const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -11258,9 +11259,9 @@ async function loadPerformance() {
   rows.forEach(r => {
     const k = r.profissional || '(sem profissional)';
     if (!profMap[k]) profMap[k] = { fat:0, atend:new Set(), comissao:0 };
-    profMap[k].fat += r.total;
+    profMap[k].fat     += getFatRow(r);
+    profMap[k].comissao += n2(r.total);
     profMap[k].atend.add((r.numero_comanda||r.data_comanda||Math.random()));
-    profMap[k].comissao += r.total * 0.40;
   });
   const profRank = Object.entries(profMap).sort((a,b)=>b[1].fat-a[1].fat);
   const maxFatProf = profRank[0]?.[1].fat || 1;
@@ -15296,6 +15297,10 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   let srvDataRaw = [];
   try {
     const { data: rawMet } = await qE('rel_dados_brutos').select('colunas').limit(50000);
+    console.log('[RAW] Total no banco:', (rawMet||[]).length);
+    if (rawMet?.length) console.log('[RAW] Primeiro registro keys:', Object.keys(rawMet[0].colunas||{}));
+    if (rawMet?.length) console.log('[RAW] Primeiro registro:', JSON.stringify(rawMet[0].colunas).substring(0,300));
+
     srvDataRaw = (rawMet||[])
       .map(r => parsePerfRow(r.colunas||r))
       .filter(r => r.profissional && r.data_comanda)
