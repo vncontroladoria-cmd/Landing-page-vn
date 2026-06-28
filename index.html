@@ -15292,45 +15292,33 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   const metaMap = {};
   (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
 
-  // Busca dados de performance do rel_dados_brutos (já tem Profissional adicionado no import)
-  const { data: tiposPerfMet } = await qE('rel_tipos').select('id,nome');
-  const tiposIdsMet = (tiposPerfMet||[]).filter(t => {
-    const n = (t.nome||'').toLowerCase();
-    return n.includes('servi') || n.includes('perform');
-  }).map(t => t.id);
-
+  // Busca dados de performance do rel_dados_brutos sem filtro de tipo
   let srvDataRaw = [];
-  if (tiposIdsMet.length) {
-    const { data: rawMet } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', tiposIdsMet).limit(30000);
-    // parsePerfRow lê: colunas['Profissional'], Total (comissão), Valor Cobrado (faturamento), Data
+  try {
+    const { data: rawMet } = await qE('rel_dados_brutos').select('colunas').limit(50000);
     srvDataRaw = (rawMet||[])
       .map(r => parsePerfRow(r.colunas||r))
       .filter(r => r.profissional && r.data_comanda)
       .filter(r => r.data_comanda >= ini && r.data_comanda <= fim);
-  }
+    console.log('[METRICAS] rawMet:', (rawMet||[]).length, 'filtrado:', srvDataRaw.length, ini, fim);
+    [...new Set(srvDataRaw.map(r=>r.profissional))].forEach(p => {
+      const fat = srvDataRaw.filter(r=>r.profissional===p).reduce((s,r)=>s+Number(r.valor_cobrado||0),0);
+      const com = srvDataRaw.filter(r=>r.profissional===p).reduce((s,r)=>s+Number(r.total||0),0);
+      console.log('[METRICAS]', p, 'fat:', fat.toFixed(2), 'com:', com.toFixed(2));
+    });
+  } catch(e) { console.warn('[METRICAS] erro:', e); }
 
-  const { data: lucData } = await qE('rel_lucratividade').select('profissional,custo_comissao,data').gte('data', ini).lte('data', fim);
-
-  // total = comissão (coluna Total do relatório) | valor_cobrado = faturamento (coluna Valor Cobrado)
+  // total = comissão | valor_cobrado = faturamento
   const fatMap = {}, comMap = {};
   srvDataRaw.forEach(r => {
     const nome = r.profissional.trim();
     const com = Number(r.total||0);
     const pct = Number(r.comissao_pct||0);
-    const fat = Number(r.valor_cobrado||0) || (pct > 0 ? com / (pct/100) : 0);
+    const fat = Number(r.valor_cobrado||0) || (pct > 0 ? com/(pct/100) : 0);
     fatMap[nome] = (fatMap[nome]||0) + fat;
     comMap[nome] = (comMap[nome]||0) + com;
   });
 
-  // Sobrescreve comissão com rel_lucratividade se existir
-  if (lucData?.length) {
-    Object.keys(comMap).forEach(k => delete comMap[k]);
-    (lucData||[]).forEach(r => {
-      const nome = (r.profissional||'').trim();
-      if (!nome) return;
-      comMap[nome] = (comMap[nome]||0) + Number(r.custo_comissao||0);
-    });
-  }
 
   const normP2 = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   const getFat = (profNome) => {
