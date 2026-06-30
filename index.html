@@ -12820,7 +12820,14 @@ function parseSrvRow(colunas) {
     for (const n of nomes) { const k = keys.find(k => norm(k).includes(norm(n))); if (k && c[k] != null && c[k] !== '') return String(c[k]).trim(); }
     return '';
   };
-  const getTotal = () => { const k = keys.find(k => norm(k) === 'total'); return (k && c[k] != null && c[k] !== '') ? String(c[k]).trim() : ''; };
+  const getTotal = () => {
+    const k = keys.find(k => norm(k) === 'total');
+    if (k && c[k] != null && c[k] !== '') return String(c[k]).trim();
+    // Fallback formato Lucratividade: "Custo Comissão" = comissão
+    const kCusto = keys.find(k => norm(k) === 'custocomissao');
+    if (kCusto && c[kCusto] != null && c[kCusto] !== '') return String(c[kCusto]).trim();
+    return '';
+  };
   const getValor = () => { const k = keys.find(k => norm(k) === 'valor'); return (k && c[k] != null && c[k] !== '') ? String(c[k]).trim() : ''; };
   const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
   const parseD = v => {
@@ -12838,8 +12845,10 @@ function parseSrvRow(colunas) {
     return null;
   };
   const totalRaw = getTotal() || getValor();
-  const qtdRaw = get('Qtd','Quantidade','qtd');
+  const qtdRaw = get('Qtd','Quantidade','qtd','Qtd.');
   const total = parseN(totalRaw) || (parseN(getValor()) * (parseN(qtdRaw) || 1));
+  // valor_cobrado: "Valor Cobrado" (normal) OU "Faturado" (formato Lucratividade)
+  const valorCobradoRaw = get('Valor Cobrado','ValorCobrado','valor cobrado','preco','Preço','Preco') || get('Faturado','faturado');
   return {
     profissional:   get('Profissional','profissional'),
     data_comanda:   parseD(get('Data Comanda','DataComanda','Data','data','data_comanda')),
@@ -12853,7 +12862,7 @@ function parseSrvRow(colunas) {
     celular:        get('Celular','celular'),
     qtd:            parseN(qtdRaw) || 1,
     valor:          parseN(getValor()),
-    valor_cobrado:  parseN(get('Valor Cobrado','ValorCobrado','valor cobrado','preco','Preço','Preco')),
+    valor_cobrado:  parseN(valorCobradoRaw),
     desconto:       parseN(get('Desconto','desconto')),
     total,
     pacote:         get('Pacote','pacote'),
