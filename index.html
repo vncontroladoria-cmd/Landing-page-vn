@@ -5978,6 +5978,11 @@ async function carregarDadosTipo(tipoId, tipoNome) {
 
   _impDadosCarregados = data;
   _impColunasCarregadas = Object.keys(data[0].colunas || {});
+  // Garante que "Profissional" sempre aparece como última coluna na exibição
+  if (_impColunasCarregadas.includes('Profissional')) {
+    _impColunasCarregadas = _impColunasCarregadas.filter(c => c !== 'Profissional');
+    _impColunasCarregadas.push('Profissional');
+  }
   _impColunaData = detectarColunaData(_impColunasCarregadas);
 
   if (btnLimpar) { btnLimpar.style.display = ''; btnLimpar.setAttribute('data-tipo-id', tipoId); btnLimpar.setAttribute('data-tipo-nome', tipoNome); }
