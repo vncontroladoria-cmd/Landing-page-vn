@@ -5587,7 +5587,7 @@ function showPage(id, el) {
     'servicos':      ['srv-mes'],
     'clientes':      ['cli-mes'],
     'produtos':      ['prod-mes'],
-    'performance':   ['perf-mes'],
+    'performance':   [], // não força mês atual — fica em "Todos" por padrão para não esconder profissionais com dados em outros meses
     'importacao':    ['imp-filtro-mes'],
     'contas-pagar':  ['cp-mes'],
     'contas-receber':['cr-mes'],
@@ -11174,14 +11174,14 @@ let _perfChartProf = null;
 
 async function initPerformance() {
   // Preenche filtros de ano e profissional
-  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-  const tiposPerf = (tipos||[]).filter(t => t.nome.toLowerCase().includes('performance'));
-  const tiposSrv  = (tipos||[]).filter(t => t.nome.toLowerCase().includes('servi'));
-  const todosIds  = [...tiposPerf, ...tiposSrv].map(t=>t.id);
-  const usaPerf   = tiposPerf.length > 0;
+  // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar tipos duplicados de sessões antigas
+  const { data: tiposPerfList } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
+  const { data: tiposSrvList }  = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%').order('id',{ascending:true});
+  const tipoUnico = tiposPerfList?.[0] || tiposSrvList?.[0] || null;
+  const usaPerf   = !!tiposPerfList?.length;
 
-  if (todosIds.length) {
-    const { data } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', todosIds).limit(50000);
+  if (tipoUnico) {
+    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnico.id).limit(50000);
     const rows = (data||[]).map(r => usaPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas));
     const anos  = [...new Set(rows.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
     const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
@@ -11211,38 +11211,21 @@ async function loadPerformance() {
   const prof = document.getElementById('perf-prof')?.value || '';
   const el   = id => document.getElementById(id);
 
-  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-  const tiposPerf = (tipos||[]).filter(t => t.nome.toLowerCase().includes('performance'));
-  const tiposSrv  = (tipos||[]).filter(t => t.nome.toLowerCase().includes('servi'));
-  const todosIds  = [...tiposPerf, ...tiposSrv].map(t=>t.id);
-  const usaPerf   = tiposPerf.length > 0;
+  // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar tipos duplicados de sessões antigas
+  const { data: tiposPerfList } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
+  const { data: tiposSrvList }  = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%').order('id',{ascending:true});
+  const tipoUnico = tiposPerfList?.[0] || tiposSrvList?.[0] || null;
+  const usaPerf   = !!tiposPerfList?.length;
 
   let rows = [];
-  if (todosIds.length) {
-    const { data } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', todosIds).limit(50000);
+  if (tipoUnico) {
+    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnico.id).limit(50000);
     rows = (data||[]).map(r => usaPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas)).filter(r => r.servico || r.profissional);
   }
 
   if (ano)  rows = rows.filter(r => r.data_comanda?.startsWith(ano));
   if (mes)  rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
   if (prof) rows = rows.filter(r => r.profissional === prof);
-
-  // DEBUG temporário — mostra detalhe de cada profissional no período filtrado
-  console.log('[PERF DEBUG] Total de linhas no filtro atual:', rows.length, '| ano:', ano||'todos', '| mes:', mes||'todos');
-  const debugByProf = {};
-  rows.forEach(r => {
-    const k = r.profissional || '(sem nome)';
-    if (!debugByProf[k]) debugByProf[k] = [];
-    debugByProf[k].push(r);
-  });
-  Object.entries(debugByProf).forEach(([nome, lista]) => {
-    const totalCom = lista.reduce((s,r)=>s+Number(r.total||0),0);
-    const totalFat = lista.reduce((s,r)=>s+Number(r.valor_cobrado||0),0);
-    console.log(`[PERF DEBUG] ${nome}: ${lista.length} registros | comissão=${totalCom.toFixed(2)} | faturamento=${totalFat.toFixed(2)}`);
-    if (nome.toLowerCase().includes('larissa')) {
-      lista.forEach(r => console.log('  →', r.data_comanda, '| cliente:', r.cliente, '| servico:', r.servico, '| total(comissao):', r.total, '| valor_cobrado:', r.valor_cobrado, '| comissao_pct:', r.comissao_pct));
-    }
-  });
 
   const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a'];
 
@@ -11292,13 +11275,13 @@ async function loadPerformance() {
 
   const rankEl = el('perf-ranking-prof');
   if (rankEl) {
-    _setTable(rankEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    rankEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr>
-        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">#</th>
-        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left">PROFISSIONAL</th>
-        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">ATEND.</th>
-        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">FATURAMENTO</th>
-        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right">COMISSÃO</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left" onclick="sortTable(this)">#</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 10px;text-align:left" onclick="sortTable(this)">PROFISSIONAL</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right" onclick="sortTable(this)">ATEND.</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right" onclick="sortTable(this)">FATURAMENTO</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right" onclick="sortTable(this)">COMISSÃO</th>
       </tr></thead>
       <tbody>
         ${profRank.map(([nome,v],i) => {
@@ -11324,7 +11307,7 @@ async function loadPerformance() {
           <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--text2)">${fmtBRL(totalComissao)}</td>
         </tr>
       </tbody>
-    </table>`);
+    </table>`;
   }
 
   // ── Gráfico donut profissionais ────────────────────────
@@ -14114,15 +14097,13 @@ async function loadDRE() {
     if (profsAll?.length) {
       const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 
-      // Busca tipos de performance/serviços
-      const { data: tiposDRE } = await qE('rel_tipos').select('id,nome');
-      const tiposIdsDRE = (tiposDRE||[]).filter(t => {
-        const n = (t.nome||'').toLowerCase();
-        return n.includes('servi') || n.includes('perform');
-      }).map(t => t.id);
+      // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar duplicatas
+      const { data: tiposPerfDRE } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
+      const { data: tiposSrvDRE }  = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%').order('id',{ascending:true});
+      const tipoUnicoDRE = tiposPerfDRE?.[0] || tiposSrvDRE?.[0] || null;
 
-      if (tiposIdsDRE.length) {
-        const { data: rawDRE } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', tiposIdsDRE).limit(50000);
+      if (tipoUnicoDRE) {
+        const { data: rawDRE } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnicoDRE.id).limit(50000);
 
         // parsePerfRow lê Profissional, Data, Total (comissão) corretamente
         (rawDRE||[]).forEach(r => {
@@ -15315,18 +15296,16 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   const metaMap = {};
   (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
 
-  // Busca dados de performance — TODOS os tipos Performance/Serviços (evita perder dados de tipos duplicados)
+  // Busca dados de performance — SOMENTE o tipo Performance mais antigo (canônico)
   let srvDataRaw = [];
   try {
-    const { data: tiposM } = await qE('rel_tipos').select('id,nome');
-    const idsM = (tiposM||[]).filter(t => {
-      const n = (t.nome||'').toLowerCase();
-      return n.includes('perform') || n.includes('servi');
-    }).map(t=>t.id);
+    const { data: tiposPerfM } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
+    const { data: tiposSrvM }  = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%').order('id',{ascending:true});
+    const tipoUnicoM = tiposPerfM?.[0] || tiposSrvM?.[0] || null;
 
-    const { data: rawMet } = idsM.length
-      ? await qE('rel_dados_brutos').select('colunas').in('tipo_id', idsM).limit(50000)
-      : await qE('rel_dados_brutos').select('colunas').limit(50000);
+    const { data: rawMet } = tipoUnicoM
+      ? await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnicoM.id).limit(50000)
+      : { data: [] };
 
     srvDataRaw = (rawMet||[])
       .map(r => parsePerfRow(r.colunas||r))
