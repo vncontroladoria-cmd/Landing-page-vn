@@ -11299,7 +11299,7 @@ async function loadPerformance() {
           <td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2)">TOTAL</td>
           <td style="padding:8px;text-align:right;font-size:11px;font-weight:700">${totalAtend}</td>
           <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(totalFat)}</td>
-          <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--text2)">${fmtBRL(comissaoTotal)}</td>
+          <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--text2)">${fmtBRL(totalComissao)}</td>
         </tr>
       </tbody>
     </table>`);
@@ -11321,7 +11321,7 @@ async function loadPerformance() {
     const k = cleanSrv(r.servico) || '(sem serviço)';
     if (!srvMap[k]) srvMap[k] = { qtd:0, total:0 };
     srvMap[k].qtd   += r.qtd || 1;
-    srvMap[k].total += r.total;
+    srvMap[k].total += getFatRow(r);
   });
   const srvRank = Object.entries(srvMap).sort((a,b)=>b[1].qtd-a[1].qtd);
   if(el('perf-srv-sub')) el('perf-srv-sub').textContent = `${srvRank.length} serviços únicos · sem duplicar 1/2, 2/3`;
@@ -11352,7 +11352,7 @@ async function loadPerformance() {
     const k = r.cliente || '(sem cliente)';
     if (!cliPerfMap[k]) cliPerfMap[k] = { visitas:new Set(), total:0 };
     cliPerfMap[k].visitas.add(r.data_comanda||Math.random());
-    cliPerfMap[k].total += r.total;
+    cliPerfMap[k].total += getFatRow(r);
   });
   const cliPerfRank = Object.entries(cliPerfMap).sort((a,b)=>b[1].visitas.size-a[1].visitas.size);
   if(el('perf-cli-sub')) el('perf-cli-sub').textContent = `${cliPerfRank.length} clientes únicos · ordenado por número de visitas`;
