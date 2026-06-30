@@ -11170,14 +11170,14 @@ let _perfChartProf = null;
 async function initPerformance() {
   // Preenche filtros de ano e profissional
   const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-  const tipoPerf = (tipos||[]).find(t => t.nome.toLowerCase().includes('performance'));
-  const tipoSrv  = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
-  const tipoAlvo = tipoPerf || tipoSrv;
+  const tiposPerf = (tipos||[]).filter(t => t.nome.toLowerCase().includes('performance'));
+  const tiposSrv  = (tipos||[]).filter(t => t.nome.toLowerCase().includes('servi'));
+  const todosIds  = [...tiposPerf, ...tiposSrv].map(t=>t.id);
+  const usaPerf   = tiposPerf.length > 0;
 
-  if (tipoAlvo) {
-    const mapaNomes = tipoPerf ? await carregarMapaProfissionais() : null;
-    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoAlvo.id).limit(15000);
-    const rows = (data||[]).map(r => tipoPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas));
+  if (todosIds.length) {
+    const { data } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', todosIds).limit(50000);
+    const rows = (data||[]).map(r => usaPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas));
     const anos  = [...new Set(rows.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
     const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
     const selA = document.getElementById('perf-ano');
@@ -11207,15 +11207,15 @@ async function loadPerformance() {
   const el   = id => document.getElementById(id);
 
   const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-  const tipoPerf = (tipos||[]).find(t => t.nome.toLowerCase().includes('performance'));
-  const tipoSrv  = (tipos||[]).find(t => t.nome.toLowerCase().includes('servi'));
-  const tipoAlvo = tipoPerf || tipoSrv;
+  const tiposPerf = (tipos||[]).filter(t => t.nome.toLowerCase().includes('performance'));
+  const tiposSrv  = (tipos||[]).filter(t => t.nome.toLowerCase().includes('servi'));
+  const todosIds  = [...tiposPerf, ...tiposSrv].map(t=>t.id);
+  const usaPerf   = tiposPerf.length > 0;
 
   let rows = [];
-  if (tipoAlvo) {
-    const mapaNomes = tipoPerf ? await carregarMapaProfissionais() : null;
-    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id',tipoAlvo.id).limit(15000);
-    rows = (data||[]).map(r => tipoPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas)).filter(r => r.servico || r.profissional);
+  if (todosIds.length) {
+    const { data } = await qE('rel_dados_brutos').select('colunas').in('tipo_id', todosIds).limit(50000);
+    rows = (data||[]).map(r => usaPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas)).filter(r => r.servico || r.profissional);
   }
 
   if (ano)  rows = rows.filter(r => r.data_comanda?.startsWith(ano));
@@ -15293,24 +15293,23 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   const metaMap = {};
   (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
 
-  // Busca dados de performance do rel_dados_brutos sem filtro de tipo
+  // Busca dados de performance — TODOS os tipos Performance/Serviços (evita perder dados de tipos duplicados)
   let srvDataRaw = [];
   try {
-    const { data: rawMet } = await qE('rel_dados_brutos').select('colunas').limit(50000);
-    console.log('[RAW] Total no banco:', (rawMet||[]).length);
-    if (rawMet?.length) console.log('[RAW] Primeiro registro keys:', Object.keys(rawMet[0].colunas||{}));
-    if (rawMet?.length) console.log('[RAW] Primeiro registro:', JSON.stringify(rawMet[0].colunas).substring(0,300));
+    const { data: tiposM } = await qE('rel_tipos').select('id,nome');
+    const idsM = (tiposM||[]).filter(t => {
+      const n = (t.nome||'').toLowerCase();
+      return n.includes('perform') || n.includes('servi');
+    }).map(t=>t.id);
+
+    const { data: rawMet } = idsM.length
+      ? await qE('rel_dados_brutos').select('colunas').in('tipo_id', idsM).limit(50000)
+      : await qE('rel_dados_brutos').select('colunas').limit(50000);
 
     srvDataRaw = (rawMet||[])
       .map(r => parsePerfRow(r.colunas||r))
       .filter(r => r.profissional && r.data_comanda)
       .filter(r => r.data_comanda >= ini && r.data_comanda <= fim);
-    console.log('[METRICAS] rawMet:', (rawMet||[]).length, 'filtrado:', srvDataRaw.length, ini, fim);
-    [...new Set(srvDataRaw.map(r=>r.profissional))].forEach(p => {
-      const fat = srvDataRaw.filter(r=>r.profissional===p).reduce((s,r)=>s+Number(r.valor_cobrado||0),0);
-      const com = srvDataRaw.filter(r=>r.profissional===p).reduce((s,r)=>s+Number(r.total||0),0);
-      console.log('[METRICAS]', p, 'fat:', fat.toFixed(2), 'com:', com.toFixed(2));
-    });
   } catch(e) { console.warn('[METRICAS] erro:', e); }
 
   // total = comissão | valor_cobrado = faturamento
@@ -19110,11 +19109,11 @@ async function confirmarVinculoEImportarPerformance() {
   btn.disabled = true;
 
   try {
-    // Garantir tipo "Performance" em rel_tipos
-    let { data: tipoPerf } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').limit(1);
+    // Garantir tipo "Performance" em rel_tipos — busca por TODOS, usa o primeiro (mais antigo) se existir
+    let { data: tiposPerfExist } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
     let tipoId;
-    if (tipoPerf?.length) {
-      tipoId = tipoPerf[0].id;
+    if (tiposPerfExist?.length) {
+      tipoId = tiposPerfExist[0].id; // sempre usa o mesmo (primeiro criado)
     } else {
       const { data: novoTipo, error: errTipo } = await sb.from('rel_tipos')
         .insert(addEmpresaId({ nome: 'Performance', descricao: 'Relatório de performance por profissional' }))
