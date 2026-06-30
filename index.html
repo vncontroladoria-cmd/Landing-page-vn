@@ -11227,6 +11227,23 @@ async function loadPerformance() {
   if (mes)  rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
   if (prof) rows = rows.filter(r => r.profissional === prof);
 
+  // DEBUG temporário — mostra detalhe de cada profissional no período filtrado
+  console.log('[PERF DEBUG] Total de linhas no filtro atual:', rows.length, '| ano:', ano||'todos', '| mes:', mes||'todos');
+  const debugByProf = {};
+  rows.forEach(r => {
+    const k = r.profissional || '(sem nome)';
+    if (!debugByProf[k]) debugByProf[k] = [];
+    debugByProf[k].push(r);
+  });
+  Object.entries(debugByProf).forEach(([nome, lista]) => {
+    const totalCom = lista.reduce((s,r)=>s+Number(r.total||0),0);
+    const totalFat = lista.reduce((s,r)=>s+Number(r.valor_cobrado||0),0);
+    console.log(`[PERF DEBUG] ${nome}: ${lista.length} registros | comissão=${totalCom.toFixed(2)} | faturamento=${totalFat.toFixed(2)}`);
+    if (nome.toLowerCase().includes('larissa')) {
+      lista.forEach(r => console.log('  →', r.data_comanda, '| cliente:', r.cliente, '| servico:', r.servico, '| total(comissao):', r.total, '| valor_cobrado:', r.valor_cobrado, '| comissao_pct:', r.comissao_pct));
+    }
+  });
+
   const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a'];
 
   if (!rows.length) {
