@@ -3117,18 +3117,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="projetado">Projetado</option>
                 <option value="ambos">Realizado × Projetado</option>
               </select>
-              <!-- Toggle Caixa / Competência -->
-              <div style="display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px">
-                <button id="dre-btn-caixa" onclick="setDRERegime('caixa')"
-                  style="padding:6px 12px;border:none;cursor:pointer;font-weight:600;background:var(--accent);color:#fff;transition:all .15s">
-                  💰 Caixa
-                </button>
-                <button id="dre-btn-competencia" onclick="setDRERegime('competencia')"
-                  style="padding:6px 12px;border:none;cursor:pointer;font-weight:600;background:var(--bg3);color:var(--text2);transition:all .15s">
-                  📅 Competência
-                </button>
-              </div>
-              <input type="hidden" id="dre-regime" value="caixa">
+              <input type="hidden" id="dre-regime" value="competencia">
               <button class="btn" onclick="loadDRE()">↻ Atualizar</button>
             </div>
           </div>
