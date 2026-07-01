@@ -5395,6 +5395,29 @@ function aplicarPermissoes() {
   } else {
     body?.classList.remove('modo-leitura');
   }
+  ativarBloqueioLeitor(perfil === 'leitor');
+}
+
+// ── Bloqueio real de ações pra perfil leitor ──────────────────
+// Não depende de esconder botão por CSS: intercepta QUALQUER clique
+// em elemento cujo onclick pareça uma ação de escrita (criar/editar/excluir/etc),
+// cobrindo funções futuras automaticamente.
+const _PADRAO_ACAO_BLOQUEADA = /\b(salvar|criar|novo|nova|editar|excluir|deletar|remover|atualizar|adicionar|inserir|cadastrar|toggleform|darbaixa|abrirmodal|duplicar|importar|confirmar|aprovar|enviar|gerar|copiar)/i;
+function _bloqueioLeitorHandler(e) {
+  const el = e.target.closest('[onclick]');
+  if (!el) return;
+  const onclick = el.getAttribute('onclick') || '';
+  if (_PADRAO_ACAO_BLOQUEADA.test(onclick)) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    if (typeof toast === 'function') toast('Seu perfil é somente leitura — sem permissão para essa ação.', 'error');
+    else alert('Seu perfil é somente leitura — sem permissão para essa ação.');
+  }
+}
+function ativarBloqueioLeitor(ativar) {
+  document.removeEventListener('click', _bloqueioLeitorHandler, true);
+  if (ativar) document.addEventListener('click', _bloqueioLeitorHandler, true);
 }
 
 // Troca de empresa (admin/operador)
