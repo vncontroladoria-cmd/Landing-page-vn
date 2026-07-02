@@ -5369,7 +5369,7 @@ function atualizarTopbarEmpresa() {
 
 // Aplica permissões de menu conforme perfil e empresa atual
 function aplicarPermissoes() {
-  const perfil = _vnUser?.perfil || 'leitor';
+  const perfil = _vnUser?.perfil;
   const empId  = _empresaAtual?.id;
 
   // Páginas salvas no cadastro do usuário
