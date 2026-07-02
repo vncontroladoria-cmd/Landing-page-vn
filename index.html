@@ -10810,10 +10810,10 @@ function renderClientesPage() {
     }
   }
 
-  // ── GRÁFICO 1: Atendimentos por dia do mês (usa ultimaVisita de _cliTodosData) ──
+  // ── GRÁFICO 1: Atendimentos por dia do mês (usa ultimaVisita, já filtrado por mês/ano) ──
   const CORES_CLI = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a','#9333ea'];
   const diasMap = {};
-  _cliTodosData.forEach(c => {
+  todos.forEach(c => {
     if (!c.ultimaVisita) return;
     const dia = parseInt(c.ultimaVisita.substring(8,10));
     if (!diasMap[dia]) diasMap[dia] = 0;
@@ -10883,14 +10883,14 @@ function renderClientesPage() {
     });
   }
 
-  // ── GRÁFICO 2: Como Conheceram o Salão (usa canal de _cliNovosData) ──
+  // ── GRÁFICO 2: Como Conheceram o Salão (usa canal dos clientes novos já filtrados por mês/ano) ──
   const canalMap = {};
-  _cliNovosData.forEach(c => {
+  novos.forEach(c => {
     const k = (c.canal && c.canal !== '—' && c.canal !== '') ? c.canal : 'Não informado';
     canalMap[k] = (canalMap[k]||0) + 1;
   });
   const canalRank = Object.entries(canalMap).sort((a,b) => b[1]-a[1]);
-  const totalNovos = _cliNovosData.length;
+  const totalNovos = novos.length;
 
   if(el('cli-canal-sub')) el('cli-canal-sub').textContent = `${canalRank.length} canais · ${totalNovos} clientes novos`;
   if(el('cli-canal-top')) el('cli-canal-top').textContent = canalRank[0]?.[0] || '—';
@@ -13157,24 +13157,18 @@ async function loadServicos() {
   const prof = document.getElementById('srv-profissional')?.value || '';
   const cat  = document.getElementById('srv-categoria')?.value    || '';
 
-  // Calcula ini/fim do período selecionado
-  const iniSrv = ano && mes ? `${ano}-${mes}-01` : ano ? `${ano}-01-01` : '2020-01-01';
-  const fimSrv = ano && mes ? `${ano}-${mes}-31` : ano ? `${ano}-12-31` : '2030-12-31';
-
-  // Carrega via função centralizada (tenta rel_servicos, depois rel_dados_brutos)
-  let rows = await loadSrvPeriodo(
-    ano || mes ? iniSrv : '2020-01-01',
-    ano || mes ? fimSrv : '2030-12-31'
-  );
-
-  // Busca todos se não tiver filtro de período
-  if (!ano && !mes) {
+  // Busca tudo (o filtro fino de ano/mês é feito abaixo, linha por linha — evita
+  // ignorar o mês quando o ano está em "Todos")
+  let rows = await loadSrvPeriodo('2020-01-01', '2030-12-31');
+  if (!rows.length) {
     const { data: todos } = await qE('rel_servicos').select('*').limit(20000);
     rows = todos || [];
   }
 
-  // Filtros adicionais
+  // Filtros: ano, mês, profissional, categoria — cada um só aplica se estiver preenchido
   let rowsFiltrados = rows;
+  if (ano)  rowsFiltrados = rowsFiltrados.filter(r => (r.data_comanda||'').substring(0,4) === ano);
+  if (mes)  rowsFiltrados = rowsFiltrados.filter(r => (r.data_comanda||'').substring(5,7) === mes);
   if (prof) rowsFiltrados = rowsFiltrados.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
   if (cat)  rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
 
