@@ -9866,6 +9866,9 @@ async function loadContasPagar() {
         const parcLabel = c.total_parcelas ? `${c.parcela_atual||1}/${c.total_parcelas}` : '1/1';
         const statusOpcoes = ['a pagar','enviado','pago','não pago','atrasado'];
         return `<tr id="cp-row-${c.id}" style="border-bottom:1px solid var(--border);background:${rowBg};${borderLeft}">
+          <td style="padding:7px 6px;text-align:center" onclick="event.stopPropagation()">
+            <input type="checkbox" class="cp-check" value="${c.id}" onchange="atualizarBotaoExcluirSelecionadosCP()">
+          </td>
           <td style="padding:7px 10px;color:var(--text2);white-space:nowrap;font-size:11px">${fmtDate(c.data_vencimento)}${isHoje?'<span style="margin-left:4px;font-size:9px;background:#d97706;color:#fff;border-radius:3px;padding:1px 4px">HOJE</span>':''}</td>
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${c.cnpj||'—'}</td>
           <td style="padding:7px 10px;font-size:11px;color:var(--text2)">${c.categoria||'—'}</td>
@@ -9896,8 +9899,16 @@ async function loadContasPagar() {
         </tr>`;
       }).join('');
 
-      detEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      detEl.innerHTML = `
+        <div style="display:flex;justify-content:flex-end;padding:8px 10px" id="cp-acoes-lote">
+          <button class="btn btn-sm" id="cp-btn-excluir-sel" onclick="excluirSelecionadosCP()" disabled
+            style="padding:5px 10px;font-size:11px;color:var(--red);border-color:var(--red);opacity:.5">
+            🗑️ Excluir selecionados (0)
+          </button>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr>
+          <th style="${TH};text-align:center;width:32px"><input type="checkbox" id="cp-check-all" onchange="selecionarTodosCP(this.checked)"></th>
           <th style="${TH}">DATA VENC</th>
           <th style="${TH}">FORNECEDOR</th>
           <th style="${TH}">CATEGORIA</th>
@@ -15162,6 +15173,31 @@ async function excluirConta(id, tipo) {
   await sb.from(tabela).delete().eq('id', id);
   showToast('Excluído!','success');
   if (tipo === 'pagar') loadContasPagar(); else loadContasReceber();
+}
+
+function selecionarTodosCP(marcar) {
+  document.querySelectorAll('.cp-check').forEach(cb => cb.checked = marcar);
+  atualizarBotaoExcluirSelecionadosCP();
+}
+
+function atualizarBotaoExcluirSelecionadosCP() {
+  const n = document.querySelectorAll('.cp-check:checked').length;
+  const btn = document.getElementById('cp-btn-excluir-sel');
+  if (!btn) return;
+  btn.textContent = `🗑️ Excluir selecionados (${n})`;
+  btn.disabled = n === 0;
+  btn.style.opacity = n === 0 ? '.5' : '1';
+}
+
+async function excluirSelecionadosCP() {
+  const ids = [...document.querySelectorAll('.cp-check:checked')].map(cb => cb.value);
+  if (!ids.length) return;
+  if (!confirm(`Excluir ${ids.length} conta(s) selecionada(s)? Essa ação não pode ser desfeita.`)) return;
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const { error } = await sb.from('contas_pagar').delete().eq('empresa_id', empId).in('id', ids);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast(`${ids.length} conta(s) excluída(s)!`, 'success');
+  loadContasPagar();
 }
 
 async function editarConta(id, tipo) {
