@@ -5932,7 +5932,8 @@ async function salvarNovoTipo() {
 }
 
 async function excluirTipo(id, nome) {
-  if (!confirm(`Excluir o tipo "${nome}"?\nTodos os dados importados desse tipo serão apagados.`)) return;
+  const digitado = prompt(`Isso vai apagar a pasta "${nome}" e TODOS os dados importados nela, sem volta.\n\nPra confirmar, digite o nome exatamente: ${nome}`);
+  if (digitado !== nome) { if (digitado !== null) showToast('Nome não confere. Nada foi apagado.', 'error'); return; }
   const { error } = await sb.from('rel_tipos').delete().eq('id', id);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   showToast(`Tipo "${nome}" excluído.`, 'success');
@@ -6405,7 +6406,8 @@ async function confirmarLimparDados() {
   const tipoId = btn?.getAttribute('data-tipo-id');
   const tipoNome = btn?.getAttribute('data-tipo-nome');
   if (!tipoId) return;
-  if (!confirm(`Apagar TODOS os dados importados de "${tipoNome}"?\nEssa ação não pode ser desfeita.`)) return;
+  const digitado = prompt(`Isso vai apagar TODOS os dados importados de "${tipoNome}", sem volta.\n\nPra confirmar, digite: CONFIRMAR`);
+  if (digitado !== 'CONFIRMAR') { if (digitado !== null) showToast('Não confirmado. Nada foi apagado.', 'error'); return; }
 
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
 
