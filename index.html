@@ -15185,7 +15185,11 @@ async function excluirConta(id, tipo) {
 }
 
 function selecionarTodosCP(marcar) {
-  document.querySelectorAll('.cp-check').forEach(cb => cb.checked = marcar);
+  document.querySelectorAll('.cp-check').forEach(cb => {
+    const linha = cb.closest('tr');
+    if (linha && linha.style.display === 'none') return; // ignora linhas escondidas pelo filtro
+    cb.checked = marcar;
+  });
   atualizarBotaoExcluirSelecionadosCP();
 }
 
