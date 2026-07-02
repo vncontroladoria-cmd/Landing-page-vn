@@ -3243,8 +3243,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <input type="text" id="imp-busca-dados" placeholder="Buscar..." oninput="aplicarFiltrosImport()"
                   style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--text);width:160px">
-                <button class="btn btn-sm" id="imp-btn-excluir-sel" onclick="excluirSelecionadosImport()" style="display:none;border-color:var(--red);color:var(--red)">🗑 Excluir selecionados (<span id="imp-count-sel">0</span>)</button>
-                <button class="btn btn-sm" id="imp-btn-limpar" onclick="confirmarLimparDados()" style="display:none;border-color:var(--red);color:var(--red)">🗑 Limpar tudo</button>
+                <button class="btn btn-sm" id="imp-btn-excluir-sel" onclick="imp_btnExcluirClick()" style="display:none;border-color:var(--red);color:var(--red)">🗑 Limpar tudo</button>
               </div>
             </div>
             <!-- Linha 2: filtros mês/ano -->
@@ -5887,7 +5886,7 @@ function filtrarTipoImport(tipoId) {
     const titulo = document.getElementById('imp-tabela-titulo');
     if (container) container.innerHTML = '<div class="empty">Selecione um tipo acima para ver os dados.</div>';
     if (titulo) titulo.textContent = '📊 Dados Importados';
-    const btnLimpar = document.getElementById('imp-btn-limpar');
+    const btnLimpar = document.getElementById('imp-btn-excluir-sel');
     if (btnLimpar) btnLimpar.style.display = 'none';
   }
 }
@@ -6129,7 +6128,7 @@ let _impColunasCarregadas = [];
 async function carregarDadosTipo(tipoId, tipoNome) {
   const titulo = document.getElementById('imp-tabela-titulo');
   const container = document.getElementById('imp-tabela-container');
-  const btnLimpar = document.getElementById('imp-btn-limpar');
+  const btnLimpar = document.getElementById('imp-btn-excluir-sel');
   if (titulo) titulo.textContent = `📊 Dados — ${tipoNome}`;
 
   container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
@@ -6257,11 +6256,9 @@ function selecionarTodos(checked) {
 
 function atualizarBtnExcluirSel() {
   const btn = document.getElementById('imp-btn-excluir-sel');
-  const count = document.getElementById('imp-count-sel');
   if (!btn) return;
   const n = _impSelecionados.size;
-  btn.style.display = n > 0 ? '' : 'none';
-  if (count) count.textContent = n;
+  btn.innerHTML = n > 0 ? `🗑 Excluir selecionados (${n})` : `🗑 Limpar tudo`;
 }
 
 async function excluirSelecionadosImport() {
@@ -6404,7 +6401,7 @@ function detectarColunaData(cols) {
 }
 
 async function confirmarLimparDados() {
-  const btn = document.getElementById('imp-btn-limpar');
+  const btn = document.getElementById('imp-btn-excluir-sel');
   const tipoId = btn?.getAttribute('data-tipo-id');
   const tipoNome = btn?.getAttribute('data-tipo-nome');
   if (!tipoId) return;
@@ -6425,9 +6422,14 @@ async function confirmarLimparDados() {
   showToast(`Dados de "${tipoNome}" removidos.`, 'success');
   document.getElementById('imp-tabela-container').innerHTML = '<div class="empty">Nenhum dado.</div>';
   if (btn) btn.style.display = 'none';
-  document.getElementById('imp-btn-excluir-sel')?.style && (document.getElementById('imp-btn-excluir-sel').style.display = 'none');
   const barra = document.getElementById('imp-filtros-barra');
   if (barra) barra.style.display = 'none';
+}
+
+// Botão único: se tem algo selecionado, exclui só os selecionados; senão, limpa tudo
+function imp_btnExcluirClick() {
+  if (_impSelecionados.size > 0) excluirSelecionadosImport();
+  else confirmarLimparDados();
 }
 
 // Enter no modal de novo tipo
