@@ -1650,6 +1650,49 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 </div>
 
 <!-- MODAL: NOVA/EDITAR TAREFA -->
+<div class="modal-overlay" id="modal-precificacao-import">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">📥 Importar planilha de serviços</div>
+    <p style="font-size:12px;color:var(--text2);margin:8px 0 14px">
+      A planilha precisa ter colunas com: <b>Nome/Serviço</b>, <b>Categoria</b> (opcional), <b>Preço/Valor</b> (venda) e <b>Custo</b>.
+      Se já existir um serviço com o mesmo nome, o valor é atualizado.
+    </p>
+    <input type="file" id="prf-import-file" accept=".xlsx,.xls,.csv" onchange="importarPlanilhaPrecificacao(this)">
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-precificacao-import')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-precificacao-servico">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="prf-servico-titulo">Novo Serviço</div>
+    <input type="hidden" id="prf-servico-id">
+    <div class="form-group">
+      <label>Nome do serviço *</label>
+      <input type="text" id="prf-servico-nome" placeholder="Ex: Corte Feminino">
+    </div>
+    <div class="form-group">
+      <label>Categoria</label>
+      <input type="text" id="prf-servico-categoria" placeholder="Ex: Cabelo">
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="form-group" style="flex:1">
+        <label>Preço de venda (R$) *</label>
+        <input type="number" id="prf-servico-preco" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Custo (R$) *</label>
+        <input type="number" id="prf-servico-custo" step="0.01" placeholder="0,00">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-precificacao-servico')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarServicoPrecificacao()">✓ Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-tarefa">
   <div class="modal" style="max-width:460px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -1874,6 +1917,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <div class="nav-item nav-sub" data-page="lucratividade" onclick="showPage('lucratividade',this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
           <span class="nav-label">Lucratividade</span>
+        </div>
+        <div class="nav-item nav-sub" data-page="precificacao" onclick="showPage('precificacao',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 015 0c0 2.5-3.5 2-3.5 5"/><line x1="12" y1="17" x2="12" y2="17.01"/></svg>
+          <span class="nav-label">Precificação</span>
         </div>
       </div>
 
@@ -4027,6 +4074,102 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         </div>
 
+        <!-- PRECIFICAÇÃO -->
+        <div class="page" id="page-precificacao">
+          <div class="pg-header">
+            <div>
+              <div class="pg-header-title">🏷️ Precificação · Retorno por Serviço</div>
+              <div class="pg-header-sub">Importe seus serviços e veja o lucro e a margem de cada um e de cada categoria</div>
+            </div>
+            <div class="pg-header-actions">
+              <div class="filter-group">
+                <span class="filter-label">CATEGORIA</span>
+                <select class="filter-select" id="prf-categoria" onchange="loadPrecificacao()">
+                  <option value="">Todas</option>
+                </select>
+              </div>
+              <button class="btn" onclick="abrirModalImportarPrecificacao()">📥 Importar planilha</button>
+              <button class="btn btn-primary" onclick="abrirModalServicoPrecificacao()">+ Serviço</button>
+            </div>
+          </div>
+
+          <div class="hcards-grid">
+            <div class="hcard">
+              <div class="hcard-info">
+                <div class="hcard-label">FATURAMENTO TOTAL</div>
+                <div class="hcard-value" id="prf-faturamento">R$ 0,00</div>
+                <div class="hcard-sub">soma do preço de venda</div>
+              </div>
+              <div class="hcard-icon">💰</div>
+            </div>
+            <div class="hcard">
+              <div class="hcard-info">
+                <div class="hcard-label">LUCRO TOTAL</div>
+                <div class="hcard-value" id="prf-lucro">R$ 0,00</div>
+                <div class="hcard-sub">preço − custo, somado</div>
+              </div>
+              <div class="hcard-icon">📈</div>
+            </div>
+            <div class="hcard">
+              <div class="hcard-info">
+                <div class="hcard-label">MARGEM MÉDIA</div>
+                <div class="hcard-value" id="prf-margem">0%</div>
+                <div class="hcard-sub">lucro ÷ preço de venda</div>
+              </div>
+              <div class="hcard-icon">🎯</div>
+            </div>
+            <div class="hcard">
+              <div class="hcard-info">
+                <div class="hcard-label">SERVIÇOS CADASTRADOS</div>
+                <div class="hcard-value" id="prf-total-servicos">0</div>
+                <div class="hcard-sub">nesta empresa</div>
+              </div>
+              <div class="hcard-icon">🧾</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:16px">
+            <div class="card-header">
+              <div class="card-title">🏆 Mais rentáveis</div>
+            </div>
+            <div id="prf-top-lucrativos" style="padding:10px 16px"></div>
+          </div>
+
+          <div class="card" style="margin-top:16px">
+            <div class="card-header">
+              <div class="card-title">⚠️ Menos rentáveis (atenção no preço)</div>
+            </div>
+            <div id="prf-top-prejuizo" style="padding:10px 16px"></div>
+          </div>
+
+          <div class="card" style="margin-top:16px">
+            <div class="card-header">
+              <div class="card-title">📊 Lucro por categoria</div>
+            </div>
+            <div id="prf-por-categoria" style="padding:10px 16px"></div>
+          </div>
+
+          <div class="card" style="margin-top:16px">
+            <div class="card-header">
+              <div class="card-title">📋 Todos os serviços</div>
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12px" id="prf-tabela">
+                <thead><tr>
+                  <th style="padding:8px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">SERVIÇO</th>
+                  <th style="padding:8px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">CATEGORIA</th>
+                  <th style="padding:8px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">PREÇO VENDA</th>
+                  <th style="padding:8px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">CUSTO</th>
+                  <th style="padding:8px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">LUCRO</th>
+                  <th style="padding:8px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">MARGEM</th>
+                  <th style="padding:8px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text2)">AÇÕES</th>
+                </tr></thead>
+                <tbody id="prf-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- MÉTRICAS -->
         <div class="page" id="page-metricas">
           <div class="pg-header">
@@ -5577,7 +5720,7 @@ const pageTitles = {
   'contas-pagar':'Contas a Pagar',
   'cartao-credito':'Cartão de Crédito', importar:'Importar Dados',
   servicos:'Serviços', clientes:'Clientes',
-  produtos:'Produtos', performance:'Performance',
+  produtos:'Produtos', performance:'Performance', precificacao:'Precificação',
   metricas:'Métricas', conciliacao:'Conciliação',
   'contas-receber':'Contas a Receber', dfc:'DFC', dre:'DRE',
   bancos:'Bancos', fornecedores:'Fornecedores',
@@ -5656,6 +5799,7 @@ function showPage(id, el) {
   if (id === 'clientes') initClientes();
   if (id === 'produtos') initProdutos();
   if (id === 'performance') initPerformance();
+  if (id === 'precificacao') initPrecificacao();
   if (id === 'configuracoes') loadFornecedores();
   if (id === 'fornecedores') loadFornecedores();
   if (id === 'plano-contas') loadPlanoContas();
@@ -19576,7 +19720,206 @@ function toggleCamposRecorrencia() {
   set('tarefa-campo-dia-mes',    rec === 'mensal');
 }
 
-// ─── CHECKLIST DENTRO DO CARD DA TAREFA ─────────────────
+// ═══════════════════════════════════════════════════════════
+// PRECIFICAÇÃO
+// ═══════════════════════════════════════════════════════════
+let _precificacaoData = [];
+
+async function initPrecificacao() {
+  await loadPrecificacao();
+}
+
+async function loadPrecificacao() {
+  const { data, error } = await qE('precificacao_servicos').select('*').order('nome');
+  if (error) { showToast('Erro ao carregar: ' + error.message, 'error'); return; }
+  _precificacaoData = (data || []).map(s => {
+    const lucro = Number(s.preco_venda||0) - Number(s.custo||0);
+    const margem = s.preco_venda ? (lucro / Number(s.preco_venda) * 100) : 0;
+    return { ...s, lucro, margem };
+  });
+
+  // Popular filtro de categoria
+  const categorias = [...new Set(_precificacaoData.map(s => s.categoria).filter(Boolean))].sort();
+  const selCat = document.getElementById('prf-categoria');
+  const catAtual = selCat.value;
+  selCat.innerHTML = '<option value="">Todas</option>' + categorias.map(c => `<option value="${c}">${c}</option>`).join('');
+  selCat.value = catAtual;
+
+  const filtro = selCat.value;
+  const lista = filtro ? _precificacaoData.filter(s => s.categoria === filtro) : _precificacaoData;
+
+  renderPrecificacao(lista);
+}
+
+function renderPrecificacao(lista) {
+  const fmt = v => 'R$ ' + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  const faturamento = lista.reduce((s,x) => s + Number(x.preco_venda||0), 0);
+  const lucroTotal = lista.reduce((s,x) => s + x.lucro, 0);
+  const margemMedia = faturamento ? (lucroTotal/faturamento*100) : 0;
+
+  document.getElementById('prf-faturamento').textContent = fmt(faturamento);
+  document.getElementById('prf-lucro').textContent = fmt(lucroTotal);
+  document.getElementById('prf-margem').textContent = margemMedia.toFixed(1) + '%';
+  document.getElementById('prf-total-servicos').textContent = lista.length;
+
+  // Ranking mais/menos rentáveis (por margem %)
+  const ordenado = [...lista].sort((a,b) => b.margem - a.margem);
+  const top5 = ordenado.slice(0,5);
+  const bottom5 = ordenado.slice(-5).reverse();
+
+  const linhaRanking = s => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:600;font-size:13px">${s.nome}</div>
+        <div style="font-size:11px;color:var(--text2)">${s.categoria || 'Sem categoria'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700;font-size:13px;color:${s.lucro>=0?'var(--green)':'var(--red)'}">${fmt(s.lucro)}</div>
+        <div style="font-size:11px;color:var(--text2)">${s.margem.toFixed(1)}% margem</div>
+      </div>
+    </div>`;
+
+  document.getElementById('prf-top-lucrativos').innerHTML = top5.length
+    ? top5.map(linhaRanking).join('') : `<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum serviço cadastrado ainda.</div>`;
+  document.getElementById('prf-top-prejuizo').innerHTML = bottom5.length
+    ? bottom5.map(linhaRanking).join('') : `<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum serviço cadastrado ainda.</div>`;
+
+  // Lucro por categoria
+  const porCat = {};
+  lista.forEach(s => {
+    const c = s.categoria || 'Sem categoria';
+    if (!porCat[c]) porCat[c] = { faturamento:0, lucro:0, qtd:0 };
+    porCat[c].faturamento += Number(s.preco_venda||0);
+    porCat[c].lucro += s.lucro;
+    porCat[c].qtd++;
+  });
+  const catOrdenada = Object.entries(porCat).sort((a,b) => b[1].lucro - a[1].lucro);
+  document.getElementById('prf-por-categoria').innerHTML = catOrdenada.length
+    ? catOrdenada.map(([nome,c]) => {
+        const margemCat = c.faturamento ? (c.lucro/c.faturamento*100) : 0;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div><div style="font-weight:600;font-size:13px">${nome}</div><div style="font-size:11px;color:var(--text2)">${c.qtd} serviço(s)</div></div>
+          <div style="text-align:right">
+            <div style="font-weight:700;font-size:13px;color:${c.lucro>=0?'var(--green)':'var(--red)'}">${fmt(c.lucro)}</div>
+            <div style="font-size:11px;color:var(--text2)">${margemCat.toFixed(1)}% margem</div>
+          </div>
+        </div>`;
+      }).join('') : `<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum serviço cadastrado ainda.</div>`;
+
+  // Tabela completa
+  document.getElementById('prf-tbody').innerHTML = ordenado.length ? ordenado.map(s => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 10px;font-weight:600">${s.nome}</td>
+      <td style="padding:8px 10px;color:var(--text2)">${s.categoria || '—'}</td>
+      <td style="padding:8px 10px;text-align:right">${fmt(s.preco_venda)}</td>
+      <td style="padding:8px 10px;text-align:right">${fmt(s.custo)}</td>
+      <td style="padding:8px 10px;text-align:right;font-weight:700;color:${s.lucro>=0?'var(--green)':'var(--red)'}">${fmt(s.lucro)}</td>
+      <td style="padding:8px 10px;text-align:right">${s.margem.toFixed(1)}%</td>
+      <td style="padding:8px 10px;text-align:center">
+        <button class="btn btn-sm" onclick="editarServicoPrecificacao('${s.id}')" style="padding:4px 8px">✏️</button>
+        <button class="btn btn-sm" onclick="excluirServicoPrecificacao('${s.id}')" style="padding:4px 8px;color:var(--red)">🗑️</button>
+      </td>
+    </tr>
+  `).join('') : `<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--text3)">Nenhum serviço cadastrado. Importe uma planilha ou clique em "+ Serviço".</td></tr>`;
+}
+
+function abrirModalImportarPrecificacao() {
+  document.getElementById('prf-import-file').value = '';
+  document.getElementById('modal-precificacao-import').classList.add('open');
+}
+
+async function importarPlanilhaPrecificacao(input) {
+  const file = input.files[0]; if (!file) return;
+  showToast('Lendo planilha...', '');
+  try {
+    const XLSX = await loadXLSX();
+    const wb = XLSX.read(await file.arrayBuffer(), {cellDates:true});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+    if (!rows.length) { showToast('Planilha vazia.', 'error'); return; }
+
+    const cols = Object.keys(rows[0]);
+    const norm = s => (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+    const get = (r,...ns) => { for(const n of ns){ const k=cols.find(c=>norm(c).includes(norm(n))); if(k&&r[k]!=null&&r[k]!=='')return String(r[k]).trim(); } return ''; };
+    const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
+
+    const importados = rows.map(r => ({
+      nome: get(r,'Nome','Servico','Serviço','Descricao','Descrição'),
+      categoria: get(r,'Categoria','categoria') || null,
+      preco_venda: parseN(get(r,'Preco','Preço','Valor','ValorVenda','PrecoVenda')),
+      custo: parseN(get(r,'Custo','custo')),
+    })).filter(r => r.nome);
+
+    if (!importados.length) { showToast('Não achei colunas de Nome/Preço/Custo na planilha.', 'error'); return; }
+
+    // Atualiza os que já existem (por nome), insere os novos
+    const { data: existentes } = await qE('precificacao_servicos').select('id,nome');
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    let atualizados = 0, criados = 0;
+    for (const item of importados) {
+      const jaExiste = existentes?.find(e => e.nome.toLowerCase().trim() === item.nome.toLowerCase().trim());
+      if (jaExiste) {
+        await sb.from('precificacao_servicos').update({ categoria:item.categoria, preco_venda:item.preco_venda, custo:item.custo }).eq('id', jaExiste.id);
+        atualizados++;
+      } else {
+        await sb.from('precificacao_servicos').insert(addEmpresaId(item));
+        criados++;
+      }
+    }
+    showToast(`✅ ${criados} novo(s), ${atualizados} atualizado(s)!`, 'success');
+    closeModal('modal-precificacao-import');
+    loadPrecificacao();
+  } catch(e) { showToast('Erro: ' + e.message, 'error'); console.error(e); }
+}
+
+function abrirModalServicoPrecificacao() {
+  document.getElementById('prf-servico-titulo').textContent = 'Novo Serviço';
+  document.getElementById('prf-servico-id').value = '';
+  document.getElementById('prf-servico-nome').value = '';
+  document.getElementById('prf-servico-categoria').value = '';
+  document.getElementById('prf-servico-preco').value = '';
+  document.getElementById('prf-servico-custo').value = '';
+  document.getElementById('modal-precificacao-servico').classList.add('open');
+}
+
+function editarServicoPrecificacao(id) {
+  const s = _precificacaoData.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('prf-servico-titulo').textContent = 'Editar Serviço';
+  document.getElementById('prf-servico-id').value = s.id;
+  document.getElementById('prf-servico-nome').value = s.nome;
+  document.getElementById('prf-servico-categoria').value = s.categoria || '';
+  document.getElementById('prf-servico-preco').value = s.preco_venda;
+  document.getElementById('prf-servico-custo').value = s.custo;
+  document.getElementById('modal-precificacao-servico').classList.add('open');
+}
+
+async function salvarServicoPrecificacao() {
+  const id = document.getElementById('prf-servico-id').value;
+  const nome = document.getElementById('prf-servico-nome').value.trim();
+  const categoria = document.getElementById('prf-servico-categoria').value.trim() || null;
+  const preco_venda = parseFloat(document.getElementById('prf-servico-preco').value) || 0;
+  const custo = parseFloat(document.getElementById('prf-servico-custo').value) || 0;
+  if (!nome) { showToast('Preencha o nome do serviço', 'error'); return; }
+
+  const payload = { nome, categoria, preco_venda, custo };
+  const { error } = id
+    ? await sb.from('precificacao_servicos').update(payload).eq('id', id)
+    : await sb.from('precificacao_servicos').insert(addEmpresaId(payload));
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Salvo!', 'success');
+  closeModal('modal-precificacao-servico');
+  loadPrecificacao();
+}
+
+async function excluirServicoPrecificacao(id) {
+  if (!confirm('Excluir este serviço?')) return;
+  await sb.from('precificacao_servicos').delete().eq('id', id);
+  showToast('Excluído!', 'success');
+  loadPrecificacao();
+}
+
+
 async function carregarChecklistTarefa(tarefaId) {
   const { data } = await sb.from('tarefa_checklist_itens')
     .select('*').eq('tarefa_id', tarefaId).order('ordem');
