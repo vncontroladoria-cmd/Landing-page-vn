@@ -10274,20 +10274,24 @@ async function initClientes() {
   if (!tipos?.length) { renderClientesPage(); return; }
 
   // ── Clientes (todos) — tem "Última Visita", "Total Consumido" ─
-  const tipoTodos = tipos.find(t => {
+  // Junta TODAS as pastas cujo nome bate (evita perder dado se tiver pasta duplicada)
+  const tiposTodos = tipos.filter(t => {
     const n = t.nome.toLowerCase();
     return !n.includes('novo') && (n.includes('cliente') || n === 'clientes');
   });
 
-  if (tipoTodos) {
-    let all = [], from = 0;
-    while (true) {
-      const { data } = await qE('rel_dados_brutos').select('colunas')
-        .eq('tipo_id', tipoTodos.id).range(from, from + 999);
-      if (!data?.length) break;
-      all = all.concat(data);
-      if (data.length < 1000) break;
-      from += 1000;
+  if (tiposTodos.length) {
+    let all = [];
+    for (const tipoTodos of tiposTodos) {
+      let from = 0;
+      while (true) {
+        const { data } = await qE('rel_dados_brutos').select('colunas')
+          .eq('tipo_id', tipoTodos.id).range(from, from + 999);
+        if (!data?.length) break;
+        all = all.concat(data);
+        if (data.length < 1000) break;
+        from += 1000;
+      }
     }
     _cliTodosData = all.map(r => {
       const get = mkGet(r.colunas);
@@ -10300,23 +10304,31 @@ async function initClientes() {
         celular:      get('Celular', 'celular', 'Telefone', 'telefone'),
       };
     }).filter(r => r.nome);
+    // Remove duplicata de cliente com mesmo nome+última visita (caso a pasta duplicada tenha o mesmo dado 2x)
+    const vistos = new Set();
+    _cliTodosData = _cliTodosData.filter(c => {
+      const chave = `${_normCli(c.nome)}_${c.ultimaVisita}`;
+      if (vistos.has(chave)) return false;
+      vistos.add(chave);
+      return true;
+    });
   }
 
   // ── Clientes Novos — tem "Como Conheceu", "Data Cadastro" ────
-  const tipoNovos = tipos.find(t => {
-    const n = t.nome.toLowerCase();
-    return n.includes('novo');
-  });
+  const tiposNovos = tipos.filter(t => t.nome.toLowerCase().includes('novo'));
 
-  if (tipoNovos) {
-    let all = [], from = 0;
-    while (true) {
-      const { data } = await qE('rel_dados_brutos').select('colunas')
-        .eq('tipo_id', tipoNovos.id).range(from, from + 999);
-      if (!data?.length) break;
-      all = all.concat(data);
-      if (data.length < 1000) break;
-      from += 1000;
+  if (tiposNovos.length) {
+    let all = [];
+    for (const tipoNovos of tiposNovos) {
+      let from = 0;
+      while (true) {
+        const { data } = await qE('rel_dados_brutos').select('colunas')
+          .eq('tipo_id', tipoNovos.id).range(from, from + 999);
+        if (!data?.length) break;
+        all = all.concat(data);
+        if (data.length < 1000) break;
+        from += 1000;
+      }
     }
     _cliNovosData = all.map(r => {
       const get = mkGet(r.colunas);
@@ -10328,6 +10340,13 @@ async function initClientes() {
         celular:      get('Celular', 'celular', 'Telefone', 'telefone'),
       };
     }).filter(r => r.nome);
+    const vistosNovos = new Set();
+    _cliNovosData = _cliNovosData.filter(c => {
+      const chave = _normCli(c.nome);
+      if (vistosNovos.has(chave)) return false;
+      vistosNovos.add(chave);
+      return true;
+    });
   }
 
   renderClientesPage();
