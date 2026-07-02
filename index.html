@@ -274,18 +274,13 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 
 /* ── Modo somente leitura (perfil leitor) ──────────────────── */
 .modo-leitura .btn-primary { display:none !important; }
-.modo-leitura [onclick*="salvar"],[onclick*="Salvar"] {}
-.modo-leitura button[onclick*="salvar"],
-.modo-leitura button[onclick*="Salvar"],
-.modo-leitura button[onclick*="excluir"],
-.modo-leitura button[onclick*="Excluir"],
-.modo-leitura button[onclick*="novo"],
-.modo-leitura button[onclick*="Novo"],
-.modo-leitura button[onclick*="criar"],
-.modo-leitura button[onclick*="toggleForm"],
-.modo-leitura button[onclick*="darBaixa"],
 .modo-leitura .btn-save-inline,
 .modo-leitura .cell-view button { display:none !important; }
+/* Campos de valor digitáveis: trava digitação (o clique nos botões já é bloqueado via JS) */
+.modo-leitura input[type="number"],
+.modo-leitura input[id^="proj_"] { pointer-events:none !important; opacity:.65; background:var(--bg3) !important; }
+.modo-leitura input[type="text"]:not([id*="busca"]):not([id*="Busca"]):not([id*="search"]):not([id*="filtro"]):not([id*="Filtro"]) { pointer-events:none !important; opacity:.65; }
+.modo-leitura textarea { pointer-events:none !important; opacity:.65; }
 /* ─────────────────────────────────────────────────────────── */
 
 .hcard {
@@ -4554,12 +4549,24 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <select id="ct-recorrente" onchange="toggleParcelamento()">
           <option value="nao">Não</option>
           <option value="sim">Sim (mensal)</option>
-
+          <option value="semanal">Sim (dia da semana)</option>
         </select>
       </div>
       <div class="form-group" id="ct-dia-venc-group">
         <label>Dia do vencimento</label>
         <input type="number" id="ct-dia-venc" placeholder="Ex: 10" min="1" max="31">
+      </div>
+      <div class="form-group" id="ct-dia-semana-group" style="display:none">
+        <label>Dia da semana</label>
+        <select id="ct-dia-semana">
+          <option value="0">Domingo</option>
+          <option value="1">Segunda</option>
+          <option value="2">Terça</option>
+          <option value="3">Quarta</option>
+          <option value="4">Quinta</option>
+          <option value="5">Sexta</option>
+          <option value="6">Sábado</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Chave PIX / Dados pgto</label>
@@ -5402,7 +5409,7 @@ function aplicarPermissoes() {
 // Não depende de esconder botão por CSS: intercepta QUALQUER clique
 // em elemento cujo onclick pareça uma ação de escrita (criar/editar/excluir/etc),
 // cobrindo funções futuras automaticamente.
-const _PADRAO_ACAO_BLOQUEADA = /\b(salvar|criar|novo|nova|editar|excluir|deletar|remover|atualizar|adicionar|inserir|cadastrar|toggleform|darbaixa|abrirmodal|duplicar|importar|confirmar|aprovar|enviar|gerar|copiar)/i;
+const _PADRAO_ACAO_BLOQUEADA = /(salvar|criar|novo|nova|editar|excluir|deletar|remover|mover|atualizar|adicionar|inserir|cadastrar|toggleform|toggleinline|darbaixa|abrirmodal|duplicar|importar|confirmar|aprovar|enviar|gerar|copiar)/i;
 function _bloqueioLeitorHandler(e) {
   const el = e.target.closest('[onclick]');
   if (!el) return;
@@ -14727,6 +14734,8 @@ function atualizarPreviewParcelas() {
 function toggleParcelamento() {
   const rec = document.getElementById('ct-recorrente').value;
   document.getElementById('ct-parcelas-group').style.display = rec === 'parcelado' ? '' : 'none';
+  document.getElementById('ct-dia-venc-group').style.display = rec === 'semanal' ? 'none' : '';
+  document.getElementById('ct-dia-semana-group').style.display = rec === 'semanal' ? '' : 'none';
 }
 
 async function salvarConta() {
@@ -14811,6 +14820,17 @@ async function salvarConta() {
       const dataStr = `${anoAtual}-${String(mesAtual+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
       meses.push({ data: dataStr, valor_parcela: valor, parcela: null, total: null });
     }
+  } else if (recorrente === 'semanal') {
+    // Gera todas as ocorrências do dia da semana escolhido, da data inicial até o fim do ano
+    const diaSemana = parseInt(document.getElementById('ct-dia-semana').value);
+    let d = new Date(anoBase, mesBase - 1, diaBase);
+    while (d.getDay() !== diaSemana) d.setDate(d.getDate() + 1);
+    const fimAno = new Date(anoBase, 11, 31);
+    while (d <= fimAno) {
+      const dataStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      meses.push({ data: dataStr, valor_parcela: valor, parcela: null, total: null });
+      d.setDate(d.getDate() + 7);
+    }
   } else {
     meses.push({ data: venc, valor_parcela: valor, parcela: null, total: null });
   }
@@ -14828,8 +14848,10 @@ async function salvarConta() {
     const payload = {
       descricao, valor: m.valor_parcela || valor, cnpj, categoria, tipo,
       data_vencimento: m.data,
-      recorrente: recorrente === 'sim',
-      dia_vencimento: dia,
+      recorrente: recorrente === 'sim' || recorrente === 'semanal',
+      tipo_recorrencia: recorrente === 'semanal' ? 'semanal' : (recorrente === 'sim' ? 'mensal' : null),
+      dia_semana: recorrente === 'semanal' ? parseInt(document.getElementById('ct-dia-semana').value) : null,
+      dia_vencimento: recorrente === 'semanal' ? null : dia,
       parcela_atual: m.parcela,
       total_parcelas: m.total,
       chave_pix: pix || null,
@@ -14851,18 +14873,23 @@ async function salvarConta() {
     salvos++;
   }
 
-  // Se estiver editando e a data mudou, perguntar se altera futuras
+  // Se estiver editando conta recorrente e a data mudou, pergunta se altera as próximas em aberto também
   if (editId) {
     const dataOriginal = document.getElementById('ct-data-original')?.value;
-    const dataAtual = document.getElementById('ct-venc')?.value;
-    if (dataOriginal && dataAtual && dataOriginal !== dataAtual && recorrente === 'sim') {
-      if (confirm('Deseja atualizar a data de vencimento de TODAS as parcelas futuras também?')) {
+    const dataAtual = venc;
+    if (dataOriginal && dataAtual && dataOriginal !== dataAtual && (recorrente === 'sim' || recorrente === 'semanal')) {
+      const alterarFuturas = confirm(
+        `Você mudou a data de vencimento dessa conta recorrente.\n\n` +
+        `Clique OK para alterar esta E todas as próximas em aberto (${nome}).\n` +
+        `Clique Cancelar para alterar somente esta.`
+      );
+      if (alterarFuturas) {
         const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-        const nomeBase = document.getElementById('ct-nome')?.value.trim();
-        await sb.from('contas_pagar')
+        await sb.from(tabela)
           .update({ data_vencimento: dataAtual })
           .eq('empresa_id', empId)
-          .eq('descricao', nomeBase)
+          .eq('descricao', nome)
+          .eq('status', 'pendente')
           .gte('data_vencimento', dataOriginal)
           .neq('id', editId);
       }
@@ -15151,8 +15178,12 @@ async function editarConta(id, tipo) {
   if (!origInput) { origInput = document.createElement('input'); origInput.type='hidden'; origInput.id='ct-data-original'; document.body.appendChild(origInput); }
   origInput.value = c.data_vencimento || '';
   document.getElementById('ct-tipo').value = c.tipo || 'fixa';
-  document.getElementById('ct-recorrente').value = c.recorrente ? 'sim' : 'nao';
+  document.getElementById('ct-recorrente').value = c.recorrente ? (c.tipo_recorrencia === 'semanal' ? 'semanal' : 'sim') : 'nao';
   document.getElementById('ct-dia-venc').value = c.dia_vencimento || '';
+  if (c.tipo_recorrencia === 'semanal' && c.dia_semana !== null && c.dia_semana !== undefined) {
+    document.getElementById('ct-dia-semana').value = String(c.dia_semana);
+  }
+  toggleParcelamento();
   document.getElementById('ct-pix').value = c.chave_pix || '';
   document.getElementById('ct-palavra-chave').value = c.palavra_chave || '';
   document.getElementById('ct-obs').value = c.observacao || '';
