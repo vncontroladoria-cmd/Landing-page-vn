@@ -1497,17 +1497,24 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: AGENDA (filtro por data) -->
         <div id="ttab-agenda" style="display:none">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
-            <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
-            <select id="agenda-mes" onchange="recarregarAba('agenda')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
-            <select id="agenda-ano" onchange="recarregarAba('agenda')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
-          </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-            <label style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">Dia:</label>
+            <div style="display:flex;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;overflow:hidden">
+              <button id="agenda-view-dia" onclick="setAgendaView('dia')"
+                style="padding:7px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:#22c55e;color:#0f172a">Dia</button>
+              <button id="agenda-view-semana" onclick="setAgendaView('semana')"
+                style="padding:7px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:#1e293b;color:rgba(255,255,255,.6)">Semana</button>
+              <button id="agenda-view-mes" onclick="setAgendaView('mes')"
+                style="padding:7px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:#1e293b;color:rgba(255,255,255,.6)">Mês</button>
+            </div>
             <input type="date" id="agenda-data-filtro" onchange="loadAgendaTarefas()"
               style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
             <button onclick="document.getElementById('agenda-data-filtro').value=hojeISO();loadAgendaTarefas()" 
               style="padding:7px 12px;font-size:12px;background:rgba(255,255,255,.06);border:none;border-radius:8px;color:rgba(255,255,255,.7);cursor:pointer;font-weight:600">Hoje</button>
+          </div>
+          <div style="display:none;align-items:center;gap:6px;margin-bottom:14px" id="agenda-mes-ano-wrap">
+            <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
+            <select id="agenda-mes" onchange="loadAgendaTarefas()" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+            <select id="agenda-ano" onchange="loadAgendaTarefas()" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
           </div>
           <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
             <div id="op-agenda-lista" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -20010,17 +20017,17 @@ function renderLinhaTarefa(t, opts={}) {
     if (r.pendingTimer) (window._pendingTimers = window._pendingTimers || []).push(r.pendingTimer);
   }
 
+  // Checkbox de concluir/reabrir (só aparece quando tem dataRef, ou seja, dá pra marcar/desmarcar)
+  let checkboxHtml = '';
+  if ((opts.mostrarConcluir || opts.mostrarDesfazer) && opts.dataRef) {
+    const concluida = !!opts.mostrarDesfazer;
+    checkboxHtml = `<input type="checkbox" ${concluida?'checked':''}
+      onchange="this.checked ? concluirTarefaData('${t.id}','${opts.dataRef}',this) : desfazerConclusao('${t.id}','${opts.dataRef}',this)"
+      style="width:20px;height:20px;cursor:pointer;accent-color:#22c55e;flex-shrink:0;margin-top:1px">`;
+  }
+
   const botoes = [];
   if (timerHtml) botoes.push(timerHtml);
-  if (opts.mostrarConcluir) {
-    const labelBtn = t.tipo === 'pendencia_cliente' ? '✓ Respondido' : '✓ Concluir';
-    botoes.push(`<button onclick="concluirTarefaData('${t.id}','${opts.dataRef}',this)"
-      style="padding:5px 12px;background:rgba(34,197,94,.15);border:none;border-radius:6px;color:#4ade80;font-size:11px;cursor:pointer;font-weight:700">${labelBtn}</button>`);
-  }
-  if (opts.mostrarDesfazer) {
-    botoes.push(`<button onclick="desfazerConclusao('${t.id}','${opts.dataRef}',this)"
-      style="padding:5px 12px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;font-weight:700">↩️ Desfazer</button>`);
-  }
   if (opts.mostrarEditar !== false) {
     botoes.push(`<button onclick="abrirModalTarefa('${t.id}')"
       style="padding:5px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer">✏️</button>`);
@@ -20032,8 +20039,9 @@ function renderLinhaTarefa(t, opts={}) {
 
   return `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+      ${checkboxHtml}
       <div style="flex:1;min-width:0">
-        <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
+        <div style="color:#fff;font-size:13px;font-weight:600${opts.mostrarDesfazer?';text-decoration:line-through;opacity:.55':''}">${t.titulo}</div>
         ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
           ${empresaTag}
@@ -20049,47 +20057,99 @@ function renderLinhaTarefa(t, opts={}) {
 
 // ─── ABA: AGENDA ────────────────────────────────────────
 
+function setAgendaView(modo) {
+  window._agendaViewMode = modo;
+  ['dia','semana','mes'].forEach(m => {
+    const btn = document.getElementById('agenda-view-'+m);
+    if (btn) {
+      btn.style.background = m===modo ? '#22c55e' : '#1e293b';
+      btn.style.color = m===modo ? '#0f172a' : 'rgba(255,255,255,.6)';
+    }
+  });
+  document.getElementById('agenda-data-filtro').style.display = modo==='dia' ? '' : 'none';
+  document.getElementById('agenda-mes-ano-wrap').style.display = modo==='mes' ? 'flex' : 'none';
+  loadAgendaTarefas();
+}
+
+function _agendaDiaHeader(dataStr) {
+  const d = new Date(dataStr+'T12:00:00');
+  const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  return `${dias[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
 async function loadAgendaTarefas() {
-  const dataFiltro = document.getElementById('agenda-data-filtro').value || hojeISO();
-  const d = new Date(dataFiltro + 'T12:00:00');
-  const diaSemana = d.getDay();
-  const diaMes = d.getDate();
-
-  const todasTarefas = await buscarTarefasAtivas();
-  const valeData = todasTarefas
-    .filter(t => t.tipo !== 'pendencia_cliente')
-    .filter(t => tarefaValeParaHoje(t, dataFiltro, diaSemana, diaMes));
-
-  const ids = valeData.map(t=>t.id);
-  let concluidoSet = new Set();
-  if (ids.length) {
-    const { data: concl } = await sb.from('tarefas_conclusoes')
-      .select('tarefa_id').eq('data_referencia', dataFiltro).in('tarefa_id', ids);
-    (concl||[]).forEach(c => concluidoSet.add(c.tarefa_id));
-  }
-
+  const modo = window._agendaViewMode || 'dia';
   const container = document.getElementById('op-agenda-lista');
   limparCronometrosAtivos();
   window._pendingTimers = [];
 
-  if (!valeData.length) {
-    container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma tarefa para esta data.</div>`;
+  // Monta a lista de datas a exibir conforme o modo
+  let datas = [];
+  if (modo === 'dia') {
+    datas = [document.getElementById('agenda-data-filtro').value || hojeISO()];
+  } else if (modo === 'semana') {
+    const base = new Date((document.getElementById('agenda-data-filtro').value || hojeISO())+'T12:00:00');
+    const diaSemanaBase = base.getDay();
+    const seg = new Date(base);
+    seg.setDate(base.getDate() - (diaSemanaBase===0?6:diaSemanaBase-1)); // volta pra segunda-feira
+    for (let i=0;i<7;i++) {
+      const d = new Date(seg); d.setDate(seg.getDate()+i);
+      datas.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+    }
+  } else if (modo === 'mes') {
+    const ano = parseInt(document.getElementById('agenda-ano')?.value) || new Date().getFullYear();
+    const mes = (document.getElementById('agenda-mes')?.value !== '' && document.getElementById('agenda-mes')?.value != null)
+      ? parseInt(document.getElementById('agenda-mes').value) + 1
+      : (new Date().getMonth()+1);
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    for (let i=1;i<=ultimoDia;i++) {
+      datas.push(`${ano}-${String(mes).padStart(2,'0')}-${String(i).padStart(2,'0')}`);
+    }
+  }
+
+  const todasTarefas = (await buscarTarefasAtivas()).filter(t => t.tipo !== 'pendencia_cliente');
+
+  // Pra cada data, descobre quais tarefas valem
+  const porDia = datas.map(dataStr => {
+    const d = new Date(dataStr+'T12:00:00');
+    const validas = todasTarefas.filter(t => tarefaValeParaHoje(t, dataStr, d.getDay(), d.getDate()));
+    return { dataStr, validas };
+  }).filter(g => g.validas.length > 0);
+
+  if (!porDia.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma tarefa neste período.</div>`;
     return;
   }
 
-  const temposMap = await buscarTemposTarefas(valeData.map(t=>t.id), dataFiltro);
+  // Busca conclusões de todas as datas envolvidas de uma vez
+  const idsUnicos = [...new Set(porDia.flatMap(g => g.validas.map(t=>t.id)))];
+  let concluidoMap = {}; // `${tarefaId}_${data}` -> true
+  if (idsUnicos.length) {
+    const { data: concl } = await sb.from('tarefas_conclusoes')
+      .select('tarefa_id,data_referencia').in('data_referencia', datas).in('tarefa_id', idsUnicos);
+    (concl||[]).forEach(c => concluidoMap[`${c.tarefa_id}_${c.data_referencia}`] = true);
+  }
 
-  container.innerHTML = valeData.map(t => {
-    const concluida = concluidoSet.has(t.id);
-    const status = statusTarefaNaData(concluida, dataFiltro);
-    return renderLinhaTarefa(t, {
-      status,
-      dataRef: dataFiltro,
-      mostrarConcluir: !concluida,
-      mostrarDesfazer: concluida,
-      mostrarTimer: !concluida,
-      tempoInfo: temposMap[t.id],
-    });
+  const temposMap = modo === 'dia' ? await buscarTemposTarefas(porDia[0]?.validas.map(t=>t.id)||[], datas[0]) : {};
+
+  container.innerHTML = porDia.map(g => {
+    const linhas = g.validas.map(t => {
+      const concluida = !!concluidoMap[`${t.id}_${g.dataStr}`];
+      const status = statusTarefaNaData(concluida, g.dataStr);
+      return renderLinhaTarefa(t, {
+        status,
+        dataRef: g.dataStr,
+        mostrarConcluir: !concluida,
+        mostrarDesfazer: concluida,
+        mostrarTimer: modo === 'dia' && !concluida,
+        tempoInfo: temposMap[t.id],
+      });
+    }).join('');
+    if (modo === 'dia') return linhas; // sem cabeçalho de dia quando é visão de um dia só
+    return `<div style="margin-bottom:6px">
+      <div style="font-size:11px;font-weight:700;color:#22c55e;text-transform:uppercase;margin:10px 0 6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">${_agendaDiaHeader(g.dataStr)}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${linhas}</div>
+    </div>`;
   }).join('');
 
   (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
