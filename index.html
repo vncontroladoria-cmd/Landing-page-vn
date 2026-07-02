@@ -14744,9 +14744,9 @@ function atualizarPreviewParcelas() {
 
 function toggleParcelamento() {
   const rec = document.getElementById('ct-recorrente').value;
-  document.getElementById('ct-parcelas-group').style.display = rec === 'parcelado' ? '' : 'none';
-  document.getElementById('ct-dia-venc-group').style.display = rec === 'semanal' ? 'none' : '';
-  document.getElementById('ct-dia-semana-group').style.display = rec === 'semanal' ? '' : 'none';
+  document.getElementById('ct-parcelas-group')?.style && (document.getElementById('ct-parcelas-group').style.display = rec === 'parcelado' ? '' : 'none');
+  document.getElementById('ct-dia-venc-group')?.style && (document.getElementById('ct-dia-venc-group').style.display = rec === 'semanal' ? 'none' : '');
+  document.getElementById('ct-dia-semana-group')?.style && (document.getElementById('ct-dia-semana-group').style.display = rec === 'semanal' ? '' : 'none');
 }
 
 async function salvarConta() {
