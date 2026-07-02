@@ -11379,9 +11379,8 @@ async function initPerformance() {
   // Preenche filtros de ano e profissional
   // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar tipos duplicados de sessões antigas
   const { data: tiposPerfList } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
-  const { data: tiposSrvList }  = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%').order('id',{ascending:true});
-  const tipoUnico = tiposPerfList?.[0] || tiposSrvList?.[0] || null;
-  const usaPerf   = !!tiposPerfList?.length;
+  const tipoUnico = tiposPerfList?.[0] || null;
+  const usaPerf   = true;
 
   if (tipoUnico) {
     const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnico.id).limit(50000);
@@ -11416,9 +11415,8 @@ async function loadPerformance() {
 
   // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar tipos duplicados de sessões antigas
   const { data: tiposPerfList } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
-  const { data: tiposSrvList }  = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%').order('id',{ascending:true});
-  const tipoUnico = tiposPerfList?.[0] || tiposSrvList?.[0] || null;
-  const usaPerf   = !!tiposPerfList?.length;
+  const tipoUnico = tiposPerfList?.[0] || null;
+  const usaPerf   = true;
 
   let rows = [];
   if (tipoUnico) {
@@ -13082,21 +13080,18 @@ function parsePerfRow(colunas) {
 
 // Função centralizada: carrega serviços do período — tenta rel_servicos, depois rel_dados_brutos
 async function loadSrvPeriodo(ini, fim) {
-  // 1. Tenta rel_servicos
+  // Só rel_servicos, gerado a partir da pasta "Serviços" — não empresta dado de Performance
   const { data: srv } = await qE('rel_servicos').select('*')
     .gte('data_comanda', ini).lte('data_comanda', fim).limit(20000);
   if (srv?.length) return srv;
 
-  // 2. Fallback: rel_dados_brutos para tipos de serviço/performance
+  // Fallback: rel_dados_brutos, mas só do tipo "Serviços" (nunca Performance)
   const { data: tipos } = await qE('rel_tipos').select('id,nome');
-  const tiposPerf = (tipos||[]).filter(t => {
-    const n = (t.nome||'').toLowerCase();
-    return n.includes('servi') || n.includes('perform');
-  }).map(t => t.id);
-  if (!tiposPerf.length) return [];
+  const tiposSrv = (tipos||[]).filter(t => (t.nome||'').toLowerCase().includes('servi')).map(t => t.id);
+  if (!tiposSrv.length) return [];
 
   const { data: raw } = await qE('rel_dados_brutos').select('colunas')
-    .in('tipo_id', tiposPerf).limit(20000);
+    .in('tipo_id', tiposSrv).limit(20000);
 
   const rows = (raw||[])
     .map(r => parseSrvRow(r.colunas || r))
