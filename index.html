@@ -1740,6 +1740,24 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         </select>
       </div>
     </div>
+
+    <!-- CHECKLIST DENTRO DO CARD -->
+    <div class="form-group" id="tarefa-checklist-wrap" style="display:none;margin-top:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <label style="margin:0">☑️ Checklist</label>
+        <span id="tarefa-checklist-pct" style="font-size:11px;color:var(--text2);font-weight:700">0%</span>
+      </div>
+      <div style="width:100%;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:8px">
+        <div id="tarefa-checklist-barra" style="width:0%;height:100%;background:var(--green);transition:width .2s"></div>
+      </div>
+      <div id="tarefa-checklist-itens" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="tarefa-checklist-novo" placeholder="Adicionar um item..." onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarItemChecklist();}"
+          style="flex:1;padding:7px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+        <button class="btn btn-sm" onclick="adicionarItemChecklist()">+ Adicionar</button>
+      </div>
+    </div>
+
     <div style="display:flex;justify-content:space-between;gap:8px;margin-top:20px">
       <button class="btn" id="tarefa-btn-excluir" style="color:var(--red);border-color:var(--red);display:none" onclick="excluirTarefa()">🗑️ Excluir</button>
       <div style="display:flex;gap:8px;margin-left:auto">
@@ -19558,6 +19576,59 @@ function toggleCamposRecorrencia() {
   set('tarefa-campo-dia-mes',    rec === 'mensal');
 }
 
+// ─── CHECKLIST DENTRO DO CARD DA TAREFA ─────────────────
+async function carregarChecklistTarefa(tarefaId) {
+  const { data } = await sb.from('tarefa_checklist_itens')
+    .select('*').eq('tarefa_id', tarefaId).order('ordem');
+  renderChecklistTarefa(data || []);
+}
+
+function renderChecklistTarefa(itens) {
+  const cont = document.getElementById('tarefa-checklist-itens');
+  const tarefaId = document.getElementById('tarefa-id').value;
+  cont.dataset.tarefaId = tarefaId;
+  cont.innerHTML = itens.map(it => `
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 0" data-item-id="${it.id}">
+      <input type="checkbox" ${it.concluido?'checked':''} onchange="toggleItemChecklist('${it.id}',this.checked)"
+        style="width:16px;height:16px;cursor:pointer;accent-color:var(--green);flex-shrink:0">
+      <span style="flex:1;font-size:12px;${it.concluido?'text-decoration:line-through;opacity:.5':''}">${it.texto}</span>
+      <button onclick="excluirItemChecklist('${it.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px;padding:2px 4px">✕</button>
+    </div>
+  `).join('') || `<div style="font-size:11px;color:var(--text3);padding:4px 0">Nenhum item ainda.</div>`;
+
+  const total = itens.length;
+  const feitos = itens.filter(i => i.concluido).length;
+  const pct = total ? Math.round(feitos/total*100) : 0;
+  document.getElementById('tarefa-checklist-pct').textContent = pct + '%';
+  document.getElementById('tarefa-checklist-barra').style.width = pct + '%';
+}
+
+async function adicionarItemChecklist() {
+  const tarefaId = document.getElementById('tarefa-id').value;
+  if (!tarefaId) { showToast('Salve a tarefa primeiro.', 'error'); return; }
+  const input = document.getElementById('tarefa-checklist-novo');
+  const texto = input.value.trim();
+  if (!texto) return;
+  const { data: existentes } = await sb.from('tarefa_checklist_itens').select('ordem').eq('tarefa_id', tarefaId).order('ordem',{ascending:false}).limit(1);
+  const ordem = (existentes?.[0]?.ordem ?? -1) + 1;
+  const { error } = await sb.from('tarefa_checklist_itens').insert(addEmpresaId({ tarefa_id: tarefaId, texto, concluido: false, ordem }));
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  input.value = '';
+  carregarChecklistTarefa(tarefaId);
+}
+
+async function toggleItemChecklist(itemId, concluido) {
+  await sb.from('tarefa_checklist_itens').update({ concluido }).eq('id', itemId);
+  const tarefaId = document.getElementById('tarefa-id').value;
+  carregarChecklistTarefa(tarefaId);
+}
+
+async function excluirItemChecklist(itemId) {
+  await sb.from('tarefa_checklist_itens').delete().eq('id', itemId);
+  const tarefaId = document.getElementById('tarefa-id').value;
+  carregarChecklistTarefa(tarefaId);
+}
+
 async function abrirModalTarefa(tarefaId) {
   // Buscar empresas se não carregadas ainda
   if (!_todasEmpresas?.length) {
@@ -19610,6 +19681,8 @@ async function abrirModalTarefa(tarefaId) {
       document.getElementById('tarefa-dia-mes').value = data.dia_mes || '';
       document.getElementById('tarefa-responsavel').value = data.responsavel_id || '';
       document.getElementById('tarefa-btn-excluir').style.display = 'block';
+      document.getElementById('tarefa-checklist-wrap').style.display = 'block';
+      carregarChecklistTarefa(data.id);
 
       // Marcar checkboxes de empresa conforme empresa_id / empresa_ids
       document.getElementById('tarefa-emp-todas').checked = false;
@@ -19638,6 +19711,7 @@ async function abrirModalTarefa(tarefaId) {
     document.getElementById('tarefa-dia-mes').value = '';
     document.getElementById('tarefa-responsavel').value = '';
     document.getElementById('tarefa-btn-excluir').style.display = 'none';
+    document.getElementById('tarefa-checklist-wrap').style.display = 'none';
     document.getElementById('tarefa-emp-todas').checked = true;
     document.getElementById('tarefa-modo-multi').value = 'separado';
   }
@@ -20017,17 +20091,17 @@ function renderLinhaTarefa(t, opts={}) {
     if (r.pendingTimer) (window._pendingTimers = window._pendingTimers || []).push(r.pendingTimer);
   }
 
-  // Checkbox de concluir/reabrir (só aparece quando tem dataRef, ou seja, dá pra marcar/desmarcar)
-  let checkboxHtml = '';
-  if ((opts.mostrarConcluir || opts.mostrarDesfazer) && opts.dataRef) {
-    const concluida = !!opts.mostrarDesfazer;
-    checkboxHtml = `<input type="checkbox" ${concluida?'checked':''}
-      onchange="this.checked ? concluirTarefaData('${t.id}','${opts.dataRef}',this) : desfazerConclusao('${t.id}','${opts.dataRef}',this)"
-      style="width:20px;height:20px;cursor:pointer;accent-color:#22c55e;flex-shrink:0;margin-top:1px">`;
-  }
-
   const botoes = [];
   if (timerHtml) botoes.push(timerHtml);
+  if (opts.mostrarConcluir) {
+    const labelBtn = t.tipo === 'pendencia_cliente' ? '✓ Respondido' : '✓ Concluir';
+    botoes.push(`<button onclick="concluirTarefaData('${t.id}','${opts.dataRef}',this)"
+      style="padding:5px 12px;background:rgba(34,197,94,.15);border:none;border-radius:6px;color:#4ade80;font-size:11px;cursor:pointer;font-weight:700">${labelBtn}</button>`);
+  }
+  if (opts.mostrarDesfazer) {
+    botoes.push(`<button onclick="desfazerConclusao('${t.id}','${opts.dataRef}',this)"
+      style="padding:5px 12px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;font-weight:700">↩️ Desfazer</button>`);
+  }
   if (opts.mostrarEditar !== false) {
     botoes.push(`<button onclick="abrirModalTarefa('${t.id}')"
       style="padding:5px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer">✏️</button>`);
@@ -20039,9 +20113,8 @@ function renderLinhaTarefa(t, opts={}) {
 
   return `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
-      ${checkboxHtml}
       <div style="flex:1;min-width:0">
-        <div style="color:#fff;font-size:13px;font-weight:600${opts.mostrarDesfazer?';text-decoration:line-through;opacity:.55':''}">${t.titulo}</div>
+        <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
         ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
           ${empresaTag}
