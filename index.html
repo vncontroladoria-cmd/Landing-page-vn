@@ -4228,6 +4228,26 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
+          <!-- EVOLUÇÃO DO PROFISSIONAL -->
+          <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+            <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div>
+                <div style="font-weight:600;font-size:13px">📈 Evolução do Profissional</div>
+                <div style="font-size:11px;color:var(--text2);margin-top:2px">Crescimento mês a mês, calculado automaticamente a partir do Performance</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <select id="evo-profissional" onchange="loadEvolucaoProfissional()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)"></select>
+                <select id="evo-ano" onchange="loadEvolucaoProfissional()" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                  <option value="2026" selected>2026</option><option value="2025">2025</option>
+                </select>
+              </div>
+            </div>
+            <div style="padding:16px">
+              <canvas id="evo-chart" height="70"></canvas>
+            </div>
+            <div id="evo-tabela"></div>
+          </div>
+
           <!-- TABELA DE PROFISSIONAIS -->
           <div id="met-dias-uteis" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
           <div id="met-tabela-dias"></div>
@@ -15563,6 +15583,107 @@ async function loadMetricas() {
 
   // Profissionais
   await loadProfissionaisMetricas(mes, ano, ini, fim);
+  await loadEvolucaoProfissional();
+}
+
+let _evoChart = null;
+
+async function loadEvolucaoProfissional() {
+  const ano = document.getElementById('evo-ano')?.value || '2026';
+  const selEl = document.getElementById('evo-profissional');
+  const tabelaEl = document.getElementById('evo-tabela');
+
+  const { data: profs } = await qE('profissionais').select('*').order('nome');
+  if (!profs?.length) {
+    if (tabelaEl) tabelaEl.innerHTML = '<div class="empty">Nenhum profissional cadastrado ainda.</div>';
+    return;
+  }
+  if (selEl && !selEl.dataset.populado) {
+    selEl.innerHTML = profs.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    selEl.dataset.populado = '1';
+  }
+  const profId = selEl?.value || profs[0].id;
+  const prof = profs.find(p => p.id === profId) || profs[0];
+
+  // Busca o ano inteiro de uma vez (Performance) e depois separa por mês
+  const { data: tiposPerfM } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
+  const tipoId = tiposPerfM?.[0]?.id;
+  let linhas = [];
+  if (tipoId) {
+    const { data: rawAno } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoId).limit(50000);
+    linhas = (rawAno||[]).map(r => parsePerfRow(r.colunas||r))
+      .filter(r => r.profissional && r.data_comanda && r.data_comanda.startsWith(ano));
+  }
+
+  const normP2 = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const nomeNorm = normP2(prof.nome);
+
+  // Soma faturamento/comissão por mês (01..12) só desse profissional
+  const fatPorMes = Array(13).fill(0), comPorMes = Array(13).fill(0);
+  linhas.forEach(r => {
+    if (!normP2(r.profissional).includes(nomeNorm) && !nomeNorm.includes(normP2(r.profissional))) return;
+    const mes = parseInt(r.data_comanda.substring(5,7));
+    const com = Number(r.total||0);
+    const pct = Number(r.comissao_pct||0);
+    const fat = Number(r.valor_cobrado||0) || (pct > 0 ? com/(pct/100) : 0);
+    fatPorMes[mes] += fat;
+    comPorMes[mes] += com;
+  });
+
+  // Metas do ano inteiro pra esse profissional
+  const { data: metasAno } = await qE('metas_profissionais').select('*').eq('ano', ano).eq('profissional_id', profId);
+  const metaPorMes = Array(13).fill(0);
+  (metasAno||[]).forEach(m => metaPorMes[parseInt(m.mes)] = Number(m.meta||0));
+
+  const nomesMes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Gráfico de evolução (Chart.js)
+  const ctx = document.getElementById('evo-chart')?.getContext('2d');
+  if (ctx) {
+    if (_evoChart) _evoChart.destroy();
+    _evoChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: nomesMes.slice(1),
+        datasets: [
+          { label: 'Faturamento realizado', data: fatPorMes.slice(1), borderColor:'#059669', backgroundColor:'rgba(5,150,105,.1)', tension:.3, fill:true },
+          { label: 'Meta', data: metaPorMes.slice(1), borderColor:'#94a3b8', borderDash:[5,5], pointRadius:0, tension:.3 },
+        ]
+      },
+      options: { responsive:true, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}, scales:{y:{beginAtZero:true}} }
+    });
+  }
+
+  // Tabela mês a mês com % crescimento vs mês anterior
+  let html = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:var(--bg3)">
+      <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">MÊS</th>
+      <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--green);border-bottom:1px solid var(--border)">FATURAMENTO</th>
+      <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:#f59e0b;border-bottom:1px solid var(--border)">COMISSÃO</th>
+      <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">META</th>
+      <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">% ATINGIDO</th>
+      <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)">CRESCIMENTO</th>
+    </tr></thead><tbody>`;
+
+  for (let m = 1; m <= 12; m++) {
+    const fat = fatPorMes[m], meta = metaPorMes[m];
+    const pctAtingido = meta > 0 ? (fat/meta*100) : null;
+    const fatAnterior = m > 1 ? fatPorMes[m-1] : null;
+    const crescimento = (fatAnterior && fatAnterior > 0) ? ((fat-fatAnterior)/fatAnterior*100) : null;
+    const corCrescimento = crescimento === null ? 'var(--text3)' : crescimento >= 0 ? 'var(--green)' : 'var(--red)';
+    const setaCrescimento = crescimento === null ? '' : crescimento >= 0 ? '▲' : '▼';
+
+    html += `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">${nomesMes[m]}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fat > 0 ? fmtBRL(fat) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:#f59e0b">${comPorMes[m] > 0 ? fmtBRL(comPorMes[m]) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:12px">${meta > 0 ? fmtBRL(meta) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;font-size:12px;color:${pctAtingido===null?'var(--text3)':pctAtingido>=100?'var(--green)':'var(--amber)'}">${pctAtingido===null?'—':pctAtingido.toFixed(0)+'%'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;font-size:12px;color:${corCrescimento}">${crescimento===null?'—':setaCrescimento+' '+Math.abs(crescimento).toFixed(0)+'%'}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  if (tabelaEl) tabelaEl.innerHTML = html;
 }
 
 async function loadProfissionaisMetricas(mes, ano, ini, fim) {
