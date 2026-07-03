@@ -17306,9 +17306,11 @@ async function criarEstruturaBase(empresaId) {
   // ── Tipos de Relatório ──
   const tiposRel = [
     {nome:'Serviços',       descricao:'Relatório de serviços prestados'},
+    {nome:'Performance',    descricao:'Performance por profissional'},
     {nome:'Clientes',       descricao:'Relatório de clientes atendidos'},
     {nome:'Clientes Novos', descricao:'Relatório de novos cadastros'},
     {nome:'Lucratividade',  descricao:'Análise de lucratividade por serviço'},
+    {nome:'Produto',        descricao:'Relatório de produtos vendidos'},
   ].map(t => ({...t, empresa_id: eid}));
   await sb.from('rel_tipos').insert(tiposRel.map(r=>addEmpresaId(r)));
 
