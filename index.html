@@ -20160,7 +20160,7 @@ async function loadAnotacoes() {
   let query = sb.from('anotacoes').select('*');
   const _ehAdminMstr = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
   if (uid && !_ehAdminMstr) query = query.eq('criado_por', uid);
-  if (filtroEmp) query = query.eq('empresa_id', filtroEmp);
+  if (filtroEmp) query = query.or(`empresa_id.eq.${filtroEmp},empresa_id.is.null`);
   const { data, error } = await query.order('criado_em', {ascending:false});
 
   const empresaNomePorId = {};
@@ -20760,7 +20760,7 @@ async function buscarTarefasAtivas(filtroTipo) {
   // Filtro global de empresa (selecionado no topo de Minhas Tarefas)
   const filtroEmp = window._filtroEmpresaTarefas || '';
   if (filtroEmp) {
-    tarefas = tarefas.filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp));
+    tarefas = tarefas.filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp) || (!t.empresa_id && !t.empresa_ids?.length));
   }
   return tarefas;
 }
@@ -20948,7 +20948,7 @@ async function loadCadastroTarefas() {
   const { data: tarefasRaw } = await query.order('criado_em', {ascending:false});
   const filtroEmp = window._filtroEmpresaTarefas || '';
   const tarefas = filtroEmp
-    ? (tarefasRaw||[]).filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp))
+    ? (tarefasRaw||[]).filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp) || (!t.empresa_id && !t.empresa_ids?.length))
     : tarefasRaw;
 
   const container = document.getElementById('op-cadastro-lista');
