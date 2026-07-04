@@ -20506,9 +20506,14 @@ function tarefasTab(tab) {
 }
 
 // Calcula status de uma tarefa para uma data específica
-function statusTarefaNaData(concluida, dataStr) {
+function statusTarefaNaData(concluida, dataStr, criadoEm) {
   if (concluida) return 'concluida';
   const hoje = hojeISO();
+  if (criadoEm) {
+    const c = new Date(criadoEm);
+    const criadoLocal = `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;
+    if (dataStr < criadoLocal) return 'aguardando'; // tarefa nem existia nesse dia, não é atrasada
+  }
   if (dataStr < hoje) return 'atrasada';
   if (dataStr > hoje) return 'aguardando';
   return 'pendente';
@@ -20686,7 +20691,7 @@ async function loadAgendaTarefas() {
   container.innerHTML = porDia.map(g => {
     const linhas = g.validas.map(t => {
       const concluida = !!concluidoMap[`${t.id}_${g.dataStr}`];
-      const status = statusTarefaNaData(concluida, g.dataStr);
+      const status = statusTarefaNaData(concluida, g.dataStr, t.criado_em);
       return renderLinhaTarefa(t, {
         status,
         dataRef: g.dataStr,
