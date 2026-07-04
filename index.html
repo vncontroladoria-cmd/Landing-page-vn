@@ -2590,7 +2590,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 oninput="filtrarLancamentos(this.value)"
                 style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
-              <button class="btn" onclick="sincronizarCategoriasLancamentos()" title="Corrige o código DRE/DFC de todos os lançamentos com base no Plano de Contas atual">🔄 Sincronizar categorias</button>
+              <button class="btn" id="btn-sincronizar-cat" onclick="sincronizarCategoriasLancamentos()" title="Corrige o código DRE/DFC de todos os lançamentos com base no Plano de Contas atual">🔄 Sincronizar categorias</button>
               <button id="btn-sem-cat" onclick="filtrarSemCategoria()" style="display:none;padding:7px 12px;font-size:13px;border:1.5px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,0.1);color:#b45309;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;gap:6px;align-items:center">
                 ⚠️ Sem categoria: <span id="lanc-hero-semcat-n" style="background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:2px">0</span>
               </button>
@@ -16860,14 +16860,25 @@ async function excluirSelecionados() {
 async function sincronizarCategoriasLancamentos() {
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   if (!empId) return;
-  showToast('Verificando categorias...', '');
+
+  const btn = document.getElementById('btn-sincronizar-cat');
+  const textoOriginal = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Verificando...'; btn.style.opacity = '.6'; }
 
   const { data: plano } = await sb.from('plano_contas').select('nome,codigo,demonstrativo').eq('empresa_id', empId);
-  if (!plano?.length) { showToast('Nenhuma categoria cadastrada.', 'error'); return; }
+  if (!plano?.length) {
+    showToast('Nenhuma categoria cadastrada.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    return;
+  }
 
   const { data: lancs } = await sb.from('lancamentos')
     .select('id,categoria,categoria_dre,categoria_dfc').eq('empresa_id', empId);
-  if (!lancs?.length) { showToast('Nenhum lançamento encontrado.', 'error'); return; }
+  if (!lancs?.length) {
+    showToast('Nenhum lançamento encontrado.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    return;
+  }
 
   // Mapa nome da categoria -> código certo (separado por DRE e DFC)
   const codDre = {}, codDfc = {};
@@ -16897,15 +16908,16 @@ async function sincronizarCategoriasLancamentos() {
 
   if (!atualizacoes.length) {
     showToast('✅ Tudo certo! Nenhuma categoria desatualizada.', 'success');
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
     return;
   }
 
-  showToast(`Corrigindo ${atualizacoes.length} lançamento(s)...`, '');
-  // Atualiza em lotes de 20 em paralelo (não um por um — evita travar com muitos registros)
+  // Atualiza em lotes de 20 em paralelo, mostrando progresso real no botão
   const LOTE = 20;
   for (let i = 0; i < atualizacoes.length; i += LOTE) {
     const fatia = atualizacoes.slice(i, i + LOTE);
     await Promise.all(fatia.map(a => sb.from('lancamentos').update(a.payload).eq('id', a.id)));
+    if (btn) btn.textContent = `⏳ Corrigindo... ${Math.min(i+LOTE, atualizacoes.length)}/${atualizacoes.length}`;
   }
 
   // Resumo do que mudou, agrupado por categoria+campo (evita listar linha por linha)
@@ -16916,6 +16928,7 @@ async function sincronizarCategoriasLancamentos() {
   });
   const linhasResumo = Object.entries(resumoMap).map(([chave, n]) => `• ${chave}  (${n}x)`).join('\n');
 
+  if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
   alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}`);
   showToast(`${atualizacoes.length} lançamento(s) sincronizado(s)!`, 'success');
   atualizarLancamentos();
