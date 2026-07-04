@@ -21091,12 +21091,11 @@ async function loadPendenciasTarefas() {
       const criadoLocal = `${criadoD.getFullYear()}-${String(criadoD.getMonth()+1).padStart(2,'0')}-${String(criadoD.getDate()).padStart(2,'0')}`;
 
       // Só processa dias APÓS a criação e ANTES de hoje
-      // Se foi criada hoje ou depois — sem pendências
       if (criadoLocal >= hojeLocal) continue;
 
-      // Gera datas do dia SEGUINTE à criação até ontem
-      const inicio = new Date(criadoD); inicio.setDate(inicio.getDate()+1);
-      const fim = new Date(ontemD);
+      // Gera datas do dia SEGUINTE à criação até ontem — comparando só o DIA (sem hora, evita bug de horário)
+      let cur = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate() + 1);
+      const fimDia = new Date(ontemD.getFullYear(), ontemD.getMonth(), ontemD.getDate());
 
       // Buscar conclusões desta tarefa no período
       const { data: concl } = await sb.from('tarefas_conclusoes')
@@ -21107,8 +21106,7 @@ async function loadPendenciasTarefas() {
       const conclDatas = new Set((concl||[]).map(c=>c.data_referencia));
 
       // Verificar cada dia no range
-      let cur = new Date(inicio);
-      while (cur <= fim) {
+      while (cur <= fimDia) {
         const curStr = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
         const diaSem = cur.getDay();
         const diaMes = cur.getDate();
