@@ -16900,8 +16900,12 @@ async function sincronizarCategoriasLancamentos() {
     return;
   }
 
-  for (const a of atualizacoes) {
-    await sb.from('lancamentos').update(a.payload).eq('id', a.id);
+  showToast(`Corrigindo ${atualizacoes.length} lançamento(s)...`, '');
+  // Atualiza em lotes de 20 em paralelo (não um por um — evita travar com muitos registros)
+  const LOTE = 20;
+  for (let i = 0; i < atualizacoes.length; i += LOTE) {
+    const fatia = atualizacoes.slice(i, i + LOTE);
+    await Promise.all(fatia.map(a => sb.from('lancamentos').update(a.payload).eq('id', a.id)));
   }
 
   // Resumo do que mudou, agrupado por categoria+campo (evita listar linha por linha)
