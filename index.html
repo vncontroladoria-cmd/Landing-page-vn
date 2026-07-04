@@ -8721,7 +8721,7 @@ async function abrirModalPdvCategorias() {
   // Garante que o Plano de Contas está carregado para o autocomplete
   if (!_categorias?.length) {
     const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-    const { data } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('codigo');
+    const { data } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('ordem');
     _categorias = data || [];
   }
   renderCategoriasPDV();
@@ -8898,7 +8898,7 @@ async function garantirCategorias() {
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   if (!empId) return;
   // Sempre recarrega — nunca usa cache de outra empresa
-  const { data } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('codigo');
+  const { data } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('ordem');
   _categorias = data || [];
   _categoriasEmpresaId = empId;
   _catMapAtual = {};
@@ -8915,7 +8915,7 @@ async function initLancamentos() {
   await carregarBancos();
 
   // Sempre busca categorias frescas do banco
-  const { data: cats } = await qE('plano_contas').select('*').order('codigo');
+  const { data: cats } = await qE('plano_contas').select('*').order('ordem');
   _categorias = cats || [];
 
   // Agrupa categorias por nome — mesclando DFC e DRE
@@ -11981,7 +11981,7 @@ async function toggleFormFornecedor() {
   f.style.display = abrindo ? 'block' : 'none';
   if (abrindo) {
     // Sempre busca categorias frescas do banco
-    const { data } = await qE('plano_contas').select('*').order('codigo');
+    const { data } = await qE('plano_contas').select('*').order('ordem');
     _categorias = data || [];
 
     // Limpa todos os campos
@@ -11999,7 +11999,7 @@ async function toggleFormFornecedor() {
 
 async function carregarCatsFornecedor() {
   // Sempre busca do banco — nunca usa cache
-  const { data } = await qE('plano_contas').select('*').order('codigo');
+  const { data } = await qE('plano_contas').select('*').order('ordem');
   _categorias = data || [];
 }
 
@@ -12009,7 +12009,7 @@ async function buscarCatConta(texto) {
   if (!dd) return;
   const termo = (texto||'').toLowerCase().trim();
   if (!_categorias.length) {
-    qE('plano_contas').select('*').order('codigo').then(({data}) => {
+    qE('plano_contas').select('*').order('ordem').then(({data}) => {
       _categorias = data || [];
       buscarCatConta(texto);
     });
@@ -12266,7 +12266,7 @@ async function loadPlanoContas() {
   elDre.innerHTML = '<div class="loading"><div class="spin"></div></div>';
 
   const { data: grupos } = await qE('grupos_plano').select('*').order('demonstrativo').order('ordem');
-  const { data: cats } = await qE('plano_contas').select('*').order('codigo');
+  const { data: cats } = await qE('plano_contas').select('*').order('ordem');
 
   _grupos = grupos || [];
 
@@ -12385,16 +12385,22 @@ async function salvarNovaCategoria(gid, gNome, demo, ordem, totalAtual) {
 }
 
 async function moverCategoria(id, dir, grupo, demo) {
-  const { data: cats } = await qE('plano_contas').select('*').eq('grupo', grupo).eq('demonstrativo', demo).order('codigo');
+  // Ordena pelo campo numérico "ordem" (não pelo texto "codigo" — texto ordena "9.11" antes de "9.2", errado)
+  const { data: cats } = await qE('plano_contas').select('*').eq('grupo', grupo).eq('demonstrativo', demo).order('ordem');
   const idx = cats.findIndex(c => c.id === id);
   const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
   if (swapIdx < 0 || swapIdx >= cats.length) return;
 
-  const a = cats[idx];
-  const b = cats[swapIdx];
-  // Troca os códigos e ordens
-  await sb.from('plano_contas').update({ codigo: b.codigo, ordem: b.ordem }).eq('id', a.id);
-  await sb.from('plano_contas').update({ codigo: a.codigo, ordem: a.ordem }).eq('id', b.id);
+  // Troca de posição na lista
+  [cats[idx], cats[swapIdx]] = [cats[swapIdx], cats[idx]];
+
+  // Prefixo do grupo (o número antes do ponto, ex: "9" em "9.1") — vem do código já existente
+  const prefixoGrupo = (cats[0]?.codigo || '0.0').split('.')[0];
+
+  // Renumera TODAS as categorias do grupo em sequência, sem furos (9.1, 9.2, 9.3...)
+  await Promise.all(cats.map((c, i) =>
+    sb.from('plano_contas').update({ codigo: `${prefixoGrupo}.${i+1}`, ordem: i+1 }).eq('id', c.id)
+  ));
   loadPlanoContas();
 }
 
@@ -12986,7 +12992,7 @@ function toggleInline(rowId) {
         buscaCatInline(catInput.value, lancId);
       };
       if (!_categorias.length) {
-        qE('plano_contas').select('*').order('codigo').then(({data}) => {
+        qE('plano_contas').select('*').order('ordem').then(({data}) => {
           _categorias = data || [];
           setTimeout(abrirDropdown, 150);
         });
@@ -13884,7 +13890,7 @@ async function loadProjecaoDRE() {
   // Carrega grupos DRE + categorias + projeções salvas
   const [{ data: grupos }, { data: cats }, { data: projs }] = await Promise.all([
     qE('grupos_plano').select('*').in('demonstrativo',['DRE','AMBOS']).order('ordem'),
-    qE('plano_contas').select('*').in('demonstrativo',['DRE','AMBOS']).order('codigo'),
+    qE('plano_contas').select('*').in('demonstrativo',['DRE','AMBOS']).order('ordem'),
     qE('projecoes_dre').select('*').eq('ano', ano)
   ]);
 
@@ -14069,7 +14075,7 @@ async function loadDFC() {
   const empIdDFC = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   const { data: dfcGruposRaw } = await sb.from('grupos_plano').select('*').eq('empresa_id', empIdDFC).order('ordem');
   const grupos = (dfcGruposRaw||[]).filter(g => g.demonstrativo === 'DFC' || g.demonstrativo === 'AMBOS');
-  const { data: catsAllDFC } = await sb.from('plano_contas').select('*').eq('empresa_id', empIdDFC).order('codigo');
+  const { data: catsAllDFC } = await sb.from('plano_contas').select('*').eq('empresa_id', empIdDFC).order('ordem');
   const cats = (catsAllDFC||[]).filter(c => c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS');
   const { data: lancs } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
 
@@ -14314,7 +14320,7 @@ async function loadDRE() {
   const empIdDRE = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   const { data: gruposAll } = await sb.from('grupos_plano').select('*').eq('empresa_id', empIdDRE).order('ordem');
   const grupos = (gruposAll||[]).filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
-  const { data: catsAll } = await sb.from('plano_contas').select('*').eq('empresa_id', empIdDRE).order('codigo');
+  const { data: catsAll } = await sb.from('plano_contas').select('*').eq('empresa_id', empIdDRE).order('ordem');
   const cats = (catsAll||[]).filter(c => c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS');
   const regime = document.getElementById('dre-regime')?.value || 'caixa';
 
@@ -14753,7 +14759,7 @@ function abrirModalConta(tipo) {
   }
   document.getElementById('modal-conta').classList.add('open');
   if (!_categorias.length) {
-    qE('plano_contas').select('*').order('codigo').then(({data}) => { _categorias = data || []; });
+    qE('plano_contas').select('*').order('ordem').then(({data}) => { _categorias = data || []; });
   }
 }
 
@@ -16165,7 +16171,7 @@ async function processarExcelMapeado() {
     }
   }
   if (!_categorias.length) {
-    const { data } = await qE('plano_contas').select('*').order('codigo');
+    const { data } = await qE('plano_contas').select('*').order('ordem');
     _categorias = data || [];
   }
 
@@ -16301,7 +16307,7 @@ async function iniciarConciliacao() {
     _fornecedores = forns || [];
   }
   if (!_categorias.length) {
-    const { data: cats } = await qE('plano_contas').select('*').order('codigo');
+    const { data: cats } = await qE('plano_contas').select('*').order('ordem');
     _categorias = cats || [];
   }
 
@@ -16934,7 +16940,7 @@ async function atualizarLancamentos() {
 }
 
 async function atualizarFornecedores() {
-  const { data: cats } = await qE('plano_contas').select('*').order('codigo');
+  const { data: cats } = await qE('plano_contas').select('*').order('ordem');
   _categorias = cats || [];
   const { data: forns } = await qE('fornecedores').select('*').order('nome');
   _fornecedores = forns || [];
@@ -16963,7 +16969,7 @@ async function atualizarFornecedores() {
 }
 
 async function atualizarPlanoContas() {
-  const { data } = await qE('plano_contas').select('*').order('codigo');
+  const { data } = await qE('plano_contas').select('*').order('ordem');
   _categorias = data || [];
   const { data: grupos } = await qE('grupos_plano').select('*').order('ordem');
   _grupos = grupos || [];
