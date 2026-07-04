@@ -12398,9 +12398,18 @@ async function moverCategoria(id, dir, grupo, demo) {
   const prefixoGrupo = (cats[0]?.codigo || '0.0').split('.')[0];
 
   // Renumera TODAS as categorias do grupo em sequência, sem furos (9.1, 9.2, 9.3...)
-  await Promise.all(cats.map((c, i) =>
-    sb.from('plano_contas').update({ codigo: `${prefixoGrupo}.${i+1}`, ordem: i+1 }).eq('id', c.id)
-  ));
+  // e propaga o código novo pra todo lançamento que usava o código antigo (DRE e DFC)
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  await Promise.all(cats.map(async (c, i) => {
+    const codigoNovo = `${prefixoGrupo}.${i+1}`;
+    const codigoAntigo = c.codigo;
+    await sb.from('plano_contas').update({ codigo: codigoNovo, ordem: i+1 }).eq('id', c.id);
+    if (codigoAntigo && codigoAntigo !== codigoNovo) {
+      await sb.from('lancamentos').update({ categoria_dre: codigoNovo }).eq('empresa_id', empId).eq('categoria_dre', codigoAntigo);
+      await sb.from('lancamentos').update({ categoria_dfc: codigoNovo }).eq('empresa_id', empId).eq('categoria_dfc', codigoAntigo);
+    }
+  }));
+  showToast('Categorias reordenadas e lançamentos atualizados!', 'success');
   loadPlanoContas();
 }
 
@@ -12597,10 +12606,11 @@ async function saveCategoria() {
 
   // Pega código do input (editável pelo usuário ou gerado automaticamente)
   const codigoInput = document.getElementById('cat-codigo-input').value.trim();
+  const codigoAntigoReal = document.getElementById('modal-categoria').dataset.codigoOriginal || '';
   let codigo = codigoInput;
   if (editId) {
     // Mantém código original ao editar
-    codigo = document.getElementById('modal-categoria').dataset.codigoOriginal || '';
+    codigo = codigoAntigoReal;
     // Se mudou de grupo, recalcula
     const { data: orig } = await qE('plano_contas').select('grupo').eq('id', editId).single();
     if (orig?.grupo !== grupoNome) {
@@ -12622,6 +12632,12 @@ async function saveCategoria() {
     error = res.error;
     if (!error && ant?.nome && ant.nome !== nome) {
       await sb.from('lancamentos').update({ categoria: nome }).eq('categoria', ant.nome);
+    }
+    // Código mudou (trocou de grupo, por exemplo) → propaga pros lançamentos que usavam o código antigo
+    if (!error && codigoAntigoReal && codigoAntigoReal !== codigo) {
+      const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+      await sb.from('lancamentos').update({ categoria_dre: codigo }).eq('empresa_id', empId).eq('categoria_dre', codigoAntigoReal);
+      await sb.from('lancamentos').update({ categoria_dfc: codigo }).eq('empresa_id', empId).eq('categoria_dfc', codigoAntigoReal);
     }
   } else {
     const res = await sb.from('plano_contas').insert(addEmpresaId(payload));
