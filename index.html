@@ -19687,6 +19687,13 @@ function hojeISO() {
 }
 
 function tarefaValeParaHoje(t, hojeStr, diaSemanaHoje, diaMesHoje) {
+  // REGRA GERAL: uma tarefa nunca vale para um dia ANTERIOR à sua criação,
+  // seja qual for o tipo de recorrência (diária, semanal, mensal, única).
+  if (t.criado_em) {
+    const c = new Date(t.criado_em);
+    const criadoLocal = `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;
+    if (hojeStr < criadoLocal) return false;
+  }
   switch (t.recorrencia) {
     case 'diaria':  return true;
     case 'semanal':
@@ -20107,10 +20114,13 @@ const _STATUS_ANOT = {
 
 async function loadAnotacoes() {
   const uid = _vnUser?.id;
-  let query = sb.from('anotacoes').select('*, empresas(nome)');
+  let query = sb.from('anotacoes').select('*');
   const _ehAdminMstr = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
   if (uid && !_ehAdminMstr) query = query.eq('criado_por', uid);
   const { data, error } = await query.order('criado_em', {ascending:false});
+
+  const empresaNomePorId = {};
+  (_todasEmpresas||[]).forEach(e => empresaNomePorId[e.id] = e.nome);
 
   const container = document.getElementById('op-anotacoes-lista');
   if (error) { container.innerHTML = `<div style="color:#f87171;font-size:12px">Erro: ${error.message}</div>`; return; }
@@ -20121,12 +20131,13 @@ async function loadAnotacoes() {
 
   container.innerHTML = data.map(a => {
     const st = _STATUS_ANOT[a.status] || _STATUS_ANOT.aberto;
+    const nomeEmp = empresaNomePorId[a.empresa_id];
     return `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05);border-left:3px solid ${st.cor}">
       <div style="flex:1;min-width:0">
         <div style="color:#fff;font-size:13px;font-weight:600">${a.titulo}</div>
         ${a.texto ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${a.texto}</div>` : ''}
-        ${a.empresas?.nome ? `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border-radius:6px;padding:2px 6px;margin-top:6px;display:inline-block">${a.empresas.nome}</span>` : ''}
+        ${nomeEmp ? `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border-radius:6px;padding:2px 6px;margin-top:6px;display:inline-block">${nomeEmp}</span>` : ''}
       </div>
       <select onchange="mudarStatusAnotacao('${a.id}',this.value)"
         style="padding:5px 8px;font-size:11px;font-weight:700;border:none;border-radius:6px;background:${st.cor}22;color:${st.cor};cursor:pointer">
