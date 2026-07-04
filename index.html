@@ -2590,6 +2590,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 oninput="filtrarLancamentos(this.value)"
                 style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
+              <button class="btn" onclick="sincronizarCategoriasLancamentos()" title="Corrige o código DRE/DFC de todos os lançamentos com base no Plano de Contas atual">🔄 Sincronizar categorias</button>
               <button id="btn-sem-cat" onclick="filtrarSemCategoria()" style="display:none;padding:7px 12px;font-size:13px;border:1.5px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,0.1);color:#b45309;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;gap:6px;align-items:center">
                 ⚠️ Sem categoria: <span id="lanc-hero-semcat-n" style="background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:2px">0</span>
               </button>
@@ -16856,6 +16857,66 @@ async function excluirSelecionados() {
 }
 
 // ─── ATUALIZAR PÁGINAS ───────────────────────────────────
+async function sincronizarCategoriasLancamentos() {
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!empId) return;
+  showToast('Verificando categorias...', '');
+
+  const { data: plano } = await sb.from('plano_contas').select('nome,codigo,demonstrativo').eq('empresa_id', empId);
+  if (!plano?.length) { showToast('Nenhuma categoria cadastrada.', 'error'); return; }
+
+  const { data: lancs } = await sb.from('lancamentos')
+    .select('id,categoria,categoria_dre,categoria_dfc').eq('empresa_id', empId);
+  if (!lancs?.length) { showToast('Nenhum lançamento encontrado.', 'error'); return; }
+
+  // Mapa nome da categoria -> código certo (separado por DRE e DFC)
+  const codDre = {}, codDfc = {};
+  plano.forEach(p => {
+    if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[p.nome] = p.codigo;
+    if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[p.nome] = p.codigo;
+  });
+
+  const mudancas = []; // { nome, de, para, campo }
+  const atualizacoes = [];
+
+  lancs.forEach(l => {
+    if (!l.categoria) return;
+    const certoDre = codDre[l.categoria] ?? null;
+    const certoDfc = codDfc[l.categoria] ?? null;
+    const payload = {};
+    if (certoDre !== null && l.categoria_dre !== certoDre) {
+      payload.categoria_dre = certoDre;
+      mudancas.push({ nome: l.categoria, de: l.categoria_dre || '—', para: certoDre, campo: 'DRE' });
+    }
+    if (certoDfc !== null && l.categoria_dfc !== certoDfc) {
+      payload.categoria_dfc = certoDfc;
+      mudancas.push({ nome: l.categoria, de: l.categoria_dfc || '—', para: certoDfc, campo: 'DFC' });
+    }
+    if (Object.keys(payload).length) atualizacoes.push({ id: l.id, payload });
+  });
+
+  if (!atualizacoes.length) {
+    showToast('✅ Tudo certo! Nenhuma categoria desatualizada.', 'success');
+    return;
+  }
+
+  for (const a of atualizacoes) {
+    await sb.from('lancamentos').update(a.payload).eq('id', a.id);
+  }
+
+  // Resumo do que mudou, agrupado por categoria+campo (evita listar linha por linha)
+  const resumoMap = {};
+  mudancas.forEach(m => {
+    const chave = `${m.nome} (${m.campo}): ${m.de} → ${m.para}`;
+    resumoMap[chave] = (resumoMap[chave]||0) + 1;
+  });
+  const linhasResumo = Object.entries(resumoMap).map(([chave, n]) => `• ${chave}  (${n}x)`).join('\n');
+
+  alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}`);
+  showToast(`${atualizacoes.length} lançamento(s) sincronizado(s)!`, 'success');
+  atualizarLancamentos();
+}
+
 async function atualizarLancamentos() {
   const btn = document.querySelector('[onclick="atualizarLancamentos()"]');
   if (btn) { btn.textContent = '⏳ Sincronizando...'; btn.disabled = true; }
