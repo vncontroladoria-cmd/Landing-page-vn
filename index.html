@@ -1470,6 +1470,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="op-tab" data-tab="pendencias" onclick="tarefasTab('pendencias')">⏸️ Pendências</div>
           <div class="op-tab" data-tab="cadastro" onclick="tarefasTab('cadastro')">🗂️ Cadastro</div>
           <div class="op-tab" data-tab="concluidas" onclick="tarefasTab('concluidas')">✅ Concluídas</div>
+          <div class="op-tab" data-tab="anotacoes" onclick="tarefasTab('anotacoes')">📝 Anotações</div>
 
         </div>
 
@@ -1572,6 +1573,47 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
           <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
             <div id="op-concluidas-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+
+        <!-- ABA: ANOTAÇÕES (lista simples, sem data/repetição) -->
+        <div id="ttab-anotacoes" style="display:none">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+            <button onclick="abrirModalAnotacao()"
+              style="padding:8px 16px;font-size:12px;font-weight:700;background:#22c55e;color:#0f172a;border:none;border-radius:8px;cursor:pointer">+ Nova Anotação</button>
+          </div>
+          <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
+            <div id="op-anotacoes-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: NOVA ANOTAÇÃO -->
+      <div class="modal-overlay" id="modal-anotacao">
+        <div class="modal" style="max-width:420px">
+          <div class="modal-title" id="anot-titulo-modal">Nova Anotação</div>
+          <input type="hidden" id="anot-id">
+          <div class="form-group">
+            <label style="color:rgba(255,255,255,.6);font-size:12px">Título *</label>
+            <input type="text" id="anot-titulo" placeholder="Ex: Ligar pro contador"
+              style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#0f172a;color:#fff">
+          </div>
+          <div class="form-group">
+            <label style="color:rgba(255,255,255,.6);font-size:12px">Anotação</label>
+            <textarea id="anot-texto" rows="4" placeholder="Detalhes..."
+              style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#0f172a;color:#fff;resize:vertical"></textarea>
+          </div>
+          <div class="form-group">
+            <label style="color:rgba(255,255,255,.6);font-size:12px">Status</label>
+            <select id="anot-status" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#0f172a;color:#fff">
+              <option value="aberto">🔵 Aberto</option>
+              <option value="andamento">🟡 Em andamento</option>
+              <option value="concluido">🟢 Concluído</option>
+            </select>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+            <button onclick="closeModal('modal-anotacao')" style="padding:8px 16px;font-size:12px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);border:none;border-radius:8px;cursor:pointer">Cancelar</button>
+            <button onclick="salvarAnotacao()" style="padding:8px 16px;font-size:12px;font-weight:700;background:#22c55e;color:#0f172a;border:none;border-radius:8px;cursor:pointer">✓ Salvar</button>
           </div>
         </div>
       </div>
@@ -20054,6 +20096,99 @@ async function excluirServicoPrecificacao(id) {
   loadPrecificacao();
 }
 
+// ═══════════════════════════════════════════════════════════
+// ANOTAÇÕES — lista simples com status, sem data/repetição
+// ═══════════════════════════════════════════════════════════
+const _STATUS_ANOT = {
+  aberto:     { label:'🔵 Aberto',        cor:'#3b82f6' },
+  andamento:  { label:'🟡 Em andamento',  cor:'#eab308' },
+  concluido:  { label:'🟢 Concluído',     cor:'#22c55e' },
+};
+
+async function loadAnotacoes() {
+  const uid = _vnUser?.id;
+  let query = sb.from('anotacoes').select('*, empresas(nome)');
+  const _ehAdminMstr = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
+  if (uid && !_ehAdminMstr) query = query.eq('criado_por', uid);
+  const { data, error } = await query.order('criado_em', {ascending:false});
+
+  const container = document.getElementById('op-anotacoes-lista');
+  if (error) { container.innerHTML = `<div style="color:#f87171;font-size:12px">Erro: ${error.message}</div>`; return; }
+  if (!data?.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma anotação ainda. Clique em "+ Nova Anotação".</div>`;
+    return;
+  }
+
+  container.innerHTML = data.map(a => {
+    const st = _STATUS_ANOT[a.status] || _STATUS_ANOT.aberto;
+    return `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05);border-left:3px solid ${st.cor}">
+      <div style="flex:1;min-width:0">
+        <div style="color:#fff;font-size:13px;font-weight:600">${a.titulo}</div>
+        ${a.texto ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${a.texto}</div>` : ''}
+        ${a.empresas?.nome ? `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border-radius:6px;padding:2px 6px;margin-top:6px;display:inline-block">${a.empresas.nome}</span>` : ''}
+      </div>
+      <select onchange="mudarStatusAnotacao('${a.id}',this.value)"
+        style="padding:5px 8px;font-size:11px;font-weight:700;border:none;border-radius:6px;background:${st.cor}22;color:${st.cor};cursor:pointer">
+        <option value="aberto" ${a.status==='aberto'?'selected':''}>🔵 Aberto</option>
+        <option value="andamento" ${a.status==='andamento'?'selected':''}>🟡 Em andamento</option>
+        <option value="concluido" ${a.status==='concluido'?'selected':''}>🟢 Concluído</option>
+      </select>
+      <button onclick="editarAnotacao('${a.id}')" style="padding:5px 10px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer">✏️</button>
+      <button onclick="excluirAnotacao('${a.id}')" style="padding:5px 10px;background:rgba(239,68,68,.1);border:none;border-radius:6px;color:#f87171;font-size:11px;cursor:pointer">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+function abrirModalAnotacao() {
+  document.getElementById('anot-titulo-modal').textContent = 'Nova Anotação';
+  document.getElementById('anot-id').value = '';
+  document.getElementById('anot-titulo').value = '';
+  document.getElementById('anot-texto').value = '';
+  document.getElementById('anot-status').value = 'aberto';
+  document.getElementById('modal-anotacao').classList.add('open');
+}
+
+async function editarAnotacao(id) {
+  const { data: a } = await sb.from('anotacoes').select('*').eq('id', id).single();
+  if (!a) return;
+  document.getElementById('anot-titulo-modal').textContent = 'Editar Anotação';
+  document.getElementById('anot-id').value = a.id;
+  document.getElementById('anot-titulo').value = a.titulo || '';
+  document.getElementById('anot-texto').value = a.texto || '';
+  document.getElementById('anot-status').value = a.status || 'aberto';
+  document.getElementById('modal-anotacao').classList.add('open');
+}
+
+async function salvarAnotacao() {
+  const id = document.getElementById('anot-id').value;
+  const titulo = document.getElementById('anot-titulo').value.trim();
+  const texto = document.getElementById('anot-texto').value.trim();
+  const status = document.getElementById('anot-status').value;
+  if (!titulo) { showToast('Preencha o título', 'error'); return; }
+
+  const payload = { titulo, texto, status };
+  const { error } = id
+    ? await sb.from('anotacoes').update(payload).eq('id', id)
+    : await sb.from('anotacoes').insert(addEmpresaId({ ...payload, criado_por: _vnUser?.id }));
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Salvo!', 'success');
+  closeModal('modal-anotacao');
+  loadAnotacoes();
+}
+
+async function mudarStatusAnotacao(id, status) {
+  await sb.from('anotacoes').update({ status }).eq('id', id);
+  loadAnotacoes();
+}
+
+async function excluirAnotacao(id) {
+  if (!confirm('Excluir esta anotação?')) return;
+  await sb.from('anotacoes').delete().eq('id', id);
+  showToast('Excluído!', 'success');
+  loadAnotacoes();
+}
+
 
 async function carregarChecklistTarefa(tarefaId) {
   const { data } = await sb.from('tarefa_checklist_itens')
@@ -20488,7 +20623,7 @@ function tarefasTab(tab) {
   // Inicializar seletor de mês da aba que está sendo aberta
   inicializarSeletorMesAba(tab);
 
-  ['hoje','agenda','pendencias','cadastro','concluidas'].forEach(t => {
+  ['hoje','agenda','pendencias','cadastro','concluidas','anotacoes'].forEach(t => {
     const el = document.getElementById('ttab-'+t);
     if (el) el.style.display = t===tab ? 'block' : 'none';
     const tabEl = document.querySelector(`.op-tab[data-tab="${t}"]`);
@@ -20503,6 +20638,7 @@ function tarefasTab(tab) {
   if (tab === 'pendencias') loadPendenciasTarefas();
   if (tab === 'cadastro')   loadCadastroTarefas();
   if (tab === 'concluidas') loadConcluidasTarefas();
+  if (tab === 'anotacoes')  loadAnotacoes();
 }
 
 // Calcula status de uma tarefa para uma data específica
