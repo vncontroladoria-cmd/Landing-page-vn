@@ -1467,7 +1467,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap">
           <div class="op-tab active" data-tab="hoje" onclick="tarefasTab('hoje')">📋 Hoje</div>
           <div class="op-tab" data-tab="agenda" onclick="tarefasTab('agenda')">📅 Agenda</div>
-          <div class="op-tab" data-tab="pendencias" onclick="tarefasTab('pendencias')">⏸️ Pendências</div>
+          <div class="op-tab" data-tab="pendencias" onclick="tarefasTab('pendencias')">🔴 Atrasados</div>
           <div class="op-tab" data-tab="cadastro" onclick="tarefasTab('cadastro')">🗂️ Cadastro</div>
           <div class="op-tab" data-tab="concluidas" onclick="tarefasTab('concluidas')">✅ Concluídas</div>
           <div class="op-tab" data-tab="anotacoes" onclick="tarefasTab('anotacoes')">📝 Anotações</div>
@@ -1578,7 +1578,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: ANOTAÇÕES (lista simples, sem data/repetição) -->
         <div id="ttab-anotacoes" style="display:none">
-          <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Empresa:</span>
+              <select id="anot-filtro-empresa" onchange="loadAnotacoes()" style="padding:6px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#0f172a;color:rgba(255,255,255,.7)">
+                <option value="">Todas</option>
+              </select>
+            </div>
             <button onclick="abrirModalAnotacao()"
               style="padding:8px 16px;font-size:12px;font-weight:700;background:#22c55e;color:#0f172a;border:none;border-radius:8px;cursor:pointer">+ Nova Anotação</button>
           </div>
@@ -1594,25 +1600,39 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="modal-title" id="anot-titulo-modal">Nova Anotação</div>
           <input type="hidden" id="anot-id">
           <div class="form-group">
-            <label style="color:rgba(255,255,255,.6);font-size:12px">Título *</label>
+            <label style="color:#334155;font-size:12px;font-weight:600">Título *</label>
             <input type="text" id="anot-titulo" placeholder="Ex: Ligar pro contador"
-              style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#0f172a;color:#fff">
+              style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a">
           </div>
           <div class="form-group">
-            <label style="color:rgba(255,255,255,.6);font-size:12px">Anotação</label>
+            <label style="color:#334155;font-size:12px;font-weight:600">Anotação</label>
             <textarea id="anot-texto" rows="4" placeholder="Detalhes..."
-              style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#0f172a;color:#fff;resize:vertical"></textarea>
+              style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a;resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;gap:10px">
+            <div class="form-group" style="flex:1">
+              <label style="color:#334155;font-size:12px;font-weight:600">Empresa</label>
+              <select id="anot-empresa" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a">
+                <option value="">— Sem empresa —</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1">
+              <label style="color:#334155;font-size:12px;font-weight:600">Data limite (opcional)</label>
+              <input type="date" id="anot-data-limite"
+                style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a">
+            </div>
           </div>
           <div class="form-group">
-            <label style="color:rgba(255,255,255,.6);font-size:12px">Status</label>
-            <select id="anot-status" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#0f172a;color:#fff">
+            <label style="color:#334155;font-size:12px;font-weight:600">Status</label>
+            <select id="anot-status" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:#0f172a">
               <option value="aberto">🔵 Aberto</option>
               <option value="andamento">🟡 Em andamento</option>
               <option value="concluido">🟢 Concluído</option>
             </select>
+            <div style="font-size:11px;color:#64748b;margin-top:4px">Se tiver data limite e ela passar, fica "🔴 Atrasada" automaticamente até você concluir.</div>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-            <button onclick="closeModal('modal-anotacao')" style="padding:8px 16px;font-size:12px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);border:none;border-radius:8px;cursor:pointer">Cancelar</button>
+            <button onclick="closeModal('modal-anotacao')" style="padding:8px 16px;font-size:12px;background:#e2e8f0;color:#334155;border:none;border-radius:8px;cursor:pointer">Cancelar</button>
             <button onclick="salvarAnotacao()" style="padding:8px 16px;font-size:12px;font-weight:700;background:#22c55e;color:#0f172a;border:none;border-radius:8px;cursor:pointer">✓ Salvar</button>
           </div>
         </div>
@@ -20110,13 +20130,27 @@ const _STATUS_ANOT = {
   aberto:     { label:'🔵 Aberto',        cor:'#3b82f6' },
   andamento:  { label:'🟡 Em andamento',  cor:'#eab308' },
   concluido:  { label:'🟢 Concluído',     cor:'#22c55e' },
+  atrasado:   { label:'🔴 Atrasada',      cor:'#ef4444' },
 };
 
 async function loadAnotacoes() {
   const uid = _vnUser?.id;
+  const filtroEmp = document.getElementById('anot-filtro-empresa')?.value || '';
+
+  // Popular selects de empresa (filtro + modal) uma vez só
+  const selFiltro = document.getElementById('anot-filtro-empresa');
+  const selModal = document.getElementById('anot-empresa');
+  if (selFiltro && !selFiltro.dataset.populado) {
+    const opcoes = (_todasEmpresas||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+    selFiltro.innerHTML = '<option value="">Todas</option>' + opcoes;
+    if (selModal) selModal.innerHTML = '<option value="">— Sem empresa —</option>' + opcoes;
+    selFiltro.dataset.populado = '1';
+  }
+
   let query = sb.from('anotacoes').select('*');
   const _ehAdminMstr = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
   if (uid && !_ehAdminMstr) query = query.eq('criado_por', uid);
+  if (filtroEmp) query = query.eq('empresa_id', filtroEmp);
   const { data, error } = await query.order('criado_em', {ascending:false});
 
   const empresaNomePorId = {};
@@ -20129,15 +20163,22 @@ async function loadAnotacoes() {
     return;
   }
 
+  const hoje = hojeISO();
   container.innerHTML = data.map(a => {
-    const st = _STATUS_ANOT[a.status] || _STATUS_ANOT.aberto;
+    // Se tem data limite, já passou, e não está concluída -> vira "atrasada" automaticamente
+    const statusReal = (a.data_limite && a.data_limite < hoje && a.status !== 'concluido') ? 'atrasado' : (a.status || 'aberto');
+    const st = _STATUS_ANOT[statusReal] || _STATUS_ANOT.aberto;
     const nomeEmp = empresaNomePorId[a.empresa_id];
+    const dataLimiteBr = a.data_limite ? a.data_limite.split('-').reverse().join('/') : '';
     return `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05);border-left:3px solid ${st.cor}">
       <div style="flex:1;min-width:0">
         <div style="color:#fff;font-size:13px;font-weight:600">${a.titulo}</div>
         ${a.texto ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${a.texto}</div>` : ''}
-        ${nomeEmp ? `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border-radius:6px;padding:2px 6px;margin-top:6px;display:inline-block">${nomeEmp}</span>` : ''}
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          ${nomeEmp ? `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border-radius:6px;padding:2px 6px">${nomeEmp}</span>` : ''}
+          ${dataLimiteBr ? `<span style="font-size:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border-radius:6px;padding:2px 6px">📅 até ${dataLimiteBr}</span>` : ''}
+        </div>
       </div>
       <select onchange="mudarStatusAnotacao('${a.id}',this.value)"
         style="padding:5px 8px;font-size:11px;font-weight:700;border:none;border-radius:6px;background:${st.cor}22;color:${st.cor};cursor:pointer">
@@ -20156,6 +20197,8 @@ function abrirModalAnotacao() {
   document.getElementById('anot-id').value = '';
   document.getElementById('anot-titulo').value = '';
   document.getElementById('anot-texto').value = '';
+  document.getElementById('anot-empresa').value = '';
+  document.getElementById('anot-data-limite').value = '';
   document.getElementById('anot-status').value = 'aberto';
   document.getElementById('modal-anotacao').classList.add('open');
 }
@@ -20167,6 +20210,8 @@ async function editarAnotacao(id) {
   document.getElementById('anot-id').value = a.id;
   document.getElementById('anot-titulo').value = a.titulo || '';
   document.getElementById('anot-texto').value = a.texto || '';
+  document.getElementById('anot-empresa').value = a.empresa_id || '';
+  document.getElementById('anot-data-limite').value = a.data_limite || '';
   document.getElementById('anot-status').value = a.status || 'aberto';
   document.getElementById('modal-anotacao').classList.add('open');
 }
@@ -20176,12 +20221,14 @@ async function salvarAnotacao() {
   const titulo = document.getElementById('anot-titulo').value.trim();
   const texto = document.getElementById('anot-texto').value.trim();
   const status = document.getElementById('anot-status').value;
+  const empresaId = document.getElementById('anot-empresa').value || null;
+  const dataLimite = document.getElementById('anot-data-limite').value || null;
   if (!titulo) { showToast('Preencha o título', 'error'); return; }
 
-  const payload = { titulo, texto, status };
+  const payload = { titulo, texto, status, empresa_id: empresaId, data_limite: dataLimite };
   const { error } = id
     ? await sb.from('anotacoes').update(payload).eq('id', id)
-    : await sb.from('anotacoes').insert(addEmpresaId({ ...payload, criado_por: _vnUser?.id }));
+    : await sb.from('anotacoes').insert({ ...payload, criado_por: _vnUser?.id });
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   showToast('Salvo!', 'success');
   closeModal('modal-anotacao');
@@ -20667,7 +20714,7 @@ function statusTarefaNaData(concluida, dataStr, criadoEm) {
 }
 
 function statusBadgeHtml(status) {
-  const labels = { pendente:'⏳ Pendente', atrasada:'🔴 Atrasada', aguardando:'⏸️ Aguardando', concluida:'✅ Concluída' };
+  const labels = { pendente:'📌 Hoje', atrasada:'🔴 Atrasada', aguardando:'⏸️ Aguardando', concluida:'✅ Concluída' };
   return `<span class="op-status-badge op-status-${status}">${labels[status]||status}</span>`;
 }
 
