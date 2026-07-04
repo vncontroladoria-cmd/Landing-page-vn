@@ -1426,7 +1426,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </div>
 
       <div id="onav-tarefas" class="op-nav-item active" onclick="operadorPage('tarefas')">
-        <span>✅</span> Minhas Tarefas
+        <span>✅</span> Minhas Tarefas <span id="onav-tarefas-badge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;margin-left:6px"></span>
       </div>
       <div id="onav-empresas" class="op-nav-item" onclick="operadorPage('empresas')">
         <span>🏢</span> Empresas
@@ -1463,11 +1463,20 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </button>
         </div>
 
+        <!-- Filtro global por empresa: afeta todas as abas -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600">🏢 Ver só de:</span>
+          <select id="filtro-empresa-global" onchange="mudarFiltroEmpresaGlobal(this.value)"
+            style="padding:7px 12px;font-size:12px;font-weight:600;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff">
+            <option value="">Todas as empresas</option>
+          </select>
+        </div>
+
         <!-- Abas -->
         <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap">
           <div class="op-tab active" data-tab="hoje" onclick="tarefasTab('hoje')">📋 Hoje</div>
           <div class="op-tab" data-tab="agenda" onclick="tarefasTab('agenda')">📅 Agenda</div>
-          <div class="op-tab" data-tab="pendencias" onclick="tarefasTab('pendencias')">🔴 Atrasados</div>
+          <div class="op-tab" data-tab="pendencias" onclick="tarefasTab('pendencias')">🔴 Atrasados <span id="atrasados-badge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;margin-left:4px"></span></div>
           <div class="op-tab" data-tab="cadastro" onclick="tarefasTab('cadastro')">🗂️ Cadastro</div>
           <div class="op-tab" data-tab="concluidas" onclick="tarefasTab('concluidas')">✅ Concluídas</div>
           <div class="op-tab" data-tab="anotacoes" onclick="tarefasTab('anotacoes')">📝 Anotações</div>
@@ -1578,13 +1587,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: ANOTAÇÕES (lista simples, sem data/repetição) -->
         <div id="ttab-anotacoes" style="display:none">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-            <div style="display:flex;align-items:center;gap:6px">
-              <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Empresa:</span>
-              <select id="anot-filtro-empresa" onchange="loadAnotacoes()" style="padding:6px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#0f172a;color:rgba(255,255,255,.7)">
-                <option value="">Todas</option>
-              </select>
-            </div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
             <button onclick="abrirModalAnotacao()"
               style="padding:8px 16px;font-size:12px;font-weight:700;background:#22c55e;color:#0f172a;border:none;border-radius:8px;cursor:pointer">+ Nova Anotação</button>
           </div>
@@ -19643,6 +19646,23 @@ async function showPainelOperador() {
   await operadorPage('tarefas');
 }
 
+// Filtro global de empresa em "Minhas Tarefas" — afeta todas as abas
+window._filtroEmpresaTarefas = '';
+
+function popularFiltroEmpresaGlobal() {
+  const sel = document.getElementById('filtro-empresa-global');
+  if (!sel || sel.dataset.populado) return;
+  const opcoes = (_todasEmpresas||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  sel.innerHTML = '<option value="">Todas as empresas</option>' + opcoes;
+  sel.dataset.populado = '1';
+}
+
+function mudarFiltroEmpresaGlobal(empresaId) {
+  window._filtroEmpresaTarefas = empresaId || '';
+  const abaAtiva = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
+  tarefasTab(abaAtiva);
+}
+
 async function operadorPage(page) {
   ['tarefas','empresas','mensagens'].forEach(p => {
     const el = document.getElementById('opage-'+p);
@@ -20135,17 +20155,7 @@ const _STATUS_ANOT = {
 
 async function loadAnotacoes() {
   const uid = _vnUser?.id;
-  const filtroEmp = document.getElementById('anot-filtro-empresa')?.value || '';
-
-  // Popular selects de empresa (filtro + modal) uma vez só
-  const selFiltro = document.getElementById('anot-filtro-empresa');
-  const selModal = document.getElementById('anot-empresa');
-  if (selFiltro && !selFiltro.dataset.populado) {
-    const opcoes = (_todasEmpresas||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
-    selFiltro.innerHTML = '<option value="">Todas</option>' + opcoes;
-    if (selModal) selModal.innerHTML = '<option value="">— Sem empresa —</option>' + opcoes;
-    selFiltro.dataset.populado = '1';
-  }
+  const filtroEmp = window._filtroEmpresaTarefas || '';
 
   let query = sb.from('anotacoes').select('*');
   const _ehAdminMstr = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
@@ -20193,6 +20203,11 @@ async function loadAnotacoes() {
 }
 
 function abrirModalAnotacao() {
+  const selModal = document.getElementById('anot-empresa');
+  if (selModal && !selModal.dataset.populado) {
+    selModal.innerHTML = '<option value="">— Sem empresa —</option>' + (_todasEmpresas||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+    selModal.dataset.populado = '1';
+  }
   document.getElementById('anot-titulo-modal').textContent = 'Nova Anotação';
   document.getElementById('anot-id').value = '';
   document.getElementById('anot-titulo').value = '';
@@ -20678,6 +20693,7 @@ async function voltarAoPainelOperador() {
 // ─── ABAS DE TAREFAS ────────────────────────────────────
 
 function tarefasTab(tab) {
+  popularFiltroEmpresaGlobal();
   // Inicializar seletor de mês da aba que está sendo aberta
   inicializarSeletorMesAba(tab);
 
@@ -20739,7 +20755,14 @@ async function buscarTarefasAtivas(filtroTipo) {
   }
   if (filtroTipo) query = query.eq('tipo', filtroTipo);
   const { data } = await query.order('criado_em');
-  return data || [];
+  let tarefas = data || [];
+
+  // Filtro global de empresa (selecionado no topo de Minhas Tarefas)
+  const filtroEmp = window._filtroEmpresaTarefas || '';
+  if (filtroEmp) {
+    tarefas = tarefas.filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp));
+  }
+  return tarefas;
 }
 
 // Retorna o HTML das tags de empresa (suporta empresa_id único, empresa_ids[] ou geral)
@@ -20922,7 +20945,11 @@ async function loadCadastroTarefas() {
     const lista = empresaIds.join(',');
     query = query.or(`empresa_id.is.null,empresa_id.in.(${lista}),empresa_ids.ov.{${lista}}`);
   }
-  const { data: tarefas } = await query.order('criado_em', {ascending:false});
+  const { data: tarefasRaw } = await query.order('criado_em', {ascending:false});
+  const filtroEmp = window._filtroEmpresaTarefas || '';
+  const tarefas = filtroEmp
+    ? (tarefasRaw||[]).filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp))
+    : tarefasRaw;
 
   const container = document.getElementById('op-cadastro-lista');
   if (!tarefas?.length) {
@@ -21444,9 +21471,10 @@ async function verificarPendenciasCount() {
       .gte('data_referencia', criadoLocal).lte('data_referencia', ontemLocal);
     const conclDatas = new Set((concl||[]).map(c=>c.data_referencia));
 
-    const inicio = new Date(criadoD); inicio.setDate(inicio.getDate()+1);
-    let cur = new Date(inicio);
-    while (cur <= ontemD) {
+    const cur0 = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate() + 1);
+    const fimDia = new Date(ontemD.getFullYear(), ontemD.getMonth(), ontemD.getDate());
+    let cur = cur0;
+    while (cur <= fimDia) {
       const curStr = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
       if (tarefaValeParaHoje(t, curStr, cur.getDay(), cur.getDate()) && !conclDatas.has(curStr)) count++;
       cur.setDate(cur.getDate()+1);
@@ -21528,6 +21556,11 @@ function atualizarTituloAba() {
   if (_msgNaoLidas > 0) partes.push(`${_msgNaoLidas}💬`);
   if (_pendenciasCount > 0) partes.push(`${_pendenciasCount}🔴`);
   document.title = partes.length ? `(${partes.join(' ')}) VN Controladoria` : 'VN Controladoria';
+
+  const badgeNav = document.getElementById('onav-tarefas-badge');
+  if (badgeNav) { badgeNav.textContent = _pendenciasCount; badgeNav.style.display = _pendenciasCount > 0 ? 'inline-block' : 'none'; }
+  const badgeAba = document.getElementById('atrasados-badge');
+  if (badgeAba) { badgeAba.textContent = _pendenciasCount; badgeAba.style.display = _pendenciasCount > 0 ? 'inline-block' : 'none'; }
 }
 
 // Ir para mensagens de qualquer tela
