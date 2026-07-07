@@ -6905,7 +6905,7 @@ async function loadPDV() {
       const f = normForma(i.forma_pagamento);
       grupos[f] = (grupos[f]||0) + Number(i.valor||0);
     });
-    const formasTotal = ['Comanda', 'Cartão Crédito', 'Cartão Débito', 'Pix'];
+    const formasTotal = ['Comanda', 'Comandas', 'Cartão Crédito', 'Cartão Débito', 'Pix'];
     const totalGeral = Object.entries(grupos)
       .filter(([f]) => formasTotal.includes(f))
       .reduce((s,[,v]) => s+v, 0);
