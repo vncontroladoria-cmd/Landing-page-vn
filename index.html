@@ -3025,6 +3025,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
                 <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
               </select>
+              <input type="date" id="pdv-filtro-dia" onchange="loadPDV()" title="Filtrar um dia específico"
+                style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+              <button class="btn" id="pdv-btn-limpar-dia" onclick="document.getElementById('pdv-filtro-dia').value='';loadPDV()" style="display:none">✕ Limpar dia</button>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <input type="text" id="pdv-busca" placeholder="Buscar data ou responsável..." oninput="filtrarPDV()"
@@ -6857,8 +6860,15 @@ Essa ação não pode ser desfeita.`)) return;
 async function loadPDV() {
   const ano = document.getElementById('pdv-filtro-ano')?.value || '2026';
   const mes = document.getElementById('pdv-filtro-mes')?.value || '';
+  const dia = document.getElementById('pdv-filtro-dia')?.value || ''; // formato yyyy-mm-dd
+  const btnLimparDia = document.getElementById('pdv-btn-limpar-dia');
+  if (btnLimparDia) btnLimparDia.style.display = dia ? '' : 'none';
+
   let q = qE('pdv_caixas').select('*').order('data_caixa', {ascending: true});
-  if (mes) {
+  if (dia) {
+    // Dia específico manda mais que ano/mês
+    q = q.eq('data_caixa', dia);
+  } else if (mes) {
     const ultimoDia = new Date(parseInt(ano), parseInt(mes), 0).getDate();
     const fimMes = String(ultimoDia).padStart(2,'0');
     q = q.gte('data_caixa', `${ano}-${mes}-01`).lte('data_caixa', `${ano}-${mes}-${fimMes}`);
