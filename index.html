@@ -8005,110 +8005,25 @@ async function loadDashboard() {
   if(el('m-media-fat'))   el('m-media-fat').textContent   = fmtBRL(mediaDia);
   if(el('m-media-fat-d')) el('m-media-fat-d').textContent = diasPDV + ' dias trabalhados';
 
-  // ── Indicadores do DRE (mesma lógica do relatório DRE) ────
-  // Busca grupos e categorias do DRE para o mês/período atual
+  // ── Indicadores do DRE — usa a MESMA função do relatório DRE de verdade ──
   try {
-    const { data: dreGruposRaw } = await qE('grupos_plano').select('*').order('ordem');
-    const dreGrupos = (dreGruposRaw||[]).filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
-    const { data: dreCats }   = await qE('plano_contas').select('*').eq('demonstrativo','DRE');
+    const mCols2 = mes ? [mes] : ['01','02','03','04','05','06','07','08','09','10','11','12'];
+    const ind = await buscarIndicadoresDRE(ano, mCols2);
 
-    if (dreGrupos?.length && dreCats?.length) {
-      // Agrega PDV para o período (mesmo cálculo do DRE)
-      let pdvDRECat = {}; // { catNome|mes: valor }
-      try {
-        const { data: catsPdvDreDash } = await qE('pdv_categorias').select('nome,aparece_dre,categoria_plano');
-        const normCatDreDash = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+(master\s*card|visa|elo|amex|hipercard|hiper).*/i,'').trim();
-        const catsForaDreDash = new Set((catsPdvDreDash||[]).filter(c => c.aparece_dre === false).map(c => normCatDreDash(c.nome)));
-        // Mapa: nome da categoria do PDV -> nome da categoria do Plano de Contas vinculada (mesma tradução do DRE de verdade)
-        const mapaCatPlanoDash = {};
-        (catsPdvDreDash||[]).forEach(c => { if (c.categoria_plano) mapaCatPlanoDash[normCatDreDash(c.nome)] = c.categoria_plano; });
-
-        const { data: cxDRE } = await qE('pdv_caixas').select('id,data_caixa')
-          .gte('data_caixa', ini).lte('data_caixa', fim);
-        if (cxDRE?.length) {
-          const cxMes = {}; cxDRE.forEach(c => { cxMes[c.id] = c.data_caixa.substring(5,7); });
-          const cxIds = cxDRE.map(c => c.id);
-          let pdvIt = [];
-          for(let i=0;i<cxIds.length;i+=200){
-            const {data:lt} = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id',cxIds.slice(i,i+200));
-            if(lt?.length) pdvIt = pdvIt.concat(lt);
-          }
-          pdvIt.filter(it=>it.tipo==='ENTRADA').forEach(it=>{
-            const m = cxMes[it.caixa_id]; if(!m) return;
-            const nomeIt = (it.forma_pagamento||'').trim();
-            const nomeNorm = normCatDreDash(nomeIt);
-            if (catsForaDreDash.has(nomeNorm)) return; // categoria marcada como fora do DRE
-            // Usa o nome traduzido (categoria_plano) se existir vínculo — senão usa o nome cru
-            const nomeAgregado = mapaCatPlanoDash[nomeNorm] || nomeIt;
-            const chave = nomeAgregado + '|' + m;
-            pdvDRECat[chave] = (pdvDRECat[chave]||0) + Number(it.valor||0);
-          });
-        }
-      } catch(e){}
-
-      const normD = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-      const mCols2 = mes ? [mes] : ['01','02','03','04','05','06','07','08','09','10','11','12'];
-
-      // calcReal igual ao DRE
-      const calcRealDash = (catNome, catTipo, m) => {
-        const normN = normD(catNome);
-        let doPDV = 0;
-        if (catTipo === 'ENTRADA') {
-          for(const [chave,val] of Object.entries(pdvDRECat)){
-            const sep = chave.lastIndexOf('|');
-            const nPDV = chave.substring(0,sep), mPDV = chave.substring(sep+1);
-            if(mPDV===m && (nPDV===catNome || normD(nPDV)===normN)) doPDV += val;
-          }
-        }
-        const doLanc = (lancs||[])
-          .filter(l => l.data_lancamento?.substring(5,7)===m && (
-            normD(l.categoria_dre)===normN || normD(l.categoria_dfc)===normN || normD(l.categoria)===normN
-          ))
-          .reduce((s,l)=>{ const e=Number(l.entrada||0),sa=Number(l.saida||0); return s+(e>0||sa>0?e-sa:(l.tipo==='ENTRADA'?1:-1)*Number(l.valor||0)); },0);
-        return doPDV + doLanc;
-      };
-
-      // Monta gruposData igual ao DRE
-      const gData = dreGrupos.map(g => {
-        const gCats = dreCats.filter(c => c.grupo === g.nome);
-        const real = mCols2.map(m => gCats.reduce((s,c) => s + calcRealDash(c.nome, c.tipo, m), 0));
-        return { nome: g.nome, sinal: g.sinal, real };
-      });
-      const getGD = nome => { const g = gData.find(x=>x.nome===nome); return g ? g.real.reduce((s,v)=>s+v,0) : 0; };
-
-      // Indicadores — soma do período (todos os meses filtrados)
-      const recBrutaV  = getGD('Receita Bruta');
-      const deducoesV  = Math.abs(getGD('Deduções de Faturamento'));
-      const custDirV   = Math.abs(getGD('Custos dos Serviços Direto'));
-      const custIndV   = Math.abs(getGD('Custos dos Serviços Indireto'));
-      const marketV    = Math.abs(getGD('Market / Comercial'));
-      const adminV     = Math.abs(getGD('Administrativas'));
-      const equipeV    = Math.abs(getGD('Equipe / CLTs'));
-      const outrasRecV = Math.abs(getGD('Outras Receitas'));
-      const despFinV   = Math.abs(getGD('Despesas Financeiras'));
-
-      const recLiqV  = recBrutaV - deducoesV;
-      const margemV  = recLiqV - custDirV - custIndV;
-      const despOpV  = marketV + adminV + equipeV;
-      const ebitdaV  = margemV - despOpV;
-      const resLiqV  = ebitdaV + outrasRecV - despFinV;
-      const margemPct= recLiqV > 0 ? margemV / recLiqV * 100 : 0;
-      const peV      = margemV > 0 ? (despOpV / (margemV / recLiqV)) : 0;
-
-      // Preenche cards
+    if (ind) {
       if(el('m-luc')) {
-        el('m-luc').textContent = fmtBRL(Math.abs(resLiqV));
-        el('m-luc').style.color = resLiqV >= 0 ? 'var(--green)' : 'var(--red)';
+        el('m-luc').textContent = fmtBRL(Math.abs(ind.resultadoLiquido));
+        el('m-luc').style.color = ind.resultadoLiquido >= 0 ? 'var(--green)' : 'var(--red)';
         const card = document.getElementById('m-luc-card');
-        if(card) card.style.borderLeftColor = resLiqV >= 0 ? '#059669' : '#dc2626';
+        if(card) card.style.borderLeftColor = ind.resultadoLiquido >= 0 ? '#059669' : '#dc2626';
       }
-      if(el('m-luc-d')) el('m-luc-d').textContent = resLiqV >= 0 ? '↑ resultado líquido DRE' : '↓ resultado líquido DRE';
+      if(el('m-luc-d')) el('m-luc-d').textContent = ind.resultadoLiquido >= 0 ? '↑ resultado líquido DRE' : '↓ resultado líquido DRE';
 
-      if(el('m-margem')) el('m-margem').textContent = margemPct.toFixed(1) + '%';
-      if(el('m-margem-d')) el('m-margem-d').textContent = margemPct >= 20 ? 'Saudável' : margemPct >= 0 ? 'Atenção · sobra para fixos' : 'Negativo';
+      if(el('m-margem')) el('m-margem').textContent = ind.margemPct.toFixed(1) + '%';
+      if(el('m-margem-d')) el('m-margem-d').textContent = ind.margemPct >= 20 ? 'Saudável' : ind.margemPct >= 0 ? 'Atenção · sobra para fixos' : 'Negativo';
 
-      if(el('m-pe')) el('m-pe').textContent = peV > 0 ? fmtBRL(peV) : '—';
-      if(el('m-pe-d')) el('m-pe-d').textContent = peV > 0 ? (recBrutaV >= peV ? 'Superado em ' + ((recBrutaV/peV-1)*100).toFixed(0)+'%' : 'Falta ' + fmtBRL(peV - recBrutaV)) : '—';
+      if(el('m-pe')) el('m-pe').textContent = ind.pe > 0 ? fmtBRL(ind.pe) : '—';
+      if(el('m-pe-d')) el('m-pe-d').textContent = ind.pe > 0 ? (ind.recBruta >= ind.pe ? 'Superado em ' + ((ind.recBruta/ind.pe-1)*100).toFixed(0)+'%' : 'Falta ' + fmtBRL(ind.pe - ind.recBruta)) : '—';
     } else {
       // Sem dados DRE: usa lançamentos simples
       if(el('m-luc')) { el('m-luc').textContent = fmtBRL(Math.abs(lucro)); el('m-luc').style.color = lucro>=0?'var(--green)':'var(--red)'; }
@@ -14526,6 +14441,114 @@ function setDRERegime(regime) {
     btnK.style.color = regime === 'competencia' ? '#fff' : 'var(--text2)';
   }
   loadDRE();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Indicadores do DRE (Margem de Contribuição, Ponto de Equilíbrio, etc.)
+// — MESMA lógica exata usada dentro do DRE (loadDRE), extraída aqui pra ser
+// reutilizada pelo Dashboard Executivo. Assim os dois nunca ficam divergentes.
+// ═══════════════════════════════════════════════════════════
+async function buscarIndicadoresDRE(ano, mesesArr) {
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
+  const { data: gruposAll } = await sb.from('grupos_plano').select('*').eq('empresa_id', empId).order('ordem');
+  const grupos = (gruposAll||[]).filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
+  const { data: catsAll } = await sb.from('plano_contas').select('*').eq('empresa_id', empId).order('ordem');
+  const cats = (catsAll||[]).filter(c => c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS');
+  const regime = document.getElementById('dre-regime')?.value || 'caixa';
+
+  if (!grupos.length || !cats.length) return null;
+
+  const { data: lancsBase } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+  const { data: lancsDREComp } = await qE('lancamentos').select('*').eq('aparece_dfc', false).gte('competencia',`${ano}-01`).lte('competencia',`${ano}-12`);
+  const todasIdsSet = new Set();
+  const lancsRaw = [...(lancsBase||[]), ...(lancsDREComp||[])].filter(l => {
+    if (todasIdsSet.has(l.id)) return false;
+    todasIdsSet.add(l.id); return true;
+  });
+  const lancs = lancsRaw.map(l => ({
+    ...l,
+    mes_dre: regime === 'competencia'
+      ? (l.competencia || l.mes || (l.data_lancamento||'').substring(0,7))
+      : (l.mes || (l.data_lancamento||'').substring(0,7))
+  }));
+
+  let pdvPorCatMes = {};
+  try {
+    const { data: catsPdvDre } = await qE('pdv_categorias').select('nome,aparece_dre,categoria_plano');
+    const normCatDre = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+(master\s*card|visa|elo|amex|hipercard|hiper).*/i,'').trim();
+    const catsForaDre = new Set((catsPdvDre||[]).filter(c => c.aparece_dre === false).map(c => normCatDre(c.nome)));
+    const mapaCatPlano = {};
+    (catsPdvDre||[]).forEach(c => { if (c.categoria_plano) mapaCatPlano[normCatDre(c.nome)] = c.categoria_plano; });
+
+    const { data: caixas } = await qE('pdv_caixas').select('id,data_caixa')
+      .gte('data_caixa',`${ano}-01-01`).lte('data_caixa',`${ano}-12-31`);
+    if (caixas?.length) {
+      const caixaMes = {};
+      caixas.forEach(c => { caixaMes[c.id] = (c.data_caixa||'').substring(5,7); });
+      const ids = caixas.map(c => c.id);
+      let pdvItens = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data: lote } = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id', ids.slice(i, i+200));
+        if (lote?.length) pdvItens = pdvItens.concat(lote);
+      }
+      pdvItens.forEach(it => {
+        const mes = caixaMes[it.caixa_id];
+        const nomeOrig = (it.forma_pagamento||'').trim();
+        if (!mes || !nomeOrig) return;
+        const nomeNorm = normCatDre(nomeOrig);
+        if (catsForaDre.has(nomeNorm)) return;
+        const nomeAgregado = mapaCatPlano[nomeNorm] || nomeOrig;
+        const chave = nomeAgregado + '|' + mes;
+        const sinal = it.tipo === 'SAIDA' ? -1 : 1;
+        pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + sinal * Number(it.valor||0);
+      });
+    }
+  } catch(e) { console.warn('PDV indicadores DRE:', e); }
+
+  const normDRE2 = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/,' ').trim();
+  function calcRealAqui(catNome, mes) {
+    const normNome = normDRE2(catNome);
+    let doPDV = 0;
+    for (const [chave, val] of Object.entries(pdvPorCatMes)) {
+      const sep = chave.lastIndexOf('|');
+      const nPDV = chave.substring(0, sep), mPDV = chave.substring(sep + 1);
+      if (mPDV !== mes) continue;
+      if (nPDV === catNome || normDRE2(nPDV) === normNome) doPDV += val;
+    }
+    const doLanc = lancs.filter(l => (l.mes_dre||'').substring(5,7) === mes && (
+      normDRE2(l.categoria_dre) === normNome || normDRE2(l.categoria_dfc) === normNome || normDRE2(l.categoria) === normNome
+    )).reduce((s,l) => {
+      const ent = Number(l.entrada||0), sai = Number(l.saida||0);
+      if (ent > 0 || sai > 0) return s + ent - sai;
+      return s + (l.tipo==='ENTRADA' ? 1 : -1) * Number(l.valor||0);
+    }, 0);
+    return doPDV + doLanc;
+  }
+
+  const getGrupoTotal = nome => {
+    const gCats = cats.filter(c => c.grupo === nome);
+    return mesesArr.reduce((s,m) => s + gCats.reduce((s2,c) => s2 + calcRealAqui(c.nome, m), 0), 0);
+  };
+
+  const recBruta  = getGrupoTotal('Receita Bruta');
+  const deducoes  = Math.abs(getGrupoTotal('Deduções de Faturamento'));
+  const custDir   = Math.abs(getGrupoTotal('Custos dos Serviços Direto'));
+  const custInd   = Math.abs(getGrupoTotal('Custos dos Serviços Indireto'));
+  const market    = Math.abs(getGrupoTotal('Market / Comercial'));
+  const admin     = Math.abs(getGrupoTotal('Administrativas'));
+  const equipe    = Math.abs(getGrupoTotal('Equipe / CLTs'));
+  const outrasRec = Math.abs(getGrupoTotal('Outras Receitas'));
+  const despFin   = Math.abs(getGrupoTotal('Despesas Financeiras'));
+
+  const recLiquida = recBruta - deducoes;
+  const margem = recLiquida - custDir - custInd;
+  const despOp = market + admin + equipe;
+  const ebitda = margem - despOp;
+  const resultadoLiquido = ebitda + outrasRec - despFin;
+  const margemPct = recLiquida > 0 ? margem / recLiquida * 100 : 0;
+  const pe = margem > 0 ? (despOp / (margem / recLiquida)) : 0;
+
+  return { recBruta, recLiquida, margem, margemPct, despOp, pe, resultadoLiquido };
 }
 
 async function loadDRE() {
