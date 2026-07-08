@@ -11444,8 +11444,8 @@ function renderProdutos(rows) {
 let _perfChartProf = null;
 
 async function initPerformance() {
-  // Preenche filtros de ano e profissional — lê do relatório único "Geral" (só linhas de Serviço)
-  const dados = (await buscarDadosGeral()).filter(r => r.tipo_item === 'servico');
+  // Preenche filtros de ano e profissional — lê do relatório único "Geral" (Serviço + Produto)
+  const dados = await buscarDadosGeral();
   const anos  = [...new Set(dados.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
   const profs = [...new Set(dados.map(r=>r.profissional).filter(Boolean))].sort();
   const selA = document.getElementById('perf-ano');
@@ -11473,8 +11473,8 @@ async function loadPerformance() {
   const prof = document.getElementById('perf-prof')?.value || '';
   const el   = id => document.getElementById(id);
 
-  // Lê do relatório único "Geral" — só linhas do tipo Serviço (Performance é performance de serviço prestado)
-  let rows = (await buscarDadosGeral()).filter(r => r.tipo_item === 'servico' && (r.servico || r.profissional));
+  // Lê do relatório único "Geral" — Serviço + Produto (profissional ganha por ambos)
+  let rows = (await buscarDadosGeral()).filter(r => r.servico || r.profissional);
 
   if (ano)  rows = rows.filter(r => r.data_comanda?.startsWith(ano));
   if (mes)  rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
@@ -15703,9 +15703,9 @@ async function loadEvolucaoProfissional() {
   const profId = selEl?.value || profs[0].id;
   const prof = profs.find(p => p.id === profId) || profs[0];
 
-  // Busca o ano inteiro de uma vez (relatório Geral) e depois separa por mês
+  // Busca o ano inteiro de uma vez (relatório Geral, Serviço + Produto) e depois separa por mês
   const linhas = (await buscarDadosGeral())
-    .filter(r => r.tipo_item === 'servico' && r.profissional && r.data_comanda && r.data_comanda.startsWith(ano));
+    .filter(r => r.profissional && r.data_comanda && r.data_comanda.startsWith(ano));
 
   const normP2 = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   const nomeNorm = normP2(prof.nome);
