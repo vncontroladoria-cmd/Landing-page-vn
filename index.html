@@ -1719,8 +1719,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
   <div class="modal" style="max-width:480px">
     <div class="modal-title">📥 Importar planilha de serviços</div>
     <p style="font-size:12px;color:var(--text2);margin:8px 0 14px">
-      A planilha precisa ter colunas com: <b>Nome/Serviço</b>, <b>Categoria</b> (opcional), <b>Preço/Valor</b> (venda) e <b>Custo</b>.
-      Se já existir um serviço com o mesmo nome, o valor é atualizado.
+      A planilha precisa ter colunas com: <b>Serviço/Nome</b>, <b>Categoria</b> (opcional), <b>Custo Serviço</b> + <b>Custo Produtos Composição</b> (somados viram o Custo) e <b>Valor</b> (venda).
+      Se já existir um serviço com o mesmo nome, o valor Realizado é atualizado (o Projetado não é mexido).
     </p>
     <input type="file" id="prf-import-file" accept=".xlsx,.xls,.csv" onchange="importarPlanilhaPrecificacao(this)">
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
@@ -1730,30 +1730,114 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 </div>
 
 <div class="modal-overlay" id="modal-precificacao-servico">
-  <div class="modal" style="max-width:420px">
+  <div class="modal" style="max-width:460px">
     <div class="modal-title" id="prf-servico-titulo">Novo Serviço</div>
     <input type="hidden" id="prf-servico-id">
     <div class="form-group">
       <label>Nome do serviço *</label>
       <input type="text" id="prf-servico-nome" placeholder="Ex: Corte Feminino">
     </div>
-    <div class="form-group">
-      <label>Categoria</label>
-      <input type="text" id="prf-servico-categoria" placeholder="Ex: Cabelo">
+    <div style="display:flex;gap:10px">
+      <div class="form-group" style="flex:1">
+        <label>Categoria</label>
+        <input type="text" id="prf-servico-categoria" placeholder="Ex: Cabelo">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Profissional</label>
+        <select id="prf-servico-profissional" onchange="prfAoTrocarProfissional()">
+          <option value="">— Nenhum —</option>
+        </select>
+      </div>
     </div>
     <div style="display:flex;gap:10px">
       <div class="form-group" style="flex:1">
-        <label>Preço de venda (R$) *</label>
-        <input type="number" id="prf-servico-preco" step="0.01" placeholder="0,00">
+        <label>Custo Realizado (R$) *</label>
+        <input type="number" id="prf-servico-custo-real" step="0.01" placeholder="0,00">
       </div>
       <div class="form-group" style="flex:1">
-        <label>Custo (R$) *</label>
-        <input type="number" id="prf-servico-custo" step="0.01" placeholder="0,00">
+        <label>Valor Final Realizado (R$) *</label>
+        <input type="number" id="prf-servico-valor-real" step="0.01" placeholder="0,00">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="form-group" style="flex:1">
+        <label>Custo Projetado (R$)</label>
+        <input type="number" id="prf-servico-custo-proj" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Valor Final Projetado (R$)</label>
+        <input type="number" id="prf-servico-valor-proj" step="0.01" placeholder="0,00">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="form-group" style="flex:1">
+        <label>Taxa Cartão (%)</label>
+        <input type="number" id="prf-servico-taxa-cartao" step="0.01" placeholder="0">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Taxa ADM (%)</label>
+        <input type="number" id="prf-servico-taxa-adm" step="0.01" placeholder="0">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Comissão (%)</label>
+        <input type="number" id="prf-servico-comissao" step="0.01" placeholder="0">
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
       <button class="btn" onclick="closeModal('modal-precificacao-servico')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarServicoPrecificacao()">✓ Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-precificacao-insumo">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="prf-insumo-titulo">Novo Insumo</div>
+    <input type="hidden" id="prf-insumo-id">
+    <div class="form-group">
+      <label>Nome *</label>
+      <input type="text" id="prf-insumo-nome" placeholder="Ex: Pó Descolorante 500g">
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="form-group" style="flex:1">
+        <label>Valor pago (R$) *</label>
+        <input type="number" id="prf-insumo-valor" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Quantidade *</label>
+        <input type="number" id="prf-insumo-quantidade" step="0.01" placeholder="Ex: 500">
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Unidade</label>
+        <select id="prf-insumo-unidade">
+          <option value="g">g (grama)</option>
+          <option value="ml">ml</option>
+          <option value="un">un (unidade)</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-precificacao-insumo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarInsumo()">✓ Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-precificacao-taxa">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title" id="prf-taxa-titulo">Nova Taxa</div>
+    <input type="hidden" id="prf-taxa-id">
+    <div class="form-group">
+      <label>Nome *</label>
+      <input type="text" id="prf-taxa-nome" placeholder="Ex: Taxa ADM, Taxa Maquininha Crédito">
+    </div>
+    <div class="form-group">
+      <label>Percentual (%) *</label>
+      <input type="number" id="prf-taxa-percentual" step="0.01" placeholder="0">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-precificacao-taxa')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTaxa()">✓ Salvar</button>
     </div>
   </div>
 </div>
@@ -4135,9 +4219,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="pg-header">
             <div>
               <div class="pg-header-title">🏷️ Precificação · Retorno por Serviço</div>
-              <div class="pg-header-sub">Importe seus serviços e veja o lucro e a margem de cada um e de cada categoria</div>
+              <div class="pg-header-sub">Custo, taxas, comissão por profissional e margem — Realizado x Projetado</div>
             </div>
             <div class="pg-header-actions">
+              <div style="display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden">
+                <button id="prf-modo-realizado" onclick="mudarModoPrecificacao('realizado')"
+                  style="padding:7px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:var(--accent);color:#fff">Realizado</button>
+                <button id="prf-modo-projetado" onclick="mudarModoPrecificacao('projetado')"
+                  style="padding:7px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:var(--bg3);color:var(--text2)">Projetado</button>
+              </div>
               <div class="filter-group">
                 <span class="filter-label">CATEGORIA</span>
                 <select class="filter-select" id="prf-categoria" onchange="loadPrecificacao()">
@@ -4154,15 +4244,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div class="hcard-info">
                 <div class="hcard-label">FATURAMENTO TOTAL</div>
                 <div class="hcard-value" id="prf-faturamento">R$ 0,00</div>
-                <div class="hcard-sub">soma do preço de venda</div>
+                <div class="hcard-sub" id="prf-faturamento-sub">soma do valor final</div>
               </div>
               <div class="hcard-icon">💰</div>
             </div>
             <div class="hcard">
               <div class="hcard-info">
-                <div class="hcard-label">LUCRO TOTAL</div>
+                <div class="hcard-label">LUCRO LÍQUIDO TOTAL</div>
                 <div class="hcard-value" id="prf-lucro">R$ 0,00</div>
-                <div class="hcard-sub">preço − custo, somado</div>
+                <div class="hcard-sub">já descontando custo, taxas e comissão</div>
               </div>
               <div class="hcard-icon">📈</div>
             </div>
@@ -4170,7 +4260,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div class="hcard-info">
                 <div class="hcard-label">MARGEM MÉDIA</div>
                 <div class="hcard-value" id="prf-margem">0%</div>
-                <div class="hcard-sub">lucro ÷ preço de venda</div>
+                <div class="hcard-sub">% do valor final</div>
               </div>
               <div class="hcard-icon">🎯</div>
             </div>
@@ -4181,6 +4271,45 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div class="hcard-sub">nesta empresa</div>
               </div>
               <div class="hcard-icon">🧾</div>
+            </div>
+          </div>
+
+          <!-- INSUMOS (produtos usados: pó, ox, coloração...) -->
+          <div class="card" style="margin-top:16px">
+            <div class="card-header">
+              <div class="card-title">🧪 Insumos / Produtos Usados</div>
+              <button class="btn btn-sm" onclick="abrirModalInsumo()">+ Insumo</button>
+            </div>
+            <div style="padding:0 16px 10px;font-size:11px;color:var(--text3)">Cadastro de referência (pó descolorante, ox, coloração...) — custo por grama/ml calculado automaticamente.</div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead><tr>
+                  <th style="padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">NOME</th>
+                  <th style="padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">VALOR PAGO</th>
+                  <th style="padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">QUANTIDADE</th>
+                  <th style="padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">CUSTO POR UNIDADE</th>
+                  <th style="padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text2)">AÇÕES</th>
+                </tr></thead>
+                <tbody id="prf-insumos-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAXAS (ADM, Maquininha...) -->
+          <div class="card" style="margin-top:16px">
+            <div class="card-header">
+              <div class="card-title">💳 Taxas (ADM, Maquininha...)</div>
+              <button class="btn btn-sm" onclick="abrirModalTaxa()">+ Taxa</button>
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <thead><tr>
+                  <th style="padding:7px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">NOME</th>
+                  <th style="padding:7px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">PERCENTUAL</th>
+                  <th style="padding:7px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text2)">AÇÕES</th>
+                </tr></thead>
+                <tbody id="prf-taxas-tbody"></tbody>
+              </table>
             </div>
           </div>
 
@@ -4207,18 +4336,21 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <div class="card" style="margin-top:16px">
             <div class="card-header">
-              <div class="card-title">📋 Todos os serviços</div>
+              <div class="card-title">📋 Todos os serviços — <span id="prf-modo-label">Realizado</span></div>
             </div>
             <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;font-size:12px" id="prf-tabela">
+              <table style="width:100%;border-collapse:collapse;font-size:11px" id="prf-tabela">
                 <thead><tr>
-                  <th style="padding:8px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">SERVIÇO</th>
-                  <th style="padding:8px 10px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">CATEGORIA</th>
-                  <th style="padding:8px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">PREÇO VENDA</th>
-                  <th style="padding:8px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">CUSTO</th>
-                  <th style="padding:8px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">LUCRO</th>
-                  <th style="padding:8px 10px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">MARGEM</th>
-                  <th style="padding:8px 10px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text2)">AÇÕES</th>
+                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">NOME</th>
+                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">CATEGORIA</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">CUSTO</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">TAXA CARTÃO</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">TAXA ADM</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">COMISSÃO %</th>
+                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">PROFISSIONAL</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">VALOR FINAL</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">% VALOR FINAL</th>
+                  <th style="padding:7px 8px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text2)">AÇÕES</th>
                 </tr></thead>
                 <tbody id="prf-tbody"></tbody>
               </table>
@@ -20152,18 +20284,182 @@ function toggleCamposRecorrencia() {
 // PRECIFICAÇÃO
 // ═══════════════════════════════════════════════════════════
 let _precificacaoData = [];
+let _prfInsumos = [];
+let _prfTaxas = [];
+let _prfProfissionais = [];
+window._prfModo = window._prfModo || 'realizado'; // 'realizado' | 'projetado'
 
 async function initPrecificacao() {
+  const { data: profs } = await qE('profissionais').select('id,nome,comissao').order('nome');
+  _prfProfissionais = profs || [];
+  const selProf = document.getElementById('prf-servico-profissional');
+  if (selProf) selProf.innerHTML = '<option value="">— Nenhum —</option>' + _prfProfissionais.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+
+  await carregarInsumos();
+  await carregarTaxas();
   await loadPrecificacao();
 }
 
+function mudarModoPrecificacao(modo) {
+  window._prfModo = modo;
+  const btnR = document.getElementById('prf-modo-realizado');
+  const btnP = document.getElementById('prf-modo-projetado');
+  if (btnR) { btnR.style.background = modo==='realizado' ? 'var(--accent)' : 'var(--bg3)'; btnR.style.color = modo==='realizado' ? '#fff' : 'var(--text2)'; }
+  if (btnP) { btnP.style.background = modo==='projetado' ? 'var(--accent)' : 'var(--bg3)'; btnP.style.color = modo==='projetado' ? '#fff' : 'var(--text2)'; }
+  const lbl = document.getElementById('prf-modo-label');
+  if (lbl) lbl.textContent = modo==='realizado' ? 'Realizado' : 'Projetado';
+  loadPrecificacao();
+}
+
+// ── INSUMOS ──────────────────────────────────────────────
+async function carregarInsumos() {
+  const { data } = await qE('precificacao_insumos').select('*').order('nome');
+  _prfInsumos = data || [];
+  const tbody = document.getElementById('prf-insumos-tbody');
+  if (!tbody) return;
+  const fmt = v => 'R$ ' + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  tbody.innerHTML = _prfInsumos.length ? _prfInsumos.map(i => {
+    const custoUn = i.quantidade > 0 ? i.valor / i.quantidade : 0;
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 10px;font-weight:600">${i.nome}</td>
+      <td style="padding:6px 10px;text-align:right">${fmt(i.valor)}</td>
+      <td style="padding:6px 10px;text-align:right">${i.quantidade} ${i.unidade}</td>
+      <td style="padding:6px 10px;text-align:right;font-weight:700;color:var(--accent)">${fmt(custoUn)} / ${i.unidade}</td>
+      <td style="padding:6px 10px;text-align:center">
+        <button class="btn btn-sm" onclick="editarInsumo('${i.id}')" style="padding:4px 8px">✏️</button>
+        <button class="btn btn-sm" onclick="excluirInsumo('${i.id}')" style="padding:4px 8px;color:var(--red)">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--text3)">Nenhum insumo cadastrado.</td></tr>`;
+}
+
+function abrirModalInsumo() {
+  document.getElementById('prf-insumo-titulo').textContent = 'Novo Insumo';
+  document.getElementById('prf-insumo-id').value = '';
+  document.getElementById('prf-insumo-nome').value = '';
+  document.getElementById('prf-insumo-valor').value = '';
+  document.getElementById('prf-insumo-quantidade').value = '';
+  document.getElementById('prf-insumo-unidade').value = 'g';
+  document.getElementById('modal-precificacao-insumo').classList.add('open');
+}
+
+function editarInsumo(id) {
+  const i = _prfInsumos.find(x => x.id === id);
+  if (!i) return;
+  document.getElementById('prf-insumo-titulo').textContent = 'Editar Insumo';
+  document.getElementById('prf-insumo-id').value = i.id;
+  document.getElementById('prf-insumo-nome').value = i.nome;
+  document.getElementById('prf-insumo-valor').value = i.valor;
+  document.getElementById('prf-insumo-quantidade').value = i.quantidade;
+  document.getElementById('prf-insumo-unidade').value = i.unidade || 'g';
+  document.getElementById('modal-precificacao-insumo').classList.add('open');
+}
+
+async function salvarInsumo() {
+  const id = document.getElementById('prf-insumo-id').value;
+  const nome = document.getElementById('prf-insumo-nome').value.trim();
+  const valor = parseFloat(document.getElementById('prf-insumo-valor').value) || 0;
+  const quantidade = parseFloat(document.getElementById('prf-insumo-quantidade').value) || 0;
+  const unidade = document.getElementById('prf-insumo-unidade').value;
+  if (!nome) { showToast('Preencha o nome', 'error'); return; }
+  const payload = { nome, valor, quantidade, unidade };
+  const { error } = id
+    ? await sb.from('precificacao_insumos').update(payload).eq('id', id)
+    : await sb.from('precificacao_insumos').insert(addEmpresaId(payload));
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Salvo!', 'success');
+  closeModal('modal-precificacao-insumo');
+  carregarInsumos();
+}
+
+async function excluirInsumo(id) {
+  if (!confirm('Excluir este insumo?')) return;
+  await sb.from('precificacao_insumos').delete().eq('id', id);
+  showToast('Excluído!', 'success');
+  carregarInsumos();
+}
+
+// ── TAXAS ────────────────────────────────────────────────
+async function carregarTaxas() {
+  const { data } = await qE('precificacao_taxas').select('*').order('nome');
+  _prfTaxas = data || [];
+  const tbody = document.getElementById('prf-taxas-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = _prfTaxas.length ? _prfTaxas.map(t => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 10px;font-weight:600">${t.nome}</td>
+      <td style="padding:6px 10px;text-align:right;font-weight:700;color:var(--accent)">${Number(t.percentual).toFixed(2)}%</td>
+      <td style="padding:6px 10px;text-align:center">
+        <button class="btn btn-sm" onclick="editarTaxa('${t.id}')" style="padding:4px 8px">✏️</button>
+        <button class="btn btn-sm" onclick="excluirTaxa('${t.id}')" style="padding:4px 8px;color:var(--red)">🗑️</button>
+      </td>
+    </tr>`
+  ).join('') : `<tr><td colspan="3" style="padding:14px;text-align:center;color:var(--text3)">Nenhuma taxa cadastrada.</td></tr>`;
+}
+
+function abrirModalTaxa() {
+  document.getElementById('prf-taxa-titulo').textContent = 'Nova Taxa';
+  document.getElementById('prf-taxa-id').value = '';
+  document.getElementById('prf-taxa-nome').value = '';
+  document.getElementById('prf-taxa-percentual').value = '';
+  document.getElementById('modal-precificacao-taxa').classList.add('open');
+}
+
+function editarTaxa(id) {
+  const t = _prfTaxas.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('prf-taxa-titulo').textContent = 'Editar Taxa';
+  document.getElementById('prf-taxa-id').value = t.id;
+  document.getElementById('prf-taxa-nome').value = t.nome;
+  document.getElementById('prf-taxa-percentual').value = t.percentual;
+  document.getElementById('modal-precificacao-taxa').classList.add('open');
+}
+
+async function salvarTaxa() {
+  const id = document.getElementById('prf-taxa-id').value;
+  const nome = document.getElementById('prf-taxa-nome').value.trim();
+  const percentual = parseFloat(document.getElementById('prf-taxa-percentual').value) || 0;
+  if (!nome) { showToast('Preencha o nome', 'error'); return; }
+  const payload = { nome, percentual };
+  const { error } = id
+    ? await sb.from('precificacao_taxas').update(payload).eq('id', id)
+    : await sb.from('precificacao_taxas').insert(addEmpresaId(payload));
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Salvo!', 'success');
+  closeModal('modal-precificacao-taxa');
+  carregarTaxas();
+}
+
+async function excluirTaxa(id) {
+  if (!confirm('Excluir esta taxa?')) return;
+  await sb.from('precificacao_taxas').delete().eq('id', id);
+  showToast('Excluído!', 'success');
+  carregarTaxas();
+}
+
+// Ao trocar o profissional no modal de serviço, sugere a comissão dele já cadastrada
+function prfAoTrocarProfissional() {
+  const profId = document.getElementById('prf-servico-profissional').value;
+  const prof = _prfProfissionais.find(p => p.id === profId);
+  const campoComissao = document.getElementById('prf-servico-comissao');
+  if (prof && campoComissao && !campoComissao.value) campoComissao.value = prof.comissao || '';
+}
+
+// ── SERVIÇOS (tabela principal) ──────────────────────────
 async function loadPrecificacao() {
-  const { data, error } = await qE('precificacao_servicos').select('*').order('nome');
+  const { data, error } = await qE('precificacao_servicos').select('*, profissionais(nome)').order('nome');
   if (error) { showToast('Erro ao carregar: ' + error.message, 'error'); return; }
+
+  const modo = window._prfModo;
   _precificacaoData = (data || []).map(s => {
-    const lucro = Number(s.preco_venda||0) - Number(s.custo||0);
-    const margem = s.preco_venda ? (lucro / Number(s.preco_venda) * 100) : 0;
-    return { ...s, lucro, margem };
+    const custo  = Number(modo==='realizado' ? s.custo_realizado : s.custo_projetado) || 0;
+    const valor  = Number(modo==='realizado' ? s.valor_realizado : s.valor_projetado) || 0;
+    const taxaCartaoValor = valor * (Number(s.taxa_cartao_pct)||0) / 100;
+    const taxaAdmValor    = valor * (Number(s.taxa_adm_pct)||0) / 100;
+    const comissaoValor   = valor * (Number(s.comissao_pct)||0) / 100;
+    const lucro = valor - custo - taxaCartaoValor - taxaAdmValor - comissaoValor;
+    const margem = valor ? (lucro / valor * 100) : 0;
+    return { ...s, custo, valor, lucro, margem, profissionalNome: s.profissionais?.nome || '' };
   });
 
   // Popular filtro de categoria
@@ -20182,7 +20478,7 @@ async function loadPrecificacao() {
 function renderPrecificacao(lista) {
   const fmt = v => 'R$ ' + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 
-  const faturamento = lista.reduce((s,x) => s + Number(x.preco_venda||0), 0);
+  const faturamento = lista.reduce((s,x) => s + x.valor, 0);
   const lucroTotal = lista.reduce((s,x) => s + x.lucro, 0);
   const margemMedia = faturamento ? (lucroTotal/faturamento*100) : 0;
 
@@ -20190,8 +20486,9 @@ function renderPrecificacao(lista) {
   document.getElementById('prf-lucro').textContent = fmt(lucroTotal);
   document.getElementById('prf-margem').textContent = margemMedia.toFixed(1) + '%';
   document.getElementById('prf-total-servicos').textContent = lista.length;
+  const subF = document.getElementById('prf-faturamento-sub');
+  if (subF) subF.textContent = `soma do valor final (${window._prfModo})`;
 
-  // Ranking mais/menos rentáveis (por margem %)
   const ordenado = [...lista].sort((a,b) => b.margem - a.margem);
   const top5 = ordenado.slice(0,5);
   const bottom5 = ordenado.slice(-5).reverse();
@@ -20199,7 +20496,7 @@ function renderPrecificacao(lista) {
   const linhaRanking = s => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <div>
-        <div style="font-weight:600;font-size:13px">${s.nome}</div>
+        <div style="font-weight:600;font-size:13px">${s.nome}${s.profissionalNome?` <span style="font-weight:400;color:var(--text2)">· ${s.profissionalNome}</span>`:''}</div>
         <div style="font-size:11px;color:var(--text2)">${s.categoria || 'Sem categoria'}</div>
       </div>
       <div style="text-align:right">
@@ -20213,12 +20510,11 @@ function renderPrecificacao(lista) {
   document.getElementById('prf-top-prejuizo').innerHTML = bottom5.length
     ? bottom5.map(linhaRanking).join('') : `<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum serviço cadastrado ainda.</div>`;
 
-  // Lucro por categoria
   const porCat = {};
   lista.forEach(s => {
     const c = s.categoria || 'Sem categoria';
     if (!porCat[c]) porCat[c] = { faturamento:0, lucro:0, qtd:0 };
-    porCat[c].faturamento += Number(s.preco_venda||0);
+    porCat[c].faturamento += s.valor;
     porCat[c].lucro += s.lucro;
     porCat[c].qtd++;
   });
@@ -20235,21 +20531,23 @@ function renderPrecificacao(lista) {
         </div>`;
       }).join('') : `<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum serviço cadastrado ainda.</div>`;
 
-  // Tabela completa
   document.getElementById('prf-tbody').innerHTML = ordenado.length ? ordenado.map(s => `
     <tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:8px 10px;font-weight:600">${s.nome}</td>
-      <td style="padding:8px 10px;color:var(--text2)">${s.categoria || '—'}</td>
-      <td style="padding:8px 10px;text-align:right">${fmt(s.preco_venda)}</td>
-      <td style="padding:8px 10px;text-align:right">${fmt(s.custo)}</td>
-      <td style="padding:8px 10px;text-align:right;font-weight:700;color:${s.lucro>=0?'var(--green)':'var(--red)'}">${fmt(s.lucro)}</td>
-      <td style="padding:8px 10px;text-align:right">${s.margem.toFixed(1)}%</td>
-      <td style="padding:8px 10px;text-align:center">
+      <td style="padding:7px 8px;font-weight:600">${s.nome}</td>
+      <td style="padding:7px 8px;color:var(--text2)">${s.categoria || '—'}</td>
+      <td style="padding:7px 8px;text-align:right">${fmt(s.custo)}</td>
+      <td style="padding:7px 8px;text-align:right">${Number(s.taxa_cartao_pct||0).toFixed(1)}%</td>
+      <td style="padding:7px 8px;text-align:right">${Number(s.taxa_adm_pct||0).toFixed(1)}%</td>
+      <td style="padding:7px 8px;text-align:right">${Number(s.comissao_pct||0).toFixed(1)}%</td>
+      <td style="padding:7px 8px;color:var(--text2)">${s.profissionalNome || '—'}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:700">${fmt(s.valor)}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:700;color:${s.margem>=0?'var(--green)':'var(--red)'}">${s.margem.toFixed(1)}%</td>
+      <td style="padding:7px 8px;text-align:center">
         <button class="btn btn-sm" onclick="editarServicoPrecificacao('${s.id}')" style="padding:4px 8px">✏️</button>
         <button class="btn btn-sm" onclick="excluirServicoPrecificacao('${s.id}')" style="padding:4px 8px;color:var(--red)">🗑️</button>
       </td>
     </tr>
-  `).join('') : `<tr><td colspan="7" style="padding:16px;text-align:center;color:var(--text3)">Nenhum serviço cadastrado. Importe uma planilha ou clique em "+ Serviço".</td></tr>`;
+  `).join('') : `<tr><td colspan="10" style="padding:16px;text-align:center;color:var(--text3)">Nenhum serviço cadastrado. Importe uma planilha ou clique em "+ Serviço".</td></tr>`;
 }
 
 function abrirModalImportarPrecificacao() {
@@ -20271,26 +20569,34 @@ async function importarPlanilhaPrecificacao(input) {
     const get = (r,...ns) => { for(const n of ns){ const k=cols.find(c=>norm(c).includes(norm(n))); if(k&&r[k]!=null&&r[k]!=='')return String(r[k]).trim(); } return ''; };
     const parseN = v => { const s=String(v||'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
 
-    const importados = rows.map(r => ({
-      nome: get(r,'Nome','Servico','Serviço','Descricao','Descrição'),
-      categoria: get(r,'Categoria','categoria') || null,
-      preco_venda: parseN(get(r,'Preco','Preço','Valor','ValorVenda','PrecoVenda')),
-      custo: parseN(get(r,'Custo','custo')),
-    })).filter(r => r.nome);
+    const importados = rows.map(r => {
+      const custoServico = parseN(get(r,'Custo Serviço','CustoServico'));
+      const custoProdutos = parseN(get(r,'Custo Produtos Composição','CustoProdutosComposicao','Custo Produtos'));
+      return {
+        nome: get(r,'Serviço','Servico','Nome','Descricao','Descrição'),
+        categoria: get(r,'Categoria','categoria') || null,
+        custo_realizado: custoServico + custoProdutos,
+        valor_realizado: parseN(get(r,'Valor','Preco','Preço','ValorVenda','PrecoVenda')),
+      };
+    }).filter(r => r.nome);
 
-    if (!importados.length) { showToast('Não achei colunas de Nome/Preço/Custo na planilha.', 'error'); return; }
+    if (!importados.length) { showToast('Não achei colunas de Serviço/Custo/Valor na planilha.', 'error'); return; }
 
-    // Atualiza os que já existem (por nome), insere os novos
     const { data: existentes } = await qE('precificacao_servicos').select('id,nome');
-    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
     let atualizados = 0, criados = 0;
     for (const item of importados) {
       const jaExiste = existentes?.find(e => e.nome.toLowerCase().trim() === item.nome.toLowerCase().trim());
       if (jaExiste) {
-        await sb.from('precificacao_servicos').update({ categoria:item.categoria, preco_venda:item.preco_venda, custo:item.custo }).eq('id', jaExiste.id);
+        // Só atualiza o Realizado — o Projetado fica intacto pro usuário planejar em cima
+        await sb.from('precificacao_servicos').update({
+          categoria: item.categoria, custo_realizado: item.custo_realizado, valor_realizado: item.valor_realizado
+        }).eq('id', jaExiste.id);
         atualizados++;
       } else {
-        await sb.from('precificacao_servicos').insert(addEmpresaId(item));
+        // Ao criar, projetado começa igual ao realizado (usuário ajusta depois)
+        await sb.from('precificacao_servicos').insert(addEmpresaId({
+          ...item, custo_projetado: item.custo_realizado, valor_projetado: item.valor_realizado
+        }));
         criados++;
       }
     }
@@ -20305,8 +20611,14 @@ function abrirModalServicoPrecificacao() {
   document.getElementById('prf-servico-id').value = '';
   document.getElementById('prf-servico-nome').value = '';
   document.getElementById('prf-servico-categoria').value = '';
-  document.getElementById('prf-servico-preco').value = '';
-  document.getElementById('prf-servico-custo').value = '';
+  document.getElementById('prf-servico-profissional').value = '';
+  document.getElementById('prf-servico-custo-real').value = '';
+  document.getElementById('prf-servico-valor-real').value = '';
+  document.getElementById('prf-servico-custo-proj').value = '';
+  document.getElementById('prf-servico-valor-proj').value = '';
+  document.getElementById('prf-servico-taxa-cartao').value = '';
+  document.getElementById('prf-servico-taxa-adm').value = '';
+  document.getElementById('prf-servico-comissao').value = '';
   document.getElementById('modal-precificacao-servico').classList.add('open');
 }
 
@@ -20317,8 +20629,14 @@ function editarServicoPrecificacao(id) {
   document.getElementById('prf-servico-id').value = s.id;
   document.getElementById('prf-servico-nome').value = s.nome;
   document.getElementById('prf-servico-categoria').value = s.categoria || '';
-  document.getElementById('prf-servico-preco').value = s.preco_venda;
-  document.getElementById('prf-servico-custo').value = s.custo;
+  document.getElementById('prf-servico-profissional').value = s.profissional_id || '';
+  document.getElementById('prf-servico-custo-real').value = s.custo_realizado;
+  document.getElementById('prf-servico-valor-real').value = s.valor_realizado;
+  document.getElementById('prf-servico-custo-proj').value = s.custo_projetado;
+  document.getElementById('prf-servico-valor-proj').value = s.valor_projetado;
+  document.getElementById('prf-servico-taxa-cartao').value = s.taxa_cartao_pct;
+  document.getElementById('prf-servico-taxa-adm').value = s.taxa_adm_pct;
+  document.getElementById('prf-servico-comissao').value = s.comissao_pct;
   document.getElementById('modal-precificacao-servico').classList.add('open');
 }
 
@@ -20326,11 +20644,17 @@ async function salvarServicoPrecificacao() {
   const id = document.getElementById('prf-servico-id').value;
   const nome = document.getElementById('prf-servico-nome').value.trim();
   const categoria = document.getElementById('prf-servico-categoria').value.trim() || null;
-  const preco_venda = parseFloat(document.getElementById('prf-servico-preco').value) || 0;
-  const custo = parseFloat(document.getElementById('prf-servico-custo').value) || 0;
+  const profissional_id = document.getElementById('prf-servico-profissional').value || null;
+  const custo_realizado = parseFloat(document.getElementById('prf-servico-custo-real').value) || 0;
+  const valor_realizado = parseFloat(document.getElementById('prf-servico-valor-real').value) || 0;
+  const custo_projetado = parseFloat(document.getElementById('prf-servico-custo-proj').value) || custo_realizado;
+  const valor_projetado = parseFloat(document.getElementById('prf-servico-valor-proj').value) || valor_realizado;
+  const taxa_cartao_pct = parseFloat(document.getElementById('prf-servico-taxa-cartao').value) || 0;
+  const taxa_adm_pct = parseFloat(document.getElementById('prf-servico-taxa-adm').value) || 0;
+  const comissao_pct = parseFloat(document.getElementById('prf-servico-comissao').value) || 0;
   if (!nome) { showToast('Preencha o nome do serviço', 'error'); return; }
 
-  const payload = { nome, categoria, preco_venda, custo };
+  const payload = { nome, categoria, profissional_id, custo_realizado, valor_realizado, custo_projetado, valor_projetado, taxa_cartao_pct, taxa_adm_pct, comissao_pct };
   const { error } = id
     ? await sb.from('precificacao_servicos').update(payload).eq('id', id)
     : await sb.from('precificacao_servicos').insert(addEmpresaId(payload));
