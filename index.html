@@ -7921,47 +7921,14 @@ async function loadDashboard() {
 
   // entradas/saidas preenchidos abaixo junto com os outros cards
 
-  // ── 2. Dados de serviços ──────────────────────────────
-  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-  const tipoSrv  = (tipos||[]).find(t=>t.nome.toLowerCase().includes('servi')&&!t.nome.toLowerCase().includes('cliente'));
-  const tipoProd = (tipos||[]).find(t=>t.nome.toLowerCase().includes('produto'));
-
+  // ── 2. Dados de serviços e produtos — relatório único "Geral" ──
   let srvRows = [], prodRows = [];
-  const anoMes = mes ? `${ano}-${mes}` : ano;
-
-  // Busca rel_servicos direto — filtra client-side pra não perder dados por formato de data
   try {
-    const { data } = await qE('rel_servicos').select('*').limit(15000);
-    let todos = (data||[]).map(r => {
-      r.total = Number(r.total||0)||Number(r.valor||0)*Number(r.qtd||1);
-      // Normaliza data_comanda para YYYY-MM-DD
-      if (r.data_comanda && /^\d{2}\/\d{2}\/\d{4}/.test(r.data_comanda)) {
-        const [d,m2,a2] = r.data_comanda.split('/');
-        r.data_comanda = `${a2}-${m2}-${d}`;
-      }
-      return r;
-    });
-    // Normaliza datas — aceita YYYY-MM-DD e DD/MM/YYYY
-    todos = todos.map(r => {
-      if (r.data_comanda && /^\d{2}\/\d{2}\/\d{4}/.test(r.data_comanda)) {
-        const [d,m2,a2] = r.data_comanda.split('/');
-        r.data_comanda = `${a2}-${m2}-${d}`;
-      }
-      return r;
-    });
-    const filtrados = todos.filter(r => r.data_comanda >= ini && r.data_comanda <= fim);
-    srvRows = filtrados.length ? filtrados : await loadSrvPeriodo(ini, fim);
-  } catch(e) { console.warn('rel_servicos:', e); }
-
-  if (tipoProd) {
-    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id',tipoProd.id).limit(5000);
-    const todos = (data||[]).map(r=>parseProdRow(r.colunas)).filter(r=>r.produto);
-    const filtrados = todos.filter(r=>r.data && r.data >= ini && r.data <= fim);
-    prodRows = filtrados;
-    if (filtrados.length === 0 && todos.length > 0) {
-      if(el('m-prod-d')) el('m-prod-d').textContent = 'todos os períodos';
-    }
-  }
+    const dadosGeralDash = await buscarDadosGeral();
+    srvRows = dadosGeralDash.filter(r => r.tipo_item === 'servico' && r.data_comanda >= ini && r.data_comanda <= fim);
+    prodRows = dadosGeralDash.filter(r => r.tipo_item === 'produto' && r.data_comanda >= ini && r.data_comanda <= fim)
+      .map(r => ({ produto: r.servico, qtd: r.qtd, data: r.data_comanda }));
+  } catch(e) { console.warn('dados Geral (dashboard):', e); }
 
   // ── Faturamento = soma PDV (Comanda + Crédito + Débito + Pix) ──
   // pdvDiario e pdvTotCat são calculados mais abaixo; precisamos calculá-los agora
@@ -8049,9 +8016,12 @@ async function loadDashboard() {
       // Agrega PDV para o período (mesmo cálculo do DRE)
       let pdvDRECat = {}; // { catNome|mes: valor }
       try {
-        const { data: catsPdvDreDash } = await qE('pdv_categorias').select('nome,aparece_dre');
+        const { data: catsPdvDreDash } = await qE('pdv_categorias').select('nome,aparece_dre,categoria_plano');
         const normCatDreDash = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+(master\s*card|visa|elo|amex|hipercard|hiper).*/i,'').trim();
         const catsForaDreDash = new Set((catsPdvDreDash||[]).filter(c => c.aparece_dre === false).map(c => normCatDreDash(c.nome)));
+        // Mapa: nome da categoria do PDV -> nome da categoria do Plano de Contas vinculada (mesma tradução do DRE de verdade)
+        const mapaCatPlanoDash = {};
+        (catsPdvDreDash||[]).forEach(c => { if (c.categoria_plano) mapaCatPlanoDash[normCatDreDash(c.nome)] = c.categoria_plano; });
 
         const { data: cxDRE } = await qE('pdv_caixas').select('id,data_caixa')
           .gte('data_caixa', ini).lte('data_caixa', fim);
@@ -8066,8 +8036,11 @@ async function loadDashboard() {
           pdvIt.filter(it=>it.tipo==='ENTRADA').forEach(it=>{
             const m = cxMes[it.caixa_id]; if(!m) return;
             const nomeIt = (it.forma_pagamento||'').trim();
-            if (catsForaDreDash.has(normCatDreDash(nomeIt))) return; // categoria marcada como fora do DRE
-            const chave = nomeIt + '|' + m;
+            const nomeNorm = normCatDreDash(nomeIt);
+            if (catsForaDreDash.has(nomeNorm)) return; // categoria marcada como fora do DRE
+            // Usa o nome traduzido (categoria_plano) se existir vínculo — senão usa o nome cru
+            const nomeAgregado = mapaCatPlanoDash[nomeNorm] || nomeIt;
+            const chave = nomeAgregado + '|' + m;
             pdvDRECat[chave] = (pdvDRECat[chave]||0) + Number(it.valor||0);
           });
         }
