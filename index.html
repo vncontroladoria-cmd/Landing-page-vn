@@ -4274,6 +4274,46 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
+          <div class="card" style="margin-top:16px">
+            <div class="card-header">
+              <div class="card-title">📋 Todos os serviços — <span id="prf-modo-label">Realizado</span></div>
+              <div style="font-size:11px;color:var(--text3)">Clique em qualquer campo pra editar direto</div>
+            </div>
+            <div style="overflow-x:auto">
+              <table style="width:100%;border-collapse:collapse;font-size:11px" id="prf-tabela">
+                <thead><tr>
+                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">NOME</th>
+                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">CATEGORIA</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">CUSTO</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">TAXA CARTÃO</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">TAXA ADM</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">COMISSÃO %</th>
+                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">PROFISSIONAL</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">VALOR FINAL</th>
+                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">% VALOR FINAL</th>
+                  <th style="padding:7px 8px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text2)">AÇÕES</th>
+                </tr></thead>
+                <tbody id="prf-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- RESUMOS COMPACTOS lado a lado -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:16px">
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">🏆 Mais rentáveis</div>
+              <div id="prf-top-lucrativos" style="padding:6px 12px;max-height:220px;overflow-y:auto"></div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">⚠️ Menos rentáveis</div>
+              <div id="prf-top-prejuizo" style="padding:6px 12px;max-height:220px;overflow-y:auto"></div>
+            </div>
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:8px 12px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:12px">📊 Lucro por categoria</div>
+              <div id="prf-por-categoria" style="padding:6px 12px;max-height:220px;overflow-y:auto"></div>
+            </div>
+          </div>
+
           <!-- INSUMOS (produtos usados: pó, ox, coloração...) -->
           <div class="card" style="margin-top:16px">
             <div class="card-header">
@@ -4313,49 +4353,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <div class="card" style="margin-top:16px">
-            <div class="card-header">
-              <div class="card-title">🏆 Mais rentáveis</div>
-            </div>
-            <div id="prf-top-lucrativos" style="padding:10px 16px"></div>
-          </div>
-
-          <div class="card" style="margin-top:16px">
-            <div class="card-header">
-              <div class="card-title">⚠️ Menos rentáveis (atenção no preço)</div>
-            </div>
-            <div id="prf-top-prejuizo" style="padding:10px 16px"></div>
-          </div>
-
-          <div class="card" style="margin-top:16px">
-            <div class="card-header">
-              <div class="card-title">📊 Lucro por categoria</div>
-            </div>
-            <div id="prf-por-categoria" style="padding:10px 16px"></div>
-          </div>
-
-          <div class="card" style="margin-top:16px">
-            <div class="card-header">
-              <div class="card-title">📋 Todos os serviços — <span id="prf-modo-label">Realizado</span></div>
-            </div>
-            <div style="overflow-x:auto">
-              <table style="width:100%;border-collapse:collapse;font-size:11px" id="prf-tabela">
-                <thead><tr>
-                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">NOME</th>
-                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">CATEGORIA</th>
-                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">CUSTO</th>
-                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">TAXA CARTÃO</th>
-                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">TAXA ADM</th>
-                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">COMISSÃO %</th>
-                  <th style="padding:7px 8px;text-align:left;border-bottom:1.5px solid var(--border);color:var(--text2)">PROFISSIONAL</th>
-                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">VALOR FINAL</th>
-                  <th style="padding:7px 8px;text-align:right;border-bottom:1.5px solid var(--border);color:var(--text2)">% VALOR FINAL</th>
-                  <th style="padding:7px 8px;text-align:center;border-bottom:1.5px solid var(--border);color:var(--text2)">AÇÕES</th>
-                </tr></thead>
-                <tbody id="prf-tbody"></tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         <!-- MÉTRICAS -->
@@ -20540,23 +20537,68 @@ function renderPrecificacao(lista) {
         </div>`;
       }).join('') : `<div style="color:var(--text3);font-size:12px;padding:8px 0">Nenhum serviço cadastrado ainda.</div>`;
 
+  const inputStyle = 'width:70px;padding:4px 6px;font-size:11px;border:1px solid transparent;border-radius:5px;background:transparent;text-align:right;font-family:inherit;color:inherit';
+  const inputStyleFocus = "this.style.border='1px solid var(--accent)';this.style.background='var(--bg2)'";
+  const inputStyleBlur = "this.style.border='1px solid transparent';this.style.background='transparent'";
+  const optsProf = s => `<option value="">—</option>` + _prfProfissionais.map(p => `<option value="${p.id}" ${p.id===s.profissional_id?'selected':''}>${p.nome}</option>`).join('');
+
   document.getElementById('prf-tbody').innerHTML = ordenado.length ? ordenado.map(s => `
     <tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:7px 8px;font-weight:600">${s.nome}</td>
-      <td style="padding:7px 8px;color:var(--text2)">${s.categoria || '—'}</td>
-      <td style="padding:7px 8px;text-align:right">${fmt(s.custo)}</td>
-      <td style="padding:7px 8px;text-align:right">${Number(s.taxa_cartao_pct||0).toFixed(1)}%</td>
-      <td style="padding:7px 8px;text-align:right">${Number(s.taxa_adm_pct||0).toFixed(1)}%</td>
-      <td style="padding:7px 8px;text-align:right">${Number(s.comissao_pct||0).toFixed(1)}%</td>
-      <td style="padding:7px 8px;color:var(--text2)">${s.profissionalNome || '—'}</td>
-      <td style="padding:7px 8px;text-align:right;font-weight:700">${fmt(s.valor)}</td>
+      <td style="padding:4px 8px;font-weight:600">
+        <input value="${s.nome.replace(/"/g,'&quot;')}" onfocus="${inputStyleFocus}" onblur="${inputStyleBlur}"
+          onchange="prfEditarCampo('${s.id}','nome',this.value)"
+          style="${inputStyle};width:140px;text-align:left;font-weight:600">
+      </td>
+      <td style="padding:4px 8px">
+        <input value="${(s.categoria||'').replace(/"/g,'&quot;')}" onfocus="${inputStyleFocus}" onblur="${inputStyleBlur}"
+          onchange="prfEditarCampo('${s.id}','categoria',this.value)"
+          style="${inputStyle};width:100px;text-align:left;color:var(--text2)">
+      </td>
+      <td style="padding:4px 8px">
+        <input type="number" step="0.01" value="${s.custo}" onfocus="${inputStyleFocus}" onblur="${inputStyleBlur}"
+          onchange="prfEditarCampo('${s.id}','custo_${window._prfModo}',this.value)"
+          style="${inputStyle}">
+      </td>
+      <td style="padding:4px 8px">
+        <input type="number" step="0.01" value="${s.taxa_cartao_pct||0}" onfocus="${inputStyleFocus}" onblur="${inputStyleBlur}"
+          onchange="prfEditarCampo('${s.id}','taxa_cartao_pct',this.value)"
+          style="${inputStyle};width:50px">%
+      </td>
+      <td style="padding:4px 8px">
+        <input type="number" step="0.01" value="${s.taxa_adm_pct||0}" onfocus="${inputStyleFocus}" onblur="${inputStyleBlur}"
+          onchange="prfEditarCampo('${s.id}','taxa_adm_pct',this.value)"
+          style="${inputStyle};width:50px">%
+      </td>
+      <td style="padding:4px 8px">
+        <input type="number" step="0.01" value="${s.comissao_pct||0}" onfocus="${inputStyleFocus}" onblur="${inputStyleBlur}"
+          onchange="prfEditarCampo('${s.id}','comissao_pct',this.value)"
+          style="${inputStyle};width:50px">%
+      </td>
+      <td style="padding:4px 8px">
+        <select onchange="prfEditarCampo('${s.id}','profissional_id',this.value)"
+          style="padding:4px 6px;font-size:11px;border:1px solid transparent;border-radius:5px;background:transparent;font-family:inherit;color:var(--text2)"
+          onfocus="${inputStyleFocus}" onblur="${inputStyleBlur}">${optsProf(s)}</select>
+      </td>
+      <td style="padding:4px 8px">
+        <input type="number" step="0.01" value="${s.valor}" onfocus="${inputStyleFocus}" onblur="${inputStyleBlur}"
+          onchange="prfEditarCampo('${s.id}','valor_${window._prfModo}',this.value)"
+          style="${inputStyle};font-weight:700">
+      </td>
       <td style="padding:7px 8px;text-align:right;font-weight:700;color:${s.margem>=0?'var(--green)':'var(--red)'}">${s.margem.toFixed(1)}%</td>
       <td style="padding:7px 8px;text-align:center">
-        <button class="btn btn-sm" onclick="editarServicoPrecificacao('${s.id}')" style="padding:4px 8px">✏️</button>
         <button class="btn btn-sm" onclick="excluirServicoPrecificacao('${s.id}')" style="padding:4px 8px;color:var(--red)">🗑️</button>
       </td>
     </tr>
   `).join('') : `<tr><td colspan="10" style="padding:16px;text-align:center;color:var(--text3)">Nenhum serviço cadastrado. Importe uma planilha ou clique em "+ Serviço".</td></tr>`;
+}
+
+// Edita um campo direto na tabela, sem abrir modal
+async function prfEditarCampo(id, campo, valor) {
+  const ehNumero = !['nome','categoria','profissional_id'].includes(campo);
+  const payload = { [campo]: ehNumero ? (parseFloat(valor)||0) : (valor || null) };
+  const { error } = await sb.from('precificacao_servicos').update(payload).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  loadPrecificacao();
 }
 
 function abrirModalImportarPrecificacao() {
