@@ -10422,7 +10422,7 @@ async function loadLucratividade() {
     const faturado = r.valor_cobrado;
     const custo_comissao = r.total; // comissão paga ao profissional
     const custo_servico  = r.custo; // custo do serviço/produto em si
-    const lucro = r.liquido || (faturado - custo_comissao - custo_servico);
+    const lucro = faturado - custo_comissao - custo_servico; // calculado, não usa a coluna Líquido
     return {
       data_comanda: r.data_comanda,
       numero_comanda: r.numero_comanda,
