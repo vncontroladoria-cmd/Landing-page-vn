@@ -14437,7 +14437,9 @@ async function loadDRE() {
   let profCatMes = {};
   try {
     const { data: profsAll } = await qE('profissionais').select('nome,categoria_dre').not('categoria_dre','is',null);
-    if (profsAll?.length) {
+    // DESATIVADO A PEDIDO: a comissão de profissionais (Cabelo/Unha/Estética/Freelancer) não é mais
+    // puxada automaticamente do Performance pro DRE. Agora precisa ser lançada manualmente em "Lançamento DRE".
+    if (false && profsAll?.length) {
       const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 
       // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar duplicatas
