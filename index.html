@@ -17550,6 +17550,15 @@ async function masterExcluirCategoria(id) {
 async function criarEstruturaBase(empresaId) {
   const eid = empresaId;
 
+  // TRAVA DE SEGURANÇA: nunca cria de novo se essa empresa já tem estrutura.
+  // Isso evita duplicar Plano de Contas/categorias PDV/pastas se essa função rodar 2x
+  // (clique duplo, erro de rede, reimportação, etc — vale pra qualquer empresa, atual ou futura).
+  const { count: jaTemPlano } = await sb.from('plano_contas').select('id', {count:'exact', head:true}).eq('empresa_id', eid);
+  if (jaTemPlano > 0) {
+    console.warn('criarEstruturaBase: empresa já tem Plano de Contas, pulando pra não duplicar.', eid);
+    return;
+  }
+
   // ── Grupos do Plano de Contas (DRE) ──
   const gruposDRE = [
     {nome:'Receita Bruta',          tipo:'ENTRADA', demonstrativo:'DRE', sinal:1,  ordem:1},
