@@ -10238,12 +10238,85 @@ function parseCliRow(colunas) {
 }
 
 // Dados em memória dos dois relatórios
-let _cliTodosData  = []; // todos os clientes do período (relatório 2)
-let _cliNovosData  = []; // clientes novos cadastrados (relatório 1)
+let _cliVisitasGeral = []; // 1 linha por atendimento (Geral) — permite total real por mês
+let _cliNovosData  = []; // clientes novos cadastrados (relatório "Clientes Novos", continua separado)
 
 const _normCli = s => (s||'').toLowerCase()
   .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .replace(/\s+/g,' ').trim();
+
+// ── Carrega dados do Supabase ao abrir a página ────────────
+async function initClientes() {
+  // "Clientes" (todos) — agora vem do relatório único "Geral", 1 linha por atendimento.
+  // Isso resolve de vez o problema de "só total de vida toda": aqui cada visita tem
+  // sua própria data e valor, então o filtro de mês soma certo o período escolhido.
+  const dadosGeral = await buscarDadosGeral();
+  _cliVisitasGeral = dadosGeral
+    .filter(r => r.cliente)
+    .map(r => ({
+      nome: r.cliente,
+      data: r.data_comanda,
+      comanda: r.numero_comanda,
+      valor: r.valor_cobrado,
+    }));
+
+  // ── Clientes Novos — continua vindo do relatório separado "Clientes Novos" ──
+  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
+  const tiposNovos = (tipos||[]).filter(t => t.nome.toLowerCase().includes('novo'));
+
+  const _normCli2 = _normCli;
+  const mkGetNovos = (row) => (...ns) => {
+    const keys = Object.keys(row);
+    for (const n of ns) {
+      const k = keys.find(c => _normCli2(c).includes(_normCli2(n)) || _normCli2(n).includes(_normCli2(c)));
+      if (k !== undefined && row[k] != null && row[k] !== '') return String(row[k]).trim();
+    }
+    return '';
+  };
+  const parseDNovos = v => {
+    if (!v && v !== 0) return null;
+    const s = String(v).trim();
+    if (!s || s === 'NaN') return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+    const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return null;
+  };
+
+  if (tiposNovos.length) {
+    let all = [];
+    for (const tipoNovos of tiposNovos) {
+      let from = 0;
+      while (true) {
+        const { data } = await qE('rel_dados_brutos').select('colunas')
+          .eq('tipo_id', tipoNovos.id).range(from, from + 999);
+        if (!data?.length) break;
+        all = all.concat(data);
+        if (data.length < 1000) break;
+        from += 1000;
+      }
+    }
+    _cliNovosData = all.map(r => {
+      const get = mkGetNovos(r.colunas);
+      return {
+        nome:         get('Cliente', 'cliente', 'Nome', 'nome'),
+        canal:        get('Como Conheceu', 'ComoConheceu', 'canal', 'Canal'),
+        dataCadastro: parseDNovos(get('Data Cadastro', 'DataCadastro', 'data cadastro', 'data')),
+        responsavel:  get('Responsavel', 'Responsável', 'responsavel'),
+        celular:      get('Celular', 'celular', 'Telefone', 'telefone'),
+      };
+    }).filter(r => r.nome);
+    const vistosNovos = new Set();
+    _cliNovosData = _cliNovosData.filter(c => {
+      const chave = _normCli(c.nome);
+      if (vistosNovos.has(chave)) return false;
+      vistosNovos.add(chave);
+      return true;
+    });
+  }
+
+  renderClientesPage();
+}
 
 // ── Importar relatório de TODOS os clientes ────────────────
 async function importarTodosClientes(input) {
@@ -10329,130 +10402,6 @@ async function importarClientesNovos(input) {
   } catch(e) { showToast('Erro: '+e.message,'error'); console.error(e); }
 }
 
-// ── Carrega dados do Supabase ao abrir a página ────────────
-async function initClientes() {
-  // Normaliza string removendo acentos e lowercase
-  const norm2 = s => _normCli(s);
-
-  // Busca valor de coluna dinamicamente por nome aproximado
-  const mkGet = (row) => (...ns) => {
-    const keys = Object.keys(row);
-    for (const n of ns) {
-      const k = keys.find(c => norm2(c).includes(norm2(n)) || norm2(n).includes(norm2(c)));
-      if (k !== undefined && row[k] != null && row[k] !== '') return String(row[k]).trim();
-    }
-    return '';
-  };
-
-  // Número BR: aceita inteiro puro, vírgula decimal, ponto milhar
-  const parseN = v => {
-    if (v === null || v === undefined || v === '') return 0;
-    if (typeof v === 'number') return v;
-    const s = String(v).trim().replace(/\s/g, '');
-    // Remove símbolo R$ e espaços
-    const clean = s.replace(/R\$\s*/g, '');
-    if (clean.includes(',') && clean.includes('.')) return parseFloat(clean.replace(/\./g,'').replace(',','.')) || 0;
-    if (clean.includes(',')) return parseFloat(clean.replace(',','.')) || 0;
-    return parseFloat(clean) || 0;
-  };
-
-  const parseD = v => {
-    if (!v && v !== 0) return null;
-    const s = String(v).trim();
-    if (!s || s === 'NaN') return null;
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
-    const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
-    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    const n = parseInt(s);
-    if (!isNaN(n) && n > 40000 && n < 60000) {
-      const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
-      if (!isNaN(d)) return d.toISOString().substring(0, 10);
-    }
-    return null;
-  };
-
-  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-  if (!tipos?.length) { renderClientesPage(); return; }
-
-  // ── Clientes (todos) — tem "Última Visita", "Total Consumido" ─
-  // Junta TODAS as pastas cujo nome bate (evita perder dado se tiver pasta duplicada)
-  const tiposTodos = tipos.filter(t => {
-    const n = t.nome.toLowerCase();
-    return !n.includes('novo') && (n.includes('cliente') || n === 'clientes');
-  });
-
-  if (tiposTodos.length) {
-    let all = [];
-    for (const tipoTodos of tiposTodos) {
-      let from = 0;
-      while (true) {
-        const { data } = await qE('rel_dados_brutos').select('colunas')
-          .eq('tipo_id', tipoTodos.id).range(from, from + 999);
-        if (!data?.length) break;
-        all = all.concat(data);
-        if (data.length < 1000) break;
-        from += 1000;
-      }
-    }
-    _cliTodosData = all.map(r => {
-      const get = mkGet(r.colunas);
-      return {
-        nome:         get('Cliente', 'cliente', 'Nome', 'nome'),
-        total:        parseN(get('Total Consumido', 'TotalConsumido', 'total', 'valor')),
-        visitas:      parseInt(get('Numero de Visitas', 'NumeroVisitas', 'Número de Visitas', 'visitas')) || 1,
-        ultimaVisita: parseD(get('Ultima Visita', 'UltimaVisita', 'Última Visita', 'data')),
-        profissional: get('Profissionais', 'Profissional', 'profissional'),
-        celular:      get('Celular', 'celular', 'Telefone', 'telefone'),
-      };
-    }).filter(r => r.nome);
-    // Remove duplicata de cliente com mesmo nome+última visita (caso a pasta duplicada tenha o mesmo dado 2x)
-    const vistos = new Set();
-    _cliTodosData = _cliTodosData.filter(c => {
-      const chave = `${_normCli(c.nome)}_${c.ultimaVisita}`;
-      if (vistos.has(chave)) return false;
-      vistos.add(chave);
-      return true;
-    });
-  }
-
-  // ── Clientes Novos — tem "Como Conheceu", "Data Cadastro" ────
-  const tiposNovos = tipos.filter(t => t.nome.toLowerCase().includes('novo'));
-
-  if (tiposNovos.length) {
-    let all = [];
-    for (const tipoNovos of tiposNovos) {
-      let from = 0;
-      while (true) {
-        const { data } = await qE('rel_dados_brutos').select('colunas')
-          .eq('tipo_id', tipoNovos.id).range(from, from + 999);
-        if (!data?.length) break;
-        all = all.concat(data);
-        if (data.length < 1000) break;
-        from += 1000;
-      }
-    }
-    _cliNovosData = all.map(r => {
-      const get = mkGet(r.colunas);
-      return {
-        nome:         get('Cliente', 'cliente', 'Nome', 'nome'),
-        canal:        get('Como Conheceu', 'ComoConheceu', 'canal', 'Canal'),
-        dataCadastro: parseD(get('Data Cadastro', 'DataCadastro', 'data cadastro', 'data')),
-        responsavel:  get('Responsavel', 'Responsável', 'responsavel'),
-        celular:      get('Celular', 'celular', 'Telefone', 'telefone'),
-      };
-    }).filter(r => r.nome);
-    const vistosNovos = new Set();
-    _cliNovosData = _cliNovosData.filter(c => {
-      const chave = _normCli(c.nome);
-      if (vistosNovos.has(chave)) return false;
-      vistosNovos.add(chave);
-      return true;
-    });
-  }
-
-  renderClientesPage();
-}
-
 async function loadClientes() { await initClientes(); }
 
 // ════════════════════════════════════════════════════════
@@ -10467,55 +10416,29 @@ async function loadLucratividade() {
   const profFiltro = el('luc-prof')?.value || '';
   const catFiltro  = el('luc-cat')?.value  || '';
 
-  // Busca dados — tenta rel_lucratividade primeiro, fallback para rel_dados_brutos
-  const empIdLuc = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
-  let q = sb.from('rel_lucratividade').select('*').eq('empresa_id', empIdLuc)
-    .gte('data_comanda', `${ano}-01-01`).lte('data_comanda', `${ano}-12-31`);
-  if (mes) {
-    const ultimo = new Date(parseInt(ano), parseInt(mes), 0).getDate();
-    q = sb.from('rel_lucratividade').select('*').eq('empresa_id', empIdLuc)
-      .gte('data_comanda', `${ano}-${mes}-01`)
-      .lte('data_comanda', `${ano}-${mes}-${String(ultimo).padStart(2,'0')}`);
-  }
-  let { data: rowsLuc } = await q.limit(10000);
-
-  let rows = rowsLuc || [];
-
-  // Se não tem dados em rel_lucratividade, busca em rel_dados_brutos
-  if (!rows.length) {
-    const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-    const tipoLuc = (tipos||[]).find(t => t.nome.toLowerCase().includes('lucrat'));
-    if (tipoLuc) {
-      const { data: brutos } = await qE('rel_dados_brutos').select('colunas')
-        .eq('tipo_id', tipoLuc.id).limit(15000);
-      rows = (brutos||[]).map(r => {
-        const c = r.colunas || {};
-        const dataRaw = c['Data'] || '';
-        // Converte DD/MM/YYYY → YYYY-MM-DD
-        let data_comanda = null;
-        if (dataRaw.includes('/')) {
-          const [d,m,a] = dataRaw.split('/');
-          data_comanda = `${a}-${m?.padStart(2,'0')}-${d?.padStart(2,'0')}`;
-        } else {
-          data_comanda = dataRaw;
-        }
-        return {
-          data_comanda,
-          numero_comanda: String(c['Número Comanda']||''),
-          profissional:   c['Profissional']||null,
-          servico:        c['Serviço']||null,
-          categoria:      c['Categoria']||null,
-          faturado:       Number(c['Faturado']||0),
-          quantidade:     Number(c['Qtd.']||1),
-          comissao_pct:   Number(c['Comissão (%)']||0),
-          custo_servico:  Number(c['Custo Serviço']||0),
-          custo_comissao: Number(c['Custo Comissão']||0),
-          lucro:          Number(c['Lucro']||0),
-          lucratividade_pct: Number(c['Lucratividade (%)']||0),
-        };
-      });
-    }
-  }
+  // Lê do relatório único "Geral" — já vem com Custo, Comissão e Líquido prontos por linha
+  const dadosGeral = await buscarDadosGeral();
+  let rows = dadosGeral.map(r => {
+    const faturado = r.valor_cobrado;
+    const custo_comissao = r.total; // comissão paga ao profissional
+    const custo_servico  = r.custo; // custo do serviço/produto em si
+    const lucro = r.liquido || (faturado - custo_comissao - custo_servico);
+    return {
+      data_comanda: r.data_comanda,
+      numero_comanda: r.numero_comanda,
+      profissional: r.profissional,
+      servico: r.servico,
+      categoria: r.categoria,
+      faturado,
+      quantidade: r.qtd,
+      comissao_pct: r.comissao_pct,
+      custo_servico,
+      custo_comissao,
+      custo_produtos: 0,
+      lucro,
+      lucratividade_pct: faturado > 0 ? (lucro / faturado * 100) : 0,
+    };
+  });
 
   // Filtrar por ano/mês
   rows = rows.filter(r => r.data_comanda?.startsWith(ano));
@@ -10772,10 +10695,10 @@ function renderClientesPage() {
   const el = id => document.getElementById(id);
 
   // Sem dados do relatório principal
-  if (!_cliTodosData.length) {
+  if (!_cliVisitasGeral.length) {
     ['cli-periodo','cli-novos-lista'].forEach(id => {
       const e = el(id);
-      if (e) e.innerHTML = '<div class="empty">Importe o relatório de Clientes para ver os dados.</div>';
+      if (e) e.innerHTML = '<div class="empty">Importe o relatório Geral para ver os dados.</div>';
     });
     ['cli-total','cli-consumido','cli-visitas','cli-ticket',
      'cli-novos-count','cli-rec-count','cli-ticket-novos','cli-ticket-rec'].forEach(id=>{
@@ -10807,14 +10730,29 @@ function renderClientesPage() {
     dataCadastro: novosInfo[_normCli(c.nome)]?.dataCadastro || '',
   });
 
-  let todos = _cliTodosData.filter(c => dentroFiltro(c.ultimaVisita)).map(mapa);
+  // Agrupa visitas (linhas de atendimento) por cliente, DENTRO do período filtrado —
+  // assim o total/visitas mostrado é o real daquele mês, não a vida toda do cliente.
+  const agruparPorCliente = visitas => {
+    const porCliente = {};
+    visitas.forEach(v => {
+      const k = _normCli(v.nome);
+      if (!k) return;
+      if (!porCliente[k]) porCliente[k] = { nome: v.nome, total: 0, comandas: new Set(), ultimaVisita: v.data };
+      porCliente[k].total += Number(v.valor||0);
+      porCliente[k].comandas.add((v.comanda ?? Math.random()) + '|' + v.data);
+      if (v.data && (!porCliente[k].ultimaVisita || v.data > porCliente[k].ultimaVisita)) porCliente[k].ultimaVisita = v.data;
+    });
+    return Object.values(porCliente).map(c => ({ nome: c.nome, total: c.total, visitas: c.comandas.size, ultimaVisita: c.ultimaVisita }));
+  };
+
+  let todos = agruparPorCliente(_cliVisitasGeral.filter(v => dentroFiltro(v.data))).map(mapa);
   // Se filtrou tudo por causa do ano (dados são de outro ano), ignora o ano e filtra só por mês
   if (!todos.length && anoSel) {
-    todos = _cliTodosData.filter(c => {
-      if (!c.ultimaVisita) return !mesSel;
-      if (mesSel && c.ultimaVisita.substring(5,7) !== mesSel.padStart(2,'0')) return false;
+    todos = agruparPorCliente(_cliVisitasGeral.filter(v => {
+      if (!v.data) return !mesSel;
+      if (mesSel && v.data.substring(5,7) !== mesSel.padStart(2,'0')) return false;
       return true;
-    }).map(mapa);
+    })).map(mapa);
   }
 
   const novos       = todos.filter(c => c.isNovo);
@@ -11278,15 +11216,25 @@ async function loadProdutos() {
   const mes  = document.getElementById('prod-mes')?.value  || '';
   const cat  = document.getElementById('prod-categoria')?.value || '';
 
-  // Busca tipo "Produtos" no Supabase
-  const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo', true);
-  const tipoProd = (tipos||[]).find(t => t.nome.toLowerCase().includes('produto'));
+  // Lê do relatório único "Geral" — só linhas do tipo Produto
+  const dadosGeral = await buscarDadosGeral();
+  let rows = dadosGeral
+    .filter(r => r.tipo_item === 'produto')
+    .map(r => ({
+      produto: r.servico, // "Item" já vem mapeado pra servico no parseGeralRow
+      categoria: r.categoria,
+      profissional: r.profissional,
+      cliente: r.cliente,
+      data: r.data_comanda,
+      qtd: r.qtd,
+      valor: r.valor,
+      custo: r.custo,
+      desconto: r.desconto,
+      total: r.valor_cobrado, // "Valor" já é o total da linha, não precisa multiplicar por qtd de novo
+    }))
+    .filter(r => r.produto);
 
-  let rows = [];
-  if (tipoProd) {
-    const { data, error } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoProd.id).limit(15000);
-    if (!error) rows = (data||[]).map(r => parseProdRow(r.colunas)).filter(r => r.produto);
-  }
+  const tipoProd = true; // mantém compatível com preencherFiltrosProdutos, que só checa truthy
 
   // Filtros locais
   let rowsFiltrados = rows;
@@ -11496,22 +11444,14 @@ function renderProdutos(rows) {
 let _perfChartProf = null;
 
 async function initPerformance() {
-  // Preenche filtros de ano e profissional
-  // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar tipos duplicados de sessões antigas
-  const { data: tiposPerfList } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
-  const tipoUnico = tiposPerfList?.[0] || null;
-  const usaPerf   = true;
-
-  if (tipoUnico) {
-    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnico.id).limit(50000);
-    const rows = (data||[]).map(r => usaPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas));
-    const anos  = [...new Set(rows.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
-    const profs = [...new Set(rows.map(r=>r.profissional).filter(Boolean))].sort();
-    const selA = document.getElementById('perf-ano');
-    const selP = document.getElementById('perf-prof');
-    if (selA) selA.innerHTML = '<option value="">Todos</option>' + anos.map(a=>`<option value="${a}">${a}</option>`).join('');
-    if (selP) selP.innerHTML = '<option value="">Todos os profissionais</option>' + profs.map(p=>`<option value="${p}">${p}</option>`).join('');
-  }
+  // Preenche filtros de ano e profissional — lê do relatório único "Geral" (só linhas de Serviço)
+  const dados = (await buscarDadosGeral()).filter(r => r.tipo_item === 'servico');
+  const anos  = [...new Set(dados.map(r=>r.data_comanda?.substring(0,4)).filter(Boolean))].sort().reverse();
+  const profs = [...new Set(dados.map(r=>r.profissional).filter(Boolean))].sort();
+  const selA = document.getElementById('perf-ano');
+  const selP = document.getElementById('perf-prof');
+  if (selA) selA.innerHTML = '<option value="">Todos</option>' + anos.map(a=>`<option value="${a}">${a}</option>`).join('');
+  if (selP) selP.innerHTML = '<option value="">Todos os profissionais</option>' + profs.map(p=>`<option value="${p}">${p}</option>`).join('');
   await loadPerformance();
 }
 
@@ -11533,16 +11473,8 @@ async function loadPerformance() {
   const prof = document.getElementById('perf-prof')?.value || '';
   const el   = id => document.getElementById(id);
 
-  // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar tipos duplicados de sessões antigas
-  const { data: tiposPerfList } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
-  const tipoUnico = tiposPerfList?.[0] || null;
-  const usaPerf   = true;
-
-  let rows = [];
-  if (tipoUnico) {
-    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnico.id).limit(50000);
-    rows = (data||[]).map(r => usaPerf ? parsePerfRow(r.colunas) : parseSrvRow(r.colunas)).filter(r => r.servico || r.profissional);
-  }
+  // Lê do relatório único "Geral" — só linhas do tipo Serviço (Performance é performance de serviço prestado)
+  let rows = (await buscarDadosGeral()).filter(r => r.tipo_item === 'servico' && (r.servico || r.profissional));
 
   if (ano)  rows = rows.filter(r => r.data_comanda?.startsWith(ano));
   if (mes)  rows = rows.filter(r => r.data_comanda?.substring(5,7) === mes);
@@ -13154,6 +13086,96 @@ async function initServicos() {
 }
 
 // Converte linha do jsonb (rel_dados_brutos) para objeto padronizado de serviços
+// ═══════════════════════════════════════════════════════════
+// RELATÓRIO "GERAL" — planilha única (Data, Comanda, Item, Tipo, Categoria,
+// Profissional, Comissão (%), Cliente, Valor, Desconto, Qtd., Custo, Comissão, Líquido)
+// Alimenta Performance, Serviços, Lucratividade, Produtos e Clientes.
+// Usa acesso direto às colunas (não fuzzy) pra nunca confundir "Comissão" com "Comissão (%)".
+// ═══════════════════════════════════════════════════════════
+function parseGeralRow(colunas) {
+  const c = colunas || {};
+  const keys = Object.keys(c);
+
+  const parseN = v => { const s=String(v??'').replace(/[^0-9,.-]/g,''); if(!s)return 0; if(s.includes(',')&&s.includes('.'))return parseFloat(s.replace(/\./g,'').replace(',','.'))||0; if(s.includes(','))return parseFloat(s.replace(',','.'))||0; return parseFloat(s)||0; };
+  const parseD = v => {
+    if (!v && v !== 0) return null;
+    const s = String(v).trim();
+    if (!s || s === 'NaN') return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+    const m1 = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+    if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+    const n = parseInt(s);
+    if (!isNaN(n) && n > 40000 && n < 60000) {
+      const dp = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+      if (!isNaN(dp)) return dp.toISOString().substring(0, 10);
+    }
+    return null;
+  };
+
+  // Acha a chave exata da coluna (evita fuzzy match que confundiria "Comissão" com "Comissão (%)")
+  const findExact = (...nomes) => { for (const n of nomes) { const k = keys.find(k => k.trim() === n); if (k) return k; } return null; };
+
+  const kData      = findExact('Data');
+  const kComanda    = findExact('Comanda');
+  const kItem       = findExact('Item');
+  const kTipo       = findExact('Tipo');
+  const kCategoria  = findExact('Categoria');
+  const kProf       = findExact('Profissional');
+  const kComPct     = findExact('Comissão (%)', 'Comissao (%)') || keys.find(k => k.includes('%'));
+  const kCliente    = findExact('Cliente');
+  const kValor      = findExact('Valor');
+  const kDesconto   = findExact('Desconto');
+  const kQtd        = findExact('Qtd.', 'Qtd', 'Quantidade');
+  const kCusto      = findExact('Custo');
+  // "Comissão" (valor pago) — precisa ser diferente da chave de percentual mesmo se o nome parecer igual
+  const kComissaoValor = keys.find(k => k.trim() === 'Comissão' && k !== kComPct)
+    || keys.find(k => k.toLowerCase().includes('comiss') && k !== kComPct);
+  const kLiquido    = findExact('Líquido', 'Liquido');
+
+  const tipoRaw = String(c[kTipo]||'').trim().toLowerCase();
+
+  return {
+    // Mesmo formato usado por parseSrvRow/parsePerfRow (Performance e Serviços já entendem isso)
+    profissional:   String(c[kProf]||'').trim(),
+    data_comanda:   parseD(c[kData]),
+    dia_semana:     '',
+    numero_comanda: parseInt(String(c[kComanda]||'').replace(/[^0-9]/g,'')) || null,
+    servico:        String(c[kItem]||'').trim(),
+    categoria:      String(c[kCategoria]||'').trim(),
+    cliente:        String(c[kCliente]||'').trim(),
+    cpf: '', telefone: '', celular: '',
+    qtd:            parseN(c[kQtd]) || 1,
+    valor:          parseN(c[kValor]),
+    valor_cobrado:  parseN(c[kValor]),
+    desconto:       parseN(c[kDesconto]),
+    total:          parseN(c[kComissaoValor]), // comissão PAGA (equivalente ao "Total" do formato antigo)
+    pacote: '',
+    comissao_pct:   parseN(c[kComPct]),
+    // Campos extras só desse formato novo (usados por Lucratividade e Produtos)
+    tipo_item:      tipoRaw.includes('produto') ? 'produto' : 'servico',
+    custo:          parseN(c[kCusto]),
+    liquido:        parseN(c[kLiquido]),
+  };
+}
+
+// Busca o tipo "Geral" (canônico, o mais antigo se houver duplicata) e retorna todas as linhas já parseadas.
+// Função central usada por Performance, Serviços, Lucratividade, Produtos e Clientes.
+async function buscarDadosGeral() {
+  const { data: tiposGeral } = await qE('rel_tipos').select('id,nome').ilike('nome','%geral%').order('id',{ascending:true});
+  const tipoId = tiposGeral?.[0]?.id;
+  if (!tipoId) return [];
+
+  let all = [], from = 0;
+  while (true) {
+    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoId).range(from, from + 999);
+    if (!data?.length) break;
+    all = all.concat(data);
+    if (data.length < 1000) break;
+    from += 1000;
+  }
+  return all.map(r => parseGeralRow(r.colunas));
+}
+
 function parseSrvRow(colunas) {
   const c = colunas || {};
   const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -13220,35 +13242,10 @@ function parsePerfRow(colunas) {
   return { ...base, profissional: nomeFinal };
 }
 
-// Função centralizada: carrega serviços do período — tenta rel_servicos, depois rel_dados_brutos
+// Função centralizada: carrega serviços do período — lê do relatório único "Geral"
 async function loadSrvPeriodo(ini, fim) {
-  // Só rel_servicos, gerado a partir da pasta "Serviços" — não empresta dado de Performance
-  const { data: srv } = await qE('rel_servicos').select('*')
-    .gte('data_comanda', ini).lte('data_comanda', fim).limit(20000);
-  if (srv?.length) return srv;
-
-  // Fallback: rel_dados_brutos, mas só do tipo "Serviços" (nunca Performance)
-  const { data: tipos } = await qE('rel_tipos').select('id,nome');
-  const tiposSrv = (tipos||[]).filter(t => (t.nome||'').toLowerCase().includes('servi')).map(t => t.id);
-  if (!tiposSrv.length) return [];
-
-  const { data: raw } = await qE('rel_dados_brutos').select('colunas')
-    .in('tipo_id', tiposSrv).limit(20000);
-
-  const rows = (raw||[])
-    .map(r => parseSrvRow(r.colunas || r))
-    .filter(r => r.servico || r.cliente)
-    .map(r => {
-      // Normaliza data
-      if (r.data_comanda && /^\d{2}\/\d{2}\/\d{4}/.test(r.data_comanda)) {
-        const [d,m,a] = r.data_comanda.split('/');
-        r.data_comanda = `${a}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-      }
-      return r;
-    })
-    .filter(r => r.data_comanda >= ini && r.data_comanda <= fim);
-
-  return rows;
+  const dados = (await buscarDadosGeral()).filter(r => r.tipo_item === 'servico');
+  return dados.filter(r => r.data_comanda && r.data_comanda >= ini && r.data_comanda <= fim);
 }
 
 async function loadServicos() {
@@ -13302,10 +13299,6 @@ async function loadServicos() {
   // Busca tudo (o filtro fino de ano/mês é feito abaixo, linha por linha — evita
   // ignorar o mês quando o ano está em "Todos")
   let rows = await loadSrvPeriodo('2020-01-01', '2030-12-31');
-  if (!rows.length) {
-    const { data: todos } = await qE('rel_servicos').select('*').limit(20000);
-    rows = todos || [];
-  }
 
   // Filtros: ano, mês, profissional, categoria — cada um só aplica se estiver preenchido
   let rowsFiltrados = rows;
@@ -15710,15 +15703,9 @@ async function loadEvolucaoProfissional() {
   const profId = selEl?.value || profs[0].id;
   const prof = profs.find(p => p.id === profId) || profs[0];
 
-  // Busca o ano inteiro de uma vez (Performance) e depois separa por mês
-  const { data: tiposPerfM } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
-  const tipoId = tiposPerfM?.[0]?.id;
-  let linhas = [];
-  if (tipoId) {
-    const { data: rawAno } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoId).limit(50000);
-    linhas = (rawAno||[]).map(r => parsePerfRow(r.colunas||r))
-      .filter(r => r.profissional && r.data_comanda && r.data_comanda.startsWith(ano));
-  }
+  // Busca o ano inteiro de uma vez (relatório Geral) e depois separa por mês
+  const linhas = (await buscarDadosGeral())
+    .filter(r => r.tipo_item === 'servico' && r.profissional && r.data_comanda && r.data_comanda.startsWith(ano));
 
   const normP2 = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   const nomeNorm = normP2(prof.nome);
