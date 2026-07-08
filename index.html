@@ -8012,7 +8012,7 @@ async function loadDashboard() {
     const dreGrupos = (dreGruposRaw||[]).filter(g => g.demonstrativo === 'DRE' || g.demonstrativo === 'AMBOS');
     const { data: dreCats }   = await qE('plano_contas').select('*').eq('demonstrativo','DRE');
 
-    if (dreGrupos?.length && dreCats?.length && lancs?.length) {
+    if (dreGrupos?.length && dreCats?.length) {
       // Agrega PDV para o período (mesmo cálculo do DRE)
       let pdvDRECat = {}; // { catNome|mes: valor }
       try {
