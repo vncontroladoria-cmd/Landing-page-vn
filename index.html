@@ -3890,7 +3890,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div style="font-weight:600;font-size:13px">🏆 Ranking de Profissionais</div>
                 <div style="font-size:11px;color:var(--text2);margin-top:1px" id="perf-rank-sub"></div>
               </div>
-              <div id="perf-ranking-prof" style="overflow-x:auto;max-height:280px;overflow-y:auto">
+              <div id="perf-ranking-prof" style="overflow-x:auto;max-height:340px;overflow-y:auto">
                 <div class="empty">Sem dados</div>
               </div>
             </div>
@@ -3899,11 +3899,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div style="font-weight:600;font-size:13px">Faturamento por Profissional</div>
                 <div style="font-size:11px;color:var(--text2);margin-top:1px">Distribuição percentual</div>
               </div>
-              <div style="display:flex;align-items:center;gap:14px;padding:12px">
-                <div id="perf-prof-legend" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
-                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
-                  <canvas id="perf-chart-prof"></canvas>
-                </div>
+              <div style="padding:12px;height:340px">
+                <canvas id="perf-chart-prof"></canvas>
               </div>
             </div>
           </div>
@@ -11535,11 +11532,13 @@ async function loadPerformance() {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right" onclick="sortTable(this)">ATEND.</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right" onclick="sortTable(this)">FATURAMENTO</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right" onclick="sortTable(this)">COMISSÃO</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:8px 8px;text-align:right" onclick="sortTable(this)">%</th>
       </tr></thead>
       <tbody>
         ${profRank.map(([nome,v],i) => {
           const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
           const barW = (v.fat/maxFatProf*100).toFixed(1);
+          const pctFat = totalFat>0 ? (v.fat/totalFat*100) : 0;
           return `<tr style="border-bottom:1px solid var(--border)">
             <td style="padding:8px 10px;font-size:${i<3?'14':'11'}px;text-align:center">${pod}</td>
             <td style="padding:8px 10px">
@@ -11551,6 +11550,7 @@ async function loadPerformance() {
             <td style="padding:8px;text-align:right;font-size:12px;color:var(--text2)">${v.atend.size}</td>
             <td style="padding:8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.fat)}</td>
             <td style="padding:8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;color:var(--text2)">${fmtBRL(v.comissao)}</td>
+            <td style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:var(--text2)">${pctFat.toFixed(1)}%</td>
           </tr>`
         }).join('')}
         <tr style="background:var(--bg3);border-top:2px solid var(--border2)">
@@ -11558,19 +11558,43 @@ async function loadPerformance() {
           <td style="padding:8px;text-align:right;font-size:11px;font-weight:700">${totalAtend}</td>
           <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(totalFat)}</td>
           <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--text2)">${fmtBRL(totalComissao)}</td>
+          <td style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:var(--text2)">100%</td>
         </tr>
       </tbody>
     </table>`;
   }
 
-  // ── Gráfico donut profissionais ────────────────────────
+  // ── Gráfico de barras (Faturamento por Profissional) ──────
   const ctxProf = el('perf-chart-prof')?.getContext('2d');
   if (ctxProf) {
     if (_perfChartProf) _perfChartProf.destroy();
-     _perfChartProf = new Chart(ctxProf, donutOpts(profRank.map(([n])=>n), profRank.map(([,v])=>v.fat), CORES, fmtBRL));
-   }
-   const totalPerfFat = profRank.reduce((s,[,v])=>s+v.fat,0);
-   renderDonutLegend('perf-prof-legend', profRank.map(([prof,v],i) => ({label:prof.split(' ')[0], value:fmtBRL(v.fat), color:CORES[i%CORES.length], pct:totalPerfFat>0?v.fat/totalPerfFat*100:0})));
+    const totalPerfFat = profRank.reduce((s,[,v])=>s+v.fat,0);
+    _perfChartProf = new Chart(ctxProf, {
+      type: 'bar',
+      data: {
+        labels: profRank.map(([n]) => n.split(' ')[0]),
+        datasets: [{
+          data: profRank.map(([,v]) => v.fat),
+          backgroundColor: profRank.map((_,i) => CORES[i%CORES.length]),
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => {
+            const pct = totalPerfFat>0 ? (ctx.parsed.y/totalPerfFat*100).toFixed(1) : 0;
+            return `${fmtBRL(ctx.parsed.y)} (${pct}%)`;
+          }}}
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => fmtBRL(v) } },
+          x: { ticks: { autoSkip: false } }
+        }
+      }
+    });
+  }
 
   // ── Serviços mais vendidos (sem duplicar 1/2) ──────────
   const cleanSrv = n => String(n||'').replace(/\s*\(?\s*\d+\s*\/\s*\d+\s*\)?\s*$/i,'').trim();
