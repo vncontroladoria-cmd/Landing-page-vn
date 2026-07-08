@@ -8009,7 +8009,7 @@ async function loadDashboard() {
   try {
     const mCols2 = mes ? [mes] : ['01','02','03','04','05','06','07','08','09','10','11','12'];
     const ind = await buscarIndicadoresDRE(ano, mCols2);
-    console.log('DEBUG indicadores dashboard:', {ano, mCols2, ind});
+    console.log('DEBUG ind: recBruta=' + ind?.recBruta + ' recLiquida=' + ind?.recLiquida + ' margem=' + ind?.margem + ' margemPct=' + ind?.margemPct + ' pe=' + ind?.pe + ' despOp=' + ind?.despOp + ' resultadoLiquido=' + ind?.resultadoLiquido + ' | ano=' + ano + ' meses=' + mCols2);
 
     if (ind) {
       if(el('m-luc')) {
