@@ -13528,8 +13528,7 @@ function renderSrvHistoricoCliente(data) {
   });
 
   const clientes = Object.values(cliMap)
-    .sort((a,b) => b.totalVal - a.totalVal)
-    .slice(0,100);
+    .sort((a,b) => b.totalVal - a.totalVal);
 
   const maxVal = clientes[0]?.totalVal || 1;
 
@@ -13595,7 +13594,7 @@ function renderSrvHistoricoCliente(data) {
         }).join('')}
       </tbody>
     </table>
-    ${clientes.length >= 100 ? '<div style="padding:10px;text-align:center;font-size:11px;color:var(--text3);background:var(--bg3)">Mostrando 100 clientes de maior valor</div>' : ''}
+    ${clientes.length ? `<div style="padding:10px;text-align:center;font-size:11px;color:var(--text3);background:var(--bg3)">Mostrando todos os ${clientes.length} clientes</div>` : ''}
   `;
 }
 
