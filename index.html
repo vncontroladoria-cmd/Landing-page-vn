@@ -3776,11 +3776,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <span>📂 Faturamento por Categoria</span>
                 <span id="prod-cat-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
               </div>
-              <div style="display:flex;align-items:center;gap:14px;padding:12px">
-                <div id="prod-cat-legend" style="flex:1;display:flex;flex-direction:column;gap:6px"></div>
-                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
-                  <canvas id="prod-chart-cat"></canvas>
-                </div>
+              <div style="padding:12px;height:380px">
+                <canvas id="prod-chart-cat"></canvas>
               </div>
             </div>
           </div>
@@ -4030,7 +4027,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:10px;color:var(--text2)" id="luc-rank-sub">por faturamento</div></div>
                 </div>
               </div>
-              <div id="luc-rank-prof" style="overflow-x:auto">
+              <div id="luc-rank-prof" style="overflow-x:auto;max-height:340px;overflow-y:auto">
                 <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Importe o relatório de Lucratividade</div>
               </div>
             </div>
@@ -4044,11 +4041,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:10px;color:var(--text2)">Comissão · Custo · Lucro</div></div>
                 </div>
               </div>
-              <div class="section-card-body" style="display:flex;align-items:center;gap:14px;padding:14px">
-                <div id="luc-comp-legend" style="flex:1;display:flex;flex-direction:column;gap:10px;font-size:12px"></div>
-                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
-                  <canvas id="luc-chart-comp"></canvas>
-                </div>
+              <div class="section-card-body" style="padding:14px;height:340px">
+                <canvas id="luc-chart-comp"></canvas>
               </div>
             </div>
           </div>
@@ -4064,24 +4058,21 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:10px;color:var(--text2)">Faturado · Custos · Lucro · Margem</div></div>
                 </div>
               </div>
-              <div id="luc-tab-cat" style="overflow-x:auto">
+              <div id="luc-tab-cat" style="overflow-x:auto;max-height:340px;overflow-y:auto">
                 <div class="empty" style="padding:1.5rem;text-align:center;font-size:12px;color:var(--text3)">Sem dados</div>
               </div>
             </div>
 
-            <!-- Donut categoria -->
+            <!-- Barras categoria -->
             <div class="section-card">
               <div class="section-card-header">
                 <div class="section-card-title">
-                  <span style="background:#ede9fe;color:#5b21b6;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">🍩</span>
+                  <span style="background:#ede9fe;color:#5b21b6;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700">📊</span>
                   <div><div style="font-weight:600;font-size:13px">Distribuição do Lucro por Categoria</div></div>
                 </div>
               </div>
-              <div class="section-card-body" style="display:flex;align-items:center;gap:16px;padding:14px">
-                <div id="luc-cat-legend" style="flex:1;display:flex;flex-direction:column;gap:8px;font-size:11px"></div>
-                <div style="position:relative;height:180px;width:180px;flex-shrink:0">
-                  <canvas id="luc-chart-cat"></canvas>
-                </div>
+              <div class="section-card-body" style="padding:14px;height:340px">
+                <canvas id="luc-chart-cat"></canvas>
               </div>
             </div>
           </div>
@@ -10491,22 +10482,36 @@ async function loadLucratividade() {
 
   const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a','#9333ea','#ea580c','#0e7490'];
 
-  // ── Donut composição: Custo Serviço · Custo Comissão · Lucro ──
+  // ── Gráfico composição: Custo Serviço · Custo Comissão · Lucro (barras verticais) ──
   const ctxComp = el('luc-chart-comp')?.getContext('2d');
   if (ctxComp) {
     if (_lucChart1) _lucChart1.destroy();
-    _lucChart1 = new Chart(ctxComp, donutOpts(
-      ['Comissão','Custo Serviço','Lucro Líquido'],
-      [totalComissao, totalServico, Math.max(0,totalLucro)],
-      ['#f59e0b','#3b82f6','#22c55e'], fmtBRL
-    ));
+    const totalCompGeral = totalComissao + totalServico + Math.max(0,totalLucro);
+    _lucChart1 = new Chart(ctxComp, {
+      type: 'bar',
+      data: {
+        labels: ['Comissão','Custo Serviço','Lucro Líquido'],
+        datasets: [{
+          data: [totalComissao, totalServico, Math.max(0,totalLucro)],
+          backgroundColor: ['#f59e0b','#3b82f6','#22c55e'],
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => {
+            const pct = totalCompGeral>0 ? (ctx.parsed.y/totalCompGeral*100).toFixed(1) : 0;
+            return `${fmtBRL(ctx.parsed.y)} (${pct}%)`;
+          }}}
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => fmtBRL(v) } },
+        }
+      }
+    });
   }
-  const totalCompGeral = totalComissao + totalServico + Math.max(0,totalLucro);
-  renderDonutLegend('luc-comp-legend', [
-    {label:'Comissão',     value:fmtBRL(totalComissao),           color:'#f59e0b', pct:totalCompGeral>0?totalComissao/totalCompGeral*100:0},
-    {label:'Custo Serviço',value:fmtBRL(totalServico),            color:'#3b82f6', pct:totalCompGeral>0?totalServico/totalCompGeral*100:0},
-    {label:'Lucro Líquido',value:fmtBRL(Math.max(0,totalLucro)), color:'#22c55e', pct:totalCompGeral>0?Math.max(0,totalLucro)/totalCompGeral*100:0}
-  ]);
 
   // ── Ranking Profissionais ──
   const rankProf = {};
@@ -10575,19 +10580,37 @@ async function loadLucratividade() {
   });
   const catArr = Object.entries(byCat).sort((a,b) => b[1].fat - a[1].fat);
 
-  // Donut categorias
+  // Barras categorias
   const ctxCat = el('luc-chart-cat')?.getContext('2d');
   if (ctxCat) {
     if (_lucChart2) _lucChart2.destroy();
-    _lucChart2 = new Chart(ctxCat, donutOpts(
-      catArr.map(([c])=>c), catArr.map(([,d])=>d.fat), CORES, fmtBRL
-    ));
+    const totalCatFat = catArr.reduce((s,[,d])=>s+d.fat,0);
+    _lucChart2 = new Chart(ctxCat, {
+      type: 'bar',
+      data: {
+        labels: catArr.map(([c])=>c),
+        datasets: [{
+          data: catArr.map(([,d])=>d.fat),
+          backgroundColor: catArr.map((_,i) => CORES[i%CORES.length]),
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => {
+            const pct = totalCatFat>0 ? (ctx.parsed.y/totalCatFat*100).toFixed(1) : 0;
+            return `${fmtBRL(ctx.parsed.y)} (${pct}%)`;
+          }}}
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => fmtBRL(v) } },
+          x: { ticks: { autoSkip: false } }
+        }
+      }
+    });
   }
-  const totalCatFat = catArr.reduce((s,[,d])=>s+d.fat,0);
-  renderDonutLegend('luc-cat-legend', catArr.map(([cat,d],i) => ({
-    label: cat, value: fmtBRL(d.fat), color: CORES[i%CORES.length],
-    pct: totalCatFat>0?d.fat/totalCatFat*100:0
-  })));
 
   // Tabela por categoria
   if(el('luc-tab-cat')) {
@@ -11310,10 +11333,12 @@ function renderProdutos(rows) {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">PRODUTO</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">%</th>
       </tr></thead>
       <tbody>${prodRank.slice(0,25).map(([nome,v],i) => {
         const barW = (v.total/maxProd*100).toFixed(1);
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
+        const pctTotal = total>0 ? (v.total/total*100) : 0;
         return `<tr style="border-bottom:1px solid var(--border)">
           <td style="padding:6px 8px;text-align:center;font-size:${i<3?'14':'11'}px">${pod}</td>
           <td style="padding:6px 10px">
@@ -11324,6 +11349,7 @@ function renderProdutos(rows) {
           </td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${pctTotal.toFixed(1)}%</td>
         </tr>`
       }).join('')}</tbody>
     </table>`);
@@ -11345,10 +11371,33 @@ function renderProdutos(rows) {
   const ctxCat = el('prod-chart-cat')?.getContext('2d');
   if (ctxCat) {
     if (_prodChartCat) _prodChartCat.destroy();
-    _prodChartCat = new Chart(ctxCat, donutOpts(catRank.map(([n])=>n), catRank.map(([,v])=>v), CORES, fmtBRL));
+    const totalProdCat = catRank.reduce((s,[,v])=>s+v,0);
+    _prodChartCat = new Chart(ctxCat, {
+      type: 'bar',
+      data: {
+        labels: catRank.map(([n]) => n),
+        datasets: [{
+          data: catRank.map(([,v]) => v),
+          backgroundColor: catRank.map((_,i) => CORES[i%CORES.length]),
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => {
+            const pct = totalProdCat>0 ? (ctx.parsed.y/totalProdCat*100).toFixed(1) : 0;
+            return `${fmtBRL(ctx.parsed.y)} (${pct}%)`;
+          }}}
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => fmtBRL(v) } },
+          x: { ticks: { autoSkip: false } }
+        }
+      }
+    });
   }
-  const totalProdCat = catRank.reduce((s,[,v])=>s+v,0);
-  renderDonutLegend('prod-cat-legend', catRank.map(([cat,v],i) => ({label:cat, value:fmtBRL(v), color:CORES[i%CORES.length], pct:totalProdCat>0?v/totalProdCat*100:0})));
 
   // ── Vendas por profissional ─────────────────────────────
   const profMap = {};
