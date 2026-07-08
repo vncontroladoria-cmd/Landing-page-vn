@@ -14897,6 +14897,9 @@ async function loadDRE() {
     </thead>
     <tbody>`;
 
+  // Indicadores só podem aparecer 1 vez cada, mesmo se o grupo estiver duplicado no banco
+  const _indicadoresJaInseridos = new Set();
+
   // Grupos normais
   gruposData.forEach((g, gi) => {
     const corG = g.cor || '#6b7280';
@@ -14924,12 +14927,14 @@ async function loadDRE() {
       </tr>`;
     });
 
-    // Indicadores após grupos específicos
-    if (g.nome === 'Deduções de Faturamento') {
+    // Indicadores após grupos específicos — só insere na primeira vez (protege contra grupo duplicado no banco)
+    if (g.nome === 'Deduções de Faturamento' && !_indicadoresJaInseridos.has('receitaLiquida')) {
+      _indicadoresJaInseridos.add('receitaLiquida');
       // Receita Líquida: % em relação à Receita Bruta
       html += indicadorRow('📊 Receita Líquida', mCols.map((_,i) => recLiq(i)), '#eff6ff', '#1d4ed8', true, recBrutaArr);
     }
-    if (g.nome === 'Custos dos Serviços Indireto') {
+    if (g.nome === 'Custos dos Serviços Indireto' && !_indicadoresJaInseridos.has('margemPE')) {
+      _indicadoresJaInseridos.add('margemPE');
       // Margem: % em relação à Receita Líquida
       html += indicadorRow('📊 Margem de Contribuição', mCols.map((_,i) => margem(i)), '#f0fdf4', 'var(--green)', true, recLiqArr);
       // PE: fórmula = DespOp / (Margem/RecLiq) — sem %
@@ -14938,7 +14943,8 @@ async function loadDRE() {
       // Despesa Operacional = grupos 5+6+7 — abaixo do PE
       html += indicadorRow('📋 Despesa Operacional', mCols.map((_,i) => despOpTotal(i)), '#f8fafc', '#64748b', false, recLiqArr);
     }
-    if (g.nome === 'Equipe / CLTs') {
+    if (g.nome === 'Equipe / CLTs' && !_indicadoresJaInseridos.has('resultadoOp')) {
+      _indicadoresJaInseridos.add('resultadoOp');
       // Resultado Operacional: % pela Líquida, cor azul
       html += indicadorRow('⚡ Resultado Operacional', mCols.map((_,i) => resOp(i)), '#f0f9ff', '#0369a1', true, recLiqArr);
     }
@@ -20447,8 +20453,11 @@ function prfAoTrocarProfissional() {
 
 // ── SERVIÇOS (tabela principal) ──────────────────────────
 async function loadPrecificacao() {
-  const { data, error } = await qE('precificacao_servicos').select('*, profissionais(nome)').order('nome');
+  const { data, error } = await qE('precificacao_servicos').select('*').order('nome');
   if (error) { showToast('Erro ao carregar: ' + error.message, 'error'); return; }
+
+  const profNomePorId = {};
+  _prfProfissionais.forEach(p => profNomePorId[p.id] = p.nome);
 
   const modo = window._prfModo;
   _precificacaoData = (data || []).map(s => {
@@ -20459,7 +20468,7 @@ async function loadPrecificacao() {
     const comissaoValor   = valor * (Number(s.comissao_pct)||0) / 100;
     const lucro = valor - custo - taxaCartaoValor - taxaAdmValor - comissaoValor;
     const margem = valor ? (lucro / valor * 100) : 0;
-    return { ...s, custo, valor, lucro, margem, profissionalNome: s.profissionais?.nome || '' };
+    return { ...s, custo, valor, lucro, margem, profissionalNome: profNomePorId[s.profissional_id] || '' };
   });
 
   // Popular filtro de categoria
