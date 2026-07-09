@@ -8938,7 +8938,7 @@ async function buscarTodosLancamentosSaldo() {
   const pageSize = 1000;
   while (true) {
     const { data, error } = await qE('lancamentos')
-      .select('entrada,saida,valor,tipo,banco_id,banco_nome,categoria,categoria_dfc,data_lancamento')
+      .select('entrada,saida,valor,tipo,banco_id,banco_nome,categoria,categoria_dfc,data_lancamento,aparece_dfc')
       .range(from, from + pageSize - 1);
     if (error) { console.error('buscarTodosLancamentosSaldo:', error); break; }
     if (!data || !data.length) break;
@@ -8946,7 +8946,9 @@ async function buscarTodosLancamentosSaldo() {
     if (data.length < pageSize) break;
     from += pageSize;
   }
-  return todos;
+  // Lançamentos de "Lançamento DRE" (aparece_dfc === false) são só contábeis — não entram no saldo de caixa.
+  // Lançamentos antigos sem esse campo (null) continuam contando normal.
+  return todos.filter(l => l.aparece_dfc !== false);
 }
 
 // Garante que categorias estão carregadas antes de usar
@@ -9050,7 +9052,8 @@ async function loadLancamentos(forcarBancoFilter) {
   if (bancoFilter) q = q.eq('banco_id', bancoFilter);
 
   const { data } = await q;
-  let lancs = data || [];
+  // Lançamentos DRE-only (aparece_dfc === false) não fazem parte do fluxo de caixa — não aparecem aqui
+  let lancs = (data || []).filter(l => l.aparece_dfc !== false);
   window._lancamentos = lancs; // cache global para seleção
 
   // Se filtro por banco ativo: também inclui lançamentos com banco_nome (sem banco_id)
@@ -9088,7 +9091,13 @@ async function loadLancamentos(forcarBancoFilter) {
     return 0;
   };
 
-  // Saldo acumulado de um banco = soma de TODOS os lançamentos históricos (sem filtro de data)
+  // Data-limite do período filtrado — usada tanto no saldo por banco quanto no Saldo Final,
+  // pra sempre serem consistentes entre si (saldo "até o fim do período visualizado")
+  const ultimaDataFiltroGlobal = lancs.length
+    ? lancs.reduce((max, l) => l.data_lancamento > max ? l.data_lancamento : max, lancs[0].data_lancamento)
+    : null;
+
+  // Saldo de um banco = soma de todos os lançamentos até o fim do período filtrado
   // Inclui variações de nome (ex: "C/C ITAU" e "ITAU" são o mesmo banco "Itaú")
   const normalizarBanco = (nome) => {
     const n = (nome||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
@@ -9108,8 +9117,8 @@ async function loadLancamentos(forcarBancoFilter) {
   const saldoBanco = (b) => {
     const nomeB = normalizarBanco(b.nome);
     const lancsB = todos.filter(l =>
-      l.banco_id === b.id ||
-      normalizarBanco(l.banco_nome) === nomeB
+      (l.banco_id === b.id || normalizarBanco(l.banco_nome) === nomeB) &&
+      (!ultimaDataFiltroGlobal || l.data_lancamento <= ultimaDataFiltroGlobal)
     );
     return lancsB.reduce((s,l) => s + vlLanc(l), 0);
   };
@@ -9135,21 +9144,13 @@ async function loadLancamentos(forcarBancoFilter) {
   const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA'&&!isSaldoInicial(l)).reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
   const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA'&&!isSaldoInicial(l)).reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
 
-  // Saldo Total = saldo acumulado até o último dia do período filtrado
-  // Pega todos os lançamentos até a última data do período
+  // Saldo Total = saldo acumulado até o último dia do período filtrado (mesma data-limite usada nos bancos acima)
   let saldoTotal;
   {
-    // Determinar última data do período filtrado
-    const ultimaDataFiltro = lancs.length 
-      ? lancs.reduce((max, l) => l.data_lancamento > max ? l.data_lancamento : max, lancs[0].data_lancamento)
-      : null;
-
-    // Filtrar todos os lançamentos até essa data (inclusive)
-    const lancAte = ultimaDataFiltro
-      ? todos.filter(l => l.data_lancamento <= ultimaDataFiltro)
+    const lancAte = ultimaDataFiltroGlobal
+      ? todos.filter(l => l.data_lancamento <= ultimaDataFiltroGlobal)
       : todos;
 
-    // Aplicar filtro de banco se houver
     const lancFiltrados = bancoFilter
       ? lancAte.filter(l => l.banco_id === bancoFilter)
       : lancAte;
