@@ -12751,6 +12751,11 @@ async function excluirCategoria(id) {
 
   const { error } = await sb.from('plano_contas').delete().eq('id', id);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  // Atualiza o cache global na hora — evita categoria "fantasma" aparecendo em Lançamentos
+  _categorias = (_categorias||[]).filter(c => c.id !== id);
+  if (typeof _catMapAtual !== 'undefined' && nome) delete _catMapAtual[nome];
+
   showToast('Categoria excluída!', 'success');
   loadPlanoContas();
 }
