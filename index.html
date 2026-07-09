@@ -14577,11 +14577,16 @@ async function buscarIndicadoresDRE(ano, mesesArr) {
 
   // CPV/CMV automático — vem do relatório único "Geral" (Custo por linha), sem precisar vincular pasta manualmente
   try {
+    const normFlex = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/\b(de|do|da|dos|das)\b/g,'').replace(/[^a-z0-9]/g,'').replace(/s$/,'');
+    const catCustoServico  = cats.find(c => normFlex(c.nome).includes('custoservic'))?.nome  || 'Custo de Serviços';
+    const catCustoProduto  = cats.find(c => normFlex(c.nome).includes('custoproduto'))?.nome || 'Custo de Produtos';
+
     const dadosGeralCPV = await buscarDadosGeral();
     dadosGeralCPV.forEach(r => {
       if (!r.data_comanda || !r.custo) return;
       const mes = r.data_comanda.substring(5,7);
-      const catNome = r.tipo_item === 'produto' ? 'Custo de Produtos' : 'Custo de Serviços';
+      const catNome = r.tipo_item === 'produto' ? catCustoProduto : catCustoServico;
       const chave = catNome + '|' + mes;
       pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + Number(r.custo||0);
     });
@@ -14739,11 +14744,16 @@ async function loadDRE() {
 
   // CPV/CMV automático — vem do relatório único "Geral" (Custo por linha)
   try {
+    const normFlexDre = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/\b(de|do|da|dos|das)\b/g,'').replace(/[^a-z0-9]/g,'').replace(/s$/,'');
+    const catCustoServicoDre  = cats.find(c => normFlexDre(c.nome).includes('custoservic'))?.nome  || 'Custo de Serviços';
+    const catCustoProdutoDre  = cats.find(c => normFlexDre(c.nome).includes('custoproduto'))?.nome || 'Custo de Produtos';
+
     const dadosGeralCPVdre = await buscarDadosGeral();
     dadosGeralCPVdre.forEach(r => {
       if (!r.data_comanda || !r.custo) return;
       const mes = r.data_comanda.substring(5,7);
-      const catNome = r.tipo_item === 'produto' ? 'Custo de Produtos' : 'Custo de Serviços';
+      const catNome = r.tipo_item === 'produto' ? catCustoProdutoDre : catCustoServicoDre;
       const chave = catNome + '|' + mes;
       pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + Number(r.custo||0);
     });
