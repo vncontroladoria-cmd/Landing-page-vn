@@ -7027,7 +7027,7 @@ async function loadPDV() {
       <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Total Período</div>
       <div style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(totalGeral)}</div>
     </div>`;
-    Object.entries(grupos).sort((a,b)=>b[1]-a[1]).forEach(([f,v]) => {
+    Object.entries(grupos).filter(([f]) => formasTotal.includes(f)).sort((a,b)=>b[1]-a[1]).forEach(([f,v]) => {
       html += `<div class="metric-card" style="padding:10px 14px;min-width:110px">
         <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;white-space:nowrap">${f}</div>
         <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">${fmtBRL(v)}</div>
