@@ -16149,30 +16149,24 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   const metaMap = {};
   (metas||[]).forEach(m => metaMap[m.profissional_id] = Number(m.meta||0));
 
-  // Busca dados de performance — SOMENTE o tipo Performance mais antigo (canônico)
+  // Busca dados de performance — relatório único "Geral"
   let srvDataRaw = [];
   try {
-    const { data: tiposPerfM } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
-    const { data: tiposSrvM }  = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%').order('id',{ascending:true});
-    const tipoUnicoM = tiposPerfM?.[0] || tiposSrvM?.[0] || null;
-
-    const { data: rawMet } = tipoUnicoM
-      ? await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnicoM.id).limit(50000)
-      : { data: [] };
-
-    srvDataRaw = (rawMet||[])
-      .map(r => parsePerfRow(r.colunas||r))
-      .filter(r => r.profissional && r.data_comanda)
-      .filter(r => r.data_comanda >= ini && r.data_comanda <= fim);
+    srvDataRaw = (await buscarDadosGeral())
+      .filter(r => r.data_comanda && r.data_comanda >= ini && r.data_comanda <= fim);
   } catch(e) { console.warn('[METRICAS] erro:', e); }
 
   // total = comissão | valor_cobrado = faturamento
   const fatMap = {}, comMap = {};
+  let fatSemProf = 0, comSemProf = 0;
   srvDataRaw.forEach(r => {
-    const nome = r.profissional.trim();
     const com = Number(r.total||0);
     const pct = Number(r.comissao_pct||0);
     const fat = Number(r.valor_cobrado||0) || (pct > 0 ? com/(pct/100) : 0);
+    if (!r.profissional || !r.profissional.trim()) {
+      fatSemProf += fat; comSemProf += com; return;
+    }
+    const nome = r.profissional.trim();
     fatMap[nome] = (fatMap[nome]||0) + fat;
     comMap[nome] = (comMap[nome]||0) + com;
   });
@@ -16245,6 +16239,21 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
   });
 
   html += '</tbody></table>';
+
+  // Linha "Outros" — atendimentos sem profissional identificado na comanda
+  if (fatSemProf > 0 || comSemProf > 0) {
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;margin-top:10px;background:var(--bg3);border-radius:8px;border:1px dashed var(--border)">
+      <div>
+        <div style="font-weight:600;font-size:12px;color:var(--text2)">👤 Outros — sem profissional na comanda</div>
+        <div style="font-size:10px;color:var(--text3)">Linhas do relatório Geral sem nome de profissional preenchido</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:12px;color:var(--green);font-weight:700">${fmtBRL(fatSemProf)} <span style="color:var(--text3);font-weight:400">fat.</span></div>
+        <div style="font-size:11px;color:#f59e0b">${fmtBRL(comSemProf)} <span style="color:var(--text3)">comissão</span></div>
+      </div>
+    </div>`;
+  }
+
   el.innerHTML = html;
 }
 
