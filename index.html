@@ -7676,6 +7676,10 @@ async function salvarLancamentoDRE() {
 }
 
 async function loadLancamentosDRE() {
+  // Garante que o Plano de Contas está carregado (senão a busca de categoria fica vazia)
+  const { data: catsPlano } = await qE('plano_contas').select('*').order('ordem');
+  _categorias = catsPlano || [];
+
   const mes = document.getElementById('ldre-mes')?.value || '';
   const ano = document.getElementById('ldre-ano')?.value || '2026';
   const tbody = document.getElementById('ldre-tbody');
