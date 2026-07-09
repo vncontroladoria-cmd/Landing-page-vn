@@ -14592,6 +14592,25 @@ async function buscarIndicadoresDRE(ano, mesesArr) {
     });
   } catch(e) { console.warn('CPV/CMV Geral indicadores DRE:', e); }
 
+  // Comissão de profissionais por categoria DRE (Cabelo/Unhas/Estética/Freelancer...) — mesma lógica do DRE
+  try {
+    const { data: profsAllDash } = await sb.from('profissionais').select('nome,categoria_dre').eq('empresa_id', empId).not('categoria_dre','is',null);
+    if (profsAllDash?.length) {
+      const normPDash = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+      const dadosGeralComissaoDash = await buscarDadosGeral();
+      dadosGeralComissaoDash.forEach(row => {
+        if (!row.profissional || !row.data_comanda) return;
+        if (row.data_comanda.substring(0,4) !== ano) return;
+        const mes = row.data_comanda.substring(5,7);
+        const nomeNorm = normPDash(row.profissional);
+        const prof = profsAllDash.find(p => normPDash(p.nome) === nomeNorm || nomeNorm.includes(normPDash(p.nome)) || normPDash(p.nome).includes(nomeNorm));
+        if (!prof?.categoria_dre) return;
+        const chave = prof.categoria_dre + '|' + mes;
+        pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + Number(row.total||0);
+      });
+    }
+  } catch(e) { console.warn('prof comissao indicadores DRE:', e); }
+
   const normDRE2 = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/,' ').trim();
   function calcRealAqui(catNome, mes) {
     const normNome = normDRE2(catNome);
@@ -14778,41 +14797,28 @@ async function loadDRE() {
 
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DRE no Plano de Contas</div>'; return; }
 
-  // Comissão de profissionais por categoria DRE — lê do rel_dados_brutos (TOTAL = comissão)
+  // Comissão de profissionais por categoria DRE — lê do relatório único "Geral" (campo "total" = comissão)
   let profCatMes = {};
   try {
     const { data: profsAll } = await qE('profissionais').select('nome,categoria_dre').not('categoria_dre','is',null);
-    // DESATIVADO A PEDIDO: a comissão de profissionais (Cabelo/Unha/Estética/Freelancer) não é mais
-    // puxada automaticamente do Performance pro DRE. Agora precisa ser lançada manualmente em "Lançamento DRE".
-    if (false && profsAll?.length) {
+    if (profsAll?.length) {
       const normP = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+      const dadosGeralComissao = await buscarDadosGeral();
 
-      // Usa SOMENTE o tipo Performance mais antigo (canônico) — evita misturar duplicatas
-      const { data: tiposPerfDRE } = await qE('rel_tipos').select('id,nome').ilike('nome','%performance%').order('id',{ascending:true});
-      const { data: tiposSrvDRE }  = await qE('rel_tipos').select('id,nome').ilike('nome','%servi%').order('id',{ascending:true});
-      const tipoUnicoDRE = tiposPerfDRE?.[0] || tiposSrvDRE?.[0] || null;
+      dadosGeralComissao.forEach(row => {
+        if (!row.profissional || !row.data_comanda) return;
+        const anoRec = row.data_comanda.substring(0,4);
+        if (anoRec !== ano) return;
 
-      if (tipoUnicoDRE) {
-        const { data: rawDRE } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoUnicoDRE.id).limit(50000);
+        const mes = row.data_comanda.substring(5,7);
+        const nomeNorm = normP(row.profissional);
+        const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
+        if (!prof?.categoria_dre) return;
 
-        // parsePerfRow lê Profissional, Data, Total (comissão) corretamente
-        (rawDRE||[]).forEach(r => {
-          const row = parsePerfRow(r.colunas||r);
-          if (!row.profissional || !row.data_comanda) return;
-
-          const anoRec = row.data_comanda.substring(0,4);
-          if (anoRec !== ano) return;
-
-          const mes = row.data_comanda.substring(5,7);
-          const nomeNorm = normP(row.profissional);
-          const prof = profsAll.find(p => normP(p.nome) === nomeNorm || nomeNorm.includes(normP(p.nome)) || normP(p.nome).includes(nomeNorm));
-          if (!prof?.categoria_dre) return;
-
-          const comissao = Number(row.total||0); // total = comissão
-          const chave = prof.categoria_dre + '|' + mes;
-          profCatMes[chave] = (profCatMes[chave]||0) + comissao;
-        });
-      }
+        const comissao = Number(row.total||0); // total = comissão
+        const chave = prof.categoria_dre + '|' + mes;
+        profCatMes[chave] = (profCatMes[chave]||0) + comissao;
+      });
     }
   } catch(e) { console.warn('prof DRE comissao:', e); }
 
