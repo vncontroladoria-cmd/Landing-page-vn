@@ -6031,6 +6031,11 @@ async function loadImportacao() {
 // ── Tipos ──────────────────────────────────────────────────
 
 async function loadTiposImport() {
+  // Garante Plano de Contas carregado (pra busca de vínculo funcionar)
+  if (!_categorias?.length) {
+    const { data: catsPlano } = await qE('plano_contas').select('*').order('ordem');
+    _categorias = catsPlano || [];
+  }
   const { data, error } = await qE('rel_tipos').select('*').eq('ativo', true).order('nome');
   if (error) { showToast('Erro ao carregar tipos: ' + error.message, 'error'); return; }
   _impTipos = data || [];
@@ -6072,6 +6077,7 @@ function renderTiposGrid() {
       <div style="font-size:28px;margin-bottom:6px">📂</div>
       <div class="metric-label" style="font-size:13px;font-weight:700">${t.nome}</div>
       ${t.descricao ? `<div style="font-size:11px;opacity:0.7;margin-top:4px">${t.descricao}</div>` : ''}
+      ${t.categoria_plano ? `<div style="font-size:10px;background:rgba(0,0,0,.12);border-radius:6px;padding:2px 6px;margin-top:6px;display:inline-block">🔗 ${t.categoria_plano}</div>` : ''}
       <div style="font-size:10px;opacity:0.6;margin-top:8px">Clique para ver dados →</div>
     </div>
   `).join('');
@@ -6113,16 +6119,45 @@ function selecionarTipoImport(tipoId, tipoNome) {
 function abrirModalNovoTipo() {
   document.getElementById('novo-tipo-nome').value = '';
   document.getElementById('novo-tipo-desc').value = '';
+  document.getElementById('novo-tipo-cat-busca').value = '';
+  document.getElementById('novo-tipo-cat').value = '';
   document.getElementById('modal-novo-tipo').classList.add('open');
   setTimeout(() => document.getElementById('novo-tipo-nome').focus(), 100);
+}
+
+function buscarCatTipoImport(texto) {
+  const dd = document.getElementById('novo-tipo-cat-dd');
+  if (!dd) return;
+  const termo = (texto||'').toLowerCase().trim();
+  const cats = (_categorias||[]).filter(c =>
+    (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') &&
+    (!termo || c.nome.toLowerCase().includes(termo))
+  );
+  if (!cats.length) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = cats.map(c =>
+    `<div onmousedown="selecionarCatTipoImport('${c.nome.replace(/'/g,"\\'")}')"
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong>
+      <span style="font-size:10px;color:var(--text3);margin-left:6px">${c.grupo||''}</span>
+    </div>`
+  ).join('');
+}
+
+function selecionarCatTipoImport(nome) {
+  document.getElementById('novo-tipo-cat-busca').value = nome;
+  document.getElementById('novo-tipo-cat').value = nome;
+  document.getElementById('novo-tipo-cat-dd').style.display = 'none';
 }
 
 async function salvarNovoTipo() {
   const nome = document.getElementById('novo-tipo-nome').value.trim();
   const desc = document.getElementById('novo-tipo-desc').value.trim();
+  const categoriaPlano = document.getElementById('novo-tipo-cat').value.trim() || null;
   if (!nome) { showToast('Digite o nome do tipo.', 'error'); return; }
 
-  const { error } = await sb.from('rel_tipos').insert(addEmpresaId({ nome, descricao: desc || null }));
+  const { error } = await sb.from('rel_tipos').insert(addEmpresaId({ nome, descricao: desc || null, categoria_plano: categoriaPlano }));
   if (error) {
     if (error.message.includes('unique') || error.code === '23505') {
       showToast('Já existe um tipo com esse nome.', 'error');
@@ -14509,6 +14544,37 @@ async function buscarIndicadoresDRE(ano, mesesArr) {
     }
   } catch(e) { console.warn('PDV indicadores DRE:', e); }
 
+  // Pastas de importação vinculadas a uma categoria do Plano de Contas (ex: CPV → Custo de compra)
+  try {
+    const { data: tiposVinculados } = await sb.from('rel_tipos').select('id,categoria_plano').eq('empresa_id', empId).not('categoria_plano','is',null);
+    for (const t of (tiposVinculados||[])) {
+      let brutos = [], from = 0;
+      while (true) {
+        const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', t.id).range(from, from+999);
+        if (!data?.length) break;
+        brutos = brutos.concat(data);
+        if (data.length < 1000) break;
+        from += 1000;
+      }
+      brutos.forEach(r => {
+        const c = r.colunas || {};
+        const keys = Object.keys(c);
+        const kData  = keys.find(k => k.trim() === 'Data');
+        const kValor = keys.find(k => k.trim() === 'Custo de compra') || keys.find(k => k.trim() === 'Valor') || keys.find(k => k.trim() === 'Custo') || keys.find(k => k.trim() === 'Total');
+        if (!kData || !kValor) return;
+        const dataRaw = String(c[kData]||'').trim();
+        let mes = null;
+        if (/^\d{4}-\d{2}-\d{2}/.test(dataRaw)) mes = dataRaw.substring(5,7);
+        else { const m = dataRaw.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if (m) mes = m[2].padStart(2,'0'); }
+        if (!mes) return;
+        const valorStr = String(c[kValor]||'').replace(/[^0-9,.-]/g,'');
+        const valor = valorStr.includes(',') ? parseFloat(valorStr.replace(/\./g,'').replace(',','.'))||0 : parseFloat(valorStr)||0;
+        const chave = t.categoria_plano + '|' + mes;
+        pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + valor;
+      });
+    }
+  } catch(e) { console.warn('Tipos vinculados indicadores DRE:', e); }
+
   const normDRE2 = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/,' ').trim();
   function calcRealAqui(catNome, mes) {
     const normNome = normDRE2(catNome);
@@ -14626,6 +14692,38 @@ async function loadDRE() {
       });
     }
   } catch(e) { console.warn('PDV DRE:', e); }
+
+  // Pastas de importação vinculadas a uma categoria do Plano de Contas (ex: CPV → Custo de compra)
+  try {
+    const empIdTv = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    const { data: tiposVinculadosDRE } = await sb.from('rel_tipos').select('id,categoria_plano').eq('empresa_id', empIdTv).not('categoria_plano','is',null);
+    for (const t of (tiposVinculadosDRE||[])) {
+      let brutosTV = [], fromTV = 0;
+      while (true) {
+        const { data } = await sb.from('rel_dados_brutos').select('colunas').eq('tipo_id', t.id).range(fromTV, fromTV+999);
+        if (!data?.length) break;
+        brutosTV = brutosTV.concat(data);
+        if (data.length < 1000) break;
+        fromTV += 1000;
+      }
+      brutosTV.forEach(r => {
+        const c = r.colunas || {};
+        const keys = Object.keys(c);
+        const kData  = keys.find(k => k.trim() === 'Data');
+        const kValor = keys.find(k => k.trim() === 'Custo de compra') || keys.find(k => k.trim() === 'Valor') || keys.find(k => k.trim() === 'Custo') || keys.find(k => k.trim() === 'Total');
+        if (!kData || !kValor) return;
+        const dataRaw = String(c[kData]||'').trim();
+        let mes = null;
+        if (/^\d{4}-\d{2}-\d{2}/.test(dataRaw)) mes = dataRaw.substring(5,7);
+        else { const m = dataRaw.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/); if (m) mes = m[2].padStart(2,'0'); }
+        if (!mes) return;
+        const valorStr = String(c[kValor]||'').replace(/[^0-9,.-]/g,'');
+        const valor = valorStr.includes(',') ? parseFloat(valorStr.replace(/\./g,'').replace(',','.'))||0 : parseFloat(valorStr)||0;
+        const chave = t.categoria_plano + '|' + mes;
+        pdvPorCatMes[chave] = (pdvPorCatMes[chave]||0) + valor;
+      });
+    }
+  } catch(e) { console.warn('Tipos vinculados DRE:', e); }
 
   // Busca metas projetadas da tabela correta (projecoes_dre)
   let metasMap = {};
@@ -22767,6 +22865,16 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
     <div class="form-group" style="margin-bottom:1rem">
       <label>Descrição (opcional)</label>
       <input id="novo-tipo-desc" class="form-group input" placeholder="Ex: Relatório de serviços realizados" style="padding:9px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);width:100%;font-family:'Outfit',sans-serif">
+    </div>
+    <div class="form-group" style="margin-bottom:1rem;position:relative">
+      <label>Vincular com categoria do Plano de Contas (opcional)</label>
+      <input id="novo-tipo-cat-busca" placeholder="🔗 Buscar categoria do DRE/DFC..." autocomplete="off"
+        oninput="buscarCatTipoImport(this.value)" onfocus="buscarCatTipoImport(this.value)"
+        onblur="setTimeout(()=>{const d=document.getElementById('novo-tipo-cat-dd');if(d)d.style.display='none'},200)"
+        style="padding:9px 12px;font-size:13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);width:100%;font-family:'Outfit',sans-serif">
+      <input type="hidden" id="novo-tipo-cat">
+      <div id="novo-tipo-cat-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:180px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.12)"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Se vincular, o valor de cada linha importada entra automaticamente no DRE dessa categoria, mês a mês.</div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-novo-tipo')">Cancelar</button>
