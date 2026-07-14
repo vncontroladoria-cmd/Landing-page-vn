@@ -2675,6 +2675,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
               <button class="btn" id="btn-sincronizar-cat" onclick="sincronizarCategoriasLancamentos()" title="Corrige o código DRE/DFC de todos os lançamentos com base no Plano de Contas atual">🔄 Sincronizar categorias</button>
+              <button class="btn" onclick="exportarLancamentosExcel()" title="Exporta todos os lançamentos filtrados, com todas as colunas">📊 Exportar Excel</button>
               <button id="btn-sem-cat" onclick="filtrarSemCategoria()" style="display:none;padding:7px 12px;font-size:13px;border:1.5px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,0.1);color:#b45309;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;gap:6px;align-items:center">
                 ⚠️ Sem categoria: <span id="lanc-hero-semcat-n" style="background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:2px">0</span>
               </button>
@@ -17315,6 +17316,51 @@ async function sincronizarCategoriasLancamentos() {
   alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}`);
   showToast(`${atualizacoes.length} lançamento(s) sincronizado(s)!`, 'success');
   atualizarLancamentos();
+}
+
+async function exportarLancamentosExcel() {
+  const lista = window._lancamentos || [];
+  if (!lista.length) { showToast('Nenhum lançamento pra exportar (verifique os filtros).', 'error'); return; }
+
+  showToast('Gerando Excel...', '');
+  try {
+    const XLSX = await loadXLSX();
+    const nomeBanco = id => (_bancos||[]).find(b=>b.id===id)?.nome || '';
+
+    const linhas = lista.map(l => ({
+      'Data': l.data_lancamento || '',
+      'Extrato/Descrição': l.descricao || l.extrato || '',
+      'Entrada': Number(l.entrada||0),
+      'Saída': Number(l.saida||0),
+      'Valor': Number(l.valor||0),
+      'Tipo': l.tipo || '',
+      'Categoria': l.categoria || '',
+      'Categoria DFC': l.categoria_dfc || '',
+      'Categoria DRE': l.categoria_dre || '',
+      'Banco': l.banco_nome || nomeBanco(l.banco_id),
+      'Mês': l.mes || '',
+      'Competência': l.competencia || '',
+      'Aparece no DFC': l.aparece_dfc === false ? 'Não' : 'Sim',
+      'Responsável': l.responsavel || '',
+      'Observação': l.observacao || '',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    ws['!cols'] = [
+      {wch:12},{wch:35},{wch:12},{wch:12},{wch:12},{wch:10},
+      {wch:20},{wch:14},{wch:14},{wch:16},{wch:8},{wch:12},{wch:14},{wch:18},{wch:30}
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Lançamentos');
+
+    const nomeEmp = (_empresaAtual?.nome || 'empresa').replace(/[^a-zA-Z0-9]/g,'_');
+    const dataHoje = hojeISO();
+    XLSX.writeFile(wb, `Lancamentos_${nomeEmp}_${dataHoje}.xlsx`);
+    showToast(`✅ ${linhas.length} lançamento(s) exportado(s)!`, 'success');
+  } catch(e) {
+    showToast('Erro ao exportar: ' + e.message, 'error');
+    console.error(e);
+  }
 }
 
 async function atualizarLancamentos() {
