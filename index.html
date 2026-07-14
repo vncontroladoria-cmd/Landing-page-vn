@@ -21365,15 +21365,35 @@ async function loadMensagensOperador() {
   if (!msgs?.length) {
     container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:12px">Nenhuma mensagem ainda. Diga olá!</div>`;
   } else {
+    const hojeStr = hojeISO();
+    const ontemD = new Date(); ontemD.setDate(ontemD.getDate()-1);
+    const ontemStr = `${ontemD.getFullYear()}-${String(ontemD.getMonth()+1).padStart(2,'0')}-${String(ontemD.getDate()).padStart(2,'0')}`;
+    const labelData = (dataStr) => {
+      if (dataStr === hojeStr) return 'Hoje';
+      if (dataStr === ontemStr) return 'Ontem';
+      const [a,m,d] = dataStr.split('-');
+      return `${d}/${m}/${a}`;
+    };
+
+    let ultimaDataMostrada = null;
     container.innerHTML = msgs.map(m => {
       const minha = m.de_usuario_id === meuId;
-      const hora = new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const dataMsg = new Date(m.criado_em);
+      const dataMsgStr = `${dataMsg.getFullYear()}-${String(dataMsg.getMonth()+1).padStart(2,'0')}-${String(dataMsg.getDate()).padStart(2,'0')}`;
+      const hora = dataMsg.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+      let separadorData = '';
+      if (dataMsgStr !== ultimaDataMostrada) {
+        ultimaDataMostrada = dataMsgStr;
+        separadorData = `<div style="text-align:center;margin:10px 0 6px"><span style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px">${labelData(dataMsgStr)}</span></div>`;
+      }
       const citacao = m.responde_texto ? `
         <div style="border-left:3px solid ${minha?'rgba(255,255,255,.5)':'#2a9d5c'};padding:3px 8px;margin-bottom:5px;background:rgba(0,0,0,.15);border-radius:4px;font-size:11px;opacity:.85">
           <div style="font-weight:700">${m.responde_de_nome || 'Mensagem'}</div>
           <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">${(m.responde_texto||'').replace(/</g,'&lt;')}</div>
         </div>` : '';
       return `
+        ${separadorData}
         <div class="op-msg-linha" style="display:flex;justify-content:${minha?'flex-end':'flex-start'};gap:4px;align-items:flex-end" onmouseover="this.querySelector('.op-msg-acoes').style.opacity='1'" onmouseout="this.querySelector('.op-msg-acoes').style.opacity='0'">
           ${minha ? `<div class="op-msg-acoes" style="display:flex;gap:2px;opacity:0;transition:opacity .15s">
             <button onclick="responderMensagemOperador('${m.id}')" title="Responder" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:12px">↩️</button>
@@ -22402,6 +22422,7 @@ async function verificarMensagensNovas() {
   // Notificar mensagens novas desde a última verificação
   if (_msgUltimaVerificacao && qtd > 0) {
     const novas = msgs.filter(m => new Date(m.criado_em) > _msgUltimaVerificacao);
+    if (novas.length) tocarSomMensagem();
     novas.forEach(m => {
       const remetente = m.vn_usuarios?.nome || m.vn_usuarios?.email || 'Alguém';
       const texto = m.mensagem || (m.arquivo_nome ? `📎 ${m.arquivo_nome}` : 'Nova mensagem');
@@ -22409,6 +22430,26 @@ async function verificarMensagensNovas() {
     });
   }
   _msgUltimaVerificacao = new Date();
+}
+
+// Som curto de notificação (gerado direto no navegador, sem precisar de arquivo)
+function tocarSomMensagem() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const tocarNota = (freq, inicio, duracao) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + inicio);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + inicio + duracao);
+      osc.start(ctx.currentTime + inicio);
+      osc.stop(ctx.currentTime + inicio + duracao);
+    };
+    tocarNota(880, 0, 0.12);
+    tocarNota(1200, 0.1, 0.15);
+  } catch(e) { /* navegador pode bloquear som sem interação do usuário — ignora silenciosamente */ }
 }
 
 function atualizarBadgeMensagens(qtd) {
