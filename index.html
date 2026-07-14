@@ -1474,7 +1474,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- Abas -->
         <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap">
-          <div class="op-tab active" data-tab="hoje" onclick="tarefasTab('hoje')">📋 Hoje</div>
+          <div class="op-tab active" data-tab="hoje" onclick="tarefasTab('hoje')">📋 Hoje <span id="hoje-pendentes-badge" style="display:none;background:#f59e0b;color:#0f172a;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;margin-left:4px"></span></div>
           <div class="op-tab" data-tab="agenda" onclick="tarefasTab('agenda')">📅 Agenda</div>
           <div class="op-tab" data-tab="pendencias" onclick="tarefasTab('pendencias')">🔴 Atrasados <span id="atrasados-badge" style="display:none;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;margin-left:4px"></span></div>
           <div class="op-tab" data-tab="cadastro" onclick="tarefasTab('cadastro')">🗂️ Cadastro</div>
@@ -20311,6 +20311,14 @@ async function loadTarefasOperador() {
 
   renderCardsHoje();
   (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
+
+  // Badge laranja de pendentes na aba "Hoje" — só conta se não concluída, some quando tudo concluído
+  const pendentesHoje = tarefasHoje.filter(t => !concluidasHoje.has(t.id)).length;
+  const badgeHoje = document.getElementById('hoje-pendentes-badge');
+  if (badgeHoje) {
+    badgeHoje.textContent = pendentesHoje;
+    badgeHoje.style.display = pendentesHoje > 0 ? 'inline-block' : 'none';
+  }
 }
 
 function renderCardsHoje() {
