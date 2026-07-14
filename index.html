@@ -2200,6 +2200,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
+          <!-- Botão Exportar Excel — exporta a tabela da página atual, funciona em qualquer página -->
+          <button id="btn-exportar-excel" onclick="exportarPaginaAtualExcel()" title="Exportar Excel"
+            style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;color:#16a34a;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:6px">
+            📊 Exportar Excel
+          </button>
+
           <!-- Ícone de notificações -->
           <button id="btn-notificacoes" title="Notificações (em breve)"
             style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;position:relative;color:var(--text2)">
@@ -17464,6 +17470,56 @@ async function exportarLancamentosExcel() {
     const dataHoje = hojeISO();
     XLSX.writeFile(wb, `Lancamentos_${nomeEmp}_${dataHoje}.xlsx`);
     showToast(`✅ ${linhas.length} lançamento(s) exportado(s)!`, 'success');
+  } catch(e) {
+    showToast('Erro ao exportar: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+// ─── EXPORTAR EXCEL GENÉRICO — funciona em qualquer página ────
+// Pega a(s) tabela(s) visível(is) na página atual e exporta pro Excel.
+async function exportarPaginaAtualExcel() {
+  const pageEl = document.querySelector('.page.active');
+  if (!pageEl) { showToast('Não encontrei a página atual pra exportar.', 'error'); return; }
+
+  const tabelas = Array.from(pageEl.querySelectorAll('table')).filter(t => t.querySelector('tbody tr'));
+  if (!tabelas.length) { showToast('Nenhuma tabela com dados pra exportar nessa página.', 'error'); return; }
+
+  showToast('Gerando Excel...', '');
+  try {
+    const XLSX = await loadXLSX();
+    const wb = XLSX.utils.book_new();
+    const nomePagina = (document.getElementById('page-title')?.textContent || 'Pagina').trim();
+
+    tabelas.forEach((tabela, idx) => {
+      const linhas = [];
+      // Cabeçalho: usa thead th, ou primeira linha do tbody se não tiver thead
+      const ths = tabela.querySelectorAll('thead th');
+      if (ths.length) linhas.push(Array.from(ths).map(th => th.innerText.trim()));
+
+      tabela.querySelectorAll('tbody tr').forEach(tr => {
+        // Ignora linhas de total/rodapé duplicadas do tfoot, se vierem dentro do tbody por engano
+        const celulas = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+        if (celulas.length) linhas.push(celulas);
+      });
+      // Linha de total, se existir tfoot
+      tabela.querySelectorAll('tfoot tr').forEach(tr => {
+        const celulas = Array.from(tr.querySelectorAll('td,th')).map(td => td.innerText.trim());
+        if (celulas.length) linhas.push(celulas);
+      });
+
+      if (!linhas.length) return;
+      const ws = XLSX.utils.aoa_to_sheet(linhas);
+      const nomeAba = (tabelas.length > 1 ? `${nomePagina}_${idx+1}` : nomePagina).replace(/[\\/*?:[\]]/g,'').slice(0,31) || `Tabela${idx+1}`;
+      XLSX.utils.book_append_sheet(wb, ws, nomeAba);
+    });
+
+    if (!wb.SheetNames.length) { showToast('Nenhum dado pra exportar.', 'error'); return; }
+
+    const nomeEmp = (_empresaAtual?.nome || 'empresa').replace(/[^a-zA-Z0-9]/g,'_');
+    const dataHoje = hojeISO();
+    XLSX.writeFile(wb, `${nomePagina.replace(/[^a-zA-Z0-9]/g,'_')}_${nomeEmp}_${dataHoje}.xlsx`);
+    showToast('✅ Exportado com sucesso!', 'success');
   } catch(e) {
     showToast('Erro ao exportar: ' + e.message, 'error');
     console.error(e);
