@@ -7561,11 +7561,11 @@ function toggleMiniChat() {
 }
 
 async function carregarUsuariosChat() {
-  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-  if (!empId) return;
-  const { data } = await sb.from('vn_usuarios').select('id,nome,email,perfil').eq('empresa_id', empId).neq('id', _vnUser?.id);
+  // Lista todo mundo da equipe (não filtra por empresa — é chat interno, igual a tela de Mensagens)
+  const { data } = await sb.from('vn_usuarios').select('id,nome,email,perfil').eq('ativo', true).neq('id', _vnUser?.id || '').order('nome');
   _chatUsuarios = data || [];
-  const { data: naolidas } = await sb.from('chat_mensagens').select('remetente_id').eq('destinatario_id', _vnUser?.id).eq('empresa_id', empId).eq('lida', false);
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const { data: naolidas } = await sb.from('chat_mensagens').select('remetente_id').eq('destinatario_id', _vnUser?.id).eq('lida', false);
   const contagem = {};
   (naolidas||[]).forEach(m => { contagem[m.remetente_id] = (contagem[m.remetente_id]||0)+1; });
   const el = document.getElementById('chat-msgs');
@@ -7588,8 +7588,7 @@ async function abrirConversaChat(userId, userName) {
   if (header) header.textContent = userName;
   const btnVoltar = document.getElementById('chat-btn-voltar');
   if (btnVoltar) btnVoltar.style.display = 'flex';
-  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-  await sb.from('chat_mensagens').update({ lida: true }).eq('destinatario_id', _vnUser?.id).eq('remetente_id', userId).eq('empresa_id', empId);
+  await sb.from('chat_mensagens').update({ lida: true }).eq('destinatario_id', _vnUser?.id).eq('remetente_id', userId);
   await carregarMensagensConversa();
   document.getElementById('chat-input')?.focus();
   clearInterval(_chatInterval);
@@ -7609,9 +7608,8 @@ function voltarListaChat() {
 
 async function carregarMensagensConversa() {
   if (!_chatConversa) return;
-  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   const meuId = _vnUser?.id;
-  const { data } = await sb.from('chat_mensagens').select('*').eq('empresa_id', empId)
+  const { data } = await sb.from('chat_mensagens').select('*')
     .or(`and(remetente_id.eq.${meuId},destinatario_id.eq.${_chatConversa.id}),and(remetente_id.eq.${_chatConversa.id},destinatario_id.eq.${meuId})`)
     .order('criado_em', { ascending: true }).limit(100);
   const naolidas = (data||[]).filter(m => m.destinatario_id === meuId && !m.lida).map(m => m.id);
