@@ -7568,9 +7568,9 @@ async function carregarUsuariosChat() {
   const { data } = await sb.from('vn_usuarios').select('id,nome,email,perfil').eq('ativo', true).neq('id', _vnUser?.id || '').order('nome');
   _chatUsuarios = data || [];
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-  const { data: naolidas } = await sb.from('chat_mensagens').select('remetente_id').eq('destinatario_id', _vnUser?.id).eq('lida', false);
+  const { data: naolidas } = await sb.from('mensagens_operadores').select('de_usuario_id').eq('para_usuario_id', _vnUser?.id).eq('lida', false);
   const contagem = {};
-  (naolidas||[]).forEach(m => { contagem[m.remetente_id] = (contagem[m.remetente_id]||0)+1; });
+  (naolidas||[]).forEach(m => { contagem[m.de_usuario_id] = (contagem[m.de_usuario_id]||0)+1; });
   const el = document.getElementById('chat-msgs');
   if (!el) return;
   if (!_chatUsuarios.length) { el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:12px;padding:2rem">Nenhum outro usuário na empresa.</div>'; return; }
@@ -7591,7 +7591,7 @@ async function abrirConversaChat(userId, userName) {
   if (header) header.textContent = userName;
   const btnVoltar = document.getElementById('chat-btn-voltar');
   if (btnVoltar) btnVoltar.style.display = 'flex';
-  await sb.from('chat_mensagens').update({ lida: true }).eq('destinatario_id', _vnUser?.id).eq('remetente_id', userId);
+  await sb.from('mensagens_operadores').update({ lida: true }).eq('para_usuario_id', _vnUser?.id).eq('de_usuario_id', userId);
   await carregarMensagensConversa();
   document.getElementById('chat-input')?.focus();
   clearInterval(_chatInterval);
@@ -7612,28 +7612,28 @@ function voltarListaChat() {
 async function carregarMensagensConversa() {
   if (!_chatConversa) return;
   const meuId = _vnUser?.id;
-  const { data } = await sb.from('chat_mensagens').select('*')
-    .or(`and(remetente_id.eq.${meuId},destinatario_id.eq.${_chatConversa.id}),and(remetente_id.eq.${_chatConversa.id},destinatario_id.eq.${meuId})`)
+  const { data } = await sb.from('mensagens_operadores').select('*')
+    .or(`and(de_usuario_id.eq.${meuId},para_usuario_id.eq.${_chatConversa.id}),and(de_usuario_id.eq.${_chatConversa.id},para_usuario_id.eq.${meuId})`)
     .order('criado_em', { ascending: true }).limit(100);
-  const naolidas = (data||[]).filter(m => m.destinatario_id === meuId && !m.lida).map(m => m.id);
-  if (naolidas.length) await sb.from('chat_mensagens').update({ lida: true }).in('id', naolidas);
+  const naolidas = (data||[]).filter(m => m.para_usuario_id === meuId && !m.lida).map(m => m.id);
+  if (naolidas.length) await sb.from('mensagens_operadores').update({ lida: true }).in('id', naolidas);
   const el = document.getElementById('chat-msgs');
   if (!el) return;
   const scroll = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
   el.innerHTML = (data||[]).length ? (data||[]).map(m => {
-    const meu = m.remetente_id === meuId;
+    const meu = m.de_usuario_id === meuId;
     const hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const conteudo = m.mensagem || (m.arquivo_url ? `📎 <a href="${m.arquivo_url}" target="_blank" style="color:inherit">${m.arquivo_nome||'arquivo'}</a>` : '');
     return `<div style="display:flex;flex-direction:column;align-items:${meu?'flex-end':'flex-start'};gap:2px;margin-bottom:2px">
-      <div style="max-width:85%;padding:8px 12px;border-radius:${meu?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${meu?'var(--accent)':'var(--bg3)'};color:${meu?'#fff':'var(--text)'};font-size:12px;line-height:1.4;word-break:break-word">${m.texto}</div>
+      <div style="max-width:85%;padding:8px 12px;border-radius:${meu?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${meu?'var(--accent)':'var(--bg3)'};color:${meu?'#fff':'var(--text)'};font-size:12px;line-height:1.4;word-break:break-word">${conteudo}</div>
       <span style="font-size:9px;color:var(--text3)">${hora}</span></div>`;
   }).join('') : '<div style="text-align:center;color:var(--text3);font-size:12px;padding:2rem">Nenhuma mensagem.<br>Diga olá! 👋</div>';
   if (scroll) el.scrollTop = el.scrollHeight;
 }
 
 async function verificarMsgNovas() {
-  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-  if (!empId || !_vnUser?.id) return;
-  const { count } = await sb.from('chat_mensagens').select('id', { count: 'exact', head: true }).eq('destinatario_id', _vnUser.id).eq('empresa_id', empId).eq('lida', false);
+  if (!_vnUser?.id) return;
+  const { count } = await sb.from('mensagens_operadores').select('id', { count: 'exact', head: true }).eq('para_usuario_id', _vnUser.id).eq('lida', false);
   const badge = document.getElementById('chat-badge');
   if (!badge) return;
   if (count > 0) { badge.style.display = 'flex'; badge.textContent = count > 9 ? '9+' : count; }
@@ -7647,9 +7647,8 @@ async function enviarMensagemChat() {
   const input = document.getElementById('chat-input');
   const texto = input?.value.trim();
   if (!texto) return;
-  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   input.value = '';
-  await sb.from('chat_mensagens').insert({ empresa_id: empId, remetente_id: _vnUser?.id, destinatario_id: _chatConversa.id, remetente_nome: _vnUser?.nome || _vnUser?.email || 'Usuário', texto, lida: false });
+  await sb.from('mensagens_operadores').insert({ de_usuario_id: _vnUser?.id, para_usuario_id: _chatConversa.id, mensagem: texto, lida: false });
   await carregarMensagensConversa();
 }
 
