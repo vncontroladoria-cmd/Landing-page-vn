@@ -1666,6 +1666,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               Selecione um operador
             </div>
             <div id="op-chat-mensagens" style="flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px"></div>
+            <div id="op-chat-previa" style="display:none;align-items:center;gap:6px;padding:6px 10px;background:rgba(255,255,255,.03);border-top:1px solid rgba(255,255,255,.06);flex-shrink:0"></div>
             <div id="op-chat-input-area" style="padding:8px 10px;border-top:1px solid rgba(255,255,255,.06);display:none;gap:6px;align-items:center;flex-shrink:0">
               <input type="file" id="op-chat-file" style="display:none" onchange="enviarArquivoOperador()">
               <!-- Emoji picker -->
@@ -21358,6 +21359,8 @@ async function loadMensagensOperador() {
     .or(`and(de_usuario_id.eq.${meuId},para_usuario_id.eq.${_opChatCom}),and(de_usuario_id.eq.${_opChatCom},para_usuario_id.eq.${meuId})`)
     .order('criado_em');
 
+  window._opMensagensCache = msgs || []; // pra achar o texto original ao responder/editar
+
   const container = document.getElementById('op-chat-mensagens');
   if (!msgs?.length) {
     container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:12px">Nenhuma mensagem ainda. Diga olá!</div>`;
@@ -21365,13 +21368,26 @@ async function loadMensagensOperador() {
     container.innerHTML = msgs.map(m => {
       const minha = m.de_usuario_id === meuId;
       const hora = new Date(m.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const citacao = m.responde_texto ? `
+        <div style="border-left:3px solid ${minha?'rgba(255,255,255,.5)':'#2a9d5c'};padding:3px 8px;margin-bottom:5px;background:rgba(0,0,0,.15);border-radius:4px;font-size:11px;opacity:.85">
+          <div style="font-weight:700">${m.responde_de_nome || 'Mensagem'}</div>
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">${(m.responde_texto||'').replace(/</g,'&lt;')}</div>
+        </div>` : '';
       return `
-        <div style="display:flex;justify-content:${minha?'flex-end':'flex-start'}">
+        <div class="op-msg-linha" style="display:flex;justify-content:${minha?'flex-end':'flex-start'};gap:4px;align-items:flex-end" onmouseover="this.querySelector('.op-msg-acoes').style.opacity='1'" onmouseout="this.querySelector('.op-msg-acoes').style.opacity='0'">
+          ${minha ? `<div class="op-msg-acoes" style="display:flex;gap:2px;opacity:0;transition:opacity .15s">
+            <button onclick="responderMensagemOperador('${m.id}')" title="Responder" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:12px">↩️</button>
+            ${m.mensagem ? `<button onclick="editarMensagemOperador('${m.id}')" title="Editar" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:12px">✏️</button>` : ''}
+          </div>` : ''}
           <div style="max-width:70%;background:${minha?'#2a9d5c':'rgba(255,255,255,.06)'};color:#fff;padding:8px 12px;border-radius:10px;font-size:13px">
+            ${citacao}
             ${m.mensagem ? `<div>${m.mensagem.replace(/</g,'&lt;')}</div>` : ''}
             ${m.arquivo_url ? `<div style="margin-top:4px"><a href="${m.arquivo_url}" target="_blank" style="color:#bfdbfe;text-decoration:underline;font-size:12px">📎 ${m.arquivo_nome||'Arquivo'}</a></div>` : ''}
-            <div style="font-size:9px;color:rgba(255,255,255,.5);margin-top:3px;text-align:right">${hora}</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.5);margin-top:3px;text-align:right">${hora}${m.editado?' · editado':''}</div>
           </div>
+          ${!minha ? `<div class="op-msg-acoes" style="display:flex;gap:2px;opacity:0;transition:opacity .15s">
+            <button onclick="responderMensagemOperador('${m.id}')" title="Responder" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:12px">↩️</button>
+          </div>` : ''}
         </div>
       `;
     }).join('');
@@ -21382,17 +21398,104 @@ async function loadMensagensOperador() {
   await sb.from('mensagens_operadores').update({lida:true}).eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false);
 }
 
+// ── Responder mensagem (cita a original, igual WhatsApp) ──
+function responderMensagemOperador(msgId) {
+  const msg = (window._opMensagensCache||[]).find(m => m.id === msgId);
+  if (!msg) return;
+  const nomeOutro = document.getElementById('op-chat-header')?.textContent?.trim() || 'Mensagem';
+  window._opRespondendoA = { id: msgId, texto: msg.mensagem || '📎 Arquivo', nome: msg.de_usuario_id === _vnUser?.id ? 'Você' : nomeOutro };
+  cancelarEdicaoMensagemOperador(); // não deixa responder e editar ao mesmo tempo
+  mostrarPreviaRespostaOperador();
+  document.getElementById('op-chat-texto')?.focus();
+}
+
+function mostrarPreviaRespostaOperador() {
+  const el = document.getElementById('op-chat-previa');
+  if (!el) return;
+  if (window._opRespondendoA) {
+    el.style.display = 'flex';
+    el.innerHTML = `
+      <div style="flex:1;border-left:3px solid #2a9d5c;padding:3px 8px;font-size:11px;color:rgba(255,255,255,.7);overflow:hidden">
+        <div style="font-weight:700;color:#4ade80">Respondendo a ${window._opRespondendoA.nome}</div>
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(window._opRespondendoA.texto||'').replace(/</g,'&lt;')}</div>
+      </div>
+      <button onclick="cancelarRespostaMensagemOperador()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:16px;padding:0 6px">✕</button>`;
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+}
+
+function cancelarRespostaMensagemOperador() {
+  window._opRespondendoA = null;
+  mostrarPreviaRespostaOperador();
+}
+
+// ── Editar mensagem própria ──
+function editarMensagemOperador(msgId) {
+  const msg = (window._opMensagensCache||[]).find(m => m.id === msgId);
+  if (!msg || !msg.mensagem) return;
+  cancelarRespostaMensagemOperador(); // não deixa responder e editar ao mesmo tempo
+  window._opEditandoMsgId = msgId;
+  const input = document.getElementById('op-chat-texto');
+  if (input) { input.value = msg.mensagem; input.focus(); }
+  mostrarPreviaEdicaoOperador();
+}
+
+function mostrarPreviaEdicaoOperador() {
+  const el = document.getElementById('op-chat-previa');
+  if (!el) return;
+  if (window._opEditandoMsgId) {
+    el.style.display = 'flex';
+    el.innerHTML = `
+      <div style="flex:1;border-left:3px solid #eab308;padding:3px 8px;font-size:11px;color:#fde68a">
+        <div style="font-weight:700">✏️ Editando mensagem</div>
+      </div>
+      <button onclick="cancelarEdicaoMensagemOperador()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:16px;padding:0 6px">✕</button>`;
+  } else if (!window._opRespondendoA) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+}
+
+function cancelarEdicaoMensagemOperador() {
+  window._opEditandoMsgId = null;
+  const input = document.getElementById('op-chat-texto');
+  if (input) input.value = '';
+  mostrarPreviaEdicaoOperador();
+}
+
 async function enviarMensagemOperador() {
   if (!_opChatCom) return;
   const input = document.getElementById('op-chat-texto');
   const texto = input.value.trim();
   if (!texto) return;
 
-  const { error } = await sb.from('mensagens_operadores').insert({
+  // Editando uma mensagem própria já enviada
+  if (window._opEditandoMsgId) {
+    const { error } = await sb.from('mensagens_operadores')
+      .update({ mensagem: texto, editado: true })
+      .eq('id', window._opEditandoMsgId);
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+    cancelarEdicaoMensagemOperador();
+    input.value = '';
+    await loadMensagensOperador();
+    return;
+  }
+
+  const payload = {
     de_usuario_id: _vnUser?.id,
     para_usuario_id: _opChatCom,
     mensagem: texto,
-  });
+  };
+  // Respondendo (citando) uma mensagem
+  if (window._opRespondendoA) {
+    payload.responde_texto = window._opRespondendoA.texto;
+    payload.responde_de_nome = window._opRespondendoA.nome;
+    cancelarRespostaMensagemOperador();
+  }
+
+  const { error } = await sb.from('mensagens_operadores').insert(payload);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
 
   input.value = '';
