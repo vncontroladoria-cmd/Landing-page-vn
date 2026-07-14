@@ -7566,8 +7566,10 @@ function toggleMiniChat() {
 }
 
 async function carregarUsuariosChat() {
-  // Lista todo mundo da equipe (não filtra por empresa — é chat interno, igual a tela de Mensagens)
-  const { data } = await sb.from('vn_usuarios').select('id,nome,email,perfil').eq('ativo', true).neq('id', _vnUser?.id || '').order('nome');
+  // Operador só fala com operadores; admin fala com todo mundo
+  let query = sb.from('vn_usuarios').select('id,nome,email,perfil').eq('ativo', true).neq('id', _vnUser?.id || '').order('nome');
+  if (_vnUser?.perfil !== 'admin') query = query.eq('perfil', 'operador');
+  const { data } = await query;
   _chatUsuarios = data || [];
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   const { data: naolidas } = await sb.from('mensagens_operadores').select('de_usuario_id').eq('para_usuario_id', _vnUser?.id).eq('lida', false);
