@@ -19805,6 +19805,7 @@ function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-preview').style.display = 'none';
   document.getElementById('cc-imp-arquivo').value = '';
   document.getElementById('cc-imp-mapa').style.display = 'block';
+  document.getElementById('cc-imp-lista-pdf')?.remove();
   _ccFaturaRows = [];
   document.getElementById('modal-importar-cc').classList.add('open');
 }
@@ -19812,6 +19813,13 @@ function abrirImportarFaturaCC() {
 async function previewFaturaCC(input) {
   const file = input.files[0];
   if (!file) return;
+
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+  if (ext === 'pdf') {
+    await previewFaturaCCPdf(file);
+    return;
+  }
 
   const XLSX = await loadXLSX();
   const buf = await file.arrayBuffer();
@@ -19859,32 +19867,116 @@ async function previewFaturaCC(input) {
   }
 }
 
+// ── Importar Fatura em PDF — usa IA pra extrair os lançamentos ──
+async function previewFaturaCCPdf(file) {
+  const mapaEl = document.getElementById('cc-imp-mapa');
+  const previewEl = document.getElementById('cc-imp-preview');
+  const labelEl = document.getElementById('cc-imp-preview-label');
+
+  mapaEl.style.display = 'none';
+  previewEl.style.display = 'block';
+  labelEl.textContent = '🤖 Lendo fatura em PDF com IA...';
+  previewEl.querySelector('#cc-imp-lista-pdf')?.remove();
+
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result.split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+            {
+              type: 'text',
+              text: `Esta é uma fatura de cartão de crédito. Extraia SOMENTE os lançamentos das seções "Lançamentos: compras e saques" e "Lançamentos: produtos e serviços" (os lançamentos da fatura ATUAL — some o valor deles e bate com o "Total dos lançamentos atuais"). NÃO inclua a seção "Compras parceladas - próximas faturas" (são cobranças futuras, não desta fatura). Se houver mais de um cartão/portador na fatura, inclua os lançamentos de todos. Responda SOMENTE em JSON válido, sem texto, sem markdown, no formato exato:\n{"ano_referencia": 2026, "lancamentos": [{"data":"DD/MM","descricao":"nome do estabelecimento","valor":0.00}]}\nO valor deve ser sempre positivo (mesmo que na fatura apareça negativo por ser estorno — nesse caso inclua como negativo mesmo, preservando o sinal original). Use o ano da fatura (campo "Emissão" ou "Vencimento") como ano_referencia.`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const txt = data.content?.find(c => c.type === 'text')?.text || '';
+    const clean = txt.replace(/```json|```/g,'').trim();
+    const dados = JSON.parse(clean);
+
+    const ano = dados.ano_referencia || new Date().getFullYear();
+    const lancs = dados.lancamentos || [];
+    if (!lancs.length) { showToast('Não encontrei lançamentos nessa fatura.', 'error'); previewEl.style.display='none'; return; }
+
+    // Converte pro mesmo formato de linhas que o fluxo de Excel usa (data ISO, extrato, valor)
+    _ccFaturaRows = lancs.map(l => {
+      const m = String(l.data||'').match(/^(\d{1,2})\/(\d{1,2})/);
+      const dataISO = m ? `${ano}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : '';
+      return { _data: dataISO, _extrato: l.descricao||'', _valor: Number(l.valor)||0 };
+    }).filter(r => r._data);
+
+    labelEl.textContent = `✅ ${_ccFaturaRows.length} lançamento(s) encontrado(s) — confira antes de importar:`;
+    const totalPdf = _ccFaturaRows.reduce((s,r)=>s+Math.abs(r._valor),0);
+    const listaHtml = `<div id="cc-imp-lista-pdf" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--bg3)"><th style="padding:6px 8px;text-align:left">Data</th><th style="padding:6px 8px;text-align:left">Estabelecimento</th><th style="padding:6px 8px;text-align:right">Valor</th></tr></thead>
+        <tbody>${_ccFaturaRows.map(r => `<tr><td style="padding:5px 8px">${r._data.split('-').reverse().join('/')}</td><td style="padding:5px 8px">${r._extrato}</td><td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(r._valor)}</td></tr>`).join('')}</tbody>
+      </table>
+      <div style="padding:6px 8px;font-weight:700;text-align:right;border-top:1px solid var(--border)">Total: ${fmtBRL(totalPdf)}</div>
+    </div>`;
+    previewEl.insertAdjacentHTML('beforeend', listaHtml);
+  } catch (e) {
+    showToast('Erro ao ler PDF: ' + e.message, 'error');
+    previewEl.style.display = 'none';
+    console.error(e);
+  }
+}
+
 async function processarFaturaCC() {
   const cartaoId = document.getElementById('cc-imp-cartao')?.value;
   if (!cartaoId) { showToast('Selecione o cartão','error'); return; }
   if (!_ccFaturaRows.length) { showToast('Nenhum dado encontrado','error'); return; }
 
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-  const parseD = v => {
-    if (!v) return null;
-    const s = String(v).trim();
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
-    const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
-    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    return null;
-  };
-  const parseV = v => { if (!v&&v!==0) return 0; if (typeof v==='number') return Math.abs(v); const s=String(v).replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'); return Math.abs(parseFloat(s)||0); };
 
-  const colData  = document.getElementById('cc-map-data')?.value;
-  const colExt   = document.getElementById('cc-map-ext')?.value;
-  const colValor = document.getElementById('cc-map-valor')?.value;
-  const rows = _ccFaturaRows.map(r => {
-    const data = parseD(colData ? r[colData] : null);
-    const valor = parseV(colValor ? r[colValor] : null);
-    if (!data || !valor) return null;
-    const mes = data.substring(0,7);
-    return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
-  }).filter(Boolean);
+  // Linhas vindas do PDF (via IA) já chegam prontas, no formato _data/_extrato/_valor
+  const vieramDoPdf = _ccFaturaRows.length && '_data' in _ccFaturaRows[0];
+
+  let rows;
+  if (vieramDoPdf) {
+    rows = _ccFaturaRows.map(r => {
+      if (!r._data || !r._valor) return null;
+      const mes = r._data.substring(0,7);
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: r._data, mes, extrato: r._extrato||'', valor: Math.abs(r._valor), tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+    }).filter(Boolean);
+  } else {
+    const parseD = v => {
+      if (!v) return null;
+      const s = String(v).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+      const m = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+      if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+      return null;
+    };
+    const parseV = v => { if (!v&&v!==0) return 0; if (typeof v==='number') return Math.abs(v); const s=String(v).replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'); return Math.abs(parseFloat(s)||0); };
+
+    const colData  = document.getElementById('cc-map-data')?.value;
+    const colExt   = document.getElementById('cc-map-ext')?.value;
+    const colValor = document.getElementById('cc-map-valor')?.value;
+    rows = _ccFaturaRows.map(r => {
+      const data = parseD(colData ? r[colData] : null);
+      const valor = parseV(colValor ? r[colValor] : null);
+      if (!data || !valor) return null;
+      const mes = data.substring(0,7);
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+    }).filter(Boolean);
+  }
 
   if (!rows.length) { showToast('Nenhum lançamento válido encontrado','error'); return; }
 
@@ -23689,8 +23781,8 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         </select>
       </div>
       <div class="form-group">
-        <label>Arquivo Excel da fatura</label>
-        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv" onchange="previewFaturaCC(this)">
+        <label>Arquivo da fatura (Excel, CSV ou PDF)</label>
+        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv,.pdf" onchange="previewFaturaCC(this)">
       </div>
       <div id="cc-imp-preview" style="display:none">
         <div style="font-size:12px;color:var(--text2);margin-bottom:8px" id="cc-imp-preview-label">Colunas detectadas — confirme o mapeamento:</div>
