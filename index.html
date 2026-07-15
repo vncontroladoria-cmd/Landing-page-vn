@@ -22273,8 +22273,10 @@ async function buscarTarefasAtrasadas() {
     // Só processa dias APÓS a criação e ANTES de hoje
     if (criadoLocal >= hojeLocal) continue;
 
-    // Gera datas do dia SEGUINTE à criação até ontem — comparando só o DIA (sem hora, evita bug de horário)
-    let cur = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate() + 1);
+    // Gera datas do dia DA PRÓPRIA criação até ontem — inclui o dia em que a tarefa foi criada
+    // (ex: tarefa criada dia 14 com data marcada pro dia 14 tem que poder ficar atrasada)
+    // comparando só o DIA (sem hora, evita bug de horário)
+    let cur = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate());
     const fimDia = new Date(ontemD.getFullYear(), ontemD.getMonth(), ontemD.getDate());
 
     // Buscar conclusões desta tarefa no período
