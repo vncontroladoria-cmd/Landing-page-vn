@@ -22620,43 +22620,9 @@ function utcParaDataLocal(tsUtc) {
 
 async function verificarPendenciasCount() {
   if (!_vnUser?.id) return;
-  const uid = _vnUser.id;
-
-  const agoraLocal = new Date();
-  const hojeLocal = `${agoraLocal.getFullYear()}-${String(agoraLocal.getMonth()+1).padStart(2,'0')}-${String(agoraLocal.getDate()).padStart(2,'0')}`;
-  const ontemD = new Date(agoraLocal); ontemD.setDate(ontemD.getDate()-1);
-  const ontemLocal = `${ontemD.getFullYear()}-${String(ontemD.getMonth()+1).padStart(2,'0')}-${String(ontemD.getDate()).padStart(2,'0')}`;
-
-  const { data: tarefas } = await sb.from('tarefas_operador')
-    .select('id,recorrencia,data_referencia,dia_semana,dias_semana,dia_mes,tipo,criado_em')
-    .eq('ativo', true)
-    .neq('tipo', 'pendencia_cliente')
-    .or(`responsavel_id.eq.${uid},criado_por.eq.${uid}`);
-
-  if (!tarefas?.length) { _pendenciasCount = 0; atualizarTituloAba(); return; }
-
-  let count = 0;
-  for (const t of tarefas) {
-    const criadoD = new Date(t.criado_em);
-    const criadoLocal = `${criadoD.getFullYear()}-${String(criadoD.getMonth()+1).padStart(2,'0')}-${String(criadoD.getDate()).padStart(2,'0')}`;
-    if (criadoLocal >= hojeLocal) continue;
-
-    const { data: concl } = await sb.from('tarefas_conclusoes')
-      .select('data_referencia').eq('tarefa_id', t.id)
-      .gte('data_referencia', criadoLocal).lte('data_referencia', ontemLocal);
-    const conclDatas = new Set((concl||[]).map(c=>c.data_referencia));
-
-    const cur0 = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate() + 1);
-    const fimDia = new Date(ontemD.getFullYear(), ontemD.getMonth(), ontemD.getDate());
-    let cur = cur0;
-    while (cur <= fimDia) {
-      const curStr = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
-      if (tarefaValeParaHoje(t, curStr, cur.getDay(), cur.getDate()) && !conclDatas.has(curStr)) count++;
-      cur.setDate(cur.getDate()+1);
-    }
-  }
-
-  _pendenciasCount = count;
+  // Usa a mesma função da aba "Atrasados" — garante que o badge nunca diverge da lista real.
+  const atrasadas = await buscarTarefasAtrasadas();
+  _pendenciasCount = atrasadas.length;
   atualizarTituloAba();
 }
 
