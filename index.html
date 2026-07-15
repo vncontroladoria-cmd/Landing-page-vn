@@ -7339,6 +7339,15 @@ async function salvarCaixa() {
     if (error) { showToast('Erro: ' + error.message, 'error'); return; }
     await sb.from('pdv_itens').delete().eq('caixa_id', caixaId);
   } else {
+    // Evita criar caixa duplicado pra mesma data E mesmo responsável
+    // (responsáveis diferentes podem ter cada um seu caixa no mesmo dia — isso é esperado)
+    let qExist = qE('pdv_caixas').select('id').eq('data_caixa', data_caixa);
+    qExist = responsavel ? qExist.eq('responsavel', responsavel) : qExist.or('responsavel.is.null,responsavel.eq.');
+    const { data: existente } = await qExist.maybeSingle();
+    if (existente?.id) {
+      showToast('Já existe um caixa dessa data para esse responsável. Edite o caixa existente em vez de criar outro.', 'error');
+      return;
+    }
     const { data: novo, error } = await sb.from('pdv_caixas').insert(addEmpresaId({
       data_caixa, responsavel, status, total_entradas, total_saidas,
       created_by: usuario
@@ -8868,30 +8877,48 @@ async function confirmarImportePDV() {
   const dataFinal = dataCaixa || new Date().toISOString().substring(0,10);
   console.log('Salvando caixa:', { dataFinal, responsavel, total_entradas, total_saidas });
 
-  const { data: novo, error } = await sb.from('pdv_caixas').insert(addEmpresaId({
-    data_caixa: dataFinal,
-    responsavel: responsavel || '',
-    status: 'fechado',
-    total_entradas: Number(total_entradas)||0,
-    total_saidas: Number(total_saidas)||0,
-    created_by: usuario,
-    origem_arquivo: 'importado'
-  })).select('id').single();
+  // Verifica se já existe um caixa nessa data E desse mesmo responsável — evita criar duplicado
+  // (mas permite que responsáveis diferentes tenham cada um seu caixa no mesmo dia, como já é o padrão do sistema)
+  let qExistente = qE('pdv_caixas').select('id,total_entradas,total_saidas').eq('data_caixa', dataFinal);
+  qExistente = responsavel ? qExistente.eq('responsavel', responsavel) : qExistente.or('responsavel.is.null,responsavel.eq.');
+  const { data: caixaExistente } = await qExistente.maybeSingle();
 
-  if (error) { 
-    showToast('Erro: ' + error.message, 'error'); 
-    console.error('pdv_caixas error:', JSON.stringify(error));
-    return; 
+  let caixaIdFinal;
+  if (caixaExistente?.id) {
+    caixaIdFinal = caixaExistente.id;
+    const { error: errUp } = await sb.from('pdv_caixas').update({
+      total_entradas: Number(caixaExistente.total_entradas||0) + Number(total_entradas||0),
+      total_saidas:   Number(caixaExistente.total_saidas||0)   + Number(total_saidas||0),
+      responsavel: responsavel || undefined,
+    }).eq('id', caixaIdFinal);
+    if (errUp) { showToast('Erro: ' + errUp.message, 'error'); return; }
+  } else {
+    const { data: novo, error } = await sb.from('pdv_caixas').insert(addEmpresaId({
+      data_caixa: dataFinal,
+      responsavel: responsavel || '',
+      status: 'fechado',
+      total_entradas: Number(total_entradas)||0,
+      total_saidas: Number(total_saidas)||0,
+      created_by: usuario,
+      origem_arquivo: 'importado'
+    })).select('id').single();
+
+    if (error) { 
+      showToast('Erro: ' + error.message, 'error'); 
+      console.error('pdv_caixas error:', JSON.stringify(error));
+      return; 
+    }
+    if (!novo?.id) {
+      showToast('Erro: caixa não retornou ID', 'error');
+      return;
+    }
+    caixaIdFinal = novo.id;
   }
-  if (!novo?.id) {
-    showToast('Erro: caixa não retornou ID', 'error');
-    return;
-  }
-  console.log('Caixa salvo com ID:', novo.id);
+  console.log('Caixa salvo com ID:', caixaIdFinal);
 
   // Limpa campos desnecessários antes de inserir
   const payload = itens.map(i => ({ 
-    caixa_id: novo.id, 
+    caixa_id: caixaIdFinal, 
     forma_pagamento: i.forma_pagamento||'', 
     categoria: i.categoria||'', 
     descricao: i.descricao||'', 
