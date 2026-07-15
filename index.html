@@ -4896,8 +4896,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         style="border:2px dashed var(--border);border-radius:10px;padding:2rem;text-align:center;cursor:pointer">
         <div style="font-size:28px;margin-bottom:8px">📂</div>
         <div style="font-size:13px;font-weight:500" id="conc-file-label">Clique para selecionar</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">Excel (.xlsx), CSV ou OFX</div>
-        <input type="file" id="conc-file-input" accept=".xlsx,.xls,.csv,.ofx,.ofc" style="display:none" onchange="conc_fileSelected(this)">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Excel (.xlsx), CSV, OFX ou PDF</div>
+        <input type="file" id="conc-file-input" accept=".xlsx,.xls,.csv,.ofx,.ofc,.pdf" style="display:none" onchange="conc_fileSelected(this)">
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -16824,6 +16824,57 @@ function conc_fileSelected(input) {
   }
 }
 
+// Lê um PDF (extrato bancário OU fatura de cartão de crédito) via IA e devolve
+// no mesmo formato que os outros parsers da conciliação: { data, extrato, entrada, saida }
+async function parsePdfExtratoIA(file) {
+  const base64 = await new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = () => res(reader.result.split(',')[1]);
+    reader.onerror = rej;
+    reader.readAsDataURL(file);
+  });
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+          {
+            type: 'text',
+            text: `Este PDF pode ser um extrato bancário OU uma fatura de cartão de crédito. Extraia todos os lançamentos.\n` +
+              `Se for FATURA DE CARTÃO: pegue somente as seções "Lançamentos: compras e saques" e "Lançamentos: produtos e serviços" (os lançamentos da fatura ATUAL, cuja soma bate com "Total dos lançamentos atuais"). NÃO inclua a seção "Compras parceladas - próximas faturas" (são cobranças futuras). Todo lançamento de fatura de cartão é "saida", exceto estornos (que são "entrada").\n` +
+              `Se for EXTRATO BANCÁRIO: cada lançamento é "entrada" (crédito/recebimento) ou "saida" (débito/pagamento), conforme o extrato indicar.\n` +
+              `Responda SOMENTE em JSON válido, sem texto, sem markdown, no formato exato:\n` +
+              `{"ano_referencia": 2026, "lancamentos": [{"data":"DD/MM","descricao":"texto","valor":0.00,"tipo":"entrada"}]}\n` +
+              `Use o ano do documento (Emissão/Vencimento/período do extrato) como ano_referencia. O campo "tipo" deve ser sempre "entrada" ou "saida".`
+          }
+        ]
+      }]
+    })
+  });
+
+  const data = await resp.json();
+  const txt = data.content?.find(c => c.type === 'text')?.text || '';
+  const clean = txt.replace(/```json|```/g,'').trim();
+  const dados = JSON.parse(clean);
+
+  const ano = dados.ano_referencia || new Date().getFullYear();
+  const lancs = dados.lancamentos || [];
+
+  return lancs.map(l => {
+    const m = String(l.data||'').match(/^(\d{1,2})\/(\d{1,2})/);
+    const data = m ? `${ano}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : null;
+    const valor = Math.abs(Number(l.valor)||0);
+    const isEntrada = String(l.tipo||'').toLowerCase().startsWith('entr');
+    return { data, extrato: l.descricao||'', entrada: isEntrada ? valor : 0, saida: isEntrada ? 0 : valor };
+  }).filter(r => r.data);
+}
+
 async function iniciarConciliacao() {
   const sel = document.getElementById('conc-banco-sel');
   _concBancoId = sel.value;
@@ -16841,7 +16892,13 @@ async function iniciarConciliacao() {
 
   const ext = _concFile.name.split('.').pop().toLowerCase();
   try {
-    if (ext === 'ofx' || ext === 'ofc') {
+    if (ext === 'pdf') {
+      container.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text2)">
+        <div class="spin" style="margin:0 auto 12px"></div>
+        🤖 Lendo PDF de <strong>${_concBancoNome}</strong> com IA...
+      </div>`;
+      _concRows = await parsePdfExtratoIA(_concFile);
+    } else if (ext === 'ofx' || ext === 'ofc') {
       const text = await _concFile.text();
       _concRows = parseOFX(text);
     } else if (ext === 'csv') {
