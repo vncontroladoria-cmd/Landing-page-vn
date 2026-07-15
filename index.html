@@ -20371,6 +20371,7 @@ async function showPainelOperador() {
   if (el('op-data-hoje')) el('op-data-hoje').textContent = `${diasSem[hoje.getDay()]}, ${hoje.getDate()} de ${meses[hoje.getMonth()]} de ${hoje.getFullYear()}`;
 
   await operadorPage('tarefas');
+  atualizarBadgeAtrasados();
 }
 
 // Filtro global de empresa em "Minhas Tarefas" — afeta todas as abas
@@ -22233,6 +22234,7 @@ async function confirmarConclusao(comObs) {
   showToast('Tarefa concluída!', 'success');
   const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
   tarefasTab(ativa);
+  atualizarBadgeAtrasados();
 }
 
 async function desfazerConclusao(tarefaId, dataStr, el, recarregaConcluidas) {
@@ -22241,12 +22243,72 @@ async function desfazerConclusao(tarefaId, dataStr, el, recarregaConcluidas) {
     .delete().eq('tarefa_id', tarefaId).eq('data_referencia', dataStr);
   if (error) { showToast('Erro: ' + error.message, 'error'); if(el) el.disabled=false; return; }
   showToast('Conclusão desfeita.', 'success');
-  if (recarregaConcluidas) { loadConcluidasTarefas(); return; }
+  if (recarregaConcluidas) { loadConcluidasTarefas(); atualizarBadgeAtrasados(); return; }
   const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
   tarefasTab(ativa);
+  atualizarBadgeAtrasados();
 }
 
 // ─── ABA: PENDÊNCIAS (aguardando retorno do cliente) ────
+
+// Busca todas as tarefas atrasadas (não concluídas no dia em que valiam), de qualquer recorrência.
+// Reutilizada tanto pela aba Atrasados quanto pelo contador do badge (chamado no load do painel).
+async function buscarTarefasAtrasadas() {
+  const todasTarefas = await buscarTarefasAtivas();
+  const naoClientePending = todasTarefas.filter(t => t.tipo !== 'pendencia_cliente');
+
+  // Data de hoje e ontem em horário LOCAL
+  const agoraLocal = new Date();
+  const hojeLocal = `${agoraLocal.getFullYear()}-${String(agoraLocal.getMonth()+1).padStart(2,'0')}-${String(agoraLocal.getDate()).padStart(2,'0')}`;
+  const ontemD = new Date(agoraLocal); ontemD.setDate(ontemD.getDate()-1);
+  const ontemLocal = `${ontemD.getFullYear()}-${String(ontemD.getMonth()+1).padStart(2,'0')}-${String(ontemD.getDate()).padStart(2,'0')}`;
+
+  const atrasadas = [];
+
+  for (const t of naoClientePending) {
+    // Data de criação em horário LOCAL (não UTC)
+    const criadoD = new Date(t.criado_em);
+    const criadoLocal = `${criadoD.getFullYear()}-${String(criadoD.getMonth()+1).padStart(2,'0')}-${String(criadoD.getDate()).padStart(2,'0')}`;
+
+    // Só processa dias APÓS a criação e ANTES de hoje
+    if (criadoLocal >= hojeLocal) continue;
+
+    // Gera datas do dia SEGUINTE à criação até ontem — comparando só o DIA (sem hora, evita bug de horário)
+    let cur = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate() + 1);
+    const fimDia = new Date(ontemD.getFullYear(), ontemD.getMonth(), ontemD.getDate());
+
+    // Buscar conclusões desta tarefa no período
+    const { data: concl } = await sb.from('tarefas_conclusoes')
+      .select('data_referencia')
+      .eq('tarefa_id', t.id)
+      .gte('data_referencia', criadoLocal)
+      .lte('data_referencia', ontemLocal);
+    const conclDatas = new Set((concl||[]).map(c=>c.data_referencia));
+
+    // Verificar cada dia no range
+    while (cur <= fimDia) {
+      const curStr = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+      const diaSem = cur.getDay();
+      const diaMes = cur.getDate();
+      if (tarefaValeParaHoje(t, curStr, diaSem, diaMes) && !conclDatas.has(curStr)) {
+        atrasadas.push({ ...t, _dataAtrasada: curStr });
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+
+  return atrasadas;
+}
+
+// Atualiza só o contador/badge de atrasados, sem precisar abrir a aba.
+// Chamado no load do painel do operador e após concluir/editar tarefas.
+async function atualizarBadgeAtrasados() {
+  try {
+    const atrasadas = await buscarTarefasAtrasadas();
+    _pendenciasCount = atrasadas.length;
+    atualizarTituloAba();
+  } catch (e) { console.error('Erro ao contar atrasados:', e); }
+}
 
 async function loadPendenciasTarefas() {
   const hojeStr = hojeISO();
@@ -22255,48 +22317,7 @@ async function loadPendenciasTarefas() {
   window._pendingTimers = [];
 
   if (_pendenciasSubTabAtual === 'atrasadas') {
-    const todasTarefas = await buscarTarefasAtivas();
-    const naoClientePending = todasTarefas.filter(t => t.tipo !== 'pendencia_cliente');
-
-    // Data de hoje e ontem em horário LOCAL
-    const agoraLocal = new Date();
-    const hojeLocal = `${agoraLocal.getFullYear()}-${String(agoraLocal.getMonth()+1).padStart(2,'0')}-${String(agoraLocal.getDate()).padStart(2,'0')}`;
-    const ontemD = new Date(agoraLocal); ontemD.setDate(ontemD.getDate()-1);
-    const ontemLocal = `${ontemD.getFullYear()}-${String(ontemD.getMonth()+1).padStart(2,'0')}-${String(ontemD.getDate()).padStart(2,'0')}`;
-
-    const atrasadas = [];
-
-    for (const t of naoClientePending) {
-      // Data de criação em horário LOCAL (não UTC)
-      const criadoD = new Date(t.criado_em);
-      const criadoLocal = `${criadoD.getFullYear()}-${String(criadoD.getMonth()+1).padStart(2,'0')}-${String(criadoD.getDate()).padStart(2,'0')}`;
-
-      // Só processa dias APÓS a criação e ANTES de hoje
-      if (criadoLocal >= hojeLocal) continue;
-
-      // Gera datas do dia SEGUINTE à criação até ontem — comparando só o DIA (sem hora, evita bug de horário)
-      let cur = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate() + 1);
-      const fimDia = new Date(ontemD.getFullYear(), ontemD.getMonth(), ontemD.getDate());
-
-      // Buscar conclusões desta tarefa no período
-      const { data: concl } = await sb.from('tarefas_conclusoes')
-        .select('data_referencia')
-        .eq('tarefa_id', t.id)
-        .gte('data_referencia', criadoLocal)
-        .lte('data_referencia', ontemLocal);
-      const conclDatas = new Set((concl||[]).map(c=>c.data_referencia));
-
-      // Verificar cada dia no range
-      while (cur <= fimDia) {
-        const curStr = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
-        const diaSem = cur.getDay();
-        const diaMes = cur.getDate();
-        if (tarefaValeParaHoje(t, curStr, diaSem, diaMes) && !conclDatas.has(curStr)) {
-          atrasadas.push({ ...t, _dataAtrasada: curStr });
-        }
-        cur.setDate(cur.getDate()+1);
-      }
-    }
+    const atrasadas = await buscarTarefasAtrasadas();
 
     _pendenciasCount = atrasadas.length;
     atualizarTituloAba();
