@@ -17264,6 +17264,7 @@ async function conciliarLinha(idx) {
     codigo,
     data_lancamento: dataPagamento,
     data_competencia: r.data,
+    competencia: r.data ? r.data.substring(0,7) : null,
     extrato: r.extrato,
     descricao: desc,
     entrada: r.entrada || null,
