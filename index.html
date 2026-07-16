@@ -2795,12 +2795,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer;max-width:90px" onclick="sortTable(this)">BANCO</th>
                     <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">MÊS</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SALDO</th>
-                    <th style="padding:10px 8px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap" title="Conciliado">CONC.</th>
                     <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap" class="no-sort">AÇÕES</th>
                   </tr>
                 </thead>
                 <tbody id="lanc-tbody">
-                  <tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>
+                  <tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -9181,21 +9180,6 @@ async function initLancamentos() {
   if (document.getElementById('nl-data')) document.getElementById('nl-data').value = hoje;
 }
 
-async function toggleConciliadoLanc(id, estavaConciliado) {
-  const novoValor = !estavaConciliado;
-  const { error } = await sb.from('lancamentos').update({ conciliado: novoValor }).eq('id', id);
-  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-
-  const span = document.querySelector(`#lr-${id} [onclick^="toggleConciliadoLanc"]`);
-  if (span) {
-    span.textContent = novoValor ? '✅' : '⚪';
-    span.style.color = novoValor ? 'var(--green)' : 'var(--text3)';
-    span.title = novoValor ? 'Conciliado — clique pra desmarcar' : 'Não conciliado — clique pra marcar';
-    span.setAttribute('onclick', `toggleConciliadoLanc('${id}', ${novoValor})`);
-  }
-  showToast(novoValor ? '✅ Marcado como conciliado' : 'Desmarcado', 'success');
-}
-
 async function loadLancamentos(forcarBancoFilter) {
   const el = document.getElementById('lanc-tbody');
   if (!el) return;
@@ -9227,7 +9211,7 @@ async function loadLancamentos(forcarBancoFilter) {
     fim = `${ano}-12-31`;
   }
 
-  el.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
+  el.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
 
   // Busca lançamentos — filtra por banco direto no Supabase
   let q = qE('lancamentos').select('*')
@@ -9370,7 +9354,7 @@ async function loadLancamentos(forcarBancoFilter) {
   }
 
   if (!lancs.length) {
-    el.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
+    el.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
     return;
   }
 
@@ -9469,15 +9453,11 @@ async function loadLancamentos(forcarBancoFilter) {
       <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--green)':'var(--red)'}">
         ${fmtBRL(saldoAcum).replace('R$\u00a0','').replace('R$ ','')}
       </td>
-      <td style="padding:9px 8px;text-align:center">
-        <span onclick="toggleConciliadoLanc('${l.id}', ${l.conciliado ? 'true' : 'false'})" title="${l.conciliado ? 'Conciliado — clique pra desmarcar' : 'Não conciliado — clique pra marcar'}"
-          style="cursor:pointer;font-size:16px;color:${l.conciliado ? 'var(--green)' : 'var(--text3)'}">${l.conciliado ? '✅' : '⚪'}</span>
-      </td>
       <td style="padding:9px 12px;white-space:nowrap;display:flex;gap:4px">
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" title="Auditoria" onclick="verAuditoria('${l.id}')">🔍</button>
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="toggleInline('lr-${l.id}')">✏️</button>
         <button class="btn btn-sm btn-save-inline" style="display:none;padding:3px 8px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarLancamentoInline('${l.id}','lr-${l.id}')">💾</button>
-        ${l.tipo === 'SAIDA' && !isLancContabil(l) ? `<button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:#7c3aed;border-color:#7c3aed" title="Dar baixa em Contas a Pagar" onclick="darBaixaContaPagar('${l.id}')">💸</button>` : ''}
+        ${l.tipo === 'SAIDA' && !isLancContabil(l) ? `<button class="btn btn-sm" id="btn-baixa-${l.id}" style="padding:3px 8px;font-size:11px;${l.conciliado ? 'background:var(--green);color:#fff;border-color:var(--green)' : 'color:#7c3aed;border-color:#7c3aed'}" title="${l.conciliado ? 'Baixa já dada em Contas a Pagar' : 'Dar baixa em Contas a Pagar'}" onclick="darBaixaContaPagar('${l.id}')">💸</button>` : ''}
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="excluirLancamento('${l.id}')">🗑️</button>
       </td>
     </tr>`;
@@ -9517,7 +9497,7 @@ async function darBaixaContaPagar(lancId) {
   if (contas.length === 1) {
     const c = contas[0];
     if (!confirm(`Dar baixa em:\n"${c.descricao}"\nValor: ${fmtBRL(c.valor)}\nVencimento: ${fmtDate(c.data_vencimento)}\n\nConfirmar?`)) return;
-    await executarBaixaContaPagar(c.id, data);
+    await executarBaixaContaPagar(c.id, data, lancId);
   } else {
     abrirModalSelecaoBaixa(contas, lancId, data);
   }
@@ -9534,7 +9514,7 @@ function abrirModalSelecaoBaixa(contas, lancId, dataPagto) {
       <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Várias contas com o mesmo valor foram encontradas. Selecione qual deseja baixar:</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${contas.map(c => `
-          <div onclick="executarBaixaContaPagar('${c.id}','${dataPagto}');document.getElementById('modal-selecao-baixa').remove()"
+          <div onclick="executarBaixaContaPagar('${c.id}','${dataPagto}','${lancId}');document.getElementById('modal-selecao-baixa').remove()"
             style="padding:12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s"
             onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--bg3)'"
             onmouseout="this.style.borderColor='var(--border)';this.style.background=''">
@@ -9550,13 +9530,28 @@ function abrirModalSelecaoBaixa(contas, lancId, dataPagto) {
   document.body.appendChild(overlay);
 }
 
-async function executarBaixaContaPagar(contaId, dataPagto) {
+async function executarBaixaContaPagar(contaId, dataPagto, lancId) {
   const { error } = await sb.from('contas_pagar').update({
     status: 'pago',
     data_pagamento: dataPagto || new Date().toISOString().substring(0,10)
   }).eq('id', contaId);
 
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  // Marca o lançamento como conciliado (baixa já dada) e atualiza o botão na hora, sem recarregar a tabela
+  if (lancId) {
+    await sb.from('lancamentos').update({ conciliado: true }).eq('id', lancId);
+    const lancCache = (_lancamentos||[]).find(l => l.id === lancId);
+    if (lancCache) lancCache.conciliado = true;
+    const btn = document.getElementById(`btn-baixa-${lancId}`);
+    if (btn) {
+      btn.style.background = 'var(--green)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = 'var(--green)';
+      btn.title = 'Baixa já dada em Contas a Pagar';
+    }
+  }
+
   showToast('✅ Baixa realizada em Contas a Pagar!', 'success');
   // Remove modal de seleção se estiver aberto
   document.getElementById('modal-selecao-baixa')?.remove();
@@ -9827,7 +9822,7 @@ async function importarExtrato(input) {
 
   // Mostra loading na tabela
   const tbody = document.getElementById('lanc-tbody');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text2)">
+  if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text2)">
     <div class="spin" style="margin:0 auto 10px"></div>
     Importando ${rows.length} lançamentos... aguarde
   </td></tr>`;
