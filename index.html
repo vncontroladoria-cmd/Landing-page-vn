@@ -17173,7 +17173,7 @@ function renderConciliacao() {
         <!-- DATA DE PAGAMENTO -->
         <div style="min-width:130px">
           <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px">Data pagamento</label>
-          <input type="date" class="conc-input-pgto" id="conc-data-pgto-${idx}" value="${_concDataPagamentoPadrao || hojeISO()}" onchange="_concRows[${idx}]._dataPagamento=this.value"
+          <input type="date" class="conc-input-pgto" id="conc-data-pgto-${idx}" value="${_concDataPagamentoPadrao || ''}" onchange="_concRows[${idx}]._dataPagamento=this.value"
             style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg2)">
         </div>
 
