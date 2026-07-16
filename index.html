@@ -17246,11 +17246,12 @@ async function conciliarLinha(idx) {
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
-  const dataPagamento = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || r.data;
+  const dataPagamento = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || '';
+  if (!dataPagamento) { showToast('Preencha a Data pagamento antes de conciliar', 'error'); return; }
   const tipo = (r.entrada > 0 && !r.saida) ? 'ENTRADA' : (r.saida > 0 && !r.entrada) ? 'SAIDA' : r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
-  // Usa a data do próprio lançamento para determinar mês/ano
-  const ano = (r.data || '').substring(0,4) || new Date().getFullYear().toString();
-  const m = (r.data || '').substring(5,7) || String(new Date().getMonth()+1).padStart(2,'0');
+  // A data de pagamento é a data "oficial" do lançamento (usada pros filtros de mês, DFC etc — igual já era em Lançamentos)
+  const ano = dataPagamento.substring(0,4) || new Date().getFullYear().toString();
+  const m = dataPagamento.substring(5,7) || String(new Date().getMonth()+1).padStart(2,'0');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const agora = new Date().toISOString();
   const usuario = _vnUser?.nome || _vnUser?.email || 'sistema';
@@ -17261,8 +17262,8 @@ async function conciliarLinha(idx) {
 
   const { error } = await sb.from('lancamentos').insert(addEmpresaId({
     codigo,
-    data_lancamento: r.data,
-    data_pagamento: dataPagamento,
+    data_lancamento: dataPagamento,
+    data_competencia: r.data,
     extrato: r.extrato,
     descricao: desc,
     entrada: r.entrada || null,
