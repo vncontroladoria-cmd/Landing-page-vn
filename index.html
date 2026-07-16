@@ -16962,6 +16962,7 @@ function parseDateExcel(val) {
 let _concFile = null;
 let _concRows = []; // linhas lidas do extrato
 let _concBancoId = '';
+let _concDataPagamentoPadrao = ''; // usado pelo botão "aplicar data a todos"
 let _concBancoNome = '';
 
 async function abrirModalConciliacao() {
@@ -17084,8 +17085,10 @@ function renderConciliacao() {
       <strong>${_concRows.length}</strong> lançamentos de <strong>${_concBancoNome}</strong>
       &nbsp;·&nbsp; <span id="conc-pendentes-count" style="color:var(--amber)">${pendentes} pendentes</span>
     </div>
-    <div style="display:flex;gap:8px">
-
+    <div style="display:flex;gap:8px;align-items:center">
+      <label style="font-size:11px;color:var(--text2)">📅 Data pagamento p/ todos:</label>
+      <input type="date" id="conc-data-pgto-global" value="${_concDataPagamentoPadrao || hojeISO()}" style="font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 6px">
+      <button class="btn btn-sm" onclick="aplicarDataPagamentoTodos()">Aplicar a todos</button>
       <button class="btn btn-primary" onclick="concluirTodos()">✓ Concluir todos e salvar</button>
     </div>
   </div>
@@ -17170,7 +17173,7 @@ function renderConciliacao() {
         <!-- DATA DE PAGAMENTO -->
         <div style="min-width:130px">
           <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px">Data pagamento</label>
-          <input type="date" id="conc-data-pgto-${idx}" value="${r.data}" onchange="_concRows[${idx}]._dataPagamento=this.value"
+          <input type="date" class="conc-input-pgto" id="conc-data-pgto-${idx}" value="${_concDataPagamentoPadrao || hojeISO()}" onchange="_concRows[${idx}]._dataPagamento=this.value"
             style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg2)">
         </div>
 
@@ -17467,6 +17470,21 @@ function selecionarCatConc(nome, dfc, dre, idx) {
     _concRows[idx]._catDfc = dfc;
     _concRows[idx]._catDre = dre;
   }
+}
+
+function aplicarDataPagamentoTodos() {
+  const data = document.getElementById('conc-data-pgto-global')?.value;
+  if (!data) { showToast('Escolha uma data primeiro', 'error'); return; }
+  _concDataPagamentoPadrao = data;
+  let count = 0;
+  _concRows.forEach((r, i) => {
+    if (r._concluido) return;
+    const input = document.getElementById(`conc-data-pgto-${i}`);
+    if (input) { input.value = data; }
+    r._dataPagamento = data;
+    count++;
+  });
+  showToast(`Data de pagamento aplicada em ${count} lançamento(s)!`, 'success');
 }
 
 function aplicarIgual(idx) {
