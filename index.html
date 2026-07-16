@@ -12085,6 +12085,22 @@ let xlsxLoaded = null;
 function parseFaturaItauCartaoXLSX(aoa) {
   const out = [];
   let dentroDeTabela = false;
+
+  // Converte data em qualquer formato que o XLSX possa entregar (Date, serial number ou texto)
+  const paraData = (v) => {
+    if (v instanceof Date) return v;
+    if (typeof v === 'number') {
+      // Serial do Excel: dias desde 1899-12-30
+      const ms = Math.round((v - 25569) * 86400 * 1000);
+      return new Date(ms);
+    }
+    if (typeof v === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}/.test(v.trim())) {
+      const [d,m,a] = v.trim().split('/');
+      return new Date(Number(a), Number(m)-1, Number(d));
+    }
+    return null;
+  };
+
   for (let i = 0; i < aoa.length; i++) {
     const row = aoa[i];
     const c0 = String(row[0]||'').trim();
@@ -12096,11 +12112,12 @@ function parseFaturaItauCartaoXLSX(aoa) {
     if (c0 === 'data' && c2 === 'descrição') { dentroDeTabela = true; continue; }
     if (/^Total de/i.test(c0)) { dentroDeTabela = false; continue; }
     if (!dentroDeTabela) continue;
-    if (!(row[0] instanceof Date)) continue;
+
+    const d = paraData(row[0]);
+    if (!d || isNaN(d.getTime())) continue;
 
     const valor = Number(row[10]) || 0;
     if (!valor) continue;
-    const d = row[0];
     const data = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     out.push({ data, extrato: c2, entrada: valor < 0 ? Math.abs(valor) : 0, saida: valor >= 0 ? valor : 0 });
   }
