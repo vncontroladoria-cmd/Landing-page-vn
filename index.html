@@ -17133,8 +17133,9 @@ function renderConciliacao() {
       <div style="display:flex;gap:12px;align-items:center">
 
         <!-- DATA E VALOR -->
-        <div style="min-width:110px">
-          <div style="font-size:11px;color:var(--text2)">${fmtDate(r.data)}</div>
+        <div style="min-width:130px">
+          <input type="date" id="conc-data-${idx}" value="${r.data}" onchange="_concRows[${idx}].data=this.value"
+            style="font-size:11px;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:3px 6px;width:100%;background:var(--bg2);margin-bottom:2px">
           <div style="font-size:16px;font-weight:700;color:${tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
             ${tipo==='ENTRADA'?'+':'-'}${fmtBRL(r.entrada||r.saida)}
           </div>
@@ -17164,6 +17165,13 @@ function renderConciliacao() {
           <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
           <input type="hidden" id="conc-cat-dre-${idx}" value="${catDre}">
           <div id="conc-cat-dd-${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+        </div>
+
+        <!-- DATA DE PAGAMENTO -->
+        <div style="min-width:130px">
+          <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px">Data pagamento</label>
+          <input type="date" id="conc-data-pgto-${idx}" value="${r.data}" onchange="_concRows[${idx}]._dataPagamento=this.value"
+            style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg2)">
         </div>
 
         <!-- DESCRIÇÃO -->
@@ -17235,6 +17243,7 @@ async function conciliarLinha(idx) {
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
+  const dataPagamento = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || r.data;
   const tipo = (r.entrada > 0 && !r.saida) ? 'ENTRADA' : (r.saida > 0 && !r.entrada) ? 'SAIDA' : r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
   // Usa a data do próprio lançamento para determinar mês/ano
   const ano = (r.data || '').substring(0,4) || new Date().getFullYear().toString();
@@ -17250,6 +17259,7 @@ async function conciliarLinha(idx) {
   const { error } = await sb.from('lancamentos').insert(addEmpresaId({
     codigo,
     data_lancamento: r.data,
+    data_pagamento: dataPagamento,
     extrato: r.extrato,
     descricao: desc,
     entrada: r.entrada || null,
@@ -17287,7 +17297,7 @@ async function conciliarLinha(idx) {
       if (contasMatch?.length) {
         await sb.from('contas_pagar').update({
           status: 'pago',
-          data_pagamento: r.data
+          data_pagamento: dataPagamento
         }).eq('id', contasMatch[0].id);
         showToast(`✅ Baixa automática: "${contasMatch[0].descricao}"`, 'success');
       }
@@ -17460,12 +17470,14 @@ function selecionarCatConc(nome, dfc, dre, idx) {
 }
 
 function aplicarIgual(idx) {
-  const extrato = _concRows[idx]?.extrato;
+  const linhaOrigem = _concRows[idx];
+  const extrato = linhaOrigem?.extrato;
   if (!extrato) return;
   const catNome = document.getElementById(`conc-cat-${idx}`)?.value || '';
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
+  const dataPgtoOrigem = document.getElementById(`conc-data-pgto-${idx}`)?.value || '';
   let count = 0;
   _concRows.forEach((r, i) => {
     if (r.extrato === extrato && i !== idx && !r._concluido) {
@@ -17474,6 +17486,12 @@ function aplicarIgual(idx) {
       if(document.getElementById(`conc-cat-dre-${i}`)) document.getElementById(`conc-cat-dre-${i}`).value = catDre;
       if(desc && document.getElementById(`conc-desc-${i}`)) document.getElementById(`conc-desc-${i}`).value = desc;
       r._catNome = catNome; r._catDfc = catDfc; r._catDre = catDre;
+      // Só copia a data de pagamento se a data de competência for a mesma nas duas linhas
+      if (r.data === linhaOrigem.data && dataPgtoOrigem) {
+        const inputPgto = document.getElementById(`conc-data-pgto-${i}`);
+        if (inputPgto) inputPgto.value = dataPgtoOrigem;
+        r._dataPagamento = dataPgtoOrigem;
+      }
       count++;
     }
   });
