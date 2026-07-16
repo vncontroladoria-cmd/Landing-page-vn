@@ -2719,7 +2719,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="03">Março</option>
                 <option value="04">Abril</option>
                 <option value="05">Maio</option>
-                <option value="06" selected>Junho</option>
+                <option value="06">Junho</option>
                 <option value="07">Julho</option>
                 <option value="08">Agosto</option>
                 <option value="09">Setembro</option>
@@ -2795,11 +2795,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer;max-width:90px" onclick="sortTable(this)">BANCO</th>
                     <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">MÊS</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SALDO</th>
+                    <th style="padding:10px 8px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap" title="Conciliado">CONC.</th>
                     <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap" class="no-sort">AÇÕES</th>
                   </tr>
                 </thead>
                 <tbody id="lanc-tbody">
-                  <tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>
+                  <tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -2827,7 +2828,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <option value="">Ano todo</option>
                   <option value="01">Janeiro</option><option value="02">Fevereiro</option>
                   <option value="03">Março</option><option value="04">Abril</option>
-                  <option value="05">Maio</option><option value="06" selected>Junho</option>
+                  <option value="05">Maio</option><option value="06">Junho</option>
                   <option value="07">Julho</option><option value="08">Agosto</option>
                   <option value="09">Setembro</option><option value="10">Outubro</option>
                   <option value="11">Novembro</option><option value="12">Dezembro</option>
@@ -2970,7 +2971,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <option value="">Ano todo</option>
                   <option value="01">Janeiro</option><option value="02">Fevereiro</option>
                   <option value="03">Março</option><option value="04">Abril</option>
-                  <option value="05">Maio</option><option value="06" selected>Junho</option>
+                  <option value="05">Maio</option><option value="06">Junho</option>
                   <option value="07">Julho</option><option value="08">Agosto</option>
                   <option value="09">Setembro</option><option value="10">Outubro</option>
                   <option value="11">Novembro</option><option value="12">Dezembro</option>
@@ -3516,7 +3517,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="">Todos os meses</option>
                 <option value="01">Janeiro</option><option value="02">Fevereiro</option>
                 <option value="03">Março</option><option value="04">Abril</option>
-                <option value="05">Maio</option><option value="06" selected>Junho</option>
+                <option value="05">Maio</option><option value="06">Junho</option>
                 <option value="07">Julho</option><option value="08">Agosto</option>
                 <option value="09">Setembro</option><option value="10">Outubro</option>
                 <option value="11">Novembro</option><option value="12">Dezembro</option>
@@ -4429,7 +4430,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <select class="filter-select" id="met-mes" onchange="loadMetricas()">
                 <option value="01">Janeiro</option><option value="02">Fevereiro</option>
                 <option value="03">Março</option><option value="04">Abril</option>
-                <option value="05">Maio</option><option value="06" selected>Junho</option>
+                <option value="05">Maio</option><option value="06">Junho</option>
                 <option value="07">Julho</option><option value="08">Agosto</option>
                 <option value="09">Setembro</option><option value="10">Outubro</option>
                 <option value="11">Novembro</option><option value="12">Dezembro</option>
@@ -5997,21 +5998,17 @@ const pageTitles = {
 function setMesAtual(selId) {
   const sel = document.getElementById(selId);
   if (!sel) return;
-  if (sel.value === '') {
-    const mes = String(new Date().getMonth() + 1).padStart(2, '0');
-    // Verifica se a opção existe antes de setar
-    if (sel.querySelector(`option[value="${mes}"]`)) sel.value = mes;
-  }
+  const mes = String(new Date().getMonth() + 1).padStart(2, '0');
+  // Verifica se a opção existe antes de setar (sempre força o mês atual ao entrar na página)
+  if (sel.querySelector(`option[value="${mes}"]`)) sel.value = mes;
 }
 
 // Seta o ano atual em um select de ano
 function setAnoAtual(selId) {
   const sel = document.getElementById(selId);
   if (!sel) return;
-  if (sel.value === '') {
-    const ano = String(new Date().getFullYear());
-    if (sel.querySelector(`option[value="${ano}"]`)) sel.value = ano;
-  }
+  const ano = String(new Date().getFullYear());
+  if (sel.querySelector(`option[value="${ano}"]`)) sel.value = ano;
 }
 
 function showPage(id, el) {
@@ -6035,7 +6032,7 @@ function showPage(id, el) {
   // Setar mês atual ao abrir a página
   const _mesSels = {
     'dashboard':     ['dash-mes'],
-    'lancamentos':   [],
+    'lancamentos':   ['lanc-mes'],
     'lucratividade': ['luc-mes'],
     'servicos':      ['srv-mes'],
     'clientes':      ['cli-mes'],
@@ -6044,10 +6041,19 @@ function showPage(id, el) {
     'importacao':    ['imp-filtro-mes'],
     'contas-pagar':  ['cp-mes'],
     'contas-receber':['cr-mes'],
+    'dfc':           ['dfc-mes'],
+    'cartao-credito':['cc-mes'],
+    'metricas':      ['met-mes'],
+  };
+  const _anoSels = {
+    'dashboard':      'dash-ano',
+    'lancamentos':    'lanc-ano',
+    'dfc':            'dfc-ano',
+    'dre':            'dre-ano',
+    'cartao-credito': 'cc-ano',
   };
   (_mesSels[id]||[]).forEach(selId => setMesAtual(selId));
-  // Ano atual no dashboard
-  if (id === 'dashboard') setAnoAtual('dash-ano');
+  if (_anoSels[id]) setAnoAtual(_anoSels[id]);
 
   if (id === 'pdv') initPDV();
   if (id === 'servicos') { preencherFiltrosServicos(); initServicos(); }
@@ -9175,6 +9181,21 @@ async function initLancamentos() {
   if (document.getElementById('nl-data')) document.getElementById('nl-data').value = hoje;
 }
 
+async function toggleConciliadoLanc(id, estavaConciliado) {
+  const novoValor = !estavaConciliado;
+  const { error } = await sb.from('lancamentos').update({ conciliado: novoValor }).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  const span = document.querySelector(`#lr-${id} [onclick^="toggleConciliadoLanc"]`);
+  if (span) {
+    span.textContent = novoValor ? '✅' : '⚪';
+    span.style.color = novoValor ? 'var(--green)' : 'var(--text3)';
+    span.title = novoValor ? 'Conciliado — clique pra desmarcar' : 'Não conciliado — clique pra marcar';
+    span.setAttribute('onclick', `toggleConciliadoLanc('${id}', ${novoValor})`);
+  }
+  showToast(novoValor ? '✅ Marcado como conciliado' : 'Desmarcado', 'success');
+}
+
 async function loadLancamentos(forcarBancoFilter) {
   const el = document.getElementById('lanc-tbody');
   if (!el) return;
@@ -9206,7 +9227,7 @@ async function loadLancamentos(forcarBancoFilter) {
     fim = `${ano}-12-31`;
   }
 
-  el.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
+  el.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text3)"><div class="spin" style="margin:0 auto"></div></td></tr>`;
 
   // Busca lançamentos — filtra por banco direto no Supabase
   let q = qE('lancamentos').select('*')
@@ -9349,7 +9370,7 @@ async function loadLancamentos(forcarBancoFilter) {
   }
 
   if (!lancs.length) {
-    el.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
+    el.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text3)">Nenhum lançamento encontrado para este período</td></tr>`;
     return;
   }
 
@@ -9447,6 +9468,10 @@ async function loadLancamentos(forcarBancoFilter) {
       </td>
       <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--green)':'var(--red)'}">
         ${fmtBRL(saldoAcum).replace('R$\u00a0','').replace('R$ ','')}
+      </td>
+      <td style="padding:9px 8px;text-align:center">
+        <span onclick="toggleConciliadoLanc('${l.id}', ${l.conciliado ? 'true' : 'false'})" title="${l.conciliado ? 'Conciliado — clique pra desmarcar' : 'Não conciliado — clique pra marcar'}"
+          style="cursor:pointer;font-size:16px;color:${l.conciliado ? 'var(--green)' : 'var(--text3)'}">${l.conciliado ? '✅' : '⚪'}</span>
       </td>
       <td style="padding:9px 12px;white-space:nowrap;display:flex;gap:4px">
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" title="Auditoria" onclick="verAuditoria('${l.id}')">🔍</button>
@@ -9802,7 +9827,7 @@ async function importarExtrato(input) {
 
   // Mostra loading na tabela
   const tbody = document.getElementById('lanc-tbody');
-  if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text2)">
+  if (tbody) tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:2rem;color:var(--text2)">
     <div class="spin" style="margin:0 auto 10px"></div>
     Importando ${rows.length} lançamentos... aguarde
   </td></tr>`;
@@ -12058,6 +12083,99 @@ async function importFile(tipo, input) {
 }
 
 let xlsxLoaded = null;
+function loadPDFJS() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (window._pdfjsLoading) return window._pdfjsLoading;
+  window._pdfjsLoading = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      res(window.pdfjsLib);
+    };
+    s.onerror = () => rej(new Error('Não foi possível carregar o leitor de PDF'));
+    document.head.appendChild(s);
+  });
+  return window._pdfjsLoading;
+}
+
+// Extrai todo o texto de um PDF (sem IA — só o leitor de texto do PDF.js)
+async function extrairTextoPDF(file) {
+  const pdfjsLib = await loadPDFJS();
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let texto = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    // Agrupa por linha (mesma coordenada Y aproximada)
+    let linhaAtual = '', yAtual = null;
+    content.items.forEach(item => {
+      const y = Math.round(item.transform[5]);
+      if (yAtual === null || Math.abs(y - yAtual) > 3) {
+        if (linhaAtual) texto += linhaAtual + '\n';
+        linhaAtual = item.str;
+        yAtual = y;
+      } else {
+        linhaAtual += ' ' + item.str;
+      }
+    });
+    if (linhaAtual) texto += linhaAtual + '\n';
+  }
+  return texto;
+}
+
+// Lê os lançamentos de uma fatura de cartão (formato tipo Itaú) a partir do texto extraído do PDF.
+// 100% local, sem IA — usa o texto entre "Lançamentos: compras e saques" e "Total dos lançamentos atuais"
+// (isso já exclui a tabela de "Compras parceladas - próximas faturas", que são cobranças futuras).
+function parseFaturaCartaoTexto(texto) {
+  const anoMatch = texto.match(/Emiss[ãa]o:\s*\d{2}\/\d{2}\/(\d{4})/) || texto.match(/Vencimento:\s*\d{2}\/\d{2}\/(\d{4})/);
+  const ano = anoMatch ? anoMatch[1] : String(new Date().getFullYear());
+
+  const inicioIdx = texto.search(/Lan[çc]amentos:\s*compras e saques/i);
+  const fimIdx = texto.search(/Total dos lan[çc]amentos atuais/i);
+  const trecho = inicioIdx >= 0 ? texto.substring(inicioIdx, fimIdx > inicioIdx ? fimIdx : texto.length) : texto;
+
+  const linhas = trecho.split('\n');
+  const regex = /^(\d{1,2})\/(\d{1,2})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*,\d{2})$/;
+  const out = [];
+  linhas.forEach(l => {
+    const m = l.trim().match(regex);
+    if (!m) return;
+    const [, dia, mes, desc, valorStr] = m;
+    // Ignora cabeçalhos/linhas que não são estabelecimento real
+    if (/^(DATA|ESTABELECIMENTO|VALOR)/i.test(desc)) return;
+    const valor = parseFloat(valorStr.replace(/\./g,'').replace(',','.'));
+    const data = `${ano}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+    out.push({ data, extrato: desc.trim(), valor });
+  });
+  return out;
+}
+
+// Tentativa genérica pra PDF de extrato bancário (formato livre — melhor esforço, sem IA):
+// procura linhas "DD/MM/AAAA descrição valor" ou "DD/MM descrição valor" em todo o texto.
+function parseExtratoGenericoTexto(texto) {
+  const anoMatch = texto.match(/\b(20\d{2})\b/);
+  const anoPadrao = anoMatch ? anoMatch[1] : String(new Date().getFullYear());
+  const linhas = texto.split('\n');
+  const regex = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*,\d{2})$/;
+  const out = [];
+  linhas.forEach(l => {
+    const m = l.trim().match(regex);
+    if (!m) return;
+    const [, dia, mes, anoLinha, desc, valorStr] = m;
+    let ano = anoLinha ? (anoLinha.length === 2 ? '20'+anoLinha : anoLinha) : anoPadrao;
+    const valor = parseFloat(valorStr.replace(/\./g,'').replace(',','.'));
+    const data = `${ano}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+    out.push({
+      data, extrato: desc.trim(),
+      entrada: valor > 0 ? valor : 0,
+      saida: valor < 0 ? Math.abs(valor) : 0,
+    });
+  });
+  return out;
+}
+
 function loadXLSX() {
   // Se já carregou e está disponível, usa
   if (window.XLSX) { xlsxLoaded = window.XLSX; return Promise.resolve(window.XLSX); }
@@ -16826,53 +16944,16 @@ function conc_fileSelected(input) {
 
 // Lê um PDF (extrato bancário OU fatura de cartão de crédito) via IA e devolve
 // no mesmo formato que os outros parsers da conciliação: { data, extrato, entrada, saida }
+// Lê um PDF (extrato bancário OU fatura de cartão) sem IA — usa o texto extraído do PDF.js.
+// Tenta primeiro como fatura de cartão (formato Itaú); se não achar nada, tenta o modo genérico.
 async function parsePdfExtratoIA(file) {
-  const base64 = await new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = () => res(reader.result.split(',')[1]);
-    reader.onerror = rej;
-    reader.readAsDataURL(file);
-  });
+  const texto = await extrairTextoPDF(file);
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-          {
-            type: 'text',
-            text: `Este PDF pode ser um extrato bancário OU uma fatura de cartão de crédito. Extraia todos os lançamentos.\n` +
-              `Se for FATURA DE CARTÃO: pegue somente as seções "Lançamentos: compras e saques" e "Lançamentos: produtos e serviços" (os lançamentos da fatura ATUAL, cuja soma bate com "Total dos lançamentos atuais"). NÃO inclua a seção "Compras parceladas - próximas faturas" (são cobranças futuras). Todo lançamento de fatura de cartão é "saida", exceto estornos (que são "entrada").\n` +
-              `Se for EXTRATO BANCÁRIO: cada lançamento é "entrada" (crédito/recebimento) ou "saida" (débito/pagamento), conforme o extrato indicar.\n` +
-              `Responda SOMENTE em JSON válido, sem texto, sem markdown, no formato exato:\n` +
-              `{"ano_referencia": 2026, "lancamentos": [{"data":"DD/MM","descricao":"texto","valor":0.00,"tipo":"entrada"}]}\n` +
-              `Use o ano do documento (Emissão/Vencimento/período do extrato) como ano_referencia. O campo "tipo" deve ser sempre "entrada" ou "saida".`
-          }
-        ]
-      }]
-    })
-  });
-
-  const data = await resp.json();
-  const txt = data.content?.find(c => c.type === 'text')?.text || '';
-  const clean = txt.replace(/```json|```/g,'').trim();
-  const dados = JSON.parse(clean);
-
-  const ano = dados.ano_referencia || new Date().getFullYear();
-  const lancs = dados.lancamentos || [];
-
-  return lancs.map(l => {
-    const m = String(l.data||'').match(/^(\d{1,2})\/(\d{1,2})/);
-    const data = m ? `${ano}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : null;
-    const valor = Math.abs(Number(l.valor)||0);
-    const isEntrada = String(l.tipo||'').toLowerCase().startsWith('entr');
-    return { data, extrato: l.descricao||'', entrada: isEntrada ? valor : 0, saida: isEntrada ? 0 : valor };
-  }).filter(r => r.data);
+  const comoFatura = parseFaturaCartaoTexto(texto);
+  if (comoFatura.length) {
+    return comoFatura.map(l => ({ data: l.data, extrato: l.extrato, entrada: l.valor < 0 ? Math.abs(l.valor) : 0, saida: l.valor >= 0 ? l.valor : 0 }));
+  }
+  return parseExtratoGenericoTexto(texto);
 }
 
 async function iniciarConciliacao() {
@@ -19932,51 +20013,16 @@ async function previewFaturaCCPdf(file) {
 
   mapaEl.style.display = 'none';
   previewEl.style.display = 'block';
-  labelEl.textContent = '🤖 Lendo fatura em PDF com IA...';
+  labelEl.textContent = '📄 Lendo fatura em PDF...';
   previewEl.querySelector('#cc-imp-lista-pdf')?.remove();
 
   try {
-    const base64 = await new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = () => res(reader.result.split(',')[1]);
-      reader.onerror = rej;
-      reader.readAsDataURL(file);
-    });
-
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-            {
-              type: 'text',
-              text: `Esta é uma fatura de cartão de crédito. Extraia SOMENTE os lançamentos das seções "Lançamentos: compras e saques" e "Lançamentos: produtos e serviços" (os lançamentos da fatura ATUAL — some o valor deles e bate com o "Total dos lançamentos atuais"). NÃO inclua a seção "Compras parceladas - próximas faturas" (são cobranças futuras, não desta fatura). Se houver mais de um cartão/portador na fatura, inclua os lançamentos de todos. Responda SOMENTE em JSON válido, sem texto, sem markdown, no formato exato:\n{"ano_referencia": 2026, "lancamentos": [{"data":"DD/MM","descricao":"nome do estabelecimento","valor":0.00}]}\nO valor deve ser sempre positivo (mesmo que na fatura apareça negativo por ser estorno — nesse caso inclua como negativo mesmo, preservando o sinal original). Use o ano da fatura (campo "Emissão" ou "Vencimento") como ano_referencia.`
-            }
-          ]
-        }]
-      })
-    });
-
-    const data = await resp.json();
-    const txt = data.content?.find(c => c.type === 'text')?.text || '';
-    const clean = txt.replace(/```json|```/g,'').trim();
-    const dados = JSON.parse(clean);
-
-    const ano = dados.ano_referencia || new Date().getFullYear();
-    const lancs = dados.lancamentos || [];
-    if (!lancs.length) { showToast('Não encontrei lançamentos nessa fatura.', 'error'); previewEl.style.display='none'; return; }
+    const texto = await extrairTextoPDF(file);
+    const lancs = parseFaturaCartaoTexto(texto);
+    if (!lancs.length) { showToast('Não encontrei lançamentos nessa fatura. Tente exportar em Excel/CSV.', 'error'); previewEl.style.display='none'; return; }
 
     // Converte pro mesmo formato de linhas que o fluxo de Excel usa (data ISO, extrato, valor)
-    _ccFaturaRows = lancs.map(l => {
-      const m = String(l.data||'').match(/^(\d{1,2})\/(\d{1,2})/);
-      const dataISO = m ? `${ano}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : '';
-      return { _data: dataISO, _extrato: l.descricao||'', _valor: Number(l.valor)||0 };
-    }).filter(r => r._data);
+    _ccFaturaRows = lancs.map(l => ({ _data: l.data, _extrato: l.extrato, _valor: l.valor }));
 
     labelEl.textContent = `✅ ${_ccFaturaRows.length} lançamento(s) encontrado(s) — confira antes de importar:`;
     const totalPdf = _ccFaturaRows.reduce((s,r)=>s+Math.abs(r._valor),0);
