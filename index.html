@@ -9457,7 +9457,7 @@ async function loadLancamentos(forcarBancoFilter) {
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" title="Auditoria" onclick="verAuditoria('${l.id}')">🔍</button>
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="toggleInline('lr-${l.id}')">✏️</button>
         <button class="btn btn-sm btn-save-inline" style="display:none;padding:3px 8px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarLancamentoInline('${l.id}','lr-${l.id}')">💾</button>
-        ${l.tipo === 'SAIDA' && !isLancContabil(l) ? `<button class="btn btn-sm" id="btn-baixa-${l.id}" style="padding:3px 8px;font-size:11px;${l.conciliado ? 'background:var(--green);color:#fff;border-color:var(--green)' : 'color:#7c3aed;border-color:#7c3aed'}" title="${l.conciliado ? 'Baixa já dada em Contas a Pagar' : 'Dar baixa em Contas a Pagar'}" onclick="darBaixaContaPagar('${l.id}')">💸</button>` : ''}
+        ${l.tipo === 'SAIDA' && !isLancContabil(l) ? `<button class="btn btn-sm" id="btn-baixa-${l.id}" style="padding:3px 8px;font-size:11px;${l.baixa_dada ? 'background:var(--green);color:#fff;border-color:var(--green)' : 'color:#7c3aed;border-color:#7c3aed'}" title="${l.baixa_dada ? 'Baixa já dada em Contas a Pagar' : 'Dar baixa em Contas a Pagar'}" onclick="darBaixaContaPagar('${l.id}')">💸</button>` : ''}
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px;color:var(--red);border-color:var(--red)" onclick="excluirLancamento('${l.id}')">🗑️</button>
       </td>
     </tr>`;
@@ -9538,11 +9538,11 @@ async function executarBaixaContaPagar(contaId, dataPagto, lancId) {
 
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
 
-  // Marca o lançamento como conciliado (baixa já dada) e atualiza o botão na hora, sem recarregar a tabela
+  // Marca o lançamento como "baixa dada" e atualiza o botão na hora, sem recarregar a tabela
   if (lancId) {
-    await sb.from('lancamentos').update({ conciliado: true }).eq('id', lancId);
+    await sb.from('lancamentos').update({ baixa_dada: true }).eq('id', lancId);
     const lancCache = (_lancamentos||[]).find(l => l.id === lancId);
-    if (lancCache) lancCache.conciliado = true;
+    if (lancCache) lancCache.baixa_dada = true;
     const btn = document.getElementById(`btn-baixa-${lancId}`);
     if (btn) {
       btn.style.background = 'var(--green)';
