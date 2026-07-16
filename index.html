@@ -12078,6 +12078,35 @@ async function importFile(tipo, input) {
 }
 
 let xlsxLoaded = null;
+// Lê a fatura de cartão Itaú Empresas exportada em XLSX (formato com blocos "data/descrição/valor"
+// por portador do cartão, terminando em "Total de lançamentos..."). Pega só os lançamentos da
+// fatura ATUAL — ignora as seções de simulação/parcelas futuras que vêm depois ("Compras
+// parceladas", "Parcelamento da fatura", "Encargos e custo efetivo da próxima fatura").
+function parseFaturaItauCartaoXLSX(aoa) {
+  const out = [];
+  let dentroDeTabela = false;
+  for (let i = 0; i < aoa.length; i++) {
+    const row = aoa[i];
+    const c0 = String(row[0]||'').trim();
+    const c2 = String(row[2]||'').trim();
+
+    // Para de vez ao chegar nas seções de simulação/futuro — o que vem depois não é da fatura atual
+    if (/^Encargos desta fatura|^Compras parceladas|^Parcelamento da fatura|^Encargos e custo efetivo/i.test(c0)) break;
+
+    if (c0 === 'data' && c2 === 'descrição') { dentroDeTabela = true; continue; }
+    if (/^Total de/i.test(c0)) { dentroDeTabela = false; continue; }
+    if (!dentroDeTabela) continue;
+    if (!(row[0] instanceof Date)) continue;
+
+    const valor = Number(row[10]) || 0;
+    if (!valor) continue;
+    const d = row[0];
+    const data = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    out.push({ data, extrato: c2, entrada: valor < 0 ? Math.abs(valor) : 0, saida: valor >= 0 ? valor : 0 });
+  }
+  return out;
+}
+
 function loadPDFJS() {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   if (window._pdfjsLoading) return window._pdfjsLoading;
@@ -16986,10 +17015,12 @@ async function iniciarConciliacao() {
       const wb = XLSX.read(buf, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      const isFaturaCartao = aoa.some(r => String(r[0]||'').includes('ITAU EMPRESAS') || String(r[0]||'').includes('fatura do cartão'));
       const isItau = raw.some(r => String(Object.values(r)[0]||'').trim() === 'Data' || String(Object.values(r)[0]||'').trim() === 'Lançamentos');
       const colunas = raw.length ? Object.keys(raw[0]) : [];
       const isFormatoProprio = colunas.some(c => c.trim().toUpperCase() === 'DESCRICAO') && colunas.some(c => c.trim().toUpperCase() === 'CATEGORIA');
-      _concRows = isFormatoProprio ? parseFormatoProprio(raw) : (isItau ? parseItauXLSX(ws, XLSX) : parseStoneRows(raw));
+      _concRows = isFaturaCartao ? parseFaturaItauCartaoXLSX(aoa) : (isFormatoProprio ? parseFormatoProprio(raw) : (isItau ? parseItauXLSX(ws, XLSX) : parseStoneRows(raw)));
     }
   } catch(e) {
     container.innerHTML = `<div class="empty">Erro ao ler arquivo: ${e.message}</div>`;
