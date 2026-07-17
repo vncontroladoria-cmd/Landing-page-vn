@@ -23083,19 +23083,11 @@ function mostrarNotifMsg(remetente, texto, deUserId) {
   div.onclick = (e) => {
     if (e.target.tagName === 'BUTTON') return;
     div.remove();
-    // Navega para mensagens e abre o chat com o remetente
-    const painelOp = document.getElementById('painel-operador');
-    if (painelOp && painelOp.style.display !== 'none') {
-      operadorPage('mensagens').then(() => {
-        if (deUserId) abrirChatOperador(deUserId, remetente);
-      });
-    } else {
-      // Se estiver no app normal, vai para o painel operador
-      voltarAoPainelOperador().then(() => {
-        setTimeout(() => operadorPage('mensagens').then(() => {
-          if (deUserId) abrirChatOperador(deUserId, remetente);
-        }), 300);
-      });
+    // Abre o balão de chat flutuante na hora, sem sair da página atual
+    const miniChat = document.getElementById('mini-chat');
+    if (!_chatAberto) toggleMiniChat();
+    if (deUserId) {
+      setTimeout(() => abrirConversaChat(deUserId, remetente), 50);
     }
   };
   document.body.appendChild(div);
