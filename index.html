@@ -17125,12 +17125,14 @@ function renderConciliacao() {
   _concRows.forEach(r => { contagem[r.extrato] = (contagem[r.extrato]||0) + 1; });
 
   let pendentes = _concRows.filter(r => !r._concluido).length;
+  const totalPendente = _concRows.filter(r => !r._concluido).reduce((s,r) => s + Number(r.entrada||0) - Number(r.saida||0), 0);
 
   let html = `
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding:12px 16px;background:var(--bg3);border-radius:10px">
     <div style="font-size:13px">
       <strong>${_concRows.length}</strong> lançamentos de <strong>${_concBancoNome}</strong>
       &nbsp;·&nbsp; <span id="conc-pendentes-count" style="color:var(--amber)">${pendentes} pendentes</span>
+      &nbsp;·&nbsp; Valor a importar: <strong id="conc-total-pendente" style="color:${totalPendente>=0?'var(--green)':'var(--red)'}">${fmtBRL(totalPendente)}</strong>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <label style="font-size:11px;color:var(--text2)">📅 Data pagamento p/ todos:</label>
@@ -17370,10 +17372,16 @@ async function conciliarLinha(idx) {
     card.querySelector('button').style.borderColor = '#94a3b8';
   }
 
-  // Atualiza contador
+  // Atualiza contador e valor total pendente
   const pendentes = _concRows.filter(r => !r._concluido).length;
   const el = document.getElementById('conc-pendentes-count');
   if (el) el.textContent = `${pendentes} pendentes`;
+  const totalEl = document.getElementById('conc-total-pendente');
+  if (totalEl) {
+    const totalPendente = _concRows.filter(r => !r._concluido).reduce((s,r) => s + Number(r.entrada||0) - Number(r.saida||0), 0);
+    totalEl.textContent = fmtBRL(totalPendente);
+    totalEl.style.color = totalPendente >= 0 ? 'var(--green)' : 'var(--red)';
+  }
 
   showToast(`✓ Lançamento conciliado! Valor: ${fmtBRL(r.entrada||r.saida||0)}`, 'success');
 }
