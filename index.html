@@ -9861,7 +9861,8 @@ fornecedorBate(f, desc)
   }
 
   input.value = '';
-  showToast(`✓ ${count} lançamentos importados${erros ? ` (${erros} erros)` : ''}!`, 'success');
+  const totalRows = rows.reduce((s,r) => s + Number(r.entrada||0) - Number(r.saida||0), 0);
+  showToast(`✓ ${count} lançamentos importados${erros ? ` (${erros} erros)` : ''}! Total: ${fmtBRL(Math.abs(totalRows))}`, 'success');
   loadLancamentos();
 }
 
@@ -11940,9 +11941,10 @@ async function loadPerformance() {
   const cliPerfMap = {};
   rows.forEach(r => {
     const k = r.cliente || '(sem cliente)';
-    if (!cliPerfMap[k]) cliPerfMap[k] = { visitas:new Set(), total:0 };
+    if (!cliPerfMap[k]) cliPerfMap[k] = { visitas:new Set(), total:0, celular: r.celular||'' };
     cliPerfMap[k].visitas.add(r.data_comanda||Math.random());
     cliPerfMap[k].total += getFatRow(r);
+    if (!cliPerfMap[k].celular && r.celular) cliPerfMap[k].celular = r.celular;
   });
   const cliPerfRank = Object.entries(cliPerfMap).sort((a,b)=>b[1].visitas.size-a[1].visitas.size);
   if(el('perf-cli-sub')) el('perf-cli-sub').textContent = `${cliPerfRank.length} clientes únicos · ordenado por número de visitas`;
@@ -11953,6 +11955,7 @@ async function loadPerformance() {
       <thead><tr>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">#</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 10px;text-align:left">CLIENTE</th>
+        <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:left">CELULAR</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
@@ -11960,6 +11963,7 @@ async function loadPerformance() {
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
+          <td style="padding:7px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${v.celular ? formatarTelefoneCliente(v.celular) : '—'}</td>
           <td style="padding:7px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.visitas.size}</td>
           <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}
@@ -13485,10 +13489,25 @@ function addTfoot(el) {
 
   const rows = Array.from(table.querySelectorAll('tbody tr'));
   if (!rows.length) return;
+
+  // Se a tabela já tem uma linha de TOTAL feita à mão na última linha, não duplica —
+  // só usa essa mesma (evita o rodapé automático em cima de um total que já existe)
+  const ultimaLinhaTxt = (rows[rows.length-1].cells[0]?.textContent || '').trim().toUpperCase();
+  if (ultimaLinhaTxt === 'TOTAL') return;
+
   const nCols = rows[0].cells.length;
-  
+
+  // Cabeçalhos — usados pra nunca somar colunas que não são valores (posição, telefone etc.)
+  const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim().toUpperCase());
+  const colunaNaoSomavel = (ci) => {
+    if (ci === 0) return true; // coluna de posição/# nunca soma, só recebe a palavra "TOTAL"
+    const h = headers[ci] || '';
+    return /CELULAR|TELEFONE|CANAL/.test(h);
+  };
+
   // Para cada coluna, tenta somar valores numéricos
   const totais = Array.from({length: nCols}, (_, ci) => {
+    if (colunaNaoSomavel(ci)) return { soma: 0, temNum: false, isMono: false, isGreen: false };
     let soma = 0, temNum = false, isMono = false, isGreen = false;
     rows.forEach(row => {
       const cell = row.cells[ci];
@@ -13978,7 +13997,7 @@ function renderSrvHistoricoCliente(data) {
     const nome = (r.cliente||'—').trim();
     if(nome==='—') return;
     const k = normKey(nome);
-    if(!cliMap[k]) cliMap[k] = { label:nome, atend:[], totalVal:0, totalSrv:0 };
+    if(!cliMap[k]) cliMap[k] = { label:nome, atend:[], totalVal:0, totalSrv:0, celular: r.celular||'' };
     cliMap[k].atend.push({
       data: r.data_comanda,
       servico: cleanSrv(r.servico||''),
@@ -13987,6 +14006,7 @@ function renderSrvHistoricoCliente(data) {
     });
     cliMap[k].totalVal += Number(r.valor_cobrado ?? r.total ?? 0);
     cliMap[k].totalSrv += 1;
+    if (!cliMap[k].celular && r.celular) cliMap[k].celular = r.celular;
   });
 
   const clientes = Object.values(cliMap)
@@ -14001,6 +14021,7 @@ function renderSrvHistoricoCliente(data) {
           <th style="padding:8px 10px;width:36px"></th>
           <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">#</th>
           <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CLIENTE</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CELULAR</th>
           <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">SERVIÇOS</th>
           <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL GASTO</th>
         </tr>
@@ -14022,11 +14043,12 @@ function renderSrvHistoricoCliente(data) {
                   <div style="position:absolute;left:0;top:0;height:100%;width:${barPct}%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px"></div>
                 </div>
               </td>
+              <td style="padding:7px 10px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${c.celular ? formatarTelefoneCliente(c.celular) : '—'}</td>
               <td style="padding:7px 10px;text-align:right;font-size:12px;color:var(--text2)">${c.totalSrv}</td>
               <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(c.totalVal)}</td>
             </tr>
             <tr id="${id}" style="display:none;background:var(--bg3)">
-              <td colspan="5" style="padding:0 0 12px 44px">
+              <td colspan="6" style="padding:0 0 12px 44px">
                 <table style="width:calc(100%-44px);border-collapse:collapse;font-size:11px;background:var(--bg2);border-radius:8px;border:1px solid var(--border);overflow:hidden">
                   <thead>
                     <tr style="background:var(--bg3)">
@@ -17353,7 +17375,7 @@ async function conciliarLinha(idx) {
   const el = document.getElementById('conc-pendentes-count');
   if (el) el.textContent = `${pendentes} pendentes`;
 
-  showToast('✓ Lançamento conciliado!', 'success');
+  showToast(`✓ Lançamento conciliado! Valor: ${fmtBRL(r.entrada||r.saida||0)}`, 'success');
 }
 
 async function concluirTodos() {
@@ -17377,8 +17399,10 @@ async function concluirTodos() {
       await conciliarLinha(i);
     }
   }
-  const salvos = _concRows.filter(r=>r._concluido).length;
-  showToast(`✓ ${salvos} lançamentos salvos!`, 'success');
+  const salvosArr = _concRows.filter(r=>r._concluido);
+  const salvos = salvosArr.length;
+  const totalImportado = salvosArr.reduce((s,r) => s + Number(r.entrada||0) - Number(r.saida||0), 0);
+  showToast(`✓ ${salvos} lançamentos salvos! Total: ${fmtBRL(Math.abs(totalImportado))}`, 'success');
   _concRows = [];
   _concFile = null;
   // Limpa a página de conciliação
@@ -17391,6 +17415,7 @@ async function concluirTodos() {
     <div style="text-align:center;padding:3rem;color:var(--text2)">
       <div style="font-size:48px;margin-bottom:12px">✅</div>
       <div style="font-size:16px;font-weight:700;margin-bottom:8px">${salvos} lançamentos conciliados com sucesso!</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:8px">Valor total importado: ${fmtBRL(Math.abs(totalImportado))}</div>
       <div style="font-size:13px">Importe um novo extrato para continuar.</div>
     </div>`;
 }
@@ -20217,7 +20242,8 @@ async function processarFaturaCC() {
   }
 
   if (erros) { showToast('Erro em alguns lançamentos','error'); return; }
-  showToast(`✅ ${rows.length} lançamentos importados!`,'success');
+  const totalCC = rows.reduce((s,r) => s + Number(r.valor||0), 0);
+  showToast(`✅ ${rows.length} lançamentos importados! Total: ${fmtBRL(totalCC)}`,'success');
   closeModal('modal-importar-cc');
   await loadCartaoLancamentos();
 }
