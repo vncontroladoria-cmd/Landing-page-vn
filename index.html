@@ -17246,8 +17246,7 @@ async function conciliarLinha(idx) {
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
-  const dataPagamento = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || '';
-  if (!dataPagamento) { showToast('Preencha a Data pagamento antes de conciliar', 'error'); return; }
+  const dataPagamento = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || r.data;
   const tipo = (r.entrada > 0 && !r.saida) ? 'ENTRADA' : (r.saida > 0 && !r.entrada) ? 'SAIDA' : r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
   // A data de pagamento é a data "oficial" do lançamento (usada pros filtros de mês, DFC etc — igual já era em Lançamentos)
   const ano = dataPagamento.substring(0,4) || new Date().getFullYear().toString();
@@ -17330,6 +17329,19 @@ async function conciliarLinha(idx) {
 }
 
 async function concluirTodos() {
+  // Se alguma linha estiver sem "Data pagamento", usa a data que já aparece (competência) daquela linha
+  let semDataCount = 0;
+  _concRows.forEach((r, i) => {
+    if (r._concluido) return;
+    const input = document.getElementById(`conc-data-pgto-${i}`);
+    if (!input?.value && !r._dataPagamento) {
+      if (input) input.value = r.data;
+      r._dataPagamento = r.data;
+      semDataCount++;
+    }
+  });
+  if (semDataCount) showToast(`${semDataCount} lançamento(s) sem data de pagamento — usando a data já mostrada`, '');
+
   // Processa TODOS os lançamentos — com ou sem categoria
   for (let i = 0; i < _concRows.length; i++) {
     const r = _concRows[i];
