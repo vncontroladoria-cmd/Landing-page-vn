@@ -5200,7 +5200,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </div>
       <div class="form-group">
         <label>Competência <span style="font-size:10px;color:var(--text3);font-weight:400">(se diferente do pagamento)</span></label>
-        <input type="month" id="nl-competencia" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;width:100%">
+        <input type="date" id="nl-competencia" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-size:13px;width:100%">
       </div>
     </div>
 
@@ -9646,7 +9646,7 @@ function selecionarCategoria(el) {
     const dataPag = document.getElementById('nl-data')?.value;
     const base = dataPag ? new Date(dataPag + 'T12:00:00') : new Date();
     base.setMonth(base.getMonth() - 1);
-    compInput.value = base.toISOString().substring(0,7); // YYYY-MM
+    compInput.value = base.toISOString().substring(0,10); // YYYY-MM-DD
   } else if (compInput && compTipo === 'atual') {
     compInput.value = ''; // limpa se não precisar
   }
@@ -9681,7 +9681,8 @@ async function salvarLancamento() {
   const entrada = _tipoLanc === 'ENTRADA' ? valor : null;
   const saida = _tipoLanc === 'SAIDA' ? valor : null;
   const bancoNome = _bancos.find(b=>b.id===bancoId)?.nome || '';
-  const competencia = document.getElementById('nl-competencia')?.value || null; // YYYY-MM
+  const competenciaData = document.getElementById('nl-competencia')?.value || null; // YYYY-MM-DD completo
+  const competencia = competenciaData ? competenciaData.substring(0,7) : null; // YYYY-MM (compatibilidade com DRE por mês)
 
   const payload = {
     data_lancamento: data,
@@ -9700,6 +9701,7 @@ async function salvarLancamento() {
     status: 'pago',
     aparece_dfc: true,
     competencia: competencia || null,
+    data_competencia: competenciaData || null,
   };
 
   const { error } = await sb.from('lancamentos').insert(addEmpresaId(payload));
