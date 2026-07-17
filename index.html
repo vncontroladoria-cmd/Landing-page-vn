@@ -17222,7 +17222,7 @@ async function aprovarTodos() {
   // Só aprova os que têm categoria reconhecida — sem categoria fica para o usuário
   const comCat = _concRows.filter((r,i) => {
     const catEl = document.getElementById(`conc-cat-${i}`);
-    const cat = catEl?.value || r._catNome || '';
+    const cat = catEl ? catEl.value : (r._catNome || '');
     return cat.trim() !== '';
   });
   
@@ -17244,7 +17244,10 @@ async function conciliarLinha(idx) {
   const r = _concRows[idx];
   if (r._concluido) return;
 
-  const catNome = document.getElementById(`conc-cat-${idx}`)?.value || r._catNome || '';
+  // Lê direto do campo visível — se a pessoa apagou a categoria sugerida, tem que ficar vazio mesmo,
+  // sem voltar pro valor antigo (r._catNome é só o palpite inicial, não pode reviver depois de apagado)
+  const catInputEl = document.getElementById(`conc-cat-${idx}`);
+  const catNome = catInputEl ? catInputEl.value : (r._catNome || '');
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
