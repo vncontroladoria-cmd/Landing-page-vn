@@ -17575,12 +17575,18 @@ function filtrarSemCategoria() {
 
 function filtrarLancamentos(termo) {
   const t = (termo||'').toLowerCase().trim();
-  const rows = document.querySelectorAll('#lanc-tbody tr[id]');
+  const tbody = document.getElementById('lanc-tbody');
+  if (!tbody) { console.warn('filtrarLancamentos: #lanc-tbody não encontrado'); return; }
+  const rows = tbody.querySelectorAll('tr[id]');
   rows.forEach(row => {
-    if (!t) { row.style.display = ''; return; }
-    // Pega todo o texto da linha incluindo banco, categoria, descrição, extrato
-    const allText = row.textContent.toLowerCase();
-    row.style.display = allText.includes(t) ? '' : 'none';
+    if (!t) { row.style.display = ''; row.hidden = false; return; }
+    // Pega todo o texto da linha incluindo banco, categoria, descrição, extrato, e também
+    // o valor digitado em campos de input/select (que não entram no textContent normal)
+    let allText = row.textContent.toLowerCase();
+    row.querySelectorAll('input, select').forEach(el => { allText += ' ' + (el.value||'').toLowerCase(); });
+    const bate = allText.includes(t);
+    row.style.display = bate ? '' : 'none';
+    row.hidden = !bate;
   });
 }
 
