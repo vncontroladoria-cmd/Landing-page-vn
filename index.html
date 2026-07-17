@@ -13634,16 +13634,21 @@ function parseGeralRow(colunas) {
 // Função central usada por Performance, Serviços, Lucratividade, Produtos e Clientes.
 async function buscarDadosGeral() {
   const { data: tiposGeral } = await qE('rel_tipos').select('id,nome').ilike('nome','%geral%').order('id',{ascending:true});
-  const tipoId = tiposGeral?.[0]?.id;
-  if (!tipoId) return [];
+  if (!tiposGeral?.length) return [];
+  // Se existir mais de um tipo "Geral" (duplicado por importações antigas), soma os dados de TODOS —
+  // senão perde metade dos lançamentos, já que cada import pode ter caído num tipo_id diferente.
+  const tipoIds = tiposGeral.map(t => t.id);
 
-  let all = [], from = 0;
-  while (true) {
-    const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoId).range(from, from + 999);
-    if (!data?.length) break;
-    all = all.concat(data);
-    if (data.length < 1000) break;
-    from += 1000;
+  let all = [];
+  for (const tipoId of tipoIds) {
+    let from = 0;
+    while (true) {
+      const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoId).range(from, from + 999);
+      if (!data?.length) break;
+      all = all.concat(data);
+      if (data.length < 1000) break;
+      from += 1000;
+    }
   }
   return all.map(r => parseGeralRow(r.colunas));
 }
