@@ -10489,6 +10489,7 @@ async function initClientes() {
       data: r.data_comanda,
       comanda: r.numero_comanda,
       valor: r.valor_cobrado,
+      celular: r.celular,
     }));
 
   // ── Clientes Novos — continua vindo do relatório separado "Clientes Novos" ──
@@ -11000,12 +11001,13 @@ function renderClientesPage() {
     visitas.forEach(v => {
       const k = _normCli(v.nome);
       if (!k) return;
-      if (!porCliente[k]) porCliente[k] = { nome: v.nome, total: 0, comandas: new Set(), ultimaVisita: v.data };
+      if (!porCliente[k]) porCliente[k] = { nome: v.nome, total: 0, comandas: new Set(), ultimaVisita: v.data, celular: v.celular };
       porCliente[k].total += Number(v.valor||0);
       porCliente[k].comandas.add((v.comanda ?? Math.random()) + '|' + v.data);
+      if (!porCliente[k].celular && v.celular) porCliente[k].celular = v.celular;
       if (v.data && (!porCliente[k].ultimaVisita || v.data > porCliente[k].ultimaVisita)) porCliente[k].ultimaVisita = v.data;
     });
-    return Object.values(porCliente).map(c => ({ nome: c.nome, total: c.total, visitas: c.comandas.size, ultimaVisita: c.ultimaVisita }));
+    return Object.values(porCliente).map(c => ({ nome: c.nome, total: c.total, visitas: c.comandas.size, ultimaVisita: c.ultimaVisita, celular: c.celular }));
   };
 
   let todos = agruparPorCliente(_cliVisitasGeral.filter(v => dentroFiltro(v.data))).map(mapa);
@@ -11052,6 +11054,7 @@ function renderClientesPage() {
       <thead><tr>
         <th style="${TH_STYLE};padding:7px 8px;width:28px;text-align:left">#</th>
         <th style="${TH_STYLE};padding:7px 10px;text-align:left">CLIENTE</th>
+        <th style="${TH_STYLE};padding:7px 8px;text-align:left">CELULAR</th>
         <th style="${TH_STYLE};padding:7px 8px;text-align:right">VISITAS</th>
         <th style="${TH_STYLE};padding:7px 8px;text-align:right">TOTAL</th>
       </tr></thead>
@@ -11069,6 +11072,7 @@ function renderClientesPage() {
               <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,#059669,#34d399);border-radius:2px"></div>
             </div>
           </td>
+          <td style="padding:6px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${c.celular ? formatarTelefoneCliente(c.celular) : '—'}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${c.visitas}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(c.total)}</td>
         </tr>`;
@@ -11250,7 +11254,7 @@ function renderClientes(linhas, ano, mes) {
     const k = r.cliente;
     if (!k) return;
     if (!cliMap[k]) cliMap[k] = { total:0, visitas:0, datas:new Set(), canal:r.canal||'Não informado', cpf:r.cpf, celular:r.celular, primeiraData:r.data };
-    cliMap[k].total   += r.total;
+    cliMap[k].total   += Number(r.valor_cobrado ?? r.total ?? 0);
     cliMap[k].visitas += 1;
     if (r.data) { cliMap[k].datas.add(r.data); if(r.data < (cliMap[k].primeiraData||'9')) cliMap[k].primeiraData = r.data; }
   });
@@ -11555,7 +11559,7 @@ function preencherFiltrosProdutos(rows, ano, mes, cat, tipoProd) {
 }
 
 function renderProdutos(rows) {
-  const total   = rows.reduce((s,r) => s + (r.total || r.valor * r.qtd || 0), 0);
+  const total   = rows.reduce((s,r) => s + ((r.valor_cobrado ?? r.total) || r.valor * r.qtd || 0), 0);
   const qtd     = rows.reduce((s,r) => s + r.qtd, 0);
   const custo   = rows.reduce((s,r) => s + (r.custo * r.qtd || 0), 0);
   const ticket  = qtd > 0 ? total / qtd : 0;
@@ -11574,7 +11578,7 @@ function renderProdutos(rows) {
     const k = r.produto;
     if (!k) return;
     if (!prodMap[k]) prodMap[k] = { total: 0, qtd: 0 };
-    prodMap[k].total += r.total || r.valor * r.qtd || 0;
+    prodMap[k].total += (r.valor_cobrado ?? r.total) || r.valor * r.qtd || 0;
     prodMap[k].qtd   += r.qtd;
   });
   const prodRank = Object.entries(prodMap).sort((a,b) => b[1].qtd - a[1].qtd);
@@ -11618,7 +11622,7 @@ function renderProdutos(rows) {
   rows.forEach(r => {
     const k = r.categoria || 'Sem categoria';
     if (!catMap[k]) catMap[k] = 0;
-    catMap[k] += r.total || r.valor * r.qtd || 0;
+    catMap[k] += (r.valor_cobrado ?? r.total) || r.valor * r.qtd || 0;
   });
   const catRank = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
 
@@ -11662,7 +11666,7 @@ function renderProdutos(rows) {
   rows.forEach(r => {
     const k = r.profissional || '(sem profissional)';
     if (!profMap[k]) profMap[k] = { total: 0, qtd: 0 };
-    profMap[k].total += r.total || r.valor * r.qtd || 0;
+    profMap[k].total += (r.valor_cobrado ?? r.total) || r.valor * r.qtd || 0;
     profMap[k].qtd   += r.qtd;
   });
   const profRank = Object.entries(profMap).sort((a,b) => b[1].total - a[1].total);
@@ -11705,7 +11709,7 @@ function renderProdutos(rows) {
   rows.forEach(r => {
     const k = r.cliente || '(sem cliente)';
     if (!cliMap[k]) cliMap[k] = { total: 0, qtd: 0 };
-    cliMap[k].total += r.total || r.valor * r.qtd || 0;
+    cliMap[k].total += (r.valor_cobrado ?? r.total) || r.valor * r.qtd || 0;
     cliMap[k].qtd   += r.qtd;
   });
   const cliRank = Object.entries(cliMap).sort((a,b) => b[1].total - a[1].total);
@@ -13603,6 +13607,8 @@ function parseGeralRow(colunas) {
   const kComissaoValor = keys.find(k => k.trim() === 'Comissão' && k !== kComPct)
     || keys.find(k => k.toLowerCase().includes('comiss') && k !== kComPct);
   const kLiquido    = findExact('Líquido', 'Liquido');
+  const kCelular    = findExact('Celular', 'celular') || keys.find(k => k.toLowerCase().includes('celular'));
+  const kTelefone   = findExact('Telefone', 'telefone') || keys.find(k => k.toLowerCase().includes('telefone'));
 
   const tipoRaw = String(c[kTipo]||'').trim().toLowerCase();
 
@@ -13615,7 +13621,7 @@ function parseGeralRow(colunas) {
     servico:        String(c[kItem]||'').trim(),
     categoria:      String(c[kCategoria]||'').trim(),
     cliente:        String(c[kCliente]||'').trim(),
-    cpf: '', telefone: '', celular: '',
+    cpf: '', telefone: String(c[kTelefone]||'').trim(), celular: String(c[kCelular]||'').trim(),
     qtd:            parseN(c[kQtd]) || 1,
     valor:          parseN(c[kValor]),
     valor_cobrado:  parseN(c[kValor]),
@@ -13816,7 +13822,7 @@ function renderServicos(data) {
     const sig = (r.cliente ? normKey(r.cliente) : 'x') + '|' + (r.numero_comanda || r.data_comanda || Math.random());
     atendSet.add(sig);
   });
-  const total = data.reduce((s,r) => s + Number(r.total||0), 0);
+  const total = data.reduce((s,r) => s + Number(r.valor_cobrado ?? r.total ?? 0), 0);
   const atend = atendSet.size || data.length;
   const ticket = atend > 0 ? total/atend : 0;
   const profs = new Set(data.map(r => r.profissional).filter(Boolean)).size;
@@ -13832,7 +13838,7 @@ function renderServicos(data) {
   data.forEach(r => {
     if (!r.servico) return;
     if (!srvMap[r.servico]) srvMap[r.servico] = { total: 0, qtd: 0 };
-    srvMap[r.servico].total += Number(r.total||0);
+    srvMap[r.servico].total += Number(r.valor_cobrado ?? r.total ?? 0);
     srvMap[r.servico].qtd += 1;
   });
   const srvRanking = Object.entries(srvMap).sort((a,b) => b[1].total - a[1].total);
@@ -13873,7 +13879,7 @@ function renderServicos(data) {
   data.forEach(r => {
     if (!r.categoria) return;
     if (!catMap[r.categoria]) catMap[r.categoria] = { total: 0, qtd: 0 };
-    catMap[r.categoria].total += Number(r.total||0);
+    catMap[r.categoria].total += Number(r.valor_cobrado ?? r.total ?? 0);
     catMap[r.categoria].qtd += 1;
   });
   const catRanking = Object.entries(catMap).sort((a,b) => b[1].total - a[1].total);
@@ -13904,7 +13910,7 @@ function renderServicos(data) {
   data.forEach(r => {
     const p = r.profissional || '(sem profissional)';
     if (!profMap[p]) profMap[p] = { total: 0, qtd: 0, clientes: new Set() };
-    profMap[p].total += Number(r.total||0);
+    profMap[p].total += Number(r.valor_cobrado ?? r.total ?? 0);
     profMap[p].qtd += 1;
     if (r.cliente) profMap[p].clientes.add(r.cliente);
   });
@@ -13977,9 +13983,9 @@ function renderSrvHistoricoCliente(data) {
       data: r.data_comanda,
       servico: cleanSrv(r.servico||''),
       profissional: r.profissional||'—',
-      total: Number(r.total||0)
+      total: Number(r.valor_cobrado ?? r.total ?? 0)
     });
-    cliMap[k].totalVal += Number(r.total||0);
+    cliMap[k].totalVal += Number(r.valor_cobrado ?? r.total ?? 0);
     cliMap[k].totalSrv += 1;
   });
 
