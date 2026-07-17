@@ -1434,6 +1434,47 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
   </div>
 </div>
 
+<!-- Modal: Dados e Links de Acesso da Empresa -->
+<div id="modal-dados-empresa" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#fff" id="modal-dados-nome">Dados da Empresa</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4)">Descrição e links de acesso</div>
+      </div>
+      <button onclick="fecharModalDados()" style="background:rgba(255,255,255,.08);border:none;border-radius:8px;color:rgba(255,255,255,.6);font-size:18px;width:32px;height:32px;cursor:pointer;line-height:1">✕</button>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase">Descrição</div>
+        <span id="dados-nao-salvo" style="display:none;font-size:9px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.15);padding:2px 8px;border-radius:10px">ALTERAÇÕES NÃO SALVAS</span>
+      </div>
+      <textarea id="dados-descricao" oninput="document.getElementById('dados-nao-salvo').style.display='inline-block'"
+        placeholder="Telefone, login, senha, código do operador, o que você quiser anotar sobre essa empresa..."
+        style="width:100%;min-height:140px;padding:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.6;resize:vertical"></textarea>
+      <button onclick="salvarDescricaoDados()" style="margin-top:8px;padding:8px 16px;background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">
+        💾 Salvar Descrição
+      </button>
+    </div>
+
+    <div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">🔗 Links de Acesso</div>
+      <div id="dados-links-lista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+
+      <div style="display:flex;gap:8px">
+        <input id="dados-link-nome" type="text" placeholder="Nome (ex: Sistema AVEC, Maquininha...)"
+          style="flex:1;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+        <input id="dados-link-url" type="url" placeholder="https://..."
+          style="flex:1.4;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+        <button onclick="adicionarLinkDados()" style="padding:9px 16px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+          + Add
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- PAINEL OPERADOR -->
@@ -18255,6 +18296,10 @@ async function masterLoadEmpresas() {
                 style="padding:4px 10px;background:rgba(42,157,92,.2);border:none;border-radius:6px;color:#4ade80;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 Acessar
               </button>
+              <button onclick="abrirModalDados('${e.id}')"
+                style="padding:4px 10px;background:rgba(59,130,246,.2);border:none;border-radius:6px;color:#60a5fa;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
+                📋 Dados
+              </button>
               <button onclick="editarEmpresa('${e.id}')"
                 style="padding:4px 10px;background:rgba(255,255,255,.08);border:none;border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 ✏️ Editar
@@ -23332,6 +23377,83 @@ function abrirModalTema(empresaId) {
 function fecharModalTema() {
   document.getElementById('modal-tema-empresa').style.display = 'none';
   _temaEmpresaId = null;
+}
+
+// ── Modal: Dados e Links de Acesso da Empresa ──
+let _infoEmpresaId = null;
+let _infoEmpresaLinks = [];
+
+async function abrirModalDados(empresaId) {
+  const emp = _todasEmpresas.find(e => e.id === empresaId);
+  if (!emp) return;
+  _infoEmpresaId = empresaId;
+
+  document.getElementById('modal-dados-nome').textContent = emp.nome;
+  document.getElementById('dados-descricao').value = '';
+  document.getElementById('dados-nao-salvo').style.display = 'none';
+  document.getElementById('dados-links-lista').innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.3);padding:8px 0">Carregando...</div>';
+  document.getElementById('modal-dados-empresa').style.display = 'flex';
+
+  // Busca direto do banco pra garantir dado mais atual (o cache local pode estar desatualizado)
+  const { data } = await sb.from('empresas').select('dados_descricao,dados_links').eq('id', empresaId).single();
+  document.getElementById('dados-descricao').value = data?.dados_descricao || '';
+  _infoEmpresaLinks = Array.isArray(data?.dados_links) ? data.dados_links : [];
+  renderDadosLinks();
+}
+
+function fecharModalDados() {
+  document.getElementById('modal-dados-empresa').style.display = 'none';
+  _infoEmpresaId = null;
+  _infoEmpresaLinks = [];
+}
+
+async function salvarDescricaoDados() {
+  if (!_infoEmpresaId) return;
+  const texto = document.getElementById('dados-descricao').value;
+  const { error } = await sb.from('empresas').update({ dados_descricao: texto }).eq('id', _infoEmpresaId);
+  if (error) { showToast('Erro ao salvar: ' + error.message, 'error'); return; }
+  document.getElementById('dados-nao-salvo').style.display = 'none';
+  showToast('✅ Descrição salva!', 'success');
+}
+
+function renderDadosLinks() {
+  const el = document.getElementById('dados-links-lista');
+  if (!el) return;
+  if (!_infoEmpresaLinks.length) {
+    el.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.3);padding:4px 0">Nenhum link adicionado ainda.</div>';
+    return;
+  }
+  el.innerHTML = _infoEmpresaLinks.map((l, i) => `
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 12px">
+      <span style="font-size:14px">🔗</span>
+      <a href="${l.url}" target="_blank" rel="noopener" style="flex:1;color:#60a5fa;font-size:13px;font-weight:600;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.nome || l.url}</a>
+      <button onclick="removerLinkDados(${i})" title="Remover" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:14px;padding:2px 6px">✕</button>
+    </div>`).join('');
+}
+
+async function adicionarLinkDados() {
+  if (!_infoEmpresaId) return;
+  const nome = document.getElementById('dados-link-nome').value.trim();
+  let url = document.getElementById('dados-link-url').value.trim();
+  if (!url) { showToast('Cole a URL do link', 'error'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  _infoEmpresaLinks.push({ nome: nome || url, url });
+  const { error } = await sb.from('empresas').update({ dados_links: _infoEmpresaLinks }).eq('id', _infoEmpresaId);
+  if (error) { showToast('Erro ao salvar link: ' + error.message, 'error'); _infoEmpresaLinks.pop(); return; }
+
+  document.getElementById('dados-link-nome').value = '';
+  document.getElementById('dados-link-url').value = '';
+  renderDadosLinks();
+  showToast('✅ Link adicionado!', 'success');
+}
+
+async function removerLinkDados(idx) {
+  if (!_infoEmpresaId) return;
+  const removido = _infoEmpresaLinks.splice(idx, 1);
+  const { error } = await sb.from('empresas').update({ dados_links: _infoEmpresaLinks }).eq('id', _infoEmpresaId);
+  if (error) { showToast('Erro ao remover: ' + error.message, 'error'); if(removido[0]) _infoEmpresaLinks.splice(idx,0,removido[0]); return; }
+  renderDadosLinks();
 }
 
 function atualizarPreviewTema() {
