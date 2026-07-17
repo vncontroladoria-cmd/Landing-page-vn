@@ -20869,6 +20869,10 @@ async function loadEmpresasOperador() {
         <div style="color:#fff;font-size:14px;font-weight:700">${e.nome}</div>
         <div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:2px">${e.cnpj || '—'}</div>
       </div>
+      <button onclick="abrirModalDados('${e.id}')"
+        style="padding:8px 14px;background:rgba(59,130,246,.2);border:none;border-radius:8px;color:#60a5fa;font-size:12px;cursor:pointer;font-weight:700">
+        📋 Dados
+      </button>
       <button onclick="operadorAcessarEmpresa('${e.id}')"
         style="padding:8px 18px;background:rgba(42,157,92,.2);border:none;border-radius:8px;color:#4ade80;font-size:12px;cursor:pointer;font-weight:700">
         Acessar →
