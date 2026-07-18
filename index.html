@@ -23114,8 +23114,9 @@ async function verificarMensagensNovas() {
   const qtd = msgs.length;
   atualizarBadgeMensagens(qtd);
 
-  // Verificar pendências atrasadas para o título
-  await verificarPendenciasCount();
+  // Verificar pendências atrasadas para o título — isolado em try/catch:
+  // se der erro aqui, não pode travar a notificação/som de mensagem nova abaixo
+  try { await verificarPendenciasCount(); } catch(e) { console.error('Erro ao contar pendências:', e); }
 
   // Notificar mensagens novas desde a última verificação
   if (_msgUltimaVerificacao && qtd > 0) {
