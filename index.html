@@ -1954,7 +1954,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <label>Tipo</label>
         <select id="tarefa-tipo" onchange="toggleTipoTarefa()" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
           <option value="tarefa">📝 Tarefa</option>
-          <option value="pendencia_cliente">❓ Pendência (aguardando retorno do cliente)</option>
+          <option value="lembrete">🔔 Lembrete</option>
         </select>
       </div>
       <div class="form-group">
@@ -22534,9 +22534,10 @@ async function loadCadastroTarefas() {
   }
   const { data: tarefasRaw } = await query.order('criado_em', {ascending:false});
   const filtroEmp = window._filtroEmpresaTarefas || '';
-  const tarefas = filtroEmp
+  const tarefas = (filtroEmp
     ? (tarefasRaw||[]).filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp) || (!t.empresa_id && !t.empresa_ids?.length))
-    : tarefasRaw;
+    : tarefasRaw
+  )?.filter(t => t.tipo !== 'lembrete'); // Lembrete não aparece em Cadastro
 
   const container = document.getElementById('op-cadastro-lista');
   if (!tarefas?.length) {
