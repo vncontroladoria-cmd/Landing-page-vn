@@ -7701,7 +7701,7 @@ async function abrirConversaChat(userId, userName) {
   if (header) header.textContent = userName;
   const btnVoltar = document.getElementById('chat-btn-voltar');
   if (btnVoltar) btnVoltar.style.display = 'flex';
-  await sb.from('mensagens_operadores').update({ lida: true }).eq('para_usuario_id', _vnUser?.id).eq('de_usuario_id', userId);
+  await sb.from('mensagens_operadores').update({ lida: true, lida_em: new Date().toISOString() }).eq('para_usuario_id', _vnUser?.id).eq('de_usuario_id', userId);
   await carregarMensagensConversa();
   document.getElementById('chat-input')?.focus();
   clearInterval(_chatInterval);
@@ -7726,7 +7726,7 @@ async function carregarMensagensConversa() {
     .or(`and(de_usuario_id.eq.${meuId},para_usuario_id.eq.${_chatConversa.id}),and(de_usuario_id.eq.${_chatConversa.id},para_usuario_id.eq.${meuId})`)
     .order('criado_em', { ascending: true }).limit(100);
   const naolidas = (data||[]).filter(m => m.para_usuario_id === meuId && !m.lida).map(m => m.id);
-  if (naolidas.length) await sb.from('mensagens_operadores').update({ lida: true }).in('id', naolidas);
+  if (naolidas.length) await sb.from('mensagens_operadores').update({ lida: true, lida_em: new Date().toISOString() }).in('id', naolidas);
   window._miniMensagensCache = data || [];
   const el = document.getElementById('chat-msgs');
   if (!el) return;
@@ -7749,7 +7749,7 @@ async function carregarMensagensConversa() {
       <div style="max-width:85%;padding:8px 12px;border-radius:${meu?'12px 12px 2px 12px':'12px 12px 12px 2px'};background:${meu?'var(--accent)':'var(--bg3)'};color:${meu?'#fff':'var(--text)'};font-size:12px;line-height:1.4;word-break:break-word">
         ${citacao}
         <div>${conteudo}</div>
-        <div style="font-size:9px;color:${meu?'rgba(255,255,255,.7)':'var(--text3)'};margin-top:3px;text-align:right">${hora}${m.editado?' · editado':''}${meu?(m.lida?' · Visto':' · Enviado'):''}</div>
+        <div style="font-size:9px;color:${meu?'rgba(255,255,255,.7)':'var(--text3)'};margin-top:3px;text-align:right">Enviado às ${hora}${m.editado?' · editado':''}${meu&&m.lida&&m.lida_em?` · Visto às ${new Date(m.lida_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`:''}</div>
       </div>
       ${!meu ? acoes : ''}
     </div>`;
@@ -22021,7 +22021,7 @@ async function loadMensagensOperador() {
   renderMensagensOperadorFiltrado();
 
   // Marca mensagens recebidas como lidas
-  await sb.from('mensagens_operadores').update({lida:true}).eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false);
+  await sb.from('mensagens_operadores').update({lida:true, lida_em: new Date().toISOString()}).eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false);
 }
 
 function limparFiltrosMensagensOperador() {
@@ -22103,7 +22103,7 @@ function renderMensagensOperadorFiltrado() {
           ${citacao}
           ${m.mensagem ? `<div>${m.mensagem.replace(/</g,'&lt;')}</div>` : ''}
           ${m.arquivo_url ? `<div style="margin-top:4px"><a href="${m.arquivo_url}" target="_blank" style="color:#bfdbfe;text-decoration:underline;font-size:12px">📎 ${m.arquivo_nome||'Arquivo'}</a></div>` : ''}
-          <div style="font-size:9px;color:rgba(255,255,255,.5);margin-top:3px;text-align:right">${hora}${m.editado?' · editado':''}${minha?(m.lida?' · Visto':' · Enviado'):''}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.5);margin-top:3px;text-align:right">Enviado às ${hora}${m.editado?' · editado':''}${minha&&m.lida&&m.lida_em?` · Visto às ${new Date(m.lida_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`:''}</div>
         </div>
         ${!minha ? `<div class="op-msg-acoes" style="display:flex;gap:2px;opacity:0;transition:opacity .15s">
           <button onclick="responderMensagemOperador('${m.id}')" title="Responder" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:12px">↩️</button>
