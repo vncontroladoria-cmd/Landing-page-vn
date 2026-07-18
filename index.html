@@ -1626,10 +1626,28 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
         <!-- ABA: CADASTRO (todas, editar/excluir, criado por) -->
         <div id="ttab-cadastro" style="display:none">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap">
             <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
             <select id="cadastro-mes" onchange="recarregarAba('cadastro')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
             <select id="cadastro-ano" onchange="recarregarAba('cadastro')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+            <button id="cad-filtro-todas" onclick="cadastroFiltroRecorrencia('todas')"
+              style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:var(--accent);color:#fff;font-family:'Outfit',sans-serif">
+              Todas
+            </button>
+            <button id="cad-filtro-diaria" onclick="cadastroFiltroRecorrencia('diaria')"
+              style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-family:'Outfit',sans-serif">
+              🔁 Todo dia
+            </button>
+            <button id="cad-filtro-semanal" onclick="cadastroFiltroRecorrencia('semanal')"
+              style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-family:'Outfit',sans-serif">
+              📅 Toda semana
+            </button>
+            <button id="cad-filtro-mensal" onclick="cadastroFiltroRecorrencia('mensal')"
+              style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-family:'Outfit',sans-serif">
+              🗓️ Todo mês
+            </button>
           </div>
           <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
             <div id="op-cadastro-lista" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -22517,6 +22535,18 @@ async function loadAgendaTarefas() {
 
 // ─── ABA: CADASTRO ──────────────────────────────────────
 
+let _cadastroFiltroRec = 'todas';
+function cadastroFiltroRecorrencia(tipo) {
+  _cadastroFiltroRec = tipo;
+  ['todas','diaria','semanal','mensal'].forEach(t => {
+    const btn = document.getElementById(`cad-filtro-${t}`);
+    if (!btn) return;
+    if (t === tipo) { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
+    else { btn.style.background = 'rgba(255,255,255,.06)'; btn.style.color = 'rgba(255,255,255,.6)'; }
+  });
+  loadCadastroTarefas();
+}
+
 async function loadCadastroTarefas() {
   const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
   const uid = _vnUser?.id;
@@ -22537,7 +22567,8 @@ async function loadCadastroTarefas() {
   const tarefas = (filtroEmp
     ? (tarefasRaw||[]).filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp) || (!t.empresa_id && !t.empresa_ids?.length))
     : tarefasRaw
-  )?.filter(t => t.tipo !== 'lembrete'); // Lembrete não aparece em Cadastro
+  )?.filter(t => t.tipo !== 'lembrete') // Lembrete não aparece em Cadastro
+   .filter(t => _cadastroFiltroRec === 'todas' || t.recorrencia === _cadastroFiltroRec);
 
   const container = document.getElementById('op-cadastro-lista');
   if (!tarefas?.length) {
