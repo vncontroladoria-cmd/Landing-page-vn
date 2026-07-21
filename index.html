@@ -16890,8 +16890,10 @@ let _excelFile = null;
 async function abrirModalImportarExcel() {
   await carregarBancos();
   const sel = document.getElementById('excel-banco-sel');
+  const jaTemCartao = _bancos.some(b => /cart.*cr[eé]dito/i.test(b.nome));
   sel.innerHTML = '<option value="">Selecione o banco...</option>' +
-    _bancos.map(b => `<option value="${b.id}" data-nome="${b.nome}">${b.nome}</option>`).join('');
+    _bancos.map(b => `<option value="${b.id}" data-nome="${b.nome}">${b.nome}</option>`).join('') +
+    (jaTemCartao ? '' : '<option value="CARTAO_CREDITO_VIRTUAL" data-nome="Cartão de Crédito">💳 Cartão de Crédito</option>');
   document.getElementById('excel-passo1').style.display = 'block';
   document.getElementById('excel-passo2').style.display = 'none';
   document.getElementById('excel-file-info').style.display = 'none';
@@ -17012,6 +17014,19 @@ async function processarExcelMapeado() {
   _concBancoId = bancoId;
   _concBancoNome = bancoNome;
   _concFile = { name: _excelFile.name };
+  _concEhCartao = /cart.*cr[eé]dito/i.test(bancoNome);
+  if (_concEhCartao) {
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    const { data: cartoes } = await sb.from('cartoes').select('id,nome').eq('empresa_id', empId);
+    if (!cartoes?.length) { showToast('Cadastre um cartão em Cartão de Crédito → Cartões antes de importar', 'error'); return; }
+    _concCartaoId = cartoes[0].id;
+    if (cartoes.length > 1) {
+      const nomes = cartoes.map((c,i)=>`${i+1}) ${c.nome}`).join('\n');
+      const escolha = prompt(`Qual cartão?\n${nomes}\n\nDigite o número:`, '1');
+      const idx = parseInt(escolha) - 1;
+      if (cartoes[idx]) _concCartaoId = cartoes[idx].id;
+    }
+  }
 
   for (const row of rows) {
     const dataRaw = row[parseInt(colData)];
@@ -17076,8 +17091,10 @@ let _concBancoNome = '';
 async function abrirModalConciliacao() {
   if (!_bancos.length) await carregarBancos();
   const sel = document.getElementById('conc-banco-sel');
+  const jaTemCartao = _bancos.some(b => /cart.*cr[eé]dito/i.test(b.nome));
   sel.innerHTML = '<option value="">Selecione o banco...</option>' +
-    _bancos.map(b => `<option value="${b.id}" data-nome="${b.nome}">${b.nome}</option>`).join('');
+    _bancos.map(b => `<option value="${b.id}" data-nome="${b.nome}">${b.nome}</option>`).join('') +
+    (jaTemCartao ? '' : '<option value="CARTAO_CREDITO_VIRTUAL" data-nome="Cartão de Crédito">💳 Cartão de Crédito</option>');
   _concFile = null;
   document.getElementById('conc-file-label').textContent = 'Clique para selecionar';
   document.getElementById('conc-file-input').value = '';
