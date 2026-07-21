@@ -17069,6 +17069,8 @@ let _concFile = null;
 let _concRows = []; // linhas lidas do extrato
 let _concBancoId = '';
 let _concDataPagamentoPadrao = ''; // usado pelo botão "aplicar data a todos"
+let _concEhCartao = false; // true quando o banco selecionado é "Cartão de Crédito"
+let _concCartaoId = '';
 let _concBancoNome = '';
 
 async function abrirModalConciliacao() {
@@ -17108,6 +17110,19 @@ async function iniciarConciliacao() {
   const sel = document.getElementById('conc-banco-sel');
   _concBancoId = sel.value;
   _concBancoNome = sel.options[sel.selectedIndex]?.dataset.nome || '';
+  _concEhCartao = /cart.*cr[eé]dito/i.test(_concBancoNome);
+  if (_concEhCartao) {
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    const { data: cartoes } = await sb.from('cartoes').select('id,nome').eq('empresa_id', empId);
+    if (!cartoes?.length) { showToast('Cadastre um cartão em Cartão de Crédito → Cartões antes de importar', 'error'); return; }
+    _concCartaoId = cartoes[0].id;
+    if (cartoes.length > 1) {
+      const nomes = cartoes.map((c,i)=>`${i+1}) ${c.nome}`).join('\n');
+      const escolha = prompt(`Qual cartão?\n${nomes}\n\nDigite o número:`, '1');
+      const idx = parseInt(escolha) - 1;
+      if (cartoes[idx]) _concCartaoId = cartoes[idx].id;
+    }
+  }
   if (!_concBancoId) { showToast('Selecione o banco','error'); return; }
   if (!_concFile) { showToast('Selecione o arquivo','error'); return; }
 
@@ -17190,11 +17205,12 @@ function renderConciliacao() {
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding:12px 16px;background:var(--bg3);border-radius:10px">
     <div style="font-size:13px">
       <strong>${_concRows.length}</strong> lançamentos de <strong>${_concBancoNome}</strong>
+      ${_concEhCartao ? '<span style="background:#7c3aed22;color:#7c3aed;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px">💳 vai para Cartão de Crédito</span>' : ''}
       &nbsp;·&nbsp; <span id="conc-pendentes-count" style="color:var(--amber)">${pendentes} pendentes</span>
       &nbsp;·&nbsp; Valor a importar: <strong id="conc-total-pendente" style="color:${totalPendente>=0?'var(--green)':'var(--red)'}">${fmtBRL(totalPendente)}</strong>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <label style="font-size:11px;color:var(--text2)">📅 Data competência p/ todos:</label>
+      <label style="font-size:11px;color:var(--text2)">📅 ${_concEhCartao ? 'Data de pagamento' : 'Data competência'} p/ todos:</label>
       <input type="date" id="conc-data-pgto-global" value="${_concDataPagamentoPadrao || hojeISO()}" style="font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 6px">
       <button class="btn btn-sm" onclick="aplicarDataPagamentoTodos()">Aplicar a todos</button>
       <button class="btn btn-primary" onclick="concluirTodos()">✓ Concluir todos e salvar</button>
@@ -17280,7 +17296,7 @@ function renderConciliacao() {
 
         <!-- DATA DE PAGAMENTO -->
         <div style="min-width:130px">
-          <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px">Data competência</label>
+          <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px">${_concEhCartao ? 'Data de pagamento' : 'Data competência'}</label>
           <input type="date" class="conc-input-pgto" id="conc-data-pgto-${idx}" value="${_concDataPagamentoPadrao || ''}" onchange="_concRows[${idx}]._dataPagamento=this.value"
             style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg2)">
         </div>
@@ -17357,15 +17373,59 @@ async function conciliarLinha(idx) {
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
-  const dataCompetencia = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || r.data;
+  const dataCampo = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || r.data;
   const tipo = (r.entrada > 0 && !r.saida) ? 'ENTRADA' : (r.saida > 0 && !r.entrada) ? 'SAIDA' : r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
+  const usuario = _vnUser?.nome || _vnUser?.email || 'sistema';
+
+  // ── Cartão de Crédito: grava em cartao_lancamentos, não em lancamentos ──
+  if (_concEhCartao) {
+    if (!_concCartaoId) { showToast('Nenhum cartão selecionado','error'); return; }
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    // Aqui: r.data (dia da compra, já vem preenchido) = Competência (DRE).
+    // dataCampo (preenchido pela pessoa, "Data de pagamento") = data oficial do lançamento (DFC).
+    const mesCC = dataCampo.substring(0,7);
+    const { error: errCC } = await sb.from('cartao_lancamentos').insert(addEmpresaId({
+      cartao_id: _concCartaoId,
+      data_lancamento: dataCampo,
+      data_competencia: r.data,
+      mes: mesCC,
+      extrato: r.extrato,
+      descricao: desc,
+      valor: r.entrada || r.saida,
+      tipo: tipo === 'ENTRADA' ? 'ENTRADA' : 'SAIDA',
+      categoria: catNome,
+      categoria_dfc: catDfc,
+      categoria_dre: catDre,
+      status: 'pendente',
+      origem: 'importacao',
+      origem_arquivo: _concFile?.name || '',
+    }));
+    if (errCC) { showToast('Erro: '+errCC.message,'error'); return; }
+
+    r._concluido = true;
+    const card = document.getElementById(`conc-card-${idx}`);
+    if (card) {
+      card.style.opacity = '0.5';
+      card.style.borderLeftColor = '#94a3b8';
+      card.querySelector('button').textContent = '✓ Conciliado';
+      card.querySelector('button').disabled = true;
+      card.querySelector('button').style.background = '#94a3b8';
+      card.querySelector('button').style.borderColor = '#94a3b8';
+    }
+    const pendentesCC = _concRows.filter(x => !x._concluido).length;
+    const elCC = document.getElementById('conc-pendentes-count');
+    if (elCC) elCC.textContent = `${pendentesCC} pendentes`;
+    showToast(`✓ Lançamento conciliado no Cartão de Crédito! Valor: ${fmtBRL(r.entrada||r.saida||0)}`, 'success');
+    return;
+  }
+
+  const dataCompetencia = dataCampo;
   // Data Caixa (r.data, a que já vem preenchida do extrato) é a data "oficial" do lançamento —
   // usada pros filtros de mês e pro DFC. Data Competência (preenchida pela pessoa) alimenta o DRE.
   const ano = r.data.substring(0,4) || new Date().getFullYear().toString();
   const m = r.data.substring(5,7) || String(new Date().getMonth()+1).padStart(2,'0');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const agora = new Date().toISOString();
-  const usuario = _vnUser?.nome || _vnUser?.email || 'sistema';
 
   // Conta quantos já foram salvos para gerar código sequencial
   const { count: total } = await qE('lancamentos').select('*', {count:'exact',head:true});
