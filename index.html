@@ -3597,7 +3597,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <thead>
                   <tr>
                     <th>DATA CAIXA</th><th>CARTÃO</th><th>EXTRATO</th><th>DESCRIÇÃO</th>
-                    <th style="text-align:right">VALOR</th><th>CATEGORIA DFC/DRE</th>
+                    <th style="text-align:right">ENTRADA</th><th style="text-align:right">SAÍDA</th>
+                    <th>CATEGORIA DFC/DRE</th>
                     <th>COMPETÊNCIA</th><th>STATUS</th><th>AÇÕES</th>
                   </tr>
                 </thead>
@@ -20010,7 +20011,7 @@ async function loadCartoes() {
 async function loadCartaoLancamentos() {
   const tbody = document.getElementById('cc-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px"><div class="spin"></div></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px"><div class="spin"></div></td></tr>';
 
   const cartaoId = document.getElementById('cc-cartao-filter')?.value;
   const ano = document.getElementById('cc-ano')?.value || new Date().getFullYear();
@@ -20030,7 +20031,7 @@ async function loadCartaoLancamentos() {
 
   // Cards hero
   const limiteTotal = _cartoes.reduce((s,c) => s + (Number(c.limite)||0), 0);
-  const usado = lista.reduce((s,l) => s + (Number(l.valor)||0), 0);
+  const usado = lista.reduce((s,l) => s + (l.tipo==='ENTRADA' ? -Number(l.valor||0) : Number(l.valor||0)), 0);
   const disp = limiteTotal - usado;
 
   const fmt = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2});
@@ -20040,7 +20041,7 @@ async function loadCartaoLancamentos() {
   document.getElementById('cc-hero-n').textContent      = lista.length;
 
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text2)">Nenhum lançamento encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text2)">Nenhum lançamento encontrado</td></tr>';
     return;
   }
 
@@ -20055,7 +20056,8 @@ async function loadCartaoLancamentos() {
       <td>${l.cartoes?.nome || '—'}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.extrato||''}">${l.extrato||'—'}</td>
       <td>${l.descricao||'—'}</td>
-      <td style="text-align:right;color:var(--red);font-weight:700">${fmt(l.valor)}</td>
+      <td style="text-align:right;color:var(--green);font-weight:700">${l.tipo==='ENTRADA' ? fmt(l.valor) : '—'}</td>
+      <td style="text-align:right;color:var(--red);font-weight:700">${l.tipo!=='ENTRADA' ? fmt(l.valor) : '—'}</td>
       <td style="font-size:11px">${l.categoria_dfc||l.categoria||'—'}</td>
       <td style="font-size:11px">${competenciaLabel}</td>
       <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${statusColor}22;color:${statusColor};font-weight:700">${(l.status||'pendente').toUpperCase()}</span></td>
@@ -20259,7 +20261,13 @@ async function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-pagamento').value = '';
   document.getElementById('cc-imp-mapa').style.display = 'block';
   document.getElementById('cc-imp-lista-pdf')?.remove();
+  document.getElementById('cc-imp-revisao').style.display = 'none';
+  document.getElementById('cc-imp-modal-box').style.maxWidth = '500px';
+  const btn = document.getElementById('cc-imp-btn-acao');
+  btn.textContent = '📥 Analisar arquivo';
+  btn.setAttribute('onclick', 'processarFaturaCC()');
   _ccFaturaRows = [];
+  _ccImportRows = [];
   await loadCartoes();
   document.getElementById('modal-importar-cc').classList.add('open');
 }
@@ -20379,6 +20387,8 @@ async function previewFaturaCCPdf(file) {
   }
 }
 
+let _ccImportRows = [];
+
 async function processarFaturaCC() {
   const cartaoId = document.getElementById('cc-imp-cartao')?.value;
   const dataPagamento = document.getElementById('cc-imp-pagamento')?.value;
@@ -20398,7 +20408,8 @@ async function processarFaturaCC() {
       if (!r._data || !r._valor) return null;
       // r._data é a data da compra na fatura → vira Competência (DRE).
       // A data de pagamento informada pela pessoa vira a data "oficial" do lançamento → alimenta o DFC.
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: r._data, mes, extrato: r._extrato||'', valor: Math.abs(r._valor), tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+      const bruto = Number(r._valor)||0;
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: r._data, mes, extrato: r._extrato||'', valor: Math.abs(bruto), tipo: bruto < 0 ? 'ENTRADA' : 'SAIDA', categoria: '', status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   } else {
     const parseD = v => {
@@ -20419,7 +20430,17 @@ async function processarFaturaCC() {
       if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
       return null;
     };
-    const parseV = v => { if (!v&&v!==0) return 0; if (typeof v==='number') return Math.abs(v); const s=String(v).replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'); return Math.abs(parseFloat(s)||0); };
+    // Preserva o sinal (não usa Math.abs) — negativo = ENTRADA (estorno), positivo = SAÍDA
+    const parseV = v => {
+      if (!v && v !== 0) return null;
+      if (typeof v === 'number') return v;
+      const s = String(v).replace(/[^0-9,.\-()]/g,'');
+      const neg = /^\(.*\)$/.test(String(v).trim()) || s.trim().startsWith('-');
+      const limpo = s.replace(/[()\-]/g,'').replace(/\./g,'').replace(',','.');
+      const num = parseFloat(limpo);
+      if (isNaN(num)) return null;
+      return neg ? -num : num;
+    };
 
     // Descobre qual coluna tem cada papel, olhando o seletor de cada coluna
     let colData = '', colExt = '', colValor = '', colCat = '';
@@ -20432,17 +20453,55 @@ async function processarFaturaCC() {
     });
     rows = _ccFaturaRows.map(r => {
       const dataCompra = parseD(colData ? r[colData] : null);
-      const valor = parseV(colValor ? r[colValor] : null);
-      if (!dataCompra || !valor) return null;
+      const brutoValor = colValor ? parseV(r[colValor]) : null;
+      if (!dataCompra || brutoValor === null || brutoValor === 0) return null;
       const catBruta = colCat ? String(r[colCat]||'').trim() : '';
       const categoria = (catBruta && catBruta.toUpperCase() !== 'NÃO ENCONTRADO') ? catBruta : '';
       // A data de cada linha da planilha é a data da compra → vira Competência (DRE).
       // A data de pagamento informada pela pessoa vira a data "oficial" do lançamento → alimenta o DFC.
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: dataCompra, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, categoria, categoria_dfc: categoria, categoria_dre: categoria, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+      // Valor negativo (estorno/devolução) = ENTRADA; positivo = SAÍDA.
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: dataCompra, mes, extrato: colExt ? String(r[colExt]||'') : '', valor: Math.abs(brutoValor), tipo: brutoValor < 0 ? 'ENTRADA' : 'SAIDA', categoria, status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   }
 
   if (!rows.length) { showToast('Nenhum lançamento válido encontrado','error'); return; }
+
+  _ccImportRows = rows;
+  renderRevisaoImportacaoCC();
+}
+
+function renderRevisaoImportacaoCC() {
+  document.getElementById('cc-imp-mapa-wrapper')?.remove();
+  document.getElementById('cc-imp-preview').style.display = 'none';
+  document.getElementById('cc-imp-revisao').style.display = 'block';
+  document.getElementById('cc-imp-modal-box').style.maxWidth = '760px';
+
+  const lista = document.getElementById('cc-imp-revisao-lista');
+  const total = _ccImportRows.reduce((s,r) => s + (r.tipo==='ENTRADA' ? -r.valor : r.valor), 0);
+  lista.innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:0 4px 4px">
+      <span>${_ccImportRows.length} lançamento(s)</span>
+      <span>Total: ${fmtBRL(total)}</span>
+    </div>` +
+    _ccImportRows.map((r, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px">
+      <div style="width:80px;font-size:11px;color:var(--text2)">${r.data_competencia.split('-').reverse().join('/')}</div>
+      <div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.extrato}">${r.extrato}</div>
+      <div style="width:90px;text-align:right;font-size:12px;font-weight:700;color:${r.tipo==='ENTRADA'?'var(--green)':'var(--red)'}">${r.tipo==='ENTRADA'?'+':'-'}${fmtBRL(r.valor)}</div>
+      <input type="text" id="cc-imp-cat-${i}" value="${r.categoria||''}" placeholder="Categoria..." style="width:180px;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+    </div>`).join('');
+
+  const btn = document.getElementById('cc-imp-btn-acao');
+  btn.textContent = '✅ Confirmar e Importar';
+  btn.setAttribute('onclick', 'confirmarImportacaoCC()');
+}
+
+async function confirmarImportacaoCC() {
+  // Aplica a categoria editada em cada linha antes de salvar
+  const rows = _ccImportRows.map((r, i) => {
+    const cat = document.getElementById(`cc-imp-cat-${i}`)?.value || '';
+    return { ...r, categoria: cat, categoria_dfc: cat, categoria_dre: cat };
+  });
 
   let erros = 0;
   for (let i=0; i<rows.length; i+=100) {
@@ -20451,9 +20510,15 @@ async function processarFaturaCC() {
   }
 
   if (erros) { showToast('Erro em alguns lançamentos','error'); return; }
-  const totalCC = rows.reduce((s,r) => s + Number(r.valor||0), 0);
+  const totalCC = rows.reduce((s,r) => s + (r.tipo==='ENTRADA' ? -r.valor : r.valor), 0);
   showToast(`✅ ${rows.length} lançamentos importados! Total: ${fmtBRL(totalCC)}`,'success');
   closeModal('modal-importar-cc');
+  _ccImportRows = [];
+  document.getElementById('cc-imp-modal-box').style.maxWidth = '500px';
+  document.getElementById('cc-imp-revisao').style.display = 'none';
+  const btn = document.getElementById('cc-imp-btn-acao');
+  btn.textContent = '📥 Analisar arquivo';
+  btn.setAttribute('onclick', 'processarFaturaCC()');
   await loadCartaoLancamentos();
 }
 
@@ -24326,7 +24391,7 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
 
 <!-- MODAL: IMPORTAR FATURA CC -->
 <div class="modal-overlay" id="modal-importar-cc">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" id="cc-imp-modal-box" style="max-width:500px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <div class="modal-title">Importar Fatura</div>
       <button onclick="closeModal('modal-importar-cc')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
@@ -24349,10 +24414,14 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         <div style="font-size:12px;color:var(--text2);margin-bottom:8px" id="cc-imp-preview-label">Colunas detectadas — confirme o mapeamento:</div>
         <div id="cc-imp-mapa"></div>
       </div>
+      <div id="cc-imp-revisao" style="display:none">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Confira e ajuste a categoria de cada lançamento antes de importar:</div>
+        <div id="cc-imp-revisao-lista" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+      </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
       <button class="btn" onclick="closeModal('modal-importar-cc')">Cancelar</button>
-      <button class="btn btn-primary" onclick="processarFaturaCC()">📥 Importar</button>
+      <button class="btn btn-primary" id="cc-imp-btn-acao" onclick="processarFaturaCC()">📥 Analisar arquivo</button>
     </div>
   </div>
 </div>
