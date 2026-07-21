@@ -2852,7 +2852,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:#1a56db;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DFC</th>
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:#166534;border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">DRE</th>
                     <th style="padding:10px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer;max-width:90px" onclick="sortTable(this)">BANCO</th>
-                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">MÊS</th>
+                    <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">COMPETÊNCIA</th>
                     <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap;cursor:pointer" onclick="sortTable(this)">SALDO</th>
                     <th style="padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1.5px solid var(--border);white-space:nowrap" class="no-sort">AÇÕES</th>
                   </tr>
@@ -3596,9 +3596,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <table>
                 <thead>
                   <tr>
-                    <th>DATA</th><th>CARTÃO</th><th>EXTRATO</th><th>DESCRIÇÃO</th>
+                    <th>DATA CAIXA</th><th>CARTÃO</th><th>EXTRATO</th><th>DESCRIÇÃO</th>
                     <th style="text-align:right">VALOR</th><th>CATEGORIA DFC/DRE</th>
-                    <th>MÊS</th><th>STATUS</th><th>AÇÕES</th>
+                    <th>COMPETÊNCIA</th><th>STATUS</th><th>AÇÕES</th>
                   </tr>
                 </thead>
                 <tbody id="cc-tbody"></tbody>
@@ -9500,8 +9500,8 @@ async function loadLancamentos(forcarBancoFilter) {
       </td>
       <td style="padding:6px 8px;font-size:10px;color:var(--text2);white-space:nowrap;min-width:80px">
         <span class="cell-view">
-          <div style="font-size:10px">${mesNome.substring(0,3)} ${ano}</div>
-          ${l.competencia && l.competencia !== l.mes ? `<div style="font-size:9px;color:var(--accent);font-weight:600">◀ ${l.competencia.split('-')[1]}/${l.competencia.split('-')[0].substring(2)}</div>` : ''}
+          <div style="font-size:10px;font-weight:600">${l.data_competencia ? new Date(l.data_competencia+'T12:00:00').toLocaleDateString('pt-BR') : `${mesNome.substring(0,3)} ${ano}`}</div>
+          ${!l.data_competencia && l.competencia && l.competencia !== l.mes ? `<div style="font-size:9px;color:var(--accent);font-weight:600">◀ ${l.competencia.split('-')[1]}/${l.competencia.split('-')[0].substring(2)}</div>` : ''}
         </span>
         <div class="cell-edit" style="display:none">
           <div style="font-size:9px;color:var(--text3);margin-bottom:2px">Competência DRE</div>
@@ -17194,7 +17194,7 @@ function renderConciliacao() {
       &nbsp;·&nbsp; Valor a importar: <strong id="conc-total-pendente" style="color:${totalPendente>=0?'var(--green)':'var(--red)'}">${fmtBRL(totalPendente)}</strong>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <label style="font-size:11px;color:var(--text2)">📅 Data pagamento p/ todos:</label>
+      <label style="font-size:11px;color:var(--text2)">📅 Data competência p/ todos:</label>
       <input type="date" id="conc-data-pgto-global" value="${_concDataPagamentoPadrao || hojeISO()}" style="font-size:12px;border:1px solid var(--border);border-radius:6px;padding:4px 6px">
       <button class="btn btn-sm" onclick="aplicarDataPagamentoTodos()">Aplicar a todos</button>
       <button class="btn btn-primary" onclick="concluirTodos()">✓ Concluir todos e salvar</button>
@@ -17280,7 +17280,7 @@ function renderConciliacao() {
 
         <!-- DATA DE PAGAMENTO -->
         <div style="min-width:130px">
-          <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px">Data pagamento</label>
+          <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:2px">Data competência</label>
           <input type="date" class="conc-input-pgto" id="conc-data-pgto-${idx}" value="${_concDataPagamentoPadrao || ''}" onchange="_concRows[${idx}]._dataPagamento=this.value"
             style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--bg2)">
         </div>
@@ -17357,11 +17357,12 @@ async function conciliarLinha(idx) {
   const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
   const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
-  const dataPagamento = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || r.data;
+  const dataCompetencia = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || r.data;
   const tipo = (r.entrada > 0 && !r.saida) ? 'ENTRADA' : (r.saida > 0 && !r.entrada) ? 'SAIDA' : r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
-  // A data de pagamento é a data "oficial" do lançamento (usada pros filtros de mês, DFC etc — igual já era em Lançamentos)
-  const ano = dataPagamento.substring(0,4) || new Date().getFullYear().toString();
-  const m = dataPagamento.substring(5,7) || String(new Date().getMonth()+1).padStart(2,'0');
+  // Data Caixa (r.data, a que já vem preenchida do extrato) é a data "oficial" do lançamento —
+  // usada pros filtros de mês e pro DFC. Data Competência (preenchida pela pessoa) alimenta o DRE.
+  const ano = r.data.substring(0,4) || new Date().getFullYear().toString();
+  const m = r.data.substring(5,7) || String(new Date().getMonth()+1).padStart(2,'0');
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const agora = new Date().toISOString();
   const usuario = _vnUser?.nome || _vnUser?.email || 'sistema';
@@ -17372,9 +17373,9 @@ async function conciliarLinha(idx) {
 
   const { error } = await sb.from('lancamentos').insert(addEmpresaId({
     codigo,
-    data_lancamento: dataPagamento,
-    data_competencia: r.data,
-    competencia: r.data ? r.data.substring(0,7) : null,
+    data_lancamento: r.data,
+    data_competencia: dataCompetencia,
+    competencia: dataCompetencia ? dataCompetencia.substring(0,7) : null,
     extrato: r.extrato,
     descricao: desc,
     entrada: r.entrada || null,
@@ -17412,7 +17413,7 @@ async function conciliarLinha(idx) {
       if (contasMatch?.length) {
         await sb.from('contas_pagar').update({
           status: 'pago',
-          data_pagamento: dataPagamento
+          data_pagamento: dataCompetencia
         }).eq('id', contasMatch[0].id);
         showToast(`✅ Baixa automática: "${contasMatch[0].descricao}"`, 'success');
       }
@@ -17446,7 +17447,12 @@ async function conciliarLinha(idx) {
 }
 
 async function concluirTodos() {
-  // Se alguma linha estiver sem "Data pagamento", usa a data que já aparece (competência) daquela linha
+  // Pergunta antes de aplicar em massa — dá chance da pessoa checar linhas com competência diferente
+  if (!confirm('Tem alguma conta com outra competência?\n\nSe alguma linha precisar de uma data de competência diferente das outras, cancele e ajuste ela antes. Clique OK para continuar e salvar todas.')) {
+    return;
+  }
+
+  // Se alguma linha estiver sem "Data competência", usa a data já mostrada (data caixa) daquela linha
   let semDataCount = 0;
   _concRows.forEach((r, i) => {
     if (r._concluido) return;
@@ -17457,7 +17463,7 @@ async function concluirTodos() {
       semDataCount++;
     }
   });
-  if (semDataCount) showToast(`${semDataCount} lançamento(s) sem data de pagamento — usando a data já mostrada`, '');
+  if (semDataCount) showToast(`${semDataCount} lançamento(s) sem data de competência — usando a data já mostrada`, '');
 
   // Processa TODOS os lançamentos — com ou sem categoria
   for (let i = 0; i < _concRows.length; i++) {
@@ -17618,7 +17624,7 @@ function aplicarDataPagamentoTodos() {
     r._dataPagamento = data;
     count++;
   });
-  showToast(`Data de pagamento aplicada em ${count} lançamento(s)!`, 'success');
+  showToast(`Data de competência aplicada em ${count} lançamento(s)!`, 'success');
 }
 
 function aplicarIgual(idx) {
@@ -17638,7 +17644,7 @@ function aplicarIgual(idx) {
       if(document.getElementById(`conc-cat-dre-${i}`)) document.getElementById(`conc-cat-dre-${i}`).value = catDre;
       if(desc && document.getElementById(`conc-desc-${i}`)) document.getElementById(`conc-desc-${i}`).value = desc;
       r._catNome = catNome; r._catDfc = catDfc; r._catDre = catDre;
-      // Só copia a data de pagamento se a data de competência for a mesma nas duas linhas
+      // Só copia a data de competência se a data caixa for a mesma nas duas linhas
       if (r.data === linhaOrigem.data && dataPgtoOrigem) {
         const inputPgto = document.getElementById(`conc-data-pgto-${i}`);
         if (inputPgto) inputPgto.value = dataPgtoOrigem;
@@ -19962,7 +19968,9 @@ async function loadCartaoLancamentos() {
 
   const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
   tbody.innerHTML = lista.map(l => {
-    const mesLabel = l.mes ? meses[parseInt(l.mes.split('-')[1])-1] + '/' + l.mes.split('-')[0] : '—';
+    const competenciaLabel = l.data_competencia
+      ? new Date(l.data_competencia+'T12:00:00').toLocaleDateString('pt-BR')
+      : (l.mes ? meses[parseInt(l.mes.split('-')[1])-1] + '/' + l.mes.split('-')[0] : '—');
     const statusColor = l.status === 'pago' ? 'var(--green)' : 'var(--amber)';
     return `<tr id="cc-row-${l.id}">
       <td>${l.data_lancamento ? new Date(l.data_lancamento+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
@@ -19971,7 +19979,7 @@ async function loadCartaoLancamentos() {
       <td>${l.descricao||'—'}</td>
       <td style="text-align:right;color:var(--red);font-weight:700">${fmt(l.valor)}</td>
       <td style="font-size:11px">${l.categoria_dfc||l.categoria||'—'}</td>
-      <td style="font-size:11px">${mesLabel}</td>
+      <td style="font-size:11px">${competenciaLabel}</td>
       <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${statusColor}22;color:${statusColor};font-weight:700">${(l.status||'pendente').toUpperCase()}</span></td>
       <td>
         <button onclick="editarLancCC('${l.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
@@ -20069,6 +20077,7 @@ function abrirModalLancCC() {
   document.getElementById('cc-lanc-cat-dfc').value = '';
   document.getElementById('cc-lanc-cat-dre').value = '';
   document.getElementById('cc-lanc-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('cc-lanc-competencia').value = '';
   document.getElementById('cc-lanc-status').value = 'pendente';
   document.getElementById('modal-lanc-cc-title').textContent = 'Novo Lançamento';
   document.getElementById('modal-lanc-cc').classList.add('open');
@@ -20080,6 +20089,7 @@ async function editarLancCC(id) {
   _ccLancEditId = id;
   document.getElementById('cc-lanc-cartao').value = data.cartao_id || '';
   document.getElementById('cc-lanc-data').value = data.data_lancamento || '';
+  document.getElementById('cc-lanc-competencia').value = data.data_competencia || '';
   document.getElementById('cc-lanc-valor').value = data.valor || '';
   document.getElementById('cc-lanc-extrato').value = data.extrato || '';
   document.getElementById('cc-lanc-desc').value = data.descricao || '';
@@ -20094,17 +20104,20 @@ async function editarLancCC(id) {
 async function salvarLancCC() {
   const cartaoId = document.getElementById('cc-lanc-cartao')?.value;
   const data     = document.getElementById('cc-lanc-data')?.value;
+  const competencia = document.getElementById('cc-lanc-competencia')?.value;
   const valor    = parseFloat(document.getElementById('cc-lanc-valor')?.value);
   if (!cartaoId) { showToast('Selecione o cartão','error'); return; }
-  if (!data)     { showToast('Informe a data','error'); return; }
+  if (!data)     { showToast('Informe a Data Caixa (dia que gastou)','error'); return; }
+  if (!competencia) { showToast('Informe a Data Competência (dia que foi pago) — é obrigatório','error'); return; }
   if (!valor)    { showToast('Informe o valor','error'); return; }
 
-  const mes = data.substring(0,7);
+  const mes = competencia.substring(0,7);
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   const payload = {
     empresa_id: empId,
     cartao_id: cartaoId,
     data_lancamento: data,
+    data_competencia: competencia,
     mes,
     extrato:      document.getElementById('cc-lanc-extrato')?.value || '',
     descricao:    document.getElementById('cc-lanc-desc')?.value || '',
@@ -20165,6 +20178,7 @@ let _ccFaturaRows = [];
 function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-preview').style.display = 'none';
   document.getElementById('cc-imp-arquivo').value = '';
+  document.getElementById('cc-imp-competencia').value = '';
   document.getElementById('cc-imp-mapa').style.display = 'block';
   document.getElementById('cc-imp-lista-pdf')?.remove();
   _ccFaturaRows = [];
@@ -20266,10 +20280,13 @@ async function previewFaturaCCPdf(file) {
 
 async function processarFaturaCC() {
   const cartaoId = document.getElementById('cc-imp-cartao')?.value;
+  const competencia = document.getElementById('cc-imp-competencia')?.value;
   if (!cartaoId) { showToast('Selecione o cartão','error'); return; }
+  if (!competencia) { showToast('Informe a Data Competência (dia que foi pago) — é obrigatório para importar','error'); return; }
   if (!_ccFaturaRows.length) { showToast('Nenhum dado encontrado','error'); return; }
 
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const mes = competencia.substring(0,7);
 
   // Linhas vindas do PDF (via IA) já chegam prontas, no formato _data/_extrato/_valor
   const vieramDoPdf = _ccFaturaRows.length && '_data' in _ccFaturaRows[0];
@@ -20278,8 +20295,7 @@ async function processarFaturaCC() {
   if (vieramDoPdf) {
     rows = _ccFaturaRows.map(r => {
       if (!r._data || !r._valor) return null;
-      const mes = r._data.substring(0,7);
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: r._data, mes, extrato: r._extrato||'', valor: Math.abs(r._valor), tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: r._data, data_competencia: competencia, mes, extrato: r._extrato||'', valor: Math.abs(r._valor), tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   } else {
     const parseD = v => {
@@ -20299,8 +20315,7 @@ async function processarFaturaCC() {
       const data = parseD(colData ? r[colData] : null);
       const valor = parseV(colValor ? r[colValor] : null);
       if (!data || !valor) return null;
-      const mes = data.substring(0,7);
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, data_competencia: competencia, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   }
 
@@ -24157,8 +24172,12 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         </select>
       </div>
       <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
-        <div class="form-group"><label>Data *</label><input type="date" id="cc-lanc-data"></div>
+        <div class="form-group"><label>Data Caixa * <span style="font-weight:400;color:var(--text3);font-size:11px">(dia que gastou)</span></label><input type="date" id="cc-lanc-data"></div>
+        <div class="form-group"><label>Data Competência * <span style="font-weight:400;color:var(--text3);font-size:11px">(dia que foi pago)</span></label><input type="date" id="cc-lanc-competencia"></div>
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group"><label>Valor (R$) *</label><input type="number" id="cc-lanc-valor" placeholder="0,00" step="0.01"></div>
+        <div></div>
       </div>
       <div class="form-group"><label>Extrato / Histórico</label><input type="text" id="cc-lanc-extrato" placeholder="Ex: AMAZON PRIME"></div>
       <div class="form-group"><label>Descrição</label><input type="text" id="cc-lanc-desc" placeholder="Descrição do gasto"></div>
@@ -24194,6 +24213,10 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         <select id="cc-imp-cartao" style="width:100%;padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
           <option value="">Selecione</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>Data Competência * <span style="font-weight:400;color:var(--text3);font-size:11px">(dia que foi pago — obrigatório, aplicado a todos os lançamentos dessa fatura)</span></label>
+        <input type="date" id="cc-imp-competencia">
       </div>
       <div class="form-group">
         <label>Arquivo da fatura (Excel, CSV ou PDF)</label>
