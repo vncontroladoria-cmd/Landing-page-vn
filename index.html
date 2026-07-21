@@ -20213,28 +20213,38 @@ async function previewFaturaCC(input) {
   }
   {
     const ws = wb.Sheets[wb.SheetNames[0]];
-    _ccFaturaRows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    // Lê por POSIÇÃO da coluna (não por nome do cabeçalho) — evita bug quando a planilha
+    // tem duas colunas com o mesmo nome (ex: duas colunas "Descrição")
+    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!aoa.length) { showToast('Arquivo sem dados.', 'error'); return; }
+
+    const headerRow = aoa[0];
+    _ccFaturaRows = aoa.slice(1).filter(row => row.some(c => String(c||'').trim() !== ''));
     if (!_ccFaturaRows.length) { showToast('Arquivo sem dados.', 'error'); return; }
 
-    const cols = Object.keys(_ccFaturaRows[0]);
+    const letra = i => String.fromCharCode(65 + i);
+    const cols = headerRow.map((h, i) => ({ idx: i, label: `${letra(i)}: ${h || '(sem nome)'}` }));
     const normC = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    const findCol = (names) => cols.find(c => names.some(n => normC(c).includes(n))) || '';
+    const findCol = (names) => {
+      const found = headerRow.findIndex(h => names.some(n => normC(h).includes(n)));
+      return found >= 0 ? found : '';
+    };
 
     const mapaEl = document.getElementById('cc-imp-mapa');
     const mapaFields = [
       { label:'Data',     key:'cc-map-data',   guess: findCol(['data','date']) },
-      { label:'Extrato',  key:'cc-map-ext',    guess: findCol(['historico','extrato','descri','lancamento']) },
+      { label:'Extrato',  key:'cc-map-ext',    guess: findCol(['historico','extrato','lancamento','descri']) },
       { label:'Valor',    key:'cc-map-valor',  guess: findCol(['valor','value','amount','debito','saida']) },
     ];
 
-    document.getElementById('cc-imp-preview-label').textContent = 'Colunas detectadas — confirme o mapeamento:';
+    document.getElementById('cc-imp-preview-label').textContent = 'Colunas detectadas — confirme o mapeamento (por posição, evita colunas com nome repetido):';
     mapaEl.style.display = 'block';
     mapaEl.innerHTML = mapaFields.map(f => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span style="font-size:12px;width:60px;font-weight:700">${f.label}</span>
         <select id="${f.key}" style="flex:1;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
           <option value="">— não mapear —</option>
-          ${cols.map(c => `<option value="${c}" ${c===f.guess?'selected':''}>${c}</option>`).join('')}
+          ${cols.map(c => `<option value="${c.idx}" ${c.idx===f.guess?'selected':''}>${c.label}</option>`).join('')}
         </select>
       </div>`).join('');
 
