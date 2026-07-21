@@ -3606,11 +3606,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <thead>
                   <tr>
                     <th style="width:36px"><input type="checkbox" id="cc-check-all" onchange="selecionarTodosCC(this.checked)" style="cursor:pointer;width:15px;height:15px"></th>
-                    <th>DATA CAIXA</th><th>CARTÃO</th><th>EXTRATO</th>
+                    <th>DATA CAIXA</th><th>EXTRATO</th>
                     <th style="text-align:right">ENTRADA</th><th style="text-align:right">SAÍDA</th>
                     <th>DESCRIÇÃO</th>
-                    <th>CATEGORIA DFC/DRE</th>
-                    <th>COMPETÊNCIA</th><th>STATUS</th><th>AÇÕES</th>
+                    <th>CATEGORIA</th>
+                    <th>DFC</th><th>DRE</th>
+                    <th>CARTÃO</th>
+                    <th>COMPETÊNCIA</th>
+                    <th style="text-align:right">SALDO</th>
+                    <th>AÇÕES</th>
                   </tr>
                 </thead>
                 <tbody id="cc-tbody"></tbody>
@@ -20023,7 +20027,7 @@ async function loadCartoes() {
 async function loadCartaoLancamentos() {
   const tbody = document.getElementById('cc-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px"><div class="spin"></div></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px"><div class="spin"></div></td></tr>';
 
   const cartaoId = document.getElementById('cc-cartao-filter')?.value;
   const ano = document.getElementById('cc-ano')?.value || new Date().getFullYear();
@@ -20034,8 +20038,15 @@ async function loadCartaoLancamentos() {
 
   let q = sb.from('cartao_lancamentos').select('*, cartoes(nome,bandeira,limite)').eq('empresa_id', empId);
   if (cartaoId) q = q.eq('cartao_id', cartaoId);
-  if (mes) q = q.eq('mes', `${ano}-${mes}`);
-  else q = q.like('mes', `${ano}%`);
+  // Filtro por COMPETÊNCIA (não pela data de caixa) — usa intervalo de datas em data_competencia
+  if (mes) {
+    const inicio = `${ano}-${mes}-01`;
+    const ultimoDia = new Date(Number(ano), Number(mes), 0).getDate();
+    const fim = `${ano}-${mes}-${String(ultimoDia).padStart(2,'0')}`;
+    q = q.gte('data_competencia', inicio).lte('data_competencia', fim);
+  } else {
+    q = q.gte('data_competencia', `${ano}-01-01`).lte('data_competencia', `${ano}-12-31`);
+  }
   q = q.order('data_lancamento', { ascending: false });
 
   const { data: lancs } = await q;
@@ -20054,27 +20065,39 @@ async function loadCartaoLancamentos() {
   document.getElementById('cc-hero-n').textContent      = lista.length;
 
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text2)">Nenhum lançamento encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:var(--text2)">Nenhum lançamento encontrado</td></tr>';
     return;
   }
 
   const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+
+  // Calcula saldo acumulado — soma em ordem cronológica (do mais antigo pro mais novo)
+  const ordemCronologica = [...lista].sort((a,b) => (a.data_lancamento||'').localeCompare(b.data_lancamento||''));
+  const saldoPorId = {};
+  let acumulado = 0;
+  ordemCronologica.forEach(l => {
+    acumulado += l.tipo === 'ENTRADA' ? Number(l.valor||0) : -Number(l.valor||0);
+    saldoPorId[l.id] = acumulado;
+  });
+
   tbody.innerHTML = lista.map(l => {
     const competenciaLabel = l.data_competencia
       ? new Date(l.data_competencia+'T12:00:00').toLocaleDateString('pt-BR')
       : (l.mes ? meses[parseInt(l.mes.split('-')[1])-1] + '/' + l.mes.split('-')[0] : '—');
-    const statusColor = l.status === 'pago' ? 'var(--green)' : 'var(--amber)';
+    const saldo = saldoPorId[l.id] || 0;
     return `<tr id="cc-row-${l.id}">
       <td><input type="checkbox" class="cc-check" data-id="${l.id}" onchange="atualizarSelecaoCC()" style="cursor:pointer;width:15px;height:15px"></td>
       <td>${l.data_lancamento ? new Date(l.data_lancamento+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-      <td>${l.cartoes?.nome || '—'}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.extrato||''}">${l.extrato||'—'}</td>
       <td style="text-align:right;color:var(--green);font-weight:700">${l.tipo==='ENTRADA' ? fmt(l.valor) : '—'}</td>
       <td style="text-align:right;color:var(--red);font-weight:700">${l.tipo!=='ENTRADA' ? fmt(l.valor) : '—'}</td>
       <td>${l.descricao||'—'}</td>
-      <td style="font-size:11px">${l.categoria_dfc||l.categoria||'—'}</td>
+      <td style="font-size:11px">${l.categoria||l.categoria_dfc||'—'}</td>
+      <td style="font-size:10px">${l.categoria_dfc ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '—'}</td>
+      <td style="font-size:10px">${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '—'}</td>
+      <td>${l.cartoes?.nome || '—'}</td>
       <td style="font-size:11px">${competenciaLabel}</td>
-      <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${statusColor}22;color:${statusColor};font-weight:700">${(l.status||'pendente').toUpperCase()}</span></td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${saldo>=0?'var(--green)':'var(--red)'}">${fmtBRL(saldo)}</td>
       <td>
         <button onclick="editarLancCC('${l.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
         <button onclick="excluirLancCC('${l.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
