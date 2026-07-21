@@ -20178,7 +20178,7 @@ let _ccFaturaRows = [];
 function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-preview').style.display = 'none';
   document.getElementById('cc-imp-arquivo').value = '';
-  document.getElementById('cc-imp-competencia').value = '';
+  document.getElementById('cc-imp-pagamento').value = '';
   document.getElementById('cc-imp-mapa').style.display = 'block';
   document.getElementById('cc-imp-lista-pdf')?.remove();
   _ccFaturaRows = [];
@@ -20290,13 +20290,13 @@ async function previewFaturaCCPdf(file) {
 
 async function processarFaturaCC() {
   const cartaoId = document.getElementById('cc-imp-cartao')?.value;
-  const competencia = document.getElementById('cc-imp-competencia')?.value;
+  const dataPagamento = document.getElementById('cc-imp-pagamento')?.value;
   if (!cartaoId) { showToast('Selecione o cartão','error'); return; }
-  if (!competencia) { showToast('Informe a Data Competência (dia que foi pago) — é obrigatório para importar','error'); return; }
+  if (!dataPagamento) { showToast('Informe a Data de Pagamento (dia que a fatura foi paga) — é obrigatório para importar','error'); return; }
   if (!_ccFaturaRows.length) { showToast('Nenhum dado encontrado','error'); return; }
 
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
-  const mes = competencia.substring(0,7);
+  const mes = dataPagamento.substring(0,7);
 
   // Linhas vindas do PDF (via IA) já chegam prontas, no formato _data/_extrato/_valor
   const vieramDoPdf = _ccFaturaRows.length && '_data' in _ccFaturaRows[0];
@@ -20305,7 +20305,9 @@ async function processarFaturaCC() {
   if (vieramDoPdf) {
     rows = _ccFaturaRows.map(r => {
       if (!r._data || !r._valor) return null;
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: r._data, data_competencia: competencia, mes, extrato: r._extrato||'', valor: Math.abs(r._valor), tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+      // r._data é a data da compra na fatura → vira Competência (DRE).
+      // A data de pagamento informada pela pessoa vira a data "oficial" do lançamento → alimenta o DFC.
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: r._data, mes, extrato: r._extrato||'', valor: Math.abs(r._valor), tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   } else {
     const parseD = v => {
@@ -20322,10 +20324,12 @@ async function processarFaturaCC() {
     const colExt   = document.getElementById('cc-map-ext')?.value;
     const colValor = document.getElementById('cc-map-valor')?.value;
     rows = _ccFaturaRows.map(r => {
-      const data = parseD(colData ? r[colData] : null);
+      const dataCompra = parseD(colData ? r[colData] : null);
       const valor = parseV(colValor ? r[colValor] : null);
-      if (!data || !valor) return null;
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: data, data_competencia: competencia, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+      if (!dataCompra || !valor) return null;
+      // A data de cada linha da planilha é a data da compra → vira Competência (DRE).
+      // A data de pagamento informada pela pessoa vira a data "oficial" do lançamento → alimenta o DFC.
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: dataCompra, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   }
 
@@ -24225,8 +24229,8 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         </select>
       </div>
       <div class="form-group">
-        <label>Data Competência * <span style="font-weight:400;color:var(--text3);font-size:11px">(dia que foi pago — obrigatório, aplicado a todos os lançamentos dessa fatura)</span></label>
-        <input type="date" id="cc-imp-competencia">
+        <label>Data de Pagamento * <span style="font-weight:400;color:var(--text3);font-size:11px">(dia que a fatura foi paga — obrigatório, aplicado a todos os lançamentos dessa fatura, alimenta o DFC)</span></label>
+        <input type="date" id="cc-imp-pagamento">
       </div>
       <div class="form-group">
         <label>Arquivo da fatura (Excel, CSV ou PDF)</label>
