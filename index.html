@@ -20222,8 +20222,7 @@ async function previewFaturaCC(input) {
     _ccFaturaRows = aoa.slice(1).filter(row => row.some(c => String(c||'').trim() !== ''));
     if (!_ccFaturaRows.length) { showToast('Arquivo sem dados.', 'error'); return; }
 
-    const letra = i => String.fromCharCode(65 + i);
-    const cols = headerRow.map((h, i) => ({ idx: i, label: `${letra(i)}: ${h || '(sem nome)'}` }));
+    const cols = headerRow.map((h, i) => ({ idx: i, label: `Coluna ${i+1}: ${h || '(sem nome)'}` }));
     const normC = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     const findCol = (names) => {
       const found = headerRow.findIndex(h => names.some(n => normC(h).includes(n)));
