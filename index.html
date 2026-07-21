@@ -3606,8 +3606,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <thead>
                   <tr>
                     <th style="width:36px"><input type="checkbox" id="cc-check-all" onchange="selecionarTodosCC(this.checked)" style="cursor:pointer;width:15px;height:15px"></th>
-                    <th>DATA CAIXA</th><th>CARTÃO</th><th>EXTRATO</th><th>DESCRIÇÃO</th>
+                    <th>DATA CAIXA</th><th>CARTÃO</th><th>EXTRATO</th>
                     <th style="text-align:right">ENTRADA</th><th style="text-align:right">SAÍDA</th>
+                    <th>DESCRIÇÃO</th>
                     <th>CATEGORIA DFC/DRE</th>
                     <th>COMPETÊNCIA</th><th>STATUS</th><th>AÇÕES</th>
                   </tr>
@@ -20068,9 +20069,9 @@ async function loadCartaoLancamentos() {
       <td>${l.data_lancamento ? new Date(l.data_lancamento+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
       <td>${l.cartoes?.nome || '—'}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.extrato||''}">${l.extrato||'—'}</td>
-      <td>${l.descricao||'—'}</td>
       <td style="text-align:right;color:var(--green);font-weight:700">${l.tipo==='ENTRADA' ? fmt(l.valor) : '—'}</td>
       <td style="text-align:right;color:var(--red);font-weight:700">${l.tipo!=='ENTRADA' ? fmt(l.valor) : '—'}</td>
+      <td>${l.descricao||'—'}</td>
       <td style="font-size:11px">${l.categoria_dfc||l.categoria||'—'}</td>
       <td style="font-size:11px">${competenciaLabel}</td>
       <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${statusColor}22;color:${statusColor};font-weight:700">${(l.status||'pendente').toUpperCase()}</span></td>
