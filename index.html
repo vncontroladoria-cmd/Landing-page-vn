@@ -20302,27 +20302,39 @@ async function previewFaturaCC(input) {
 
     const cols = headerRow.map((h, i) => ({ idx: i, label: `Coluna ${i+1}: ${h || '(sem nome)'}` }));
     const normC = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    const findCol = (names) => {
-      const found = headerRow.findIndex(h => names.some(n => normC(h).includes(n)));
-      return found >= 0 ? found : '';
-    };
 
-    const mapaEl = document.getElementById('cc-imp-mapa');
-    const mapaFields = [
-      { label:'Data',     key:'cc-map-data',   guess: findCol(['data','date']) },
-      { label:'Extrato',  key:'cc-map-ext',    guess: findCol(['historico','extrato','lancamento','descri']) },
-      { label:'Valor',    key:'cc-map-valor',  guess: findCol(['valor','value','amount','debito','saida']) },
-      { label:'Categoria', key:'cc-map-cat',   guess: findCol(['categoria','classificacao']) },
+    // Palpite de papel pra cada coluna, baseado no nome do cabeçalho (só o primeiro palpite de cada tipo é usado)
+    const papeis = [
+      { valor:'data',      nomes:['data','date'] },
+      { valor:'extrato',   nomes:['historico','extrato','lancamento','estabelecimento'] },
+      { valor:'valor',     nomes:['valor','value','amount','debito','saida'] },
+      { valor:'categoria', nomes:['categoria','classificacao'] },
     ];
+    const usados = new Set();
+    const palpitePorColuna = cols.map((c, i) => {
+      const h = normC(headerRow[i]);
+      const achado = papeis.find(p => !usados.has(p.valor) && p.nomes.some(n => h.includes(n)));
+      if (achado) { usados.add(achado.valor); return achado.valor; }
+      // Se o nome for "descri..." e ainda não tiver Extrato definido, chuta Extrato; senão Categoria
+      if (h.includes('descri')) {
+        if (!usados.has('extrato')) { usados.add('extrato'); return 'extrato'; }
+        if (!usados.has('categoria')) { usados.add('categoria'); return 'categoria'; }
+      }
+      return '';
+    });
 
-    document.getElementById('cc-imp-preview-label').textContent = 'Colunas detectadas — confirme o mapeamento (por posição, evita colunas com nome repetido):';
+    document.getElementById('cc-imp-preview-label').textContent = `${cols.length} colunas identificadas — diga o que é cada uma:`;
+    const mapaEl = document.getElementById('cc-imp-mapa');
     mapaEl.style.display = 'block';
-    mapaEl.innerHTML = mapaFields.map(f => `
+    mapaEl.innerHTML = cols.map((c, i) => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:12px;width:60px;font-weight:700">${f.label}</span>
-        <select id="${f.key}" style="flex:1;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
-          <option value="">— não mapear —</option>
-          ${cols.map(c => `<option value="${c.idx}" ${c.idx===f.guess?'selected':''}>${c.label}</option>`).join('')}
+        <span style="font-size:12px;flex:1;font-weight:700">${c.label}</span>
+        <select id="cc-col-role-${i}" style="width:160px;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+          <option value="" ${!palpitePorColuna[i]?'selected':''}>— não usar —</option>
+          <option value="data" ${palpitePorColuna[i]==='data'?'selected':''}>É a Data</option>
+          <option value="extrato" ${palpitePorColuna[i]==='extrato'?'selected':''}>É o Extrato (nome)</option>
+          <option value="valor" ${palpitePorColuna[i]==='valor'?'selected':''}>É o Valor</option>
+          <option value="categoria" ${palpitePorColuna[i]==='categoria'?'selected':''}>É a Categoria</option>
         </select>
       </div>`).join('');
 
@@ -20398,10 +20410,15 @@ async function processarFaturaCC() {
     };
     const parseV = v => { if (!v&&v!==0) return 0; if (typeof v==='number') return Math.abs(v); const s=String(v).replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'); return Math.abs(parseFloat(s)||0); };
 
-    const colData  = document.getElementById('cc-map-data')?.value;
-    const colExt   = document.getElementById('cc-map-ext')?.value;
-    const colValor = document.getElementById('cc-map-valor')?.value;
-    const colCat   = document.getElementById('cc-map-cat')?.value;
+    // Descobre qual coluna tem cada papel, olhando o seletor de cada coluna
+    let colData = '', colExt = '', colValor = '', colCat = '';
+    _ccFaturaRows.length && document.querySelectorAll('[id^="cc-col-role-"]').forEach(sel => {
+      const idx = sel.id.replace('cc-col-role-', '');
+      if (sel.value === 'data') colData = idx;
+      else if (sel.value === 'extrato') colExt = idx;
+      else if (sel.value === 'valor') colValor = idx;
+      else if (sel.value === 'categoria') colCat = idx;
+    });
     rows = _ccFaturaRows.map(r => {
       const dataCompra = parseD(colData ? r[colData] : null);
       const valor = parseV(colValor ? r[colValor] : null);
