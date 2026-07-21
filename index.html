@@ -3591,11 +3591,21 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <button class="btn btn-primary" onclick="abrirModalLancCC()">+ Novo lançamento</button>
             </div>
           </div>
+          <!-- BARRA DE SELEÇÃO -->
+          <div id="cc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span id="cc-sel-count" style="font-size:13px;font-weight:600;color:#92400e">0 selecionados</span>
+            <span style="font-size:12px;color:#92400e">|</span>
+            <span style="font-size:12px;color:#166534;font-weight:600">✅ Entradas: <span id="cc-sel-ent" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
+            <span style="font-size:12px;color:#92400e;font-weight:600">❌ Saídas: <span id="cc-sel-sai" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
+            <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionadosCC()">🗑️ Excluir selecionados</button>
+            <button class="btn btn-sm" onclick="limparSelecaoCC()">✕ Cancelar</button>
+          </div>
           <div class="section-card" style="padding:0">
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
+                    <th style="width:36px"><input type="checkbox" id="cc-check-all" onchange="selecionarTodosCC(this.checked)" style="cursor:pointer;width:15px;height:15px"></th>
                     <th>DATA CAIXA</th><th>CARTÃO</th><th>EXTRATO</th><th>DESCRIÇÃO</th>
                     <th style="text-align:right">ENTRADA</th><th style="text-align:right">SAÍDA</th>
                     <th>CATEGORIA DFC/DRE</th>
@@ -19979,6 +19989,7 @@ function carregarPalavrasChaveForn(valor) {
 let _cartoes = [];
 let _ccLancEditId = null;
 let _ccCartaoEditId = null;
+let _ccLancamentosAtuais = [];
 
 async function initCartaoCredito() {
   await loadCartoes();
@@ -20011,7 +20022,7 @@ async function loadCartoes() {
 async function loadCartaoLancamentos() {
   const tbody = document.getElementById('cc-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px"><div class="spin"></div></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px"><div class="spin"></div></td></tr>';
 
   const cartaoId = document.getElementById('cc-cartao-filter')?.value;
   const ano = document.getElementById('cc-ano')?.value || new Date().getFullYear();
@@ -20028,6 +20039,7 @@ async function loadCartaoLancamentos() {
 
   const { data: lancs } = await q;
   const lista = lancs || [];
+  _ccLancamentosAtuais = lista;
 
   // Cards hero
   const limiteTotal = _cartoes.reduce((s,c) => s + (Number(c.limite)||0), 0);
@@ -20041,7 +20053,7 @@ async function loadCartaoLancamentos() {
   document.getElementById('cc-hero-n').textContent      = lista.length;
 
   if (!lista.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text2)">Nenhum lançamento encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text2)">Nenhum lançamento encontrado</td></tr>';
     return;
   }
 
@@ -20052,6 +20064,7 @@ async function loadCartaoLancamentos() {
       : (l.mes ? meses[parseInt(l.mes.split('-')[1])-1] + '/' + l.mes.split('-')[0] : '—');
     const statusColor = l.status === 'pago' ? 'var(--green)' : 'var(--amber)';
     return `<tr id="cc-row-${l.id}">
+      <td><input type="checkbox" class="cc-check" data-id="${l.id}" onchange="atualizarSelecaoCC()" style="cursor:pointer;width:15px;height:15px"></td>
       <td>${l.data_lancamento ? new Date(l.data_lancamento+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
       <td>${l.cartoes?.nome || '—'}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.extrato||''}">${l.extrato||'—'}</td>
@@ -20070,6 +20083,57 @@ async function loadCartaoLancamentos() {
 }
 
 // ── Filtrar lançamentos ───────────────────────────────
+function selecionarTodosCC(checked) {
+  document.querySelectorAll('.cc-check').forEach(cb => cb.checked = checked);
+  atualizarSelecaoCC();
+}
+
+function atualizarSelecaoCC() {
+  const selecionados = document.querySelectorAll('.cc-check:checked');
+  const bar = document.getElementById('cc-selecao-bar');
+  const count = document.getElementById('cc-sel-count');
+  if (selecionados.length > 0) {
+    bar.style.display = 'flex';
+    count.textContent = `${selecionados.length} selecionado${selecionados.length > 1 ? 's' : ''}`;
+    let totalEnt = 0, totalSai = 0;
+    selecionados.forEach(cb => {
+      const id = cb.dataset.id;
+      const l = _ccLancamentosAtuais.find(x => x.id === id);
+      if (!l) return;
+      if (l.tipo === 'ENTRADA') totalEnt += Number(l.valor||0);
+      else totalSai += Number(l.valor||0);
+    });
+    document.getElementById('cc-sel-ent').textContent = fmtBRL(totalEnt);
+    document.getElementById('cc-sel-sai').textContent = fmtBRL(totalSai);
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function limparSelecaoCC() {
+  document.querySelectorAll('.cc-check').forEach(cb => cb.checked = false);
+  const all = document.getElementById('cc-check-all');
+  if (all) all.checked = false;
+  document.getElementById('cc-selecao-bar').style.display = 'none';
+}
+
+async function excluirSelecionadosCC() {
+  const selecionados = Array.from(document.querySelectorAll('.cc-check:checked')).map(cb => cb.dataset.id);
+  if (!selecionados.length) return;
+  if (!confirm(`Excluir ${selecionados.length} lançamento${selecionados.length > 1 ? 's' : ''} de cartão de crédito?`)) return;
+
+  const LOTE = 50;
+  for (let i = 0; i < selecionados.length; i += LOTE) {
+    const lote = selecionados.slice(i, i + LOTE);
+    const { error } = await sb.from('cartao_lancamentos').delete().in('id', lote);
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  }
+
+  showToast(`${selecionados.length} lançamento(s) excluído(s)!`, 'success');
+  limparSelecaoCC();
+  loadCartaoLancamentos();
+}
+
 function filtrarCartaoLanc(termo) {
   const t = (termo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   document.querySelectorAll('#cc-tbody tr').forEach(r => {
@@ -20316,33 +20380,42 @@ async function previewFaturaCC(input) {
       return found >= 0 ? found : '';
     };
 
-    // Sempre os mesmos 6 campos fixos — iguais aos da tabela final (Data, Extrato, Entrada, Saída, Descrição, Categoria)
-    const campos = [
-      { label:'Data',      key:'cc-map-data', guess: findCol(['data','date']) },
-      { label:'Extrato',   key:'cc-map-ext',  guess: findCol(['historico','extrato','lancamento','estabelecimento']) },
-      { label:'Entrada',   key:'cc-map-entrada', guess: findCol(['entrada','credito','estorno']) },
-      { label:'Saída',     key:'cc-map-saida',   guess: findCol(['saida','debito','valor','value','amount']) },
-      { label:'Descrição', key:'cc-map-desc',    guess: '' },
-      { label:'Categoria', key:'cc-map-cat',     guess: findCol(['categoria','classificacao']) },
+    // Palpite de papel pra cada coluna, baseado no nome do cabeçalho (6 papéis possíveis)
+    const papeis = [
+      { valor:'data',      nomes:['data','date'] },
+      { valor:'extrato',   nomes:['historico','extrato','lancamento','estabelecimento'] },
+      { valor:'entrada',   nomes:['entrada','credito'] },
+      { valor:'saida',     nomes:['saida','debito','valor','value','amount'] },
+      { valor:'categoria', nomes:['categoria','classificacao'] },
     ];
-    // Se "Saída" e "Entrada" apontarem pra mesma coluna adivinhada (planilha só tem 1 coluna de valor), some evita usar a mesma pros dois
-    if (campos[2].guess !== '' && campos[2].guess === campos[3].guess) campos[2].guess = '';
-    // Se ainda não achou "Descrição" e sobrar uma coluna "Descrição" não usada por Extrato/Categoria, usa ela
-    if (!campos[4].guess) {
-      const usadosIdx = new Set([campos[0].guess, campos[1].guess, campos[2].guess, campos[3].guess, campos[5].guess]);
-      const sobra = headerRow.findIndex((h,i) => normC(h).includes('descri') && !usadosIdx.has(i));
-      if (sobra >= 0) campos[4].guess = sobra;
-    }
+    const usados = new Set();
+    const palpitePorColuna = cols.map((c, i) => {
+      const h = normC(headerRow[i]);
+      const achado = papeis.find(p => !usados.has(p.valor) && p.nomes.some(n => h.includes(n)));
+      if (achado) { usados.add(achado.valor); return achado.valor; }
+      // Se o nome for "descri..." e ainda não tiver Extrato definido, chuta Extrato; senão Descrição; senão Categoria
+      if (h.includes('descri')) {
+        if (!usados.has('extrato')) { usados.add('extrato'); return 'extrato'; }
+        if (!usados.has('descricao')) { usados.add('descricao'); return 'descricao'; }
+        if (!usados.has('categoria')) { usados.add('categoria'); return 'categoria'; }
+      }
+      return '';
+    });
 
-    document.getElementById('cc-imp-preview-label').textContent = `${cols.length} colunas encontradas — diga qual coluna é cada campo:`;
+    document.getElementById('cc-imp-preview-label').textContent = `${cols.length} colunas encontradas — diga o que é cada uma:`;
     const mapaEl = document.getElementById('cc-imp-mapa');
     mapaEl.style.display = 'block';
-    mapaEl.innerHTML = campos.map(f => `
+    mapaEl.innerHTML = cols.map((c, i) => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:12px;width:70px;font-weight:700">${f.label}</span>
-        <select id="${f.key}" style="flex:1;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
-          <option value="">— não usar —</option>
-          ${cols.map(c => `<option value="${c.idx}" ${c.idx===f.guess?'selected':''}>${c.label}</option>`).join('')}
+        <span style="font-size:12px;flex:1;font-weight:700">${c.label}</span>
+        <select id="cc-col-role-${i}" style="width:170px;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+          <option value="" ${!palpitePorColuna[i]?'selected':''}>— não usar —</option>
+          <option value="data" ${palpitePorColuna[i]==='data'?'selected':''}>É a Data</option>
+          <option value="extrato" ${palpitePorColuna[i]==='extrato'?'selected':''}>É o Extrato</option>
+          <option value="entrada" ${palpitePorColuna[i]==='entrada'?'selected':''}>É a Entrada</option>
+          <option value="saida" ${palpitePorColuna[i]==='saida'?'selected':''}>É a Saída</option>
+          <option value="descricao" ${palpitePorColuna[i]==='descricao'?'selected':''}>É a Descrição</option>
+          <option value="categoria" ${palpitePorColuna[i]==='categoria'?'selected':''}>É a Categoria</option>
         </select>
       </div>`).join('');
 
@@ -20441,13 +20514,17 @@ async function processarFaturaCC() {
       return neg ? -num : num;
     };
 
-    // Lê pelos 6 campos fixos (Data, Extrato, Entrada, Saída, Descrição, Categoria)
-    const colData    = document.getElementById('cc-map-data')?.value;
-    const colExt      = document.getElementById('cc-map-ext')?.value;
-    const colEntrada  = document.getElementById('cc-map-entrada')?.value;
-    const colSaida    = document.getElementById('cc-map-saida')?.value;
-    const colDesc     = document.getElementById('cc-map-desc')?.value;
-    const colCat      = document.getElementById('cc-map-cat')?.value;
+    // Descobre qual coluna tem cada papel, olhando o seletor de cada coluna
+    let colData = '', colExt = '', colEntrada = '', colSaida = '', colDesc = '', colCat = '';
+    _ccFaturaRows.length && document.querySelectorAll('[id^="cc-col-role-"]').forEach(sel => {
+      const idx = sel.id.replace('cc-col-role-', '');
+      if (sel.value === 'data') colData = idx;
+      else if (sel.value === 'extrato') colExt = idx;
+      else if (sel.value === 'entrada') colEntrada = idx;
+      else if (sel.value === 'saida') colSaida = idx;
+      else if (sel.value === 'descricao') colDesc = idx;
+      else if (sel.value === 'categoria') colCat = idx;
+    });
 
     rows = _ccFaturaRows.map(r => {
       const dataCompra = parseD(colData ? r[colData] : null);
@@ -20482,10 +20559,11 @@ async function processarFaturaCC() {
   if (!rows.length) { showToast('Nenhum lançamento válido encontrado','error'); return; }
 
   _ccImportRows = rows;
-  renderRevisaoImportacaoCC();
+  await renderRevisaoImportacaoCC();
 }
 
-function renderRevisaoImportacaoCC() {
+async function renderRevisaoImportacaoCC() {
+  await garantirCategorias();
   document.getElementById('cc-imp-mapa-wrapper')?.remove();
   document.getElementById('cc-imp-preview').style.display = 'none';
   document.getElementById('cc-imp-revisao').style.display = 'block';
@@ -20503,7 +20581,15 @@ function renderRevisaoImportacaoCC() {
       <div style="width:80px;font-size:11px;color:var(--text2)">${r.data_competencia.split('-').reverse().join('/')}</div>
       <div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.extrato}">${r.extrato}${r.descricao ? ` <span style="font-weight:400;color:var(--text3)">— ${r.descricao}</span>` : ''}</div>
       <div style="width:90px;text-align:right;font-size:12px;font-weight:700;color:${r.tipo==='ENTRADA'?'var(--green)':'var(--red)'}">${r.tipo==='ENTRADA'?'+':'-'}${fmtBRL(r.valor)}</div>
-      <input type="text" id="cc-imp-cat-${i}" value="${r.categoria||''}" placeholder="Categoria..." style="width:180px;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+      <div style="position:relative;width:190px">
+        <input type="text" id="cc-imp-cat-${i}" value="${r.categoria||''}" placeholder="Buscar categoria..."
+          oninput="buscaCatCC(this.value,${i})" onfocus="buscaCatCC(this.value,${i})"
+          onblur="setTimeout(()=>{const d=document.getElementById('cc-imp-cat-dd-${i}');if(d)d.style.display='none'},200)"
+          style="width:100%;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+        <input type="hidden" id="cc-imp-cat-dfc-${i}" value="">
+        <input type="hidden" id="cc-imp-cat-dre-${i}" value="">
+        <div id="cc-imp-cat-dd-${i}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+      </div>
     </div>`).join('');
 
   const btn = document.getElementById('cc-imp-btn-acao');
@@ -20511,11 +20597,50 @@ function renderRevisaoImportacaoCC() {
   btn.setAttribute('onclick', 'confirmarImportacaoCC()');
 }
 
+// Busca de categoria — mesma base de categorias DFC/DRE usada em Lançamentos/Conciliação
+async function buscaCatCC(texto, idx) {
+  await garantirCategorias();
+  const dd = document.getElementById(`cc-imp-cat-dd-${idx}`);
+  if (!dd) return;
+  const termo = texto.toLowerCase().trim();
+  const map = {};
+  _categorias.forEach(c => {
+    if (!map[c.nome]) map[c.nome] = { nome: c.nome, dfc: null, dre: null };
+    if (c.demonstrativo === 'DFC') map[c.nome].dfc = c.codigo;
+    if (c.demonstrativo === 'DRE') map[c.nome].dre = c.codigo;
+  });
+  const resultados = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  if (!resultados.length || !texto) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = resultados.slice(0,10).map(c => {
+    const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
+    return `<div
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
+      onmousedown="selecionarCatCC('${c.nome}','${c.dfc||''}','${c.dre||''}',${idx})"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:11px">${refs}</span>
+    </div>`;
+  }).join('');
+}
+
+function selecionarCatCC(nome, dfc, dre, idx) {
+  const inp = document.getElementById(`cc-imp-cat-${idx}`);
+  const hDfc = document.getElementById(`cc-imp-cat-dfc-${idx}`);
+  const hDre = document.getElementById(`cc-imp-cat-dre-${idx}`);
+  const dd = document.getElementById(`cc-imp-cat-dd-${idx}`);
+  if (inp) inp.value = nome;
+  if (hDfc) hDfc.value = dfc;
+  if (hDre) hDre.value = dre;
+  if (dd) dd.style.display = 'none';
+}
+
 async function confirmarImportacaoCC() {
-  // Aplica a categoria editada em cada linha antes de salvar
+  // Aplica a categoria (e os códigos DFC/DRE ligados de verdade) editada em cada linha antes de salvar
   const rows = _ccImportRows.map((r, i) => {
     const cat = document.getElementById(`cc-imp-cat-${i}`)?.value || '';
-    return { ...r, categoria: cat, categoria_dfc: cat, categoria_dre: cat };
+    const catDfc = document.getElementById(`cc-imp-cat-dfc-${i}`)?.value || '';
+    const catDre = document.getElementById(`cc-imp-cat-dre-${i}`)?.value || '';
+    return { ...r, categoria: cat, categoria_dfc: catDfc || cat, categoria_dre: catDre || cat };
   });
 
   let erros = 0;
