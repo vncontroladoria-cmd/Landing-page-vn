@@ -20311,39 +20311,38 @@ async function previewFaturaCC(input) {
 
     const cols = headerRow.map((h, i) => ({ idx: i, label: `Coluna ${i+1}: ${h || '(sem nome)'}` }));
     const normC = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const findCol = (names) => {
+      const found = headerRow.findIndex(h => names.some(n => normC(h).includes(n)));
+      return found >= 0 ? found : '';
+    };
 
-    // Palpite de papel pra cada coluna, baseado no nome do cabeçalho (só o primeiro palpite de cada tipo é usado)
-    const papeis = [
-      { valor:'data',      nomes:['data','date'] },
-      { valor:'extrato',   nomes:['historico','extrato','lancamento','estabelecimento'] },
-      { valor:'valor',     nomes:['valor','value','amount','debito','saida'] },
-      { valor:'categoria', nomes:['categoria','classificacao'] },
+    // Sempre os mesmos 6 campos fixos — iguais aos da tabela final (Data, Extrato, Entrada, Saída, Descrição, Categoria)
+    const campos = [
+      { label:'Data',      key:'cc-map-data', guess: findCol(['data','date']) },
+      { label:'Extrato',   key:'cc-map-ext',  guess: findCol(['historico','extrato','lancamento','estabelecimento']) },
+      { label:'Entrada',   key:'cc-map-entrada', guess: findCol(['entrada','credito','estorno']) },
+      { label:'Saída',     key:'cc-map-saida',   guess: findCol(['saida','debito','valor','value','amount']) },
+      { label:'Descrição', key:'cc-map-desc',    guess: '' },
+      { label:'Categoria', key:'cc-map-cat',     guess: findCol(['categoria','classificacao']) },
     ];
-    const usados = new Set();
-    const palpitePorColuna = cols.map((c, i) => {
-      const h = normC(headerRow[i]);
-      const achado = papeis.find(p => !usados.has(p.valor) && p.nomes.some(n => h.includes(n)));
-      if (achado) { usados.add(achado.valor); return achado.valor; }
-      // Se o nome for "descri..." e ainda não tiver Extrato definido, chuta Extrato; senão Categoria
-      if (h.includes('descri')) {
-        if (!usados.has('extrato')) { usados.add('extrato'); return 'extrato'; }
-        if (!usados.has('categoria')) { usados.add('categoria'); return 'categoria'; }
-      }
-      return '';
-    });
+    // Se "Saída" e "Entrada" apontarem pra mesma coluna adivinhada (planilha só tem 1 coluna de valor), some evita usar a mesma pros dois
+    if (campos[2].guess !== '' && campos[2].guess === campos[3].guess) campos[2].guess = '';
+    // Se ainda não achou "Descrição" e sobrar uma coluna "Descrição" não usada por Extrato/Categoria, usa ela
+    if (!campos[4].guess) {
+      const usadosIdx = new Set([campos[0].guess, campos[1].guess, campos[2].guess, campos[3].guess, campos[5].guess]);
+      const sobra = headerRow.findIndex((h,i) => normC(h).includes('descri') && !usadosIdx.has(i));
+      if (sobra >= 0) campos[4].guess = sobra;
+    }
 
-    document.getElementById('cc-imp-preview-label').textContent = `${cols.length} colunas identificadas — diga o que é cada uma:`;
+    document.getElementById('cc-imp-preview-label').textContent = `${cols.length} colunas encontradas — diga qual coluna é cada campo:`;
     const mapaEl = document.getElementById('cc-imp-mapa');
     mapaEl.style.display = 'block';
-    mapaEl.innerHTML = cols.map((c, i) => `
+    mapaEl.innerHTML = campos.map(f => `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:12px;flex:1;font-weight:700">${c.label}</span>
-        <select id="cc-col-role-${i}" style="width:160px;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
-          <option value="" ${!palpitePorColuna[i]?'selected':''}>— não usar —</option>
-          <option value="data" ${palpitePorColuna[i]==='data'?'selected':''}>É a Data</option>
-          <option value="extrato" ${palpitePorColuna[i]==='extrato'?'selected':''}>É o Extrato (nome)</option>
-          <option value="valor" ${palpitePorColuna[i]==='valor'?'selected':''}>É o Valor</option>
-          <option value="categoria" ${palpitePorColuna[i]==='categoria'?'selected':''}>É a Categoria</option>
+        <span style="font-size:12px;width:70px;font-weight:700">${f.label}</span>
+        <select id="${f.key}" style="flex:1;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+          <option value="">— não usar —</option>
+          ${cols.map(c => `<option value="${c.idx}" ${c.idx===f.guess?'selected':''}>${c.label}</option>`).join('')}
         </select>
       </div>`).join('');
 
@@ -20442,25 +20441,41 @@ async function processarFaturaCC() {
       return neg ? -num : num;
     };
 
-    // Descobre qual coluna tem cada papel, olhando o seletor de cada coluna
-    let colData = '', colExt = '', colValor = '', colCat = '';
-    _ccFaturaRows.length && document.querySelectorAll('[id^="cc-col-role-"]').forEach(sel => {
-      const idx = sel.id.replace('cc-col-role-', '');
-      if (sel.value === 'data') colData = idx;
-      else if (sel.value === 'extrato') colExt = idx;
-      else if (sel.value === 'valor') colValor = idx;
-      else if (sel.value === 'categoria') colCat = idx;
-    });
+    // Lê pelos 6 campos fixos (Data, Extrato, Entrada, Saída, Descrição, Categoria)
+    const colData    = document.getElementById('cc-map-data')?.value;
+    const colExt      = document.getElementById('cc-map-ext')?.value;
+    const colEntrada  = document.getElementById('cc-map-entrada')?.value;
+    const colSaida    = document.getElementById('cc-map-saida')?.value;
+    const colDesc     = document.getElementById('cc-map-desc')?.value;
+    const colCat      = document.getElementById('cc-map-cat')?.value;
+
     rows = _ccFaturaRows.map(r => {
       const dataCompra = parseD(colData ? r[colData] : null);
-      const brutoValor = colValor ? parseV(r[colValor]) : null;
-      if (!dataCompra || brutoValor === null || brutoValor === 0) return null;
+      let tipo, valor;
+      const mesmaColuna = colEntrada && colSaida && colEntrada === colSaida;
+      const soUmaColuna = (colEntrada && !colSaida) || (!colEntrada && colSaida);
+      if (mesmaColuna || soUmaColuna) {
+        // Só uma coluna de valor (com sinal) — negativo = estorno/entrada, positivo = saída
+        const colUnica = colEntrada || colSaida;
+        const bruto = parseV(r[colUnica]);
+        if (bruto === null || bruto === 0) return null;
+        tipo = bruto < 0 ? 'ENTRADA' : 'SAIDA';
+        valor = Math.abs(bruto);
+      } else {
+        // Entrada e Saída são colunas diferentes — cada uma já traz valor sempre positivo
+        const valorEntrada = colEntrada ? Math.abs(parseV(r[colEntrada]) || 0) : 0;
+        const valorSaida    = colSaida   ? Math.abs(parseV(r[colSaida])   || 0) : 0;
+        if (!valorEntrada && !valorSaida) return null;
+        tipo = valorEntrada > 0 ? 'ENTRADA' : 'SAIDA';
+        valor = valorEntrada > 0 ? valorEntrada : valorSaida;
+      }
+      if (!dataCompra) return null;
       const catBruta = colCat ? String(r[colCat]||'').trim() : '';
       const categoria = (catBruta && catBruta.toUpperCase() !== 'NÃO ENCONTRADO') ? catBruta : '';
+      const descricao = colDesc ? String(r[colDesc]||'').trim() : '';
       // A data de cada linha da planilha é a data da compra → vira Competência (DRE).
       // A data de pagamento informada pela pessoa vira a data "oficial" do lançamento → alimenta o DFC.
-      // Valor negativo (estorno/devolução) = ENTRADA; positivo = SAÍDA.
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: dataCompra, mes, extrato: colExt ? String(r[colExt]||'') : '', valor: Math.abs(brutoValor), tipo: brutoValor < 0 ? 'ENTRADA' : 'SAIDA', categoria, status: 'pendente', origem: 'importacao' };
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: dataCompra, mes, extrato: colExt ? String(r[colExt]||'') : '', descricao, valor, tipo, categoria, status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   }
 
@@ -20486,7 +20501,7 @@ function renderRevisaoImportacaoCC() {
     _ccImportRows.map((r, i) => `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px">
       <div style="width:80px;font-size:11px;color:var(--text2)">${r.data_competencia.split('-').reverse().join('/')}</div>
-      <div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.extrato}">${r.extrato}</div>
+      <div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.extrato}">${r.extrato}${r.descricao ? ` <span style="font-weight:400;color:var(--text3)">— ${r.descricao}</span>` : ''}</div>
       <div style="width:90px;text-align:right;font-size:12px;font-weight:700;color:${r.tipo==='ENTRADA'?'var(--green)':'var(--red)'}">${r.tipo==='ENTRADA'?'+':'-'}${fmtBRL(r.valor)}</div>
       <input type="text" id="cc-imp-cat-${i}" value="${r.categoria||''}" placeholder="Categoria..." style="width:180px;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
     </div>`).join('');
