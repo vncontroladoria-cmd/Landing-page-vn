@@ -20253,13 +20253,14 @@ function selecionarCatCC(nome, demo) {
 // ── Importar Fatura ───────────────────────────────────
 let _ccFaturaRows = [];
 
-function abrirImportarFaturaCC() {
+async function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-preview').style.display = 'none';
   document.getElementById('cc-imp-arquivo').value = '';
   document.getElementById('cc-imp-pagamento').value = '';
   document.getElementById('cc-imp-mapa').style.display = 'block';
   document.getElementById('cc-imp-lista-pdf')?.remove();
   _ccFaturaRows = [];
+  await loadCartoes();
   document.getElementById('modal-importar-cc').classList.add('open');
 }
 
