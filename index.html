@@ -20235,6 +20235,7 @@ async function previewFaturaCC(input) {
       { label:'Data',     key:'cc-map-data',   guess: findCol(['data','date']) },
       { label:'Extrato',  key:'cc-map-ext',    guess: findCol(['historico','extrato','lancamento','descri']) },
       { label:'Valor',    key:'cc-map-valor',  guess: findCol(['valor','value','amount','debito','saida']) },
+      { label:'Categoria', key:'cc-map-cat',   guess: findCol(['categoria','classificacao']) },
     ];
 
     document.getElementById('cc-imp-preview-label').textContent = 'Colunas detectadas — confirme o mapeamento (por posição, evita colunas com nome repetido):';
@@ -20323,13 +20324,16 @@ async function processarFaturaCC() {
     const colData  = document.getElementById('cc-map-data')?.value;
     const colExt   = document.getElementById('cc-map-ext')?.value;
     const colValor = document.getElementById('cc-map-valor')?.value;
+    const colCat   = document.getElementById('cc-map-cat')?.value;
     rows = _ccFaturaRows.map(r => {
       const dataCompra = parseD(colData ? r[colData] : null);
       const valor = parseV(colValor ? r[colValor] : null);
       if (!dataCompra || !valor) return null;
+      const catBruta = colCat ? String(r[colCat]||'').trim() : '';
+      const categoria = (catBruta && catBruta.toUpperCase() !== 'NÃO ENCONTRADO') ? catBruta : '';
       // A data de cada linha da planilha é a data da compra → vira Competência (DRE).
       // A data de pagamento informada pela pessoa vira a data "oficial" do lançamento → alimenta o DFC.
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: dataCompra, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: dataCompra, mes, extrato: colExt ? String(r[colExt]||'') : '', valor, categoria, categoria_dfc: categoria, categoria_dre: categoria, tipo: 'SAIDA', status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   }
 
