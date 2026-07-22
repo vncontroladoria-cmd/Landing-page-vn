@@ -20607,7 +20607,7 @@ async function renderRevisaoImportacaoCC() {
       <div style="width:90px;text-align:right;font-size:12px;font-weight:700;color:${r.tipo==='ENTRADA'?'var(--green)':'var(--red)'}">${r.tipo==='ENTRADA'?'+':'-'}${fmtBRL(r.valor)}</div>
       <div style="position:relative;width:190px">
         <input type="text" id="cc-imp-cat-${i}" value="${r.categoria||''}" placeholder="Buscar categoria..."
-          oninput="buscaCatCC(this.value,${i})" onfocus="buscaCatCC(this.value,${i})"
+          oninput="buscaCatImportCC(this.value,${i})" onfocus="buscaCatImportCC(this.value,${i})"
           onblur="setTimeout(()=>{const d=document.getElementById('cc-imp-cat-dd-${i}');if(d)d.style.display='none'},200)"
           style="width:100%;padding:5px 8px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
         <input type="hidden" id="cc-imp-cat-dfc-${i}" value="">
@@ -20621,8 +20621,8 @@ async function renderRevisaoImportacaoCC() {
   btn.setAttribute('onclick', 'confirmarImportacaoCC()');
 }
 
-// Busca de categoria — mesma base de categorias DFC/DRE usada em Lançamentos/Conciliação
-async function buscaCatCC(texto, idx) {
+// Busca de categoria (tela de revisão da importação) — mesma base de categorias DFC/DRE usada em Lançamentos/Conciliação
+async function buscaCatImportCC(texto, idx) {
   await garantirCategorias();
   const dd = document.getElementById(`cc-imp-cat-dd-${idx}`);
   if (!dd) return;
@@ -20640,14 +20640,14 @@ async function buscaCatCC(texto, idx) {
     const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
     return `<div
       style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
-      onmousedown="selecionarCatCC('${c.nome}','${c.dfc||''}','${c.dre||''}',${idx})"
+      onmousedown="selecionarCatImportCC('${c.nome}','${c.dfc||''}','${c.dre||''}',${idx})"
       onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
       <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:11px">${refs}</span>
     </div>`;
   }).join('');
 }
 
-function selecionarCatCC(nome, dfc, dre, idx) {
+function selecionarCatImportCC(nome, dfc, dre, idx) {
   const inp = document.getElementById(`cc-imp-cat-${idx}`);
   const hDfc = document.getElementById(`cc-imp-cat-dfc-${idx}`);
   const hDre = document.getElementById(`cc-imp-cat-dre-${idx}`);
