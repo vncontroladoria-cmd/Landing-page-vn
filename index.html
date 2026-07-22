@@ -3587,6 +3587,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <button class="btn" onclick="loadCartaoLancamentos()">↻ Atualizar</button>
               <button class="btn" id="btn-sincronizar-cat-cc" onclick="sincronizarCategoriasCC()" title="Corrige o código DRE/DFC de todos os lançamentos com base no Plano de Contas atual">🔄 Sincronizar categorias</button>
               <button class="btn" onclick="exportarPaginaAtualExcel()">📊 Exportar Excel</button>
+              <button id="btn-sem-cat-cc" onclick="filtrarSemCategoriaCC()" style="display:none;padding:7px 12px;font-size:13px;border:1.5px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,0.1);color:#b45309;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;gap:6px;align-items:center">
+                ⚠️ Sem categoria: <span id="cc-hero-semcat-n" style="background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:2px">0</span>
+              </button>
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn" onclick="abrirModalCartao()">⚙️ Cartões</button>
@@ -20145,6 +20148,18 @@ async function loadCartaoLancamentos() {
   document.getElementById('cc-hero-mov').textContent    = fmt(totalEntradas + totalSaidas);
   document.getElementById('cc-hero-n').textContent      = lista.length;
 
+  // Botão Sem Categoria
+  const semCatCC = lista.filter(l => !l.categoria);
+  const btnSemCatCC = document.getElementById('btn-sem-cat-cc');
+  const nSemCatCC = document.getElementById('cc-hero-semcat-n');
+  if (nSemCatCC) nSemCatCC.textContent = semCatCC.length;
+  if (btnSemCatCC) {
+    btnSemCatCC.style.display = semCatCC.length > 0 ? 'inline-flex' : 'none';
+    btnSemCatCC.dataset.ativo = '0';
+    btnSemCatCC.style.background = 'rgba(245,158,11,0.1)';
+    btnSemCatCC.style.color = '#b45309';
+  }
+
   if (!lista.length) {
     tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:var(--text2)">Nenhum lançamento encontrado</td></tr>';
     return;
@@ -20343,6 +20358,34 @@ async function excluirSelecionadosCC() {
   showToast(`${selecionados.length} lançamento(s) excluído(s)!`, 'success');
   limparSelecaoCC();
   loadCartaoLancamentos();
+}
+
+function filtrarSemCategoriaCC() {
+  const semCat = (_ccLancamentosAtuais||[]).filter(l => !l.categoria);
+  const btn = document.getElementById('btn-sem-cat-cc');
+
+  if (btn?.dataset.ativo === '1') {
+    btn.dataset.ativo = '0';
+    btn.style.background = 'rgba(245,158,11,0.1)';
+    btn.style.color = '#b45309';
+    document.querySelectorAll('#cc-tbody tr[id]').forEach(r => r.style.display = '');
+    return;
+  }
+
+  if (!semCat.length) { showToast('Todos os lançamentos têm categoria! ✅', 'success'); return; }
+
+  const ids = new Set(semCat.map(l => 'cc-row-' + l.id));
+  document.querySelectorAll('#cc-tbody tr[id]').forEach(r => {
+    r.style.display = ids.has(r.id) ? '' : 'none';
+  });
+
+  if (btn) {
+    btn.dataset.ativo = '1';
+    btn.style.background = '#f59e0b';
+    btn.style.color = '#fff';
+  }
+
+  showToast(`Mostrando ${semCat.length} lançamento${semCat.length > 1 ? 's' : ''} sem categoria`, 'info');
 }
 
 function filtrarCartaoLanc(termo) {
