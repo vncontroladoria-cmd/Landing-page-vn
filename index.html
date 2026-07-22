@@ -20038,14 +20038,14 @@ async function loadCartaoLancamentos() {
 
   let q = sb.from('cartao_lancamentos').select('*, cartoes(nome,bandeira,limite)').eq('empresa_id', empId);
   if (cartaoId) q = q.eq('cartao_id', cartaoId);
-  // Filtro por COMPETÊNCIA (não pela data de caixa) — usa intervalo de datas em data_competencia
+  // Filtro por DATA CAIXA (data_lancamento) — a data que a fatura foi paga
   if (mes) {
     const inicio = `${ano}-${mes}-01`;
     const ultimoDia = new Date(Number(ano), Number(mes), 0).getDate();
     const fim = `${ano}-${mes}-${String(ultimoDia).padStart(2,'0')}`;
-    q = q.gte('data_competencia', inicio).lte('data_competencia', fim);
+    q = q.gte('data_lancamento', inicio).lte('data_lancamento', fim);
   } else {
-    q = q.gte('data_competencia', `${ano}-01-01`).lte('data_competencia', `${ano}-12-31`);
+    q = q.gte('data_lancamento', `${ano}-01-01`).lte('data_lancamento', `${ano}-12-31`);
   }
   q = q.order('data_lancamento', { ascending: false });
 
