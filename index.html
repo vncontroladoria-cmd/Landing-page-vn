@@ -3557,7 +3557,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div class="pg-header-sub">Faturas e lançamentos por cartão</div>
             </div>
           </div>
-          <div class="hero-cards cols-4" style="margin-bottom:10px">
+          <div class="hero-cards cols-5" style="margin-bottom:10px">
             <div class="hcard green"><div class="hcard-label">Limite Total</div><div class="hcard-value sm" id="cc-hero-limite">—</div><div class="hcard-sub">do(s) cartão(ões) filtrado(s)</div><div class="hcard-icon">💳</div></div>
             <div class="hcard blue"><div class="hcard-label">Entradas</div><div class="hcard-value sm" id="cc-hero-usado">—</div><div class="hcard-sub">período filtrado</div><div class="hcard-icon">✅</div></div>
             <div class="hcard red"><div class="hcard-label">Saídas</div><div class="hcard-value sm" id="cc-hero-disp">—</div><div class="hcard-sub">período filtrado</div><div class="hcard-icon">💸</div></div>
@@ -3585,6 +3585,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 oninput="filtrarCartaoLanc(this.value)"
                 style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="loadCartaoLancamentos()">↻ Atualizar</button>
+              <button class="btn" id="btn-sincronizar-cat-cc" onclick="sincronizarCategoriasCC()" title="Corrige o código DRE/DFC de todos os lançamentos com base no Plano de Contas atual">🔄 Sincronizar categorias</button>
+              <button class="btn" onclick="exportarPaginaAtualExcel()">📊 Exportar Excel</button>
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn" onclick="abrirModalCartao()">⚙️ Cartões</button>
@@ -17940,6 +17942,80 @@ async function sincronizarCategoriasLancamentos() {
   alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}`);
   showToast(`${atualizacoes.length} lançamento(s) sincronizado(s)!`, 'success');
   atualizarLancamentos();
+}
+
+async function sincronizarCategoriasCC() {
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!empId) return;
+
+  const btn = document.getElementById('btn-sincronizar-cat-cc');
+  const textoOriginal = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Verificando...'; btn.style.opacity = '.6'; }
+
+  const { data: plano } = await sb.from('plano_contas').select('nome,codigo,demonstrativo').eq('empresa_id', empId);
+  if (!plano?.length) {
+    showToast('Nenhuma categoria cadastrada.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    return;
+  }
+
+  const { data: lancs } = await sb.from('cartao_lancamentos')
+    .select('id,categoria,categoria_dre,categoria_dfc').eq('empresa_id', empId);
+  if (!lancs?.length) {
+    showToast('Nenhum lançamento encontrado.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    return;
+  }
+
+  const codDre = {}, codDfc = {};
+  plano.forEach(p => {
+    if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[p.nome] = p.codigo;
+    if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[p.nome] = p.codigo;
+  });
+
+  const mudancas = [];
+  const atualizacoes = [];
+
+  lancs.forEach(l => {
+    if (!l.categoria) return;
+    const certoDre = codDre[l.categoria] ?? null;
+    const certoDfc = codDfc[l.categoria] ?? null;
+    const payload = {};
+    if (certoDre !== null && l.categoria_dre !== certoDre) {
+      payload.categoria_dre = certoDre;
+      mudancas.push({ nome: l.categoria, de: l.categoria_dre || '—', para: certoDre, campo: 'DRE' });
+    }
+    if (certoDfc !== null && l.categoria_dfc !== certoDfc) {
+      payload.categoria_dfc = certoDfc;
+      mudancas.push({ nome: l.categoria, de: l.categoria_dfc || '—', para: certoDfc, campo: 'DFC' });
+    }
+    if (Object.keys(payload).length) atualizacoes.push({ id: l.id, payload });
+  });
+
+  if (!atualizacoes.length) {
+    showToast('✅ Tudo certo! Nenhuma categoria desatualizada.', 'success');
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    return;
+  }
+
+  const LOTE = 20;
+  for (let i = 0; i < atualizacoes.length; i += LOTE) {
+    const fatia = atualizacoes.slice(i, i + LOTE);
+    await Promise.all(fatia.map(a => sb.from('cartao_lancamentos').update(a.payload).eq('id', a.id)));
+    if (btn) btn.textContent = `⏳ Corrigindo... ${Math.min(i+LOTE, atualizacoes.length)}/${atualizacoes.length}`;
+  }
+
+  const resumoMap = {};
+  mudancas.forEach(m => {
+    const chave = `${m.nome} (${m.campo}): ${m.de} → ${m.para}`;
+    resumoMap[chave] = (resumoMap[chave]||0) + 1;
+  });
+  const linhasResumo = Object.entries(resumoMap).map(([chave, n]) => `• ${chave}  (${n}x)`).join('\n');
+
+  if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+  alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}`);
+  showToast(`${atualizacoes.length} lançamento(s) sincronizado(s)!`, 'success');
+  loadCartaoLancamentos();
 }
 
 async function exportarLancamentosExcel() {
