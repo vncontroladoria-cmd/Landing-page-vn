@@ -7736,7 +7736,9 @@ async function abrirConversaChat(userId, userName) {
   if (btnVoltar) btnVoltar.style.display = 'flex';
   await sb.from('mensagens_operadores').update({ lida: true, lida_em: new Date().toISOString() }).eq('para_usuario_id', _vnUser?.id).eq('de_usuario_id', userId);
   await carregarMensagensConversa();
-  verificarMensagensNovas(); // atualiza o badge na hora, sem esperar a próxima verificação automática
+  verificarMensagensNovas(); // atualiza o badge do menu lateral na hora
+  verificarMsgNovas(); // atualiza o badge geral do balão flutuante na hora
+  carregarUsuariosChat(); // atualiza o número ao lado do nome na lista de contatos
   document.getElementById('chat-input')?.focus();
   clearInterval(_chatInterval);
   _chatInterval = setInterval(carregarMensagensConversa, 5000);
@@ -22549,31 +22551,43 @@ async function salvarTarefa() {
 
   } else {
     base.criado_por = _vnUser?.id || null;
-    let novasTarefas = [];
+    let idsGerados = [];
 
     if (todasMarcada || empresasMarcadas.length === 0) {
       // Geral
-      ({ data: novasTarefas, error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: null, empresa_ids: null }).select('id'));
+      const novoId = crypto.randomUUID();
+      idsGerados = [novoId];
+      ({ error } = await sb.from('tarefas_operador').insert({ ...base, id: novoId, empresa_id: null, empresa_ids: null }));
 
     } else if (empresasMarcadas.length === 1) {
-      ({ data: novasTarefas, error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: empresasMarcadas[0], empresa_ids: null }).select('id'));
+      const novoId = crypto.randomUUID();
+      idsGerados = [novoId];
+      ({ error } = await sb.from('tarefas_operador').insert({ ...base, id: novoId, empresa_id: empresasMarcadas[0], empresa_ids: null }));
 
     } else if (modoMulti === 'unico') {
       // Cartão único cobrindo várias empresas
-      ({ data: novasTarefas, error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: null, empresa_ids: empresasMarcadas }).select('id'));
+      const novoId = crypto.randomUUID();
+      idsGerados = [novoId];
+      ({ error } = await sb.from('tarefas_operador').insert({ ...base, id: novoId, empresa_id: null, empresa_ids: empresasMarcadas }));
 
     } else {
       // Cartão separado para cada empresa
-      const linhas = empresasMarcadas.map(eid => ({ ...base, empresa_id: eid, empresa_ids: null }));
-      ({ data: novasTarefas, error } = await sb.from('tarefas_operador').insert(linhas).select('id'));
+      const linhas = empresasMarcadas.map(eid => {
+        const novoId = crypto.randomUUID();
+        idsGerados.push(novoId);
+        return { ...base, id: novoId, empresa_id: eid, empresa_ids: null };
+      });
+      ({ error } = await sb.from('tarefas_operador').insert(linhas));
     }
 
     // Se atribuiu pra outra pessoa, cria uma notificação por tarefa criada
-    if (!error && respId && respId !== _vnUser?.id && novasTarefas?.length) {
-      await sb.from('notificacoes_tarefas').insert(novasTarefas.map(t => ({
-        tarefa_id: t.id, tarefa_tipo: tipo, tipo: 'atribuicao', titulo,
+    // (usa os IDs gerados no cliente — não depende do Supabase devolver os dados após o insert)
+    if (!error && respId && respId !== _vnUser?.id && idsGerados.length) {
+      const { error: errNotif } = await sb.from('notificacoes_tarefas').insert(idsGerados.map(tid => ({
+        tarefa_id: tid, tarefa_tipo: tipo, tipo: 'atribuicao', titulo,
         de_usuario_id: _vnUser?.id, para_usuario_id: respId, lida: false,
       })));
+      if (errNotif) console.error('Erro ao criar notificação de tarefa:', errNotif);
     }
   }
 
