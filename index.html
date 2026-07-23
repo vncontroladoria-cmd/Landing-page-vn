@@ -1805,6 +1805,16 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <div id="opage-notificacoes" style="display:none">
         <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Notificações</div>
         <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:14px">Tarefas e lembretes que outras pessoas te enviaram</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button id="notif-tab-pendentes" onclick="filtrarNotifTab('pendentes')"
+            style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:var(--accent);color:#fff;font-family:'Outfit',sans-serif">
+            🔴 Pendentes
+          </button>
+          <button id="notif-tab-historico" onclick="filtrarNotifTab('historico')"
+            style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-family:'Outfit',sans-serif">
+            📜 Histórico
+          </button>
+        </div>
         <div id="op-lista-notificacoes" style="display:flex;flex-direction:column;gap:10px"></div>
       </div>
 
@@ -22993,7 +23003,7 @@ async function buscarTarefasAtivas(filtroTipo) {
   const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
   const uid = _vnUser?.id;
 
-  let query = sb.from('tarefas_operador').select('*, empresas(nome)').eq('ativo', true);
+  let query = sb.from('tarefas_operador').select('*, empresas(nome), criador:vn_usuarios!criado_por(nome,email)').eq('ativo', true);
 
   // Cada usuário só vê tarefas onde é responsável ou criador (exceto admin no Master).
   // Se a pessoa for a RESPONSÁVEL direta, a tarefa aparece pra ela independente de ter
@@ -23075,9 +23085,13 @@ function renderLinhaTarefa(t, opts={}) {
       style="padding:5px 10px;background:rgba(239,68,68,.1);border:none;border-radius:6px;color:#f87171;font-size:11px;cursor:pointer">🗑️</button>`);
   }
 
+  const enviadaPorOutro = t.criado_por && t.criado_por !== _vnUser?.id;
+  const nomeQuemEnviou = t.criador?.nome || t.criador?.email || 'Outra pessoa';
+
   return `
-    <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05)">
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:${enviadaPorOutro ? 'rgba(124,58,237,.08)' : 'rgba(255,255,255,.02)'};border-radius:8px;border:1px solid ${enviadaPorOutro ? 'rgba(124,58,237,.35)' : 'rgba(255,255,255,.05)'}">
       <div style="flex:1;min-width:0">
+        ${enviadaPorOutro ? `<div style="font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:3px">📨 Enviado por ${nomeQuemEnviou}</div>` : ''}
         <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
         ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
@@ -23864,14 +23878,14 @@ function renderNotifItem(n) {
   const de = n.de?.nome || n.de?.email || 'Alguém';
   if (n.tipo === 'confirmacao') {
     return `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:rgba(34,197,94,.06)">
-      <div style="font-weight:700;font-size:12px;margin-bottom:2px">✅ ${de} recebeu</div>
+      <div style="font-weight:700;font-size:12px;margin-bottom:2px;color:var(--text)">✅ ${de} recebeu</div>
       <div style="font-size:12px;color:var(--text2)">"${n.titulo}"</div>
       <div style="font-size:10px;color:var(--text3);margin-top:4px">${new Date(n.criado_em).toLocaleString('pt-BR')}</div>
     </div>`;
   }
   const rotulo = n.tarefa_tipo === 'lembrete' ? '🔔 Lembrete' : '📝 Tarefa';
   return `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:rgba(59,130,246,.06)">
-    <div style="font-weight:700;font-size:13px;margin-bottom:2px">${n.titulo}</div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:2px;color:var(--text)">${n.titulo}</div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${rotulo} • enviada por ${de} • ${new Date(n.criado_em).toLocaleString('pt-BR')}</div>
     <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Confirme que você recebeu essa ${n.tarefa_tipo === 'lembrete' ? 'lembrete' : 'tarefa'}:</div>
     <button onclick="confirmarRecebimentoNotif('${n.id}','${n.tarefa_id}','${(n.titulo||'').replace(/'/g,"\\'")}','${n.de_usuario_id}')"
@@ -23932,6 +23946,18 @@ function toggleDropdownNotificacoes() {
 }
 
 // Página cheia "Notificações" no menu do painel operador
+let _notifTabAtual = 'pendentes';
+function filtrarNotifTab(tab) {
+  _notifTabAtual = tab;
+  ['pendentes','historico'].forEach(t => {
+    const btn = document.getElementById(`notif-tab-${t}`);
+    if (!btn) return;
+    if (t === tab) { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
+    else { btn.style.background = 'rgba(255,255,255,.06)'; btn.style.color = 'rgba(255,255,255,.6)'; }
+  });
+  loadNotificacoes();
+}
+
 async function loadNotificacoes() {
   const cont = document.getElementById('op-lista-notificacoes');
   if (!cont || !_vnUser?.id) return;
@@ -23939,11 +23965,19 @@ async function loadNotificacoes() {
     .select('*, de:vn_usuarios!de_usuario_id(nome,email)')
     .eq('para_usuario_id', _vnUser.id)
     .order('criado_em', {ascending:false})
-    .limit(100);
+    .limit(200);
 
-  const notifs = data || [];
+  let notifs = data || [];
+
+  // Aba "Pendentes": só tarefas/lembretes atribuídos que ainda não foram confirmados (Recebido)
+  // Aba "Histórico": tudo — atribuições já confirmadas e avisos de confirmação recebidos
+  if (_notifTabAtual === 'pendentes') {
+    notifs = notifs.filter(n => n.tipo === 'atribuicao' && !n.lida);
+  }
+
   if (!notifs.length) {
-    cont.innerHTML = `<div style="background:#1e293b;border-radius:12px;padding:24px;border:1px solid rgba(255,255,255,.06);text-align:center;color:rgba(255,255,255,.4);font-size:13px">Nenhuma notificação ainda.</div>`;
+    const msg = _notifTabAtual === 'pendentes' ? 'Nenhuma notificação pendente! 🎉' : 'Nenhuma notificação no histórico ainda.';
+    cont.innerHTML = `<div style="background:#1e293b;border-radius:12px;padding:24px;border:1px solid rgba(255,255,255,.06);text-align:center;color:rgba(255,255,255,.4);font-size:13px">${msg}</div>`;
     return;
   }
   cont.innerHTML = notifs.map(renderNotifItem).join('');
