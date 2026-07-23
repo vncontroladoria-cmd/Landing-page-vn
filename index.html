@@ -3561,7 +3561,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard green"><div class="hcard-label">Limite Total</div><div class="hcard-value sm" id="cc-hero-limite">—</div><div class="hcard-sub">do(s) cartão(ões) filtrado(s)</div><div class="hcard-icon">💳</div></div>
             <div class="hcard blue"><div class="hcard-label">Entradas</div><div class="hcard-value sm" id="cc-hero-usado">—</div><div class="hcard-sub">período filtrado</div><div class="hcard-icon">✅</div></div>
             <div class="hcard red"><div class="hcard-label">Saídas</div><div class="hcard-value sm" id="cc-hero-disp">—</div><div class="hcard-sub">período filtrado</div><div class="hcard-icon">💸</div></div>
-            <div class="hcard amber"><div class="hcard-label">Movimentado</div><div class="hcard-value sm" id="cc-hero-mov">—</div><div class="hcard-sub">entrada + saída</div><div class="hcard-icon">🔄</div></div>
+            <div class="hcard amber"><div class="hcard-label">Resultado</div><div class="hcard-value sm" id="cc-hero-mov">—</div><div class="hcard-sub">entrada − saída</div><div class="hcard-icon">🔄</div></div>
             <div class="hcard purple"><div class="hcard-label">Lançamentos</div><div class="hcard-value" id="cc-hero-n">—</div><div class="hcard-sub">no período</div><div class="hcard-icon">📋</div></div>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
@@ -20145,7 +20145,9 @@ async function loadCartaoLancamentos() {
   document.getElementById('cc-hero-limite').textContent = fmt(limiteTotal);
   document.getElementById('cc-hero-usado').textContent  = fmt(totalEntradas);
   document.getElementById('cc-hero-disp').textContent   = fmt(totalSaidas);
-  document.getElementById('cc-hero-mov').textContent    = fmt(totalEntradas + totalSaidas);
+  const resultado = totalEntradas - totalSaidas;
+  const elMov = document.getElementById('cc-hero-mov');
+  elMov.textContent = (resultado < 0 ? '-' : '') + fmt(resultado);
   document.getElementById('cc-hero-n').textContent      = lista.length;
 
   // Botão Sem Categoria
