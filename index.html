@@ -7736,6 +7736,7 @@ async function abrirConversaChat(userId, userName) {
   if (btnVoltar) btnVoltar.style.display = 'flex';
   await sb.from('mensagens_operadores').update({ lida: true, lida_em: new Date().toISOString() }).eq('para_usuario_id', _vnUser?.id).eq('de_usuario_id', userId);
   await carregarMensagensConversa();
+  verificarMensagensNovas(); // atualiza o badge na hora, sem esperar a próxima verificação automática
   document.getElementById('chat-input')?.focus();
   clearInterval(_chatInterval);
   _chatInterval = setInterval(carregarMensagensConversa, 5000);
@@ -22653,6 +22654,9 @@ async function loadMensagensOperador() {
 
   // Marca mensagens recebidas como lidas
   await sb.from('mensagens_operadores').update({lida:true, lida_em: new Date().toISOString()}).eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false);
+
+  // Atualiza o badge na hora, sem esperar a próxima verificação automática (30s)
+  verificarMensagensNovas();
 }
 
 function limparFiltrosMensagensOperador() {
