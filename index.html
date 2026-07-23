@@ -22681,6 +22681,9 @@ async function loadMensagensOperador() {
 
   // Atualiza o badge na hora, sem esperar a próxima verificação automática (30s)
   verificarMensagensNovas();
+  // Avisa o balão flutuante também — são telas diferentes, mas é a mesma caixa de mensagem
+  if (typeof verificarMsgNovas === 'function') verificarMsgNovas();
+  if (typeof carregarUsuariosChat === 'function') carregarUsuariosChat();
 }
 
 function limparFiltrosMensagensOperador() {
