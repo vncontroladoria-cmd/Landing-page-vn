@@ -1502,6 +1502,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <span>💬</span> Mensagens
         <span id="op-msg-badge" style="display:none;margin-left:auto;background:#ef4444;border-radius:10px;min-width:18px;height:18px;font-size:10px;font-weight:800;color:#fff;text-align:center;line-height:18px;padding:0 4px"></span>
       </div>
+      <div id="onav-notificacoes" class="op-nav-item" onclick="operadorPage('notificacoes')">
+        <span>🔔</span> Notificações
+        <span id="op-notif-badge" style="display:none;margin-left:auto;background:#ef4444;border-radius:10px;min-width:18px;height:18px;font-size:10px;font-weight:800;color:#fff;text-align:center;line-height:18px;padding:0 4px"></span>
+      </div>
 
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)">
         <div class="op-nav-item" id="op-btn-voltar-master" onclick="voltarAoMaster()" style="display:none">
@@ -1796,6 +1800,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
         </div>
+      </div>
+
+      <div id="opage-notificacoes" style="display:none">
+        <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Notificações</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:14px">Tarefas e lembretes que outras pessoas te enviaram</div>
+        <div id="op-lista-notificacoes" style="display:flex;flex-direction:column;gap:10px"></div>
       </div>
 
     </div>
@@ -21437,7 +21447,7 @@ function mudarFiltroEmpresaGlobal(empresaId) {
 }
 
 async function operadorPage(page) {
-  ['tarefas','empresas','mensagens'].forEach(p => {
+  ['tarefas','empresas','mensagens','notificacoes'].forEach(p => {
     const el = document.getElementById('opage-'+p);
     if (el) el.style.display = 'none';
     const nav = document.getElementById('onav-'+p);
@@ -21452,6 +21462,7 @@ async function operadorPage(page) {
     await loadOperadoresLista();
     ajustarAlturaMensagensOperador();
   }
+  if (page === 'notificacoes') await loadNotificacoes();
 }
 
 // Mede o espaço real disponível na tela (sem chutar número fixo) e ajusta a altura do chat
@@ -22508,14 +22519,16 @@ async function salvarTarefa() {
     dia_semana: recorrencia === 'semanal' ? (parseInt(document.querySelector('.dia-sem-check:checked')?.value) ?? null) : null,
     dia_mes: recorrencia === 'mensal' ? parseInt(document.getElementById('tarefa-dia-mes').value) : null,
     responsavel_id: respId,
-    // Se atribuiu pra outra pessoa (diferente de quem está criando/editando), marca como "não visto"
-    // pra disparar a notificação no sino dela
-    resp_notificado: respId === _vnUser?.id ? true : false,
   };
 
   let error;
+  let respAntigo = null;
 
   if (id) {
+    // Pega o responsável ANTES de atualizar, pra só notificar se realmente mudou
+    const { data: atual } = await sb.from('tarefas_operador').select('responsavel_id').eq('id', id).single();
+    respAntigo = atual?.responsavel_id || null;
+
     // Edição: mantém estrutura simples — 1 empresa, ou ids[], ou geral
     const payload = { ...base };
     if (todasMarcada || empresasMarcadas.length === 0) {
@@ -22526,25 +22539,40 @@ async function salvarTarefa() {
       payload.empresa_id = null; payload.empresa_ids = empresasMarcadas;
     }
     ({ error } = await sb.from('tarefas_operador').update(payload).eq('id', id));
+    if (!error && respId && respId !== _vnUser?.id && respId !== respAntigo) {
+      await sb.from('notificacoes_tarefas').insert({
+        tarefa_id: id, tarefa_tipo: tipo, tipo: 'atribuicao', titulo,
+        de_usuario_id: _vnUser?.id, para_usuario_id: respId, lida: false,
+      });
+    }
 
   } else {
     base.criado_por = _vnUser?.id || null;
+    let novasTarefas = [];
 
     if (todasMarcada || empresasMarcadas.length === 0) {
       // Geral
-      ({ error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: null, empresa_ids: null }));
+      ({ data: novasTarefas, error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: null, empresa_ids: null }).select('id'));
 
     } else if (empresasMarcadas.length === 1) {
-      ({ error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: empresasMarcadas[0], empresa_ids: null }));
+      ({ data: novasTarefas, error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: empresasMarcadas[0], empresa_ids: null }).select('id'));
 
     } else if (modoMulti === 'unico') {
       // Cartão único cobrindo várias empresas
-      ({ error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: null, empresa_ids: empresasMarcadas }));
+      ({ data: novasTarefas, error } = await sb.from('tarefas_operador').insert({ ...base, empresa_id: null, empresa_ids: empresasMarcadas }).select('id'));
 
     } else {
       // Cartão separado para cada empresa
       const linhas = empresasMarcadas.map(eid => ({ ...base, empresa_id: eid, empresa_ids: null }));
-      ({ error } = await sb.from('tarefas_operador').insert(linhas));
+      ({ data: novasTarefas, error } = await sb.from('tarefas_operador').insert(linhas).select('id'));
+    }
+
+    // Se atribuiu pra outra pessoa, cria uma notificação por tarefa criada
+    if (!error && respId && respId !== _vnUser?.id && novasTarefas?.length) {
+      await sb.from('notificacoes_tarefas').insert(novasTarefas.map(t => ({
+        tarefa_id: t.id, tarefa_tipo: tipo, tipo: 'atribuicao', titulo,
+        de_usuario_id: _vnUser?.id, para_usuario_id: respId, lida: false,
+      })));
     }
   }
 
@@ -22963,7 +22991,7 @@ async function buscarTarefasAtivas(filtroTipo) {
     } else {
       filtroEmpresaStr = `empresa_id.is.null`;
     }
-    query = query.or(`responsavel_id.eq.${uid},and(criado_por.eq.${uid},${filtroEmpresaStr})`);
+    query = query.or(`responsavel_id.eq.${uid},and(criado_por.eq.${uid},responsavel_id.is.null,${filtroEmpresaStr})`);
   } else if (empresaIds.length) {
     const lista = empresaIds.join(',');
     query = query.or(`empresa_id.is.null,empresa_id.in.(${lista}),empresa_ids.ov.{${lista}}`);
@@ -23757,26 +23785,28 @@ async function verificarMensagensNovas() {
 let _tarefaNotifUltimaVerificacao = null;
 async function verificarNotificacoesTarefas() {
   if (!_vnUser?.id) return;
-  const { data } = await sb.from('tarefas_operador')
-    .select('id,titulo,tipo,criado_em,criado_por,vn_usuarios!criado_por(nome,email)')
-    .eq('responsavel_id', _vnUser.id)
-    .eq('resp_notificado', false)
-    .eq('ativo', true)
-    .neq('criado_por', _vnUser.id)
+  const { data } = await sb.from('notificacoes_tarefas')
+    .select('*, de:vn_usuarios!de_usuario_id(nome,email)')
+    .eq('para_usuario_id', _vnUser.id)
+    .eq('lida', false)
     .order('criado_em', {ascending:false});
 
-  const tarefas = data || [];
-  atualizarBadgeNotificacoes(tarefas.length);
-  window._tarefasNaoVistas = tarefas;
+  const notifs = data || [];
+  atualizarBadgeNotificacoes(notifs.length);
+  window._notifsNaoVistas = notifs;
 
   if (_tarefaNotifUltimaVerificacao) {
-    const novas = tarefas.filter(t => new Date(t.criado_em) > _tarefaNotifUltimaVerificacao);
+    const novas = notifs.filter(n => new Date(n.criado_em) > _tarefaNotifUltimaVerificacao);
     if (novas.length) {
       tocarSomMensagem();
-      novas.forEach(t => {
-        const de = t.vn_usuarios?.nome || t.vn_usuarios?.email || 'Alguém';
-        const rotulo = t.tipo === 'lembrete' ? 'lembrete' : 'tarefa';
-        showToast(`🔔 ${de} te atribuiu uma ${rotulo}: "${t.titulo}"`, 'info');
+      novas.forEach(n => {
+        const de = n.de?.nome || n.de?.email || 'Alguém';
+        if (n.tipo === 'confirmacao') {
+          showToast(`✅ ${de} confirmou: recebeu "${n.titulo}"`, 'success');
+        } else {
+          const rotulo = n.tarefa_tipo === 'lembrete' ? 'lembrete' : 'tarefa';
+          showToast(`🔔 ${de} te enviou uma ${rotulo}: "${n.titulo}"`, 'info');
+        }
       });
     }
   }
@@ -23786,6 +23816,8 @@ async function verificarNotificacoesTarefas() {
 function atualizarBadgeNotificacoes(qtd) {
   const badge = document.getElementById('notif-badge');
   const btn = document.getElementById('btn-notificacoes');
+  const badgeNav = document.getElementById('op-notif-badge');
+  if (badgeNav) { badgeNav.textContent = qtd; badgeNav.style.display = qtd > 0 ? 'inline-block' : 'none'; }
   if (!badge || !btn) return;
   if (qtd > 0) {
     badge.style.display = 'flex';
@@ -23800,46 +23832,75 @@ function atualizarBadgeNotificacoes(qtd) {
     badge.style.fontWeight = '700';
     badge.style.padding = '0 3px';
     badge.textContent = qtd > 9 ? '9+' : qtd;
-    btn.title = `${qtd} tarefa(s)/lembrete(s) atribuído(s) a você`;
-    btn.onclick = toggleDropdownNotificacoes;
+    btn.title = `${qtd} notificação(ões) nova(s)`;
   } else {
     badge.style.display = 'none';
     badge.textContent = '';
     btn.title = 'Notificações';
-    btn.onclick = toggleDropdownNotificacoes;
   }
+  btn.onclick = toggleDropdownNotificacoes;
+}
+
+// Monta o HTML de uma notificação (usado no dropdown do sino e na página cheia)
+function renderNotifItem(n) {
+  const de = n.de?.nome || n.de?.email || 'Alguém';
+  if (n.tipo === 'confirmacao') {
+    return `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:rgba(34,197,94,.06)">
+      <div style="font-weight:700;font-size:12px;margin-bottom:2px">✅ ${de} recebeu</div>
+      <div style="font-size:12px;color:var(--text2)">"${n.titulo}"</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">${new Date(n.criado_em).toLocaleString('pt-BR')}</div>
+    </div>`;
+  }
+  const rotulo = n.tarefa_tipo === 'lembrete' ? '🔔 Lembrete' : '📝 Tarefa';
+  return `<div style="padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:rgba(59,130,246,.06)">
+    <div style="font-weight:700;font-size:13px;margin-bottom:2px">${n.titulo}</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${rotulo} • enviada por ${de} • ${new Date(n.criado_em).toLocaleString('pt-BR')}</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Confirme que você recebeu essa ${n.tarefa_tipo === 'lembrete' ? 'lembrete' : 'tarefa'}:</div>
+    <button onclick="confirmarRecebimentoNotif('${n.id}','${n.tarefa_id}','${(n.titulo||'').replace(/'/g,"\\'")}','${n.de_usuario_id}')"
+      style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">✅ Recebido</button>
+  </div>`;
+}
+
+async function confirmarRecebimentoNotif(notifId, tarefaId, titulo, deUsuarioId) {
+  await sb.from('notificacoes_tarefas').update({ lida: true }).eq('id', notifId);
+  // Avisa quem enviou que a pessoa recebeu
+  await sb.from('notificacoes_tarefas').insert({
+    tarefa_id: tarefaId,
+    tipo: 'confirmacao',
+    titulo,
+    de_usuario_id: _vnUser?.id,
+    para_usuario_id: deUsuarioId,
+    lida: false,
+  });
+  showToast('✅ Confirmado! A pessoa que enviou foi avisada.', 'success');
+  document.getElementById('notif-dropdown')?.remove();
+  await verificarNotificacoesTarefas();
+  if (document.getElementById('opage-notificacoes')?.style.display !== 'none') await loadNotificacoes();
 }
 
 function toggleDropdownNotificacoes() {
   let dd = document.getElementById('notif-dropdown');
   if (dd) { dd.remove(); return; }
 
-  const tarefas = window._tarefasNaoVistas || [];
+  const notifs = window._notifsNaoVistas || [];
   dd = document.createElement('div');
   dd.id = 'notif-dropdown';
-  dd.style.cssText = 'position:absolute;top:100%;right:0;margin-top:8px;width:300px;max-height:320px;overflow-y:auto;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:9999';
+  dd.style.cssText = 'position:absolute;top:100%;right:0;margin-top:8px;width:320px;max-height:360px;overflow-y:auto;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:9999;padding:8px';
 
-  if (!tarefas.length) {
+  if (!notifs.length) {
     dd.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">Nenhuma notificação nova 🎉</div>`;
   } else {
-    dd.innerHTML = `<div style="padding:10px 14px;font-weight:700;font-size:12px;border-bottom:1px solid var(--border)">🔔 Atribuído a você</div>` +
-      tarefas.map(t => {
-        const de = t.vn_usuarios?.nome || t.vn_usuarios?.email || 'Alguém';
-        const rotulo = t.tipo === 'lembrete' ? '🔔 Lembrete' : '📝 Tarefa';
-        return `<div onclick="abrirTarefaNotificacao('${t.id}')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-          <div style="font-weight:700;margin-bottom:2px">${t.titulo}</div>
-          <div style="color:var(--text3);font-size:11px">${rotulo} • atribuída por ${de}</div>
-        </div>`;
-      }).join('');
+    dd.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${notifs.map(renderNotifItem).join('')}</div>`;
   }
 
   document.getElementById('btn-notificacoes').parentElement.style.position = 'relative';
   document.getElementById('btn-notificacoes').parentElement.appendChild(dd);
 
-  // Marca todas como vistas ao abrir
-  if (tarefas.length) {
-    sb.from('tarefas_operador').update({ resp_notificado: true }).in('id', tarefas.map(t=>t.id))
-      .then(() => { atualizarBadgeNotificacoes(0); window._tarefasNaoVistas = []; });
+  // Confirmações (não precisam de ação) já podem ser marcadas como vistas ao abrir
+  const soConfirmacoes = notifs.filter(n => n.tipo === 'confirmacao').map(n => n.id);
+  if (soConfirmacoes.length) {
+    sb.from('notificacoes_tarefas').update({ lida: true }).in('id', soConfirmacoes)
+      .then(() => verificarNotificacoesTarefas());
   }
 
   setTimeout(() => {
@@ -23852,12 +23913,29 @@ function toggleDropdownNotificacoes() {
   }, 50);
 }
 
-function abrirTarefaNotificacao(id) {
-  document.getElementById('notif-dropdown')?.remove();
-  operadorPage('tarefas').then(() => {
-    tarefasTab('hoje');
-    setTimeout(() => abrirModalTarefa(id), 300);
-  });
+// Página cheia "Notificações" no menu do painel operador
+async function loadNotificacoes() {
+  const cont = document.getElementById('op-lista-notificacoes');
+  if (!cont || !_vnUser?.id) return;
+  const { data } = await sb.from('notificacoes_tarefas')
+    .select('*, de:vn_usuarios!de_usuario_id(nome,email)')
+    .eq('para_usuario_id', _vnUser.id)
+    .order('criado_em', {ascending:false})
+    .limit(100);
+
+  const notifs = data || [];
+  if (!notifs.length) {
+    cont.innerHTML = `<div style="background:#1e293b;border-radius:12px;padding:24px;border:1px solid rgba(255,255,255,.06);text-align:center;color:rgba(255,255,255,.4);font-size:13px">Nenhuma notificação ainda.</div>`;
+    return;
+  }
+  cont.innerHTML = notifs.map(renderNotifItem).join('');
+
+  // Marca não lidas (confirmações) como vistas ao entrar na página
+  const naoLidas = notifs.filter(n => !n.lida && n.tipo === 'confirmacao').map(n => n.id);
+  if (naoLidas.length) {
+    await sb.from('notificacoes_tarefas').update({ lida: true }).in('id', naoLidas);
+    await verificarNotificacoesTarefas();
+  }
 }
 
 // Som curto de notificação (gerado direto no navegador, sem precisar de arquivo)
