@@ -22497,6 +22497,7 @@ async function salvarTarefa() {
   const empresasMarcadas = Array.from(document.querySelectorAll('.tarefa-emp-check:checked')).map(cb => cb.value);
   const modoMulti = document.getElementById('tarefa-modo-multi').value;
 
+  const respId = document.getElementById('tarefa-responsavel').value || _vnUser?.id || null;
   const base = {
     titulo,
     descricao: document.getElementById('tarefa-descricao').value.trim() || null,
@@ -22506,7 +22507,10 @@ async function salvarTarefa() {
     dias_semana: recorrencia === 'semanal' ? Array.from(document.querySelectorAll('.dia-sem-check:checked')).map(cb => parseInt(cb.value)) : null,
     dia_semana: recorrencia === 'semanal' ? (parseInt(document.querySelector('.dia-sem-check:checked')?.value) ?? null) : null,
     dia_mes: recorrencia === 'mensal' ? parseInt(document.getElementById('tarefa-dia-mes').value) : null,
-    responsavel_id: document.getElementById('tarefa-responsavel').value || _vnUser?.id || null,
+    responsavel_id: respId,
+    // Se atribuiu pra outra pessoa (diferente de quem está criando/editando), marca como "não visto"
+    // pra disparar a notificação no sino dela
+    resp_notificado: respId === _vnUser?.id ? true : false,
   };
 
   let error;
@@ -22945,18 +22949,28 @@ async function buscarTarefasAtivas(filtroTipo) {
 
   let query = sb.from('tarefas_operador').select('*, empresas(nome)').eq('ativo', true);
 
-  // Cada usuário só vê tarefas onde é responsável ou criador (exceto admin no Master)
+  // Cada usuário só vê tarefas onde é responsável ou criador (exceto admin no Master).
+  // Se a pessoa for a RESPONSÁVEL direta, a tarefa aparece pra ela independente de ter
+  // acesso liberado àquela empresa (foi atribuída a ela, tem que ver, ponto final).
+  // O filtro de empresa só se aplica quando ela é apenas a criadora, não a responsável.
   const _ehAdminMaster = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
-  if (uid && !_ehAdminMaster) {
-    query = query.or(`responsavel_id.eq.${uid},criado_por.eq.${uid}`);
-  }
 
-  if (empresaIds.length) {
+  if (uid && !_ehAdminMaster) {
+    let filtroEmpresaStr;
+    if (empresaIds.length) {
+      const lista = empresaIds.join(',');
+      filtroEmpresaStr = `or(empresa_id.is.null,empresa_id.in.(${lista}),empresa_ids.ov.{${lista}})`;
+    } else {
+      filtroEmpresaStr = `empresa_id.is.null`;
+    }
+    query = query.or(`responsavel_id.eq.${uid},and(criado_por.eq.${uid},${filtroEmpresaStr})`);
+  } else if (empresaIds.length) {
     const lista = empresaIds.join(',');
     query = query.or(`empresa_id.is.null,empresa_id.in.(${lista}),empresa_ids.ov.{${lista}}`);
   } else {
     query = query.is('empresa_id', null);
   }
+
   if (filtroTipo) query = query.eq('tipo', filtroTipo);
   const { data } = await query.order('criado_em');
   let tarefas = data || [];
@@ -23151,13 +23165,19 @@ async function loadCadastroTarefas() {
   const uid = _vnUser?.id;
   let query = sb.from('tarefas_operador').select('*, empresas(nome), criador:vn_usuarios!criado_por(nome,email)').eq('ativo', true);
 
-  // Cada usuário só vê as suas próprias tarefas (exceto admin no Master)
+  // Cada usuário só vê as suas próprias tarefas (exceto admin no Master).
+  // Responsável direto vê independente de ter acesso à empresa (mesma lógica de buscarTarefasAtivas)
   const _ehAdminMstr = _vnUser?.perfil === 'admin' && !_vindoDoMasterControladoria;
   if (uid && !_ehAdminMstr) {
-    query = query.or(`responsavel_id.eq.${uid},criado_por.eq.${uid}`);
-  }
-
-  if (empresaIds.length) {
+    let filtroEmpresaStr;
+    if (empresaIds.length) {
+      const lista = empresaIds.join(',');
+      filtroEmpresaStr = `or(empresa_id.is.null,empresa_id.in.(${lista}),empresa_ids.ov.{${lista}})`;
+    } else {
+      filtroEmpresaStr = `empresa_id.is.null`;
+    }
+    query = query.or(`responsavel_id.eq.${uid},and(criado_por.eq.${uid},${filtroEmpresaStr})`);
+  } else if (empresaIds.length) {
     const lista = empresaIds.join(',');
     query = query.or(`empresa_id.is.null,empresa_id.in.(${lista}),empresa_ids.ov.{${lista}}`);
   }
@@ -23728,6 +23748,116 @@ async function verificarMensagensNovas() {
     });
   }
   _msgUltimaVerificacao = new Date();
+
+  // Verifica tarefas/lembretes atribuídos a mim por outra pessoa
+  try { await verificarNotificacoesTarefas(); } catch(e) { console.error('Erro ao verificar tarefas atribuídas:', e); }
+}
+
+// Notificação de tarefa/lembrete atribuído por outro operador — usa o sino da topbar
+let _tarefaNotifUltimaVerificacao = null;
+async function verificarNotificacoesTarefas() {
+  if (!_vnUser?.id) return;
+  const { data } = await sb.from('tarefas_operador')
+    .select('id,titulo,tipo,criado_em,criado_por,vn_usuarios!criado_por(nome,email)')
+    .eq('responsavel_id', _vnUser.id)
+    .eq('resp_notificado', false)
+    .eq('ativo', true)
+    .neq('criado_por', _vnUser.id)
+    .order('criado_em', {ascending:false});
+
+  const tarefas = data || [];
+  atualizarBadgeNotificacoes(tarefas.length);
+  window._tarefasNaoVistas = tarefas;
+
+  if (_tarefaNotifUltimaVerificacao) {
+    const novas = tarefas.filter(t => new Date(t.criado_em) > _tarefaNotifUltimaVerificacao);
+    if (novas.length) {
+      tocarSomMensagem();
+      novas.forEach(t => {
+        const de = t.vn_usuarios?.nome || t.vn_usuarios?.email || 'Alguém';
+        const rotulo = t.tipo === 'lembrete' ? 'lembrete' : 'tarefa';
+        showToast(`🔔 ${de} te atribuiu uma ${rotulo}: "${t.titulo}"`, 'info');
+      });
+    }
+  }
+  _tarefaNotifUltimaVerificacao = new Date();
+}
+
+function atualizarBadgeNotificacoes(qtd) {
+  const badge = document.getElementById('notif-badge');
+  const btn = document.getElementById('btn-notificacoes');
+  if (!badge || !btn) return;
+  if (qtd > 0) {
+    badge.style.display = 'flex';
+    badge.style.width = 'auto';
+    badge.style.height = '15px';
+    badge.style.minWidth = '15px';
+    badge.style.borderRadius = '8px';
+    badge.style.alignItems = 'center';
+    badge.style.justifyContent = 'center';
+    badge.style.fontSize = '9px';
+    badge.style.color = '#fff';
+    badge.style.fontWeight = '700';
+    badge.style.padding = '0 3px';
+    badge.textContent = qtd > 9 ? '9+' : qtd;
+    btn.title = `${qtd} tarefa(s)/lembrete(s) atribuído(s) a você`;
+    btn.onclick = toggleDropdownNotificacoes;
+  } else {
+    badge.style.display = 'none';
+    badge.textContent = '';
+    btn.title = 'Notificações';
+    btn.onclick = toggleDropdownNotificacoes;
+  }
+}
+
+function toggleDropdownNotificacoes() {
+  let dd = document.getElementById('notif-dropdown');
+  if (dd) { dd.remove(); return; }
+
+  const tarefas = window._tarefasNaoVistas || [];
+  dd = document.createElement('div');
+  dd.id = 'notif-dropdown';
+  dd.style.cssText = 'position:absolute;top:100%;right:0;margin-top:8px;width:300px;max-height:320px;overflow-y:auto;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:9999';
+
+  if (!tarefas.length) {
+    dd.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">Nenhuma notificação nova 🎉</div>`;
+  } else {
+    dd.innerHTML = `<div style="padding:10px 14px;font-weight:700;font-size:12px;border-bottom:1px solid var(--border)">🔔 Atribuído a você</div>` +
+      tarefas.map(t => {
+        const de = t.vn_usuarios?.nome || t.vn_usuarios?.email || 'Alguém';
+        const rotulo = t.tipo === 'lembrete' ? '🔔 Lembrete' : '📝 Tarefa';
+        return `<div onclick="abrirTarefaNotificacao('${t.id}')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          <div style="font-weight:700;margin-bottom:2px">${t.titulo}</div>
+          <div style="color:var(--text3);font-size:11px">${rotulo} • atribuída por ${de}</div>
+        </div>`;
+      }).join('');
+  }
+
+  document.getElementById('btn-notificacoes').parentElement.style.position = 'relative';
+  document.getElementById('btn-notificacoes').parentElement.appendChild(dd);
+
+  // Marca todas como vistas ao abrir
+  if (tarefas.length) {
+    sb.from('tarefas_operador').update({ resp_notificado: true }).in('id', tarefas.map(t=>t.id))
+      .then(() => { atualizarBadgeNotificacoes(0); window._tarefasNaoVistas = []; });
+  }
+
+  setTimeout(() => {
+    document.addEventListener('click', function fechar(e) {
+      if (!dd.contains(e.target) && e.target.id !== 'btn-notificacoes') {
+        dd.remove();
+        document.removeEventListener('click', fechar);
+      }
+    });
+  }, 50);
+}
+
+function abrirTarefaNotificacao(id) {
+  document.getElementById('notif-dropdown')?.remove();
+  operadorPage('tarefas').then(() => {
+    tarefasTab('hoje');
+    setTimeout(() => abrirModalTarefa(id), 300);
+  });
 }
 
 // Som curto de notificação (gerado direto no navegador, sem precisar de arquivo)
