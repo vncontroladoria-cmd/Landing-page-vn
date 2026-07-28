@@ -21709,6 +21709,7 @@ function renderCardsHoje() {
             ${t.descricao?`<div style="font-size:10px;color:rgba(255,255,255,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.descricao}</div>`:''}
           </div>
           ${timerHtml}
+          ${t.link_url ? `<a href="${t.link_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir link de apoio" style="flex-shrink:0;font-size:14px;text-decoration:none">🔗</a>` : ''}
           <button onclick="abrirModalTarefa('${t.id}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.2);font-size:11px;flex-shrink:0">✏️</button>
         </div>`;
     }).join('');
