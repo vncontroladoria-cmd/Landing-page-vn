@@ -7734,11 +7734,31 @@ function toggleMiniChat() {
 }
 
 async function carregarUsuariosChat() {
-  // Operador só fala com operadores; admin fala com todo mundo
+  // Operador só INICIA conversa com operadores; admin fala com todo mundo.
+  // Mas se alguém (inclusive admin) já mandou mensagem, essa pessoa TEM que aparecer aqui —
+  // senão a mensagem fica presa como "não lida" pra sempre, sem lugar pra abrir e ler.
   let query = sb.from('vn_usuarios').select('id,nome,email,perfil').eq('ativo', true).neq('id', _vnUser?.id || '').order('nome');
   if (_vnUser?.perfil !== 'admin') query = query.eq('perfil', 'operador');
   const { data } = await query;
-  _chatUsuarios = data || [];
+  let usuariosVisiveis = data || [];
+
+  // Busca quem já trocou mensagem comigo (remetente ou destinatário) e garante que apareça na lista
+  const { data: conversas } = await sb.from('mensagens_operadores')
+    .select('de_usuario_id,para_usuario_id')
+    .or(`de_usuario_id.eq.${_vnUser?.id},para_usuario_id.eq.${_vnUser?.id}`);
+  const idsComConversa = new Set();
+  (conversas||[]).forEach(m => {
+    if (m.de_usuario_id !== _vnUser?.id) idsComConversa.add(m.de_usuario_id);
+    if (m.para_usuario_id !== _vnUser?.id) idsComConversa.add(m.para_usuario_id);
+  });
+  const idsJaNaLista = new Set(usuariosVisiveis.map(u => u.id));
+  const idsFaltando = [...idsComConversa].filter(id => !idsJaNaLista.has(id));
+  if (idsFaltando.length) {
+    const { data: extras } = await sb.from('vn_usuarios').select('id,nome,email,perfil').in('id', idsFaltando);
+    usuariosVisiveis = usuariosVisiveis.concat(extras || []);
+  }
+
+  _chatUsuarios = usuariosVisiveis;
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   const { data: naolidas } = await sb.from('mensagens_operadores').select('de_usuario_id').eq('para_usuario_id', _vnUser?.id).eq('lida', false);
   const contagem = {};
@@ -22664,13 +22684,32 @@ async function loadOperadoresLista() {
     .neq('id', _vnUser?.id || '')
     .order('nome');
 
+  let lista_ops = ops || [];
+
+  // Garante que quem já trocou mensagem comigo apareça, mesmo que não seja "operador"
+  // (ex: admin) — senão a mensagem fica presa como "não lida" pra sempre.
+  const { data: conversas } = await sb.from('mensagens_operadores')
+    .select('de_usuario_id,para_usuario_id')
+    .or(`de_usuario_id.eq.${_vnUser?.id},para_usuario_id.eq.${_vnUser?.id}`);
+  const idsComConversa = new Set();
+  (conversas||[]).forEach(m => {
+    if (m.de_usuario_id !== _vnUser?.id) idsComConversa.add(m.de_usuario_id);
+    if (m.para_usuario_id !== _vnUser?.id) idsComConversa.add(m.para_usuario_id);
+  });
+  const idsJaNaLista = new Set(lista_ops.map(o => o.id));
+  const idsFaltando = [...idsComConversa].filter(id => !idsJaNaLista.has(id));
+  if (idsFaltando.length) {
+    const { data: extras } = await sb.from('vn_usuarios').select('id,nome,email').in('id', idsFaltando);
+    lista_ops = lista_ops.concat(extras || []);
+  }
+
   const lista = document.getElementById('op-lista-operadores');
-  if (!ops?.length) {
+  if (!lista_ops.length) {
     lista.innerHTML = `<div style="padding:14px;text-align:center;color:rgba(255,255,255,.3);font-size:12px">Nenhum outro operador cadastrado</div>`;
     return;
   }
 
-  lista.innerHTML = ops.map(o => `
+  lista.innerHTML = lista_ops.map(o => `
     <div onclick="abrirChatOperador('${o.id}','${(o.nome||o.email).replace(/'/g,"\'")}')"
       style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;cursor:pointer;transition:background .15s"
       onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background=''" id="op-item-${o.id}">
