@@ -2078,6 +2078,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       </div>
     </div>
 
+    <div class="form-group" style="margin-top:8px">
+      <label>🔗 Link de apoio <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional — site que ajuda a fazer a tarefa)</span></label>
+      <input type="url" id="tarefa-link" placeholder="https://..." style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+    </div>
+
     <!-- CHECKLIST DENTRO DO CARD -->
     <div class="form-group" id="tarefa-checklist-wrap" style="display:none;margin-top:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -22455,6 +22460,7 @@ async function abrirModalTarefa(tarefaId) {
       document.getElementById('tarefa-dia-mes').value = data.dia_mes || '';
       document.getElementById('tarefa-responsavel').value = data.responsavel_id || '';
       document.getElementById('tarefa-prioridade').value = data.prioridade || 'media';
+      document.getElementById('tarefa-link').value = data.link_url || '';
       document.getElementById('tarefa-btn-excluir').style.display = 'block';
       document.getElementById('tarefa-checklist-wrap').style.display = 'block';
       carregarChecklistTarefa(data.id);
@@ -22486,6 +22492,7 @@ async function abrirModalTarefa(tarefaId) {
     document.getElementById('tarefa-dia-mes').value = '';
     document.getElementById('tarefa-responsavel').value = '';
     document.getElementById('tarefa-prioridade').value = 'media';
+    document.getElementById('tarefa-link').value = '';
     document.getElementById('tarefa-btn-excluir').style.display = 'none';
     document.getElementById('tarefa-checklist-wrap').style.display = 'none';
     document.getElementById('tarefa-emp-todas').checked = true;
@@ -22556,6 +22563,7 @@ async function salvarTarefa() {
     dia_mes: recorrencia === 'mensal' ? parseInt(document.getElementById('tarefa-dia-mes').value) : null,
     responsavel_id: respId,
     prioridade: document.getElementById('tarefa-prioridade')?.value || 'media',
+    link_url: document.getElementById('tarefa-link')?.value.trim() || null,
   };
 
   let error;
@@ -23128,6 +23136,7 @@ function renderLinhaTarefa(t, opts={}) {
         ${enviadaPorOutro ? `<div style="font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:3px">📨 Enviado por ${nomeQuemEnviou}</div>` : ''}
         <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
         ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
+        ${t.link_url ? `<a href="${t.link_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:11px;color:#60a5fa;text-decoration:underline">🔗 Abrir link de apoio</a>` : ''}
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
           ${prioBadge}
           ${empresaTag}
