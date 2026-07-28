@@ -1574,6 +1574,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <option value="pendente">⏳ Pendentes</option>
               <option value="concluida">✅ Concluídas</option>
             </select>
+            <select id="hoje-filtro-prioridade" onchange="filtrarCardsHoje()"
+              style="padding:8px 12px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
+              <option value="">Toda prioridade</option>
+              <option value="alta">🔴 Alta</option>
+              <option value="media">🟡 Média</option>
+              <option value="baixa">🟢 Baixa</option>
+            </select>
           </div>
           <!-- Cards por empresa -->
           <div id="op-tarefas-hoje" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -2059,6 +2066,14 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <label>Responsável</label>
         <select id="tarefa-responsavel" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
           <option value="">— Eu mesmo —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Prioridade</label>
+        <select id="tarefa-prioridade" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+          <option value="media">🟡 Média</option>
+          <option value="baixa">🟢 Baixa</option>
+          <option value="alta">🔴 Alta</option>
         </select>
       </div>
     </div>
@@ -21651,15 +21666,19 @@ async function loadTarefasOperador() {
 function renderCardsHoje() {
   const busca = (document.getElementById('hoje-busca')?.value||'').toLowerCase();
   const filtroStatus = document.getElementById('hoje-filtro-status')?.value||'';
+  const filtroPrioridade = document.getElementById('hoje-filtro-prioridade')?.value||'';
   const container = document.getElementById('op-tarefas-hoje');
   if (!container) return;
 
+  const prioMap = { alta:{emoji:'🔴',cor:'#ef4444'}, media:{emoji:'🟡',cor:'#f59e0b'}, baixa:{emoji:'🟢',cor:'#22c55e'} };
+
   const cards = _hojeCardsData.map(g => {
-    // Filtrar tarefas conforme busca/status
+    // Filtrar tarefas conforme busca/status/prioridade
     const tarefasFiltradas = g.tarefas.filter(t => {
       if (busca && !t.titulo.toLowerCase().includes(busca)) return false;
       if (filtroStatus === 'pendente' && g.concluidasHoje.has(t.id)) return false;
       if (filtroStatus === 'concluida' && !g.concluidasHoje.has(t.id)) return false;
+      if (filtroPrioridade && (t.prioridade || 'media') !== filtroPrioridade) return false;
       return true;
     });
 
@@ -21673,11 +21692,13 @@ function renderCardsHoje() {
         ? timerControlHtml(t.id, g.hojeStr, g.temposMap[t.id])
         : { html: '', pendingTimer: null };
       if (pendingTimer) (window._pendingTimers = window._pendingTimers||[]).push(pendingTimer);
+      const prio = prioMap[t.prioridade] || prioMap.media;
 
       return `
         <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">
           <input type="checkbox" ${concluida?'checked':''} onchange="concluirTarefaData('${t.id}','${g.hojeStr}',this)"
             ${concluida?'disabled':''} style="cursor:pointer;accent-color:#2a9d5c;width:15px;height:15px;flex-shrink:0">
+          <span title="Prioridade ${t.prioridade||'media'}" style="font-size:9px;flex-shrink:0">${prio.emoji}</span>
           <div style="flex:1;min-width:0">
             <div style="font-size:12px;font-weight:600;color:${concluida?'rgba(255,255,255,.35)':'#fff'};text-decoration:${concluida?'line-through':'none'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.titulo}</div>
             ${t.descricao?`<div style="font-size:10px;color:rgba(255,255,255,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.descricao}</div>`:''}
@@ -21708,7 +21729,7 @@ function renderCardsHoje() {
         <div id="${cardId}" style="display:none;padding:0 16px 14px">
           ${tarefasFiltradas.length
             ? linhasTarefas
-            : `<div style="text-align:center;padding:12px;color:rgba(255,255,255,.3);font-size:12px">${busca||filtroStatus?'Nenhuma tarefa encontrada.':'Nenhuma tarefa para hoje.'}</div>`
+            : `<div style="text-align:center;padding:12px;color:rgba(255,255,255,.3);font-size:12px">${busca||filtroStatus||filtroPrioridade?'Nenhuma tarefa encontrada.':'Nenhuma tarefa para hoje.'}</div>`
           }
           <button onclick="event.stopPropagation();abrirModalTarefaComEmpresa('${g.empId}','${g.nome}')"
             style="margin-top:10px;width:100%;padding:7px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.4);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">
@@ -22433,6 +22454,7 @@ async function abrirModalTarefa(tarefaId) {
       });
       document.getElementById('tarefa-dia-mes').value = data.dia_mes || '';
       document.getElementById('tarefa-responsavel').value = data.responsavel_id || '';
+      document.getElementById('tarefa-prioridade').value = data.prioridade || 'media';
       document.getElementById('tarefa-btn-excluir').style.display = 'block';
       document.getElementById('tarefa-checklist-wrap').style.display = 'block';
       carregarChecklistTarefa(data.id);
@@ -22463,6 +22485,7 @@ async function abrirModalTarefa(tarefaId) {
     document.querySelectorAll('.dia-sem-check').forEach(cb => cb.checked = false);
     document.getElementById('tarefa-dia-mes').value = '';
     document.getElementById('tarefa-responsavel').value = '';
+    document.getElementById('tarefa-prioridade').value = 'media';
     document.getElementById('tarefa-btn-excluir').style.display = 'none';
     document.getElementById('tarefa-checklist-wrap').style.display = 'none';
     document.getElementById('tarefa-emp-todas').checked = true;
@@ -22532,6 +22555,7 @@ async function salvarTarefa() {
     dia_semana: recorrencia === 'semanal' ? (parseInt(document.querySelector('.dia-sem-check:checked')?.value) ?? null) : null,
     dia_mes: recorrencia === 'mensal' ? parseInt(document.getElementById('tarefa-dia-mes').value) : null,
     responsavel_id: respId,
+    prioridade: document.getElementById('tarefa-prioridade')?.value || 'media',
   };
 
   let error;
@@ -23090,6 +23114,13 @@ function renderLinhaTarefa(t, opts={}) {
 
   const enviadaPorOutro = t.criado_por && t.criado_por !== _vnUser?.id;
   const nomeQuemEnviou = t.criador?.nome || t.criador?.email || 'Outra pessoa';
+  const prioMap = {
+    alta:  { emoji:'🔴', label:'Alta',  cor:'#ef4444' },
+    media: { emoji:'🟡', label:'Média', cor:'#f59e0b' },
+    baixa: { emoji:'🟢', label:'Baixa', cor:'#22c55e' },
+  };
+  const prio = prioMap[t.prioridade] || prioMap.media;
+  const prioBadge = `<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:${prio.cor}22;color:${prio.cor}">${prio.emoji} ${prio.label}</span>`;
 
   return `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:${enviadaPorOutro ? 'rgba(124,58,237,.08)' : 'rgba(255,255,255,.02)'};border-radius:8px;border:1px solid ${enviadaPorOutro ? 'rgba(124,58,237,.35)' : 'rgba(255,255,255,.05)'}">
@@ -23098,6 +23129,7 @@ function renderLinhaTarefa(t, opts={}) {
         <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
         ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+          ${prioBadge}
           ${empresaTag}
           ${recorrenciaLabel(t)}
           ${opts.status ? statusBadgeHtml(opts.status) : ''}
@@ -23339,7 +23371,8 @@ function concluirTarefaData(tarefaId, dataStr, el) {
   document.getElementById('concluir-tarefa-id').value = tarefaId;
   document.getElementById('concluir-data-ref').value = dataStr;
   document.getElementById('concluir-observacao').value = '';
-  document.getElementById('modal-concluir-obs').classList.add('open');
+  // Conclui direto, sem abrir o modal de observação/anexo
+  confirmarConclusao(false);
 }
 
 async function confirmarConclusao(comObs) {
