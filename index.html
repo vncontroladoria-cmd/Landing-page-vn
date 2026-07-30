@@ -7242,7 +7242,9 @@ async function loadPDV() {
       const f = normForma(i.forma_pagamento);
       grupos[f] = (grupos[f]||0) + Number(i.valor||0);
     });
-    const formasTotal = ['Comanda', 'Comandas', 'Cartão Crédito', 'Cartão Débito', 'Pix'];
+    // Usa TODAS as formas de pagamento realmente encontradas nos dados — não uma lista fixa,
+    // que corria o risco de deixar categorias de fora (ex: Dinheiro) e o total ficar menor que o real
+    const formasTotal = Object.keys(grupos);
     const totalGeral = Object.entries(grupos)
       .filter(([f]) => formasTotal.includes(f))
       .reduce((s,[,v]) => s+v, 0);
@@ -22749,7 +22751,16 @@ async function loadMensagensOperador() {
   renderMensagensOperadorFiltrado();
 
   // Marca mensagens recebidas como lidas
-  await sb.from('mensagens_operadores').update({lida:true, lida_em: new Date().toISOString()}).eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false);
+  const { data: marcadas, error: errMarcar } = await sb.from('mensagens_operadores')
+    .update({lida:true, lida_em: new Date().toISOString()})
+    .eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false)
+    .select('id');
+
+  if (errMarcar) {
+    showToast(`❌ Erro ao marcar como lida: ${errMarcar.message}`, 'error');
+  } else {
+    showToast(`🔎 Diagnóstico: ${marcadas?.length || 0} mensagem(ns) marcada(s) como lida`, 'info');
+  }
 
   // Atualiza o badge na hora, sem esperar a próxima verificação automática (30s)
   verificarMensagensNovas();
