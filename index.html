@@ -23463,7 +23463,23 @@ function concluirTarefaData(tarefaId, dataStr, el) {
   document.getElementById('concluir-tarefa-id').value = tarefaId;
   document.getElementById('concluir-data-ref').value = dataStr;
   document.getElementById('concluir-observacao').value = '';
-  // Conclui direto, sem abrir o modal de observação/anexo
+
+  // Atualização imediata na tela (otimista) — não espera o banco pra dar feedback visual
+  if (el) {
+    el.checked = true;
+    el.disabled = true;
+    // Risca o título da linha (1ª div interna, com o texto da tarefa)
+    const divTexto = el.parentElement?.querySelector('div > div:first-child');
+    if (divTexto) {
+      divTexto.style.textDecoration = 'line-through';
+      divTexto.style.color = 'rgba(255,255,255,.35)';
+    }
+  }
+  // Marca localmente como concluída pra já refletir nos contadores sem esperar recarregar tudo
+  const grupo = (_hojeCardsData||[]).find(g => g.tarefas?.some(t => t.id === tarefaId));
+  if (grupo) grupo.concluidasHoje.add(tarefaId);
+
+  // Roda o resto (gravação de verdade) em segundo plano, sem travar a tela
   confirmarConclusao(false);
 }
 
@@ -23499,12 +23515,17 @@ async function confirmarConclusao(comObs) {
     tempo_total_segundos: tempoTotal || null,
     iniciado_em: iniciadoEm || null,
   });
-  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  if (error) {
+    showToast('Erro ao concluir — desfazendo: ' + error.message, 'error');
+    // Desfaz a atualização otimista e recarrega de verdade, já que deu erro
+    const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
+    tarefasTab(ativa);
+    return;
+  }
 
   closeModal('modal-concluir-obs');
   showToast('Tarefa concluída!', 'success');
-  const ativa = document.querySelector('.op-tab.active')?.dataset.tab || 'hoje';
-  tarefasTab(ativa);
+  // A tela já foi atualizada na hora (otimista) — só atualiza o contador do sino, sem recarregar tudo de novo
   atualizarBadgeAtrasados();
 }
 
