@@ -1452,41 +1452,121 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
 <!-- Modal: Dados e Links de Acesso da Empresa -->
 <div id="modal-dados-empresa" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto">
+  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:28px;width:640px;max-width:95vw;max-height:90vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <div>
         <div style="font-size:17px;font-weight:800;color:#fff" id="modal-dados-nome">Dados da Empresa</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.4)">Descrição e links de acesso</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4)">Cadastro, acessos e links</div>
       </div>
       <button onclick="fecharModalDados()" style="background:rgba(255,255,255,.08);border:none;border-radius:8px;color:rgba(255,255,255,.6);font-size:18px;width:32px;height:32px;cursor:pointer;line-height:1">✕</button>
     </div>
 
-    <div style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase">Descrição</div>
-        <span id="dados-nao-salvo" style="display:none;font-size:9px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.15);padding:2px 8px;border-radius:10px">ALTERAÇÕES NÃO SALVAS</span>
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px">📇 Cadastro</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Nome ou Razão Social</label>
+          <input id="dc-razao-social" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">CNPJ <span style="color:#60a5fa">(preenche endereço sozinho)</span></label>
+          <input id="dc-cnpj" type="text" placeholder="00.000.000/0000-00" onblur="buscarCNPJDados()" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px">
+        </div>
+        <div>
+          <label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Telefone</label>
+          <input id="dc-telefone" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Endereço</label>
+          <input id="dc-endereco" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px">
+        </div>
       </div>
-      <textarea id="dados-descricao" oninput="document.getElementById('dados-nao-salvo').style.display='inline-block'"
-        placeholder="Telefone, login, senha, código do operador, o que você quiser anotar sobre essa empresa..."
-        style="width:100%;min-height:140px;padding:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.6;resize:vertical"></textarea>
-      <button onclick="salvarDescricaoDados()" style="margin-top:8px;padding:8px 16px;background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">
-        💾 Salvar Descrição
-      </button>
-    </div>
 
-    <div>
-      <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">🔗 Links de Acesso</div>
-      <div id="dados-links-lista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+      <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:6px">💻 Sistema</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Sistema que usa</label>
+          <input id="dc-sistema" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Login</label>
+          <input id="dc-sistema-login" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Senha</label>
+          <input id="dc-sistema-senha" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+      </div>
 
-      <div style="display:flex;gap:8px">
-        <input id="dados-link-nome" type="text" placeholder="Nome (ex: Sistema AVEC, Maquininha...)"
-          style="flex:1;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
-        <input id="dados-link-url" type="url" placeholder="https://..."
-          style="flex:1.4;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
-        <button onclick="adicionarLinkDados()" style="padding:9px 16px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
-          + Add
+      <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:6px">📧 Gmail</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Gmail</label>
+          <input id="dc-gmail" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Senha do Gmail</label>
+          <input id="dc-gmail-senha" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+      </div>
+
+      <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:6px">🔢 Código do Operador</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Código do Operador</label>
+          <input id="dc-cod-operador" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Senha do Código</label>
+          <input id="dc-cod-operador-senha" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+      </div>
+
+      <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:6px">💳 Cartão de Crédito</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Cartão de Crédito</label>
+          <input id="dc-cartao" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Senha/Código</label>
+          <input id="dc-cartao-senha" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+      </div>
+
+      <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:6px">🏧 Maquininha</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Qual Maquininha</label>
+          <input id="dc-maquininha" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Login</label>
+          <input id="dc-maquininha-login" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Senha</label>
+          <input id="dc-maquininha-senha" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+      </div>
+
+      <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:6px">🧾 Emissão de Nota</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Login</label>
+          <input id="dc-nf-login" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+        <div><label style="font-size:11px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Senha</label>
+          <input id="dc-nf-senha" type="text" style="width:100%;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#fff;font-size:13px"></div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <span id="dc-nao-salvo" style="display:none;font-size:9px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.15);padding:2px 8px;border-radius:10px">ALTERAÇÕES NÃO SALVAS</span>
+        <button onclick="salvarDadosCadastro()" style="margin-left:auto;padding:9px 18px;background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">
+          💾 Salvar Cadastro
         </button>
       </div>
+
+      <!-- OUTROS LOGINS/SENHAS (lista dinâmica) -->
+      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px">🔐 Outros Logins e Senhas</div>
+          <button onclick="adicionarOutroLoginDados()" style="padding:5px 12px;background:#3b82f6;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:700;cursor:pointer">+ Adicionar</button>
+        </div>
+        <div id="dados-outros-lista" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
+      <!-- LINKS DE ACESSO -->
+      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:6px">
+        <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔗 Links de Acesso</div>
+        <div id="dados-links-lista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+
+        <div style="display:flex;gap:8px">
+          <input id="dados-link-nome" type="text" placeholder="Nome (ex: Sistema AVEC, Maquininha...)"
+            style="flex:1;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+          <input id="dados-link-url" type="url" placeholder="https://..."
+            style="flex:1.4;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+          <button onclick="adicionarLinkDados()" style="padding:9px 16px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+            + Add
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -24929,6 +25009,11 @@ function fecharModalTema() {
 // ── Modal: Dados e Links de Acesso da Empresa ──
 let _infoEmpresaId = null;
 let _infoEmpresaLinks = [];
+let _infoEmpresaOutros = [];
+
+const _dcCampos = ['razao-social','cnpj','telefone','endereco','sistema','sistema-login','sistema-senha',
+  'gmail','gmail-senha','cod-operador','cod-operador-senha','cartao','cartao-senha',
+  'maquininha','maquininha-login','maquininha-senha','nf-login','nf-senha'];
 
 async function abrirModalDados(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
@@ -24936,33 +25021,120 @@ async function abrirModalDados(empresaId) {
   _infoEmpresaId = empresaId;
 
   document.getElementById('modal-dados-nome').textContent = emp.nome;
-  document.getElementById('dados-descricao').value = '';
-  document.getElementById('dados-nao-salvo').style.display = 'none';
+  _dcCampos.forEach(c => { const el = document.getElementById('dc-'+c); if (el) el.value = ''; });
+  document.getElementById('dc-nao-salvo').style.display = 'none';
   document.getElementById('dados-links-lista').innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.3);padding:8px 0">Carregando...</div>';
+  document.getElementById('dados-outros-lista').innerHTML = '';
   document.getElementById('modal-dados-empresa').style.display = 'flex';
 
   // Busca direto do banco pra garantir dado mais atual (o cache local pode estar desatualizado)
-  const { data } = await sb.from('empresas').select('dados_descricao,dados_links').eq('id', empresaId).single();
-  document.getElementById('dados-descricao').value = data?.dados_descricao || '';
+  const { data } = await sb.from('empresas').select('dados_cadastro,dados_links,dados_outros_logins').eq('id', empresaId).single();
+  const cad = data?.dados_cadastro || {};
+  _dcCampos.forEach(c => {
+    const chave = c.replace(/-/g, '_');
+    const el = document.getElementById('dc-'+c);
+    if (el) el.value = cad[chave] || '';
+  });
   _infoEmpresaLinks = Array.isArray(data?.dados_links) ? data.dados_links : [];
+  _infoEmpresaOutros = Array.isArray(data?.dados_outros_logins) ? data.dados_outros_logins : [];
   renderDadosLinks();
+  renderOutrosLoginsDados();
+
+  // Marca "alterações não salvas" quando qualquer campo do cadastro mudar
+  _dcCampos.forEach(c => {
+    const el = document.getElementById('dc-'+c);
+    if (el) el.oninput = () => { document.getElementById('dc-nao-salvo').style.display = 'inline-block'; };
+  });
 }
 
 function fecharModalDados() {
   document.getElementById('modal-dados-empresa').style.display = 'none';
   _infoEmpresaId = null;
   _infoEmpresaLinks = [];
+  _infoEmpresaOutros = [];
 }
 
-async function salvarDescricaoDados() {
+async function salvarDadosCadastro() {
   if (!_infoEmpresaId) return;
-  const texto = document.getElementById('dados-descricao').value;
-  const { error } = await sb.from('empresas').update({ dados_descricao: texto }).eq('id', _infoEmpresaId);
+  const cad = {};
+  _dcCampos.forEach(c => {
+    const chave = c.replace(/-/g, '_');
+    cad[chave] = document.getElementById('dc-'+c)?.value.trim() || null;
+  });
+  const { error } = await sb.from('empresas').update({ dados_cadastro: cad }).eq('id', _infoEmpresaId);
   if (error) { showToast('Erro ao salvar: ' + error.message, 'error'); return; }
-  document.getElementById('dados-nao-salvo').style.display = 'none';
-  showToast('✅ Descrição salva!', 'success');
+  document.getElementById('dc-nao-salvo').style.display = 'none';
+  showToast('✅ Cadastro salvo!', 'success');
 }
 
+// Busca dados do CNPJ na Receita (BrasilAPI, gratuita e sem chave) e preenche razão social/endereço sozinho
+async function buscarCNPJDados() {
+  const raw = document.getElementById('dc-cnpj')?.value.replace(/\D/g, '');
+  if (!raw || raw.length !== 14) return;
+  try {
+    const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${raw}`);
+    if (!resp.ok) return;
+    const d = await resp.json();
+    if (d.razao_social && !document.getElementById('dc-razao-social').value) {
+      document.getElementById('dc-razao-social').value = d.razao_social;
+    }
+    if (!document.getElementById('dc-telefone').value && d.ddd_telefone_1) {
+      document.getElementById('dc-telefone').value = d.ddd_telefone_1;
+    }
+    const partesEndereco = [d.logradouro, d.numero, d.bairro, d.municipio, d.uf, d.cep].filter(Boolean);
+    if (partesEndereco.length && !document.getElementById('dc-endereco').value) {
+      document.getElementById('dc-endereco').value = partesEndereco.join(', ');
+    }
+    document.getElementById('dc-nao-salvo').style.display = 'inline-block';
+    showToast('📇 Dados do CNPJ preenchidos automaticamente!', 'success');
+  } catch(e) { /* CNPJ pode não ser encontrado — não trava o preenchimento manual */ }
+}
+
+// ── Outros logins/senhas (lista dinâmica: nome do que é + login + senha) ──
+function renderOutrosLoginsDados() {
+  const el = document.getElementById('dados-outros-lista');
+  if (!el) return;
+  if (!_infoEmpresaOutros.length) {
+    el.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.3)">Nenhum outro login adicionado.</div>';
+    return;
+  }
+  el.innerHTML = _infoEmpresaOutros.map((o, i) => `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 10px">
+      <input value="${(o.nome||'').replace(/"/g,'&quot;')}" placeholder="Nome (do que é)" oninput="editarOutroLoginDados(${i},'nome',this.value)" style="padding:6px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#fff;font-size:12px">
+      <input value="${(o.login||'').replace(/"/g,'&quot;')}" placeholder="Login" oninput="editarOutroLoginDados(${i},'login',this.value)" style="padding:6px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#fff;font-size:12px">
+      <input value="${(o.senha||'').replace(/"/g,'&quot;')}" placeholder="Senha" oninput="editarOutroLoginDados(${i},'senha',this.value)" style="padding:6px 8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#fff;font-size:12px">
+      <button onclick="removerOutroLoginDados(${i})" title="Remover" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:14px">✕</button>
+    </div>`).join('');
+}
+
+function adicionarOutroLoginDados() {
+  _infoEmpresaOutros.push({ nome: '', login: '', senha: '' });
+  renderOutrosLoginsDados();
+  salvarOutrosLoginsDados();
+}
+
+// Salva com um pequeno debounce pra não disparar 1 update por letra digitada
+let _outrosLoginsTimer = null;
+function editarOutroLoginDados(idx, campo, valor) {
+  if (!_infoEmpresaOutros[idx]) return;
+  _infoEmpresaOutros[idx][campo] = valor;
+  clearTimeout(_outrosLoginsTimer);
+  _outrosLoginsTimer = setTimeout(salvarOutrosLoginsDados, 600);
+}
+
+async function removerOutroLoginDados(idx) {
+  _infoEmpresaOutros.splice(idx, 1);
+  renderOutrosLoginsDados();
+  await salvarOutrosLoginsDados();
+}
+
+async function salvarOutrosLoginsDados() {
+  if (!_infoEmpresaId) return;
+  const { error } = await sb.from('empresas').update({ dados_outros_logins: _infoEmpresaOutros }).eq('id', _infoEmpresaId);
+  if (error) showToast('Erro ao salvar: ' + error.message, 'error');
+}
+
+// ── Links de acesso (com editar, excluir, subir e descer) ──
 function renderDadosLinks() {
   const el = document.getElementById('dados-links-lista');
   if (!el) return;
@@ -24973,9 +25145,48 @@ function renderDadosLinks() {
   el.innerHTML = _infoEmpresaLinks.map((l, i) => `
     <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 12px">
       <span style="font-size:14px">🔗</span>
-      <a href="${l.url}" target="_blank" rel="noopener" style="flex:1;color:#60a5fa;font-size:13px;font-weight:600;text-decoration:underline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.nome || l.url}</a>
-      <button onclick="removerLinkDados(${i})" title="Remover" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:14px;padding:2px 6px">✕</button>
+      <input id="link-nome-${i}" value="${(l.nome||'').replace(/"/g,'&quot;')}" style="width:130px;padding:4px 6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#fff;font-size:12px" disabled>
+      <input id="link-url-${i}" value="${(l.url||'').replace(/"/g,'&quot;')}" style="flex:1;padding:4px 6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#60a5fa;font-size:12px" disabled>
+      <button onclick="moverLinkDados(${i},-1)" ${i===0?'disabled style="opacity:.3"':''} title="Subir" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:13px">↑</button>
+      <button onclick="moverLinkDados(${i},1)" ${i===_infoEmpresaLinks.length-1?'disabled style="opacity:.3"':''} title="Descer" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:13px">↓</button>
+      <button onclick="editarLinkDados(${i})" id="link-edit-btn-${i}" title="Editar" style="background:none;border:none;color:#60a5fa;cursor:pointer;font-size:13px">✏️</button>
+      <button onclick="removerLinkDados(${i})" title="Remover" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:14px">✕</button>
     </div>`).join('');
+}
+
+function editarLinkDados(idx) {
+  const inpNome = document.getElementById(`link-nome-${idx}`);
+  const inpUrl = document.getElementById(`link-url-${idx}`);
+  const btn = document.getElementById(`link-edit-btn-${idx}`);
+  const editando = !inpNome.disabled;
+  if (editando) {
+    // Estava editando — salva
+    _infoEmpresaLinks[idx].nome = inpNome.value.trim() || inpUrl.value.trim();
+    let url = inpUrl.value.trim();
+    if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+    _infoEmpresaLinks[idx].url = url;
+    inpNome.disabled = true; inpUrl.disabled = true;
+    btn.textContent = '✏️';
+    salvarLinksDados();
+  } else {
+    inpNome.disabled = false; inpUrl.disabled = false;
+    inpNome.focus();
+    btn.textContent = '💾';
+  }
+}
+
+async function moverLinkDados(idx, direcao) {
+  const novoIdx = idx + direcao;
+  if (novoIdx < 0 || novoIdx >= _infoEmpresaLinks.length) return;
+  [_infoEmpresaLinks[idx], _infoEmpresaLinks[novoIdx]] = [_infoEmpresaLinks[novoIdx], _infoEmpresaLinks[idx]];
+  renderDadosLinks();
+  await salvarLinksDados();
+}
+
+async function salvarLinksDados() {
+  if (!_infoEmpresaId) return;
+  const { error } = await sb.from('empresas').update({ dados_links: _infoEmpresaLinks }).eq('id', _infoEmpresaId);
+  if (error) showToast('Erro ao salvar: ' + error.message, 'error');
 }
 
 async function adicionarLinkDados() {
