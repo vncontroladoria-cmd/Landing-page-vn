@@ -2292,9 +2292,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
           <span class="nav-label" style="color:#34d399;font-weight:600;text-transform:uppercase">Métricas</span>
         </div>
-        <div class="nav-item" data-page="conciliacao" onclick="showPage('conciliacao',this)" style="background:linear-gradient(90deg,rgba(5,150,105,0.15),transparent);border:1px solid rgba(5,150,105,0.2)">
-          <span class="nav-icon" style="color:#34d399">⇄</span><span class="nav-label" style="color:#34d399;font-weight:600;text-transform:uppercase">Conciliação</span>
-        </div>
         <div class="nav-item" data-page="importacao" onclick="showPage('importacao',this)" style="background:linear-gradient(90deg,rgba(5,150,105,0.15),transparent);border:1px solid rgba(5,150,105,0.2)">
           <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span class="nav-label" style="color:#34d399;font-weight:600;text-transform:uppercase">Importação</span>
@@ -3731,7 +3728,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="section-card" style="padding:0">
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>NOME</th><th>TIPO</th><th>CARGO</th><th>TELEFONE</th><th>E-MAIL</th><th>CNPJ</th><th>CHAVE PIX</th><th>ADMISSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
+                  <thead><tr><th>NOME</th><th>TIPO</th><th>CARGO</th><th>TELEFONE</th><th>CNPJ</th><th>CHAVE PIX</th><th>ADMISSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
                   <tbody id="rh-prof-tbody"></tbody>
                 </table>
               </div>
@@ -20377,7 +20374,7 @@ async function loadRHProfissionais() {
   const tbody = document.getElementById('rh-prof-tbody');
   if (!tbody) return;
   if (!_rhProfissionais.length) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--text2)">Nenhum profissional cadastrado</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text2)">Nenhum profissional cadastrado</td></tr>`;
     return;
   }
   tbody.innerHTML = _rhProfissionais.map(p => `
@@ -20386,7 +20383,6 @@ async function loadRHProfissionais() {
       <td><span class="badge ${p.tipo==='clt'?'badge-blue':p.tipo==='freelancer'?'badge-amber':'badge-green'}" style="font-size:10px">${p.tipo==='clt'?'CLT':p.tipo==='freelancer'?'Freelancer':'Profissional'}</span></td>
       <td>${p.cargo||'—'}</td>
       <td>${p.telefone||'—'}</td>
-      <td style="font-size:12px">${p.email||'—'}</td>
       <td style="font-size:12px">${p.cnpj||'—'}</td>
       <td style="font-size:12px">${p.chave_pix||'—'}</td>
       <td>${p.data_admissao ? new Date(p.data_admissao+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
@@ -20406,7 +20402,6 @@ function abrirModalProfissionalRH(id) {
   document.getElementById('rh-prof-cargo').value = '';
   document.getElementById('rh-prof-telefone').value = '';
   document.getElementById('rh-prof-admissao').value = '';
-  document.getElementById('rh-prof-email').value = '';
   document.getElementById('rh-prof-cnpj').value = '';
   document.getElementById('rh-prof-pix').value = '';
   document.getElementById('rh-prof-ativo').value = 'true';
@@ -20420,7 +20415,6 @@ function abrirModalProfissionalRH(id) {
       document.getElementById('rh-prof-cargo').value = p.cargo || '';
       document.getElementById('rh-prof-telefone').value = p.telefone || '';
       document.getElementById('rh-prof-admissao').value = p.data_admissao || '';
-      document.getElementById('rh-prof-email').value = p.email || '';
       document.getElementById('rh-prof-cnpj').value = p.cnpj || '';
       document.getElementById('rh-prof-pix').value = p.chave_pix || '';
       document.getElementById('rh-prof-ativo').value = String(!!p.ativo);
@@ -20440,7 +20434,6 @@ async function salvarProfissionalRH() {
     cargo: document.getElementById('rh-prof-cargo').value.trim() || null,
     telefone: document.getElementById('rh-prof-telefone').value.trim() || null,
     data_admissao: document.getElementById('rh-prof-admissao').value || null,
-    email: document.getElementById('rh-prof-email').value.trim() || null,
     cnpj: document.getElementById('rh-prof-cnpj').value.trim() || null,
     chave_pix: document.getElementById('rh-prof-pix').value.trim() || null,
     ativo: document.getElementById('rh-prof-ativo').value === 'true',
@@ -25692,9 +25685,6 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         <div class="form-group"><label>Data de Admissão</label>
           <input type="date" id="rh-prof-admissao" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
         </div>
-      </div>
-      <div class="form-group"><label>E-mail</label>
-        <input type="email" id="rh-prof-email" placeholder="email@exemplo.com" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
       </div>
       <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group"><label>CNPJ <span style="font-weight:400;color:var(--text3);font-size:11px">(se prestador PJ)</span></label>
