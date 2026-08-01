@@ -23574,13 +23574,36 @@ async function buscarTarefasAtrasadas() {
 
   const atrasadas = [];
 
-  for (const t of naoClientePending) {
+  // Filtra só tarefas cuja criação já passou (evita processar as que nem começaram)
+  const candidatas = naoClientePending.filter(t => {
+    const criadoD = new Date(t.criado_em);
+    const criadoLocal = `${criadoD.getFullYear()}-${String(criadoD.getMonth()+1).padStart(2,'0')}-${String(criadoD.getDate()).padStart(2,'0')}`;
+    return criadoLocal < hojeLocal;
+  });
+  if (!candidatas.length) return atrasadas;
+
+  // Busca TODAS as conclusões de TODAS as tarefas de uma vez só — 1 consulta em vez de N
+  const idsCandidatas = candidatas.map(t => t.id);
+  const datasCriacao = candidatas.map(t => {
+    const d = new Date(t.criado_em);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  });
+  const menorDataCriacao = datasCriacao.reduce((min, d) => d < min ? d : min, datasCriacao[0]);
+  const { data: todasConcl } = await sb.from('tarefas_conclusoes')
+    .select('tarefa_id,data_referencia')
+    .in('tarefa_id', idsCandidatas)
+    .gte('data_referencia', menorDataCriacao)
+    .lte('data_referencia', ontemLocal);
+  const conclPorTarefa = {};
+  (todasConcl||[]).forEach(c => {
+    if (!conclPorTarefa[c.tarefa_id]) conclPorTarefa[c.tarefa_id] = new Set();
+    conclPorTarefa[c.tarefa_id].add(c.data_referencia);
+  });
+
+  for (const t of candidatas) {
     // Data de criação em horário LOCAL (não UTC)
     const criadoD = new Date(t.criado_em);
     const criadoLocal = `${criadoD.getFullYear()}-${String(criadoD.getMonth()+1).padStart(2,'0')}-${String(criadoD.getDate()).padStart(2,'0')}`;
-
-    // Só processa dias APÓS a criação e ANTES de hoje
-    if (criadoLocal >= hojeLocal) continue;
 
     // Gera datas do dia DA PRÓPRIA criação até ontem — inclui o dia em que a tarefa foi criada
     // (ex: tarefa criada dia 14 com data marcada pro dia 14 tem que poder ficar atrasada)
@@ -23588,13 +23611,7 @@ async function buscarTarefasAtrasadas() {
     let cur = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate());
     const fimDia = new Date(ontemD.getFullYear(), ontemD.getMonth(), ontemD.getDate());
 
-    // Buscar conclusões desta tarefa no período
-    const { data: concl } = await sb.from('tarefas_conclusoes')
-      .select('data_referencia')
-      .eq('tarefa_id', t.id)
-      .gte('data_referencia', criadoLocal)
-      .lte('data_referencia', ontemLocal);
-    const conclDatas = new Set((concl||[]).map(c=>c.data_referencia));
+    const conclDatas = conclPorTarefa[t.id] || new Set();
 
     // Verificar cada dia no range
     while (cur <= fimDia) {
