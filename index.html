@@ -478,6 +478,17 @@ tbody tr:hover { background: var(--bg3); }
 .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: var(--text3); font-size: 13px; gap: 8px; }
 .spin { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes tremerChat {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-12deg); }
+  20% { transform: rotate(10deg); }
+  30% { transform: rotate(-8deg); }
+  40% { transform: rotate(6deg); }
+  50% { transform: rotate(-4deg); }
+  60% { transform: rotate(2deg); }
+  70%, 100% { transform: rotate(0deg); }
+}
+#btn-chat.tem-msg-nova { animation: tremerChat 0.8s ease-in-out infinite; }
 .empty { text-align: center; padding: 3rem; color: var(--text3); font-size: 13px; background: var(--bg3); border-radius: 8px; }
 
 /* MODAL */
@@ -7753,7 +7764,7 @@ function toggleMiniChat() {
     carregarUsuariosChat();
     zerarBadgeChat();
     clearInterval(_chatInterval);
-    _chatInterval = setInterval(verificarMsgNovas, 10000);
+    _chatInterval = setInterval(verificarMsgNovas, 3000);
   } else {
     clearInterval(_chatInterval); _chatInterval = null;
   }
@@ -7818,13 +7829,13 @@ async function abrirConversaChat(userId, userName) {
   // da conversa, e sobrescrevia por cima, causando o "pisca-pisca" ao abrir uma conversa)
   document.getElementById('chat-input')?.focus();
   clearInterval(_chatInterval);
-  _chatInterval = setInterval(carregarMensagensConversa, 5000);
+  _chatInterval = setInterval(carregarMensagensConversa, 2000);
 }
 
 function voltarListaChat() {
   _chatConversa = null;
   clearInterval(_chatInterval);
-  _chatInterval = setInterval(verificarMsgNovas, 10000);
+  _chatInterval = setInterval(verificarMsgNovas, 3000);
   const btnVoltar = document.getElementById('chat-btn-voltar');
   if (btnVoltar) btnVoltar.style.display = 'none';
   const header = document.getElementById('chat-header-nome');
@@ -7923,12 +7934,21 @@ async function verificarMsgNovas() {
   if (!_vnUser?.id) return;
   const { count } = await sb.from('mensagens_operadores').select('id', { count: 'exact', head: true }).eq('para_usuario_id', _vnUser.id).eq('lida', false);
   const badge = document.getElementById('chat-badge');
+  const btnChat = document.getElementById('btn-chat');
   if (!badge) return;
-  if (count > 0) { badge.style.display = 'flex'; badge.textContent = count > 9 ? '9+' : count; }
-  else badge.style.display = 'none';
+  if (count > 0) {
+    badge.style.display = 'flex'; badge.textContent = count > 9 ? '9+' : count;
+    if (btnChat && !_chatAberto) btnChat.classList.add('tem-msg-nova');
+  } else {
+    badge.style.display = 'none';
+    if (btnChat) btnChat.classList.remove('tem-msg-nova');
+  }
 }
 
-function zerarBadgeChat() { const b = document.getElementById('chat-badge'); if (b) b.style.display = 'none'; }
+function zerarBadgeChat() {
+  const b = document.getElementById('chat-badge'); if (b) b.style.display = 'none';
+  document.getElementById('btn-chat')?.classList.remove('tem-msg-nova');
+}
 
 async function enviarMensagemChat() {
   if (!_chatConversa) return;
@@ -7954,7 +7974,7 @@ async function enviarMensagemChat() {
   await carregarMensagensConversa();
 }
 
-function iniciarPollingChat() { clearInterval(_chatInterval); _chatInterval = setInterval(verificarMsgNovas, 10000); verificarMsgNovas(); }
+function iniciarPollingChat() { clearInterval(_chatInterval); _chatInterval = setInterval(verificarMsgNovas, 3000); verificarMsgNovas(); }
 
 // ─── FIM MINI CHAT ────────────────────────────────────────
 // ─── LANÇAMENTOS DRE ──────────────────────────────────────
@@ -23977,7 +23997,7 @@ async function verificarPendenciasCount() {
 function iniciarPollingMensagens() {
   pararPollingMensagens();
   verificarMensagensNovas();
-  _msgPollingInterval = setInterval(verificarMensagensNovas, 30000); // a cada 30s
+  _msgPollingInterval = setInterval(verificarMensagensNovas, 8000); // a cada 8s (era 30s)
 }
 
 function pararPollingMensagens() {
@@ -24208,8 +24228,12 @@ function tocarSomMensagem() {
       osc.start(ctx.currentTime + inicio);
       osc.stop(ctx.currentTime + inicio + duracao);
     };
-    tocarNota(880, 0, 0.12);
-    tocarNota(1200, 0.1, 0.15);
+    // Repete o "ding-ding" 4 vezes ao longo de ~2 segundos, pra dar tempo da pessoa notar
+    for (let i = 0; i < 4; i++) {
+      const base = i * 0.55;
+      tocarNota(880, base, 0.12);
+      tocarNota(1200, base + 0.1, 0.15);
+    }
   } catch(e) { /* navegador pode bloquear som sem interação do usuário — ignora silenciosamente */ }
 }
 
