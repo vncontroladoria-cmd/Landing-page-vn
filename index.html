@@ -3728,7 +3728,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="section-card" style="padding:0">
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>NOME</th><th>TIPO</th><th>CARGO</th><th>TELEFONE</th><th>CNPJ</th><th>CPF</th><th>REGIME</th><th>CHAVE PIX</th><th>NASCIMENTO</th><th>SENHA GOV</th><th>ADMISSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
+                  <thead><tr><th>NOME</th><th>TIPO</th><th>CARGO</th><th>CNPJ</th><th>CPF</th><th>REGIME</th><th>CHAVE PIX</th><th>NASCIMENTO</th><th>SENHA GOV</th><th>ADMISSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
                   <tbody id="rh-prof-tbody"></tbody>
                 </table>
               </div>
@@ -13536,7 +13536,27 @@ async function saveBanco() {
 }
 
 async function excluirBanco(id) {
-  if (!confirm('Excluir este banco?')) return;
+  // Busca o nome do banco antes de excluir
+  const { data: banco } = await sb.from('bancos_cadastrados').select('nome').eq('id', id).single();
+  const nome = banco?.nome || '';
+
+  // Verifica lançamentos que usam esse banco (por nome e por id, cobre os dois jeitos que o sistema usa)
+  let count = 0;
+  if (nome) {
+    const { count: c } = await qE('lancamentos').select('id', { count: 'exact', head: true }).or(`banco_id.eq.${id},banco_nome.eq.${nome}`);
+    count = c || 0;
+  } else {
+    const { count: c } = await qE('lancamentos').select('id', { count: 'exact', head: true }).eq('banco_id', id);
+    count = c || 0;
+  }
+
+  if (count > 0) {
+    const msg = `⚠️ O banco "${nome || 'selecionado'}" está sendo usado em ${count} lançamento${count > 1 ? 's' : ''}.\n\nEsses lançamentos não serão apagados, mas ficarão sem o banco vinculado.\n\nDeseja continuar mesmo assim?`;
+    if (!confirm(msg)) return;
+  } else {
+    if (!confirm(`Excluir o banco "${nome || 'selecionado'}"? Não há lançamentos vinculados a ele.`)) return;
+  }
+
   await sb.from('bancos_cadastrados').delete().eq('id', id);
   showToast('Excluído!','success');
   loadBancos();
@@ -20374,7 +20394,7 @@ async function loadRHProfissionais() {
   const tbody = document.getElementById('rh-prof-tbody');
   if (!tbody) return;
   if (!_rhProfissionais.length) {
-    tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:20px;color:var(--text2)">Nenhum profissional cadastrado</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:20px;color:var(--text2)">Nenhum profissional cadastrado</td></tr>`;
     return;
   }
   tbody.innerHTML = _rhProfissionais.map(p => `
@@ -20382,7 +20402,6 @@ async function loadRHProfissionais() {
       <td style="font-weight:600">${p.nome}</td>
       <td><span class="badge ${p.tipo==='clt'?'badge-blue':p.tipo==='freelancer'?'badge-amber':'badge-green'}" style="font-size:10px">${p.tipo==='clt'?'CLT':p.tipo==='freelancer'?'Freelancer':'Profissional'}</span></td>
       <td>${p.cargo||'—'}</td>
-      <td>${p.telefone||'—'}</td>
       <td style="font-size:12px">${p.cnpj||'—'}</td>
       <td style="font-size:12px">${p.cpf||'—'}</td>
       <td style="font-size:12px">${p.regime ? `<span class="badge badge-blue" style="font-size:10px">${p.regime}</span>` : `<span style="color:var(--text3)">Pessoa Física</span>`}</td>
@@ -20404,7 +20423,6 @@ function abrirModalProfissionalRH(id) {
   document.getElementById('rh-prof-nome').value = '';
   document.getElementById('rh-prof-tipo').value = 'clt';
   document.getElementById('rh-prof-cargo').value = '';
-  document.getElementById('rh-prof-telefone').value = '';
   document.getElementById('rh-prof-admissao').value = '';
   document.getElementById('rh-prof-cnpj').value = '';
   document.getElementById('rh-prof-cpf').value = '';
@@ -20421,7 +20439,6 @@ function abrirModalProfissionalRH(id) {
       document.getElementById('rh-prof-nome').value = p.nome || '';
       document.getElementById('rh-prof-tipo').value = p.tipo || 'clt';
       document.getElementById('rh-prof-cargo').value = p.cargo || '';
-      document.getElementById('rh-prof-telefone').value = p.telefone || '';
       document.getElementById('rh-prof-admissao').value = p.data_admissao || '';
       document.getElementById('rh-prof-cnpj').value = p.cnpj || '';
       document.getElementById('rh-prof-cpf').value = p.cpf || '';
@@ -20444,7 +20461,6 @@ async function salvarProfissionalRH() {
     nome,
     tipo: document.getElementById('rh-prof-tipo').value,
     cargo: document.getElementById('rh-prof-cargo').value.trim() || null,
-    telefone: document.getElementById('rh-prof-telefone').value.trim() || null,
     data_admissao: document.getElementById('rh-prof-admissao').value || null,
     cnpj: document.getElementById('rh-prof-cnpj').value.trim() || null,
     cpf: document.getElementById('rh-prof-cpf').value.trim() || null,
@@ -25694,13 +25710,8 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
           <input type="text" id="rh-prof-cargo" placeholder="Ex: Cabeleireiro, Recepção..." style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
         </div>
       </div>
-      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
-        <div class="form-group"><label>Telefone</label>
-          <input type="text" id="rh-prof-telefone" placeholder="(11) 90000-0000" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
-        </div>
-        <div class="form-group"><label>Data de Admissão</label>
-          <input type="date" id="rh-prof-admissao" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
-        </div>
+      <div class="form-group"><label>Data de Admissão</label>
+        <input type="date" id="rh-prof-admissao" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
       </div>
       <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-group"><label>CNPJ <span style="font-weight:400;color:var(--text3);font-size:11px">(se prestador PJ)</span></label>
