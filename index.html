@@ -3728,7 +3728,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="section-card" style="padding:0">
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>NOME</th><th>TIPO</th><th>CARGO</th><th>TELEFONE</th><th>CNPJ</th><th>CHAVE PIX</th><th>ADMISSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
+                  <thead><tr><th>NOME</th><th>TIPO</th><th>CARGO</th><th>TELEFONE</th><th>CNPJ</th><th>CHAVE PIX</th><th>NASCIMENTO</th><th>SENHA GOV</th><th>ADMISSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
                   <tbody id="rh-prof-tbody"></tbody>
                 </table>
               </div>
@@ -20374,7 +20374,7 @@ async function loadRHProfissionais() {
   const tbody = document.getElementById('rh-prof-tbody');
   if (!tbody) return;
   if (!_rhProfissionais.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text2)">Nenhum profissional cadastrado</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text2)">Nenhum profissional cadastrado</td></tr>`;
     return;
   }
   tbody.innerHTML = _rhProfissionais.map(p => `
@@ -20385,6 +20385,8 @@ async function loadRHProfissionais() {
       <td>${p.telefone||'—'}</td>
       <td style="font-size:12px">${p.cnpj||'—'}</td>
       <td style="font-size:12px">${p.chave_pix||'—'}</td>
+      <td style="font-size:12px">${p.data_nascimento ? new Date(p.data_nascimento+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+      <td style="font-size:12px">${p.senha_gov ? `<span onclick="this.textContent=this.textContent==='••••••'?'${p.senha_gov}':'••••••'" style="cursor:pointer" title="Clique para mostrar/ocultar">••••••</span>` : '—'}</td>
       <td>${p.data_admissao ? new Date(p.data_admissao+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
       <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${p.ativo?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};color:${p.ativo?'#4ade80':'#f87171'};font-weight:700">${p.ativo?'ATIVO':'INATIVO'}</span></td>
       <td>
