@@ -909,6 +909,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 </head>
 <body>
 
+<div id="empresa-loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.92);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <div class="spin" style="width:40px;height:40px;border-width:4px"></div>
+  <div style="color:#fff;font-size:15px;font-weight:600;font-family:'Outfit',sans-serif">Carregando dados da empresa...</div>
+</div>
+
 <div id="login-screen">
   <!-- TELA LOGIN -->
   <div class="login-card" id="card-login">
@@ -5871,7 +5876,7 @@ async function showApp() {
     btnVoltar.style.display = (_vnUser?.perfil === 'operador' || _vindoDoMasterControladoria) ? 'flex' : 'none';
   }
 
-  loadDashboard();
+  await loadDashboard();
 
   // Seta sempre visível — clique abre seletor
   const tag = document.getElementById('topbar-empresa-tag');
@@ -5987,6 +5992,7 @@ function ativarBloqueioLeitor(ativar) {
 async function trocarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
+  mostrarLoadingEmpresa();
   _empresaAtual = emp;
   if (emp?.id) { sessionStorage.setItem('vn_empresa_id', emp.id); localStorage.setItem('vn_empresa_id', emp.id); }
   // Limpa cache de categorias para recarregar da nova empresa
@@ -6011,7 +6017,11 @@ async function trocarEmpresa(empresaId) {
   const dashNav = document.querySelector('[data-page="dashboard"]');
   if (dashNav) dashNav.classList.add('active');
   document.getElementById('page-title').textContent = 'Dashboard';
-  await loadDashboard();
+  try {
+    await loadDashboard();
+  } finally {
+    esconderLoadingEmpresa();
+  }
   showToast('Empresa: ' + emp.nome, 'success');
 }
 
@@ -18692,9 +18702,19 @@ async function masterLoadBase() {
 }
 
 // Acessa uma empresa como admin (entra no sistema dela)
+function mostrarLoadingEmpresa() {
+  const el = document.getElementById('empresa-loading-overlay');
+  if (el) el.style.display = 'flex';
+}
+function esconderLoadingEmpresa() {
+  const el = document.getElementById('empresa-loading-overlay');
+  if (el) el.style.display = 'none';
+}
+
 async function masterAcessarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
+  mostrarLoadingEmpresa();
   _empresaAtual = emp;
   if (emp?.id) {
     sessionStorage.setItem('vn_empresa_id', emp.id);
@@ -18714,7 +18734,13 @@ async function masterAcessarEmpresa(empresaId) {
     sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
   }
   document.getElementById('painel-master').style.display = 'none';
-  await showApp();
+  try {
+    await showApp();
+    // Só libera a tela depois que o Dashboard (dados da empresa nova) realmente carregou
+    await loadDashboard();
+  } finally {
+    esconderLoadingEmpresa();
+  }
 }
 
 async function masterAlternarEmpresa(id, ativo) {
@@ -21567,6 +21593,7 @@ async function loadEmpresasOperador() {
 async function operadorAcessarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
+  mostrarLoadingEmpresa();
   _empresaAtual = emp;
   sessionStorage.setItem('vn_empresa_id', emp.id);
   localStorage.setItem('vn_empresa_id', emp.id);
@@ -21577,7 +21604,12 @@ async function operadorAcessarEmpresa(empresaId) {
   }
   document.getElementById('painel-operador').style.display = 'none';
   _vindoDoOperador = true;
-  await showApp();
+  try {
+    await showApp();
+    await loadDashboard();
+  } finally {
+    esconderLoadingEmpresa();
+  }
 }
 
 // ─── TAREFAS ────────────────────────────────────────────
