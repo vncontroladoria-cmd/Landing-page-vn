@@ -1483,8 +1483,24 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         </div>
       </div>
 
+      <!-- LINKS DE ACESSO — sempre visível, não fica atrás do "+" -->
+      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:6px">
+        <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔗 Links de Acesso</div>
+        <div id="dados-links-lista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+
+        <div style="display:flex;gap:8px">
+          <input id="dados-link-nome" type="text" placeholder="Nome (ex: Sistema AVEC, Maquininha...)"
+            style="flex:1;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+          <input id="dados-link-url" type="url" placeholder="https://..."
+            style="flex:1.4;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
+          <button onclick="adicionarLinkDados()" style="padding:9px 16px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+            + Add
+          </button>
+        </div>
+      </div>
+
       <button onclick="toggleMaisDados()" id="dc-btn-mais" style="align-self:flex-start;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);border-radius:8px;color:#60a5fa;font-size:12px;font-weight:700;padding:7px 14px;cursor:pointer">
-        + Ver acessos e links
+        + Ver outros acessos
       </button>
 
       <div id="dc-mais-conteudo" style="display:none;flex-direction:column;gap:14px">
@@ -1555,22 +1571,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <button onclick="adicionarOutroLoginDados()" style="padding:5px 12px;background:#3b82f6;border:none;border-radius:7px;color:#fff;font-size:11px;font-weight:700;cursor:pointer">+ Adicionar</button>
         </div>
         <div id="dados-outros-lista" style="display:flex;flex-direction:column;gap:8px"></div>
-      </div>
-
-      <!-- LINKS DE ACESSO -->
-      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:6px">
-        <div style="font-size:11px;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔗 Links de Acesso</div>
-        <div id="dados-links-lista" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
-
-        <div style="display:flex;gap:8px">
-          <input id="dados-link-nome" type="text" placeholder="Nome (ex: Sistema AVEC, Maquininha...)"
-            style="flex:1;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
-          <input id="dados-link-url" type="url" placeholder="https://..."
-            style="flex:1.4;padding:9px 12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px">
-          <button onclick="adicionarLinkDados()" style="padding:9px 16px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
-            + Add
-          </button>
-        </div>
       </div>
 
       </div><!-- fim dc-mais-conteudo -->
@@ -25035,7 +25035,7 @@ async function abrirModalDados(empresaId) {
   document.getElementById('dados-outros-lista').innerHTML = '';
   document.getElementById('modal-dados-empresa').style.display = 'flex';
   document.getElementById('dc-mais-conteudo').style.display = 'none';
-  document.getElementById('dc-btn-mais').textContent = '+ Ver acessos e links';
+  document.getElementById('dc-btn-mais').textContent = '+ Ver outros acessos';
 
   // Busca direto do banco pra garantir dado mais atual (o cache local pode estar desatualizado)
   const { data } = await sb.from('empresas').select('dados_cadastro,dados_links,dados_outros_logins').eq('id', empresaId).single();
@@ -25062,7 +25062,7 @@ function toggleMaisDados() {
   const btn = document.getElementById('dc-btn-mais');
   const aberto = conteudo.style.display === 'flex';
   conteudo.style.display = aberto ? 'none' : 'flex';
-  btn.textContent = aberto ? '+ Ver acessos e links' : '− Ocultar acessos e links';
+  btn.textContent = aberto ? '+ Ver outros acessos' : '− Ocultar outros acessos';
 }
 
 function fecharModalDados() {
