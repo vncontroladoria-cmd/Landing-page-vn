@@ -6106,6 +6106,7 @@ async function trocarEmpresa(empresaId) {
   _impTipoAtivo = null;
   _impColunaData = null;
   _impColunasCarregadas = [];
+  invalidarCacheDadosGeral();
   atualizarTopbarEmpresa();
   aplicarTemaEmpresa(emp);
   aplicarPermissoes();
@@ -6603,6 +6604,7 @@ async function confirmarImportacaoGlobal() {
       if (error) throw new Error(error.message);
       inseridos += Math.min(lote, linhas.length - i);
     }
+    invalidarCacheDadosGeral(); // dados novos entraram — o cache do "Geral" precisa recarregar
 
     // Ações específicas por tipo
     const nomeT = _impTipoEscolhido.nome.toLowerCase();
@@ -6815,6 +6817,7 @@ async function excluirSelecionadosImport() {
     const { error } = await sb.from('rel_dados_brutos').delete().in('id', lote);
     if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   }
+  invalidarCacheDadosGeral();
 
   showToast(`${ids.length} registro(s) excluído(s).`, 'success');
   ids.forEach(id => {
@@ -6955,6 +6958,7 @@ async function confirmarLimparDados() {
   // Apaga do rel_dados_brutos
   const { error } = await sb.from('rel_dados_brutos').delete().eq('tipo_id', tipoId);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  invalidarCacheDadosGeral();
 
   // Se for tipo Serviços OU Performance, apaga também de rel_servicos e rel_lucratividade
   if (nomeNorm.includes('servi') || nomeNorm.includes('lucrat') || nomeNorm.includes('perform')) {
@@ -13931,25 +13935,47 @@ function parseGeralRow(colunas) {
 
 // Busca o tipo "Geral" (canônico, o mais antigo se houver duplicata) e retorna todas as linhas já parseadas.
 // Função central usada por Performance, Serviços, Lucratividade, Produtos e Clientes.
-async function buscarDadosGeral() {
+// Cache de dados Geral — evita rebuscar TODO o histórico toda vez que entra em Dashboard/
+// Serviços/Produtos/Clientes/Lucratividade. Só busca de novo quando troca de empresa ou
+// quando algo realmente importa dados novos (que já chama invalidarCacheDadosGeral()).
+let _dadosGeralCache = null;
+let _dadosGeralCacheEmpId = null;
+
+function invalidarCacheDadosGeral() {
+  _dadosGeralCache = null;
+  _dadosGeralCacheEmpId = null;
+}
+
+async function buscarDadosGeral(forcarRecarregar = false) {
+  const empIdAtual = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!forcarRecarregar && _dadosGeralCache && _dadosGeralCacheEmpId === empIdAtual) {
+    return _dadosGeralCache;
+  }
+
   const { data: tiposGeral } = await qE('rel_tipos').select('id,nome').ilike('nome','%geral%').order('id',{ascending:true});
-  if (!tiposGeral?.length) return [];
+  if (!tiposGeral?.length) { _dadosGeralCache = []; _dadosGeralCacheEmpId = empIdAtual; return []; }
   // Se existir mais de um tipo "Geral" (duplicado por importações antigas), soma os dados de TODOS —
   // senão perde metade dos lançamentos, já que cada import pode ter caído num tipo_id diferente.
   const tipoIds = tiposGeral.map(t => t.id);
 
-  let all = [];
-  for (const tipoId of tipoIds) {
+  // Busca as páginas de cada tipo EM PARALELO (uma Promise por tipo) em vez de tudo em fila
+  const resultadosPorTipo = await Promise.all(tipoIds.map(async (tipoId) => {
+    let acumulado = [];
     let from = 0;
     while (true) {
       const { data } = await qE('rel_dados_brutos').select('colunas').eq('tipo_id', tipoId).range(from, from + 999);
       if (!data?.length) break;
-      all = all.concat(data);
+      acumulado = acumulado.concat(data);
       if (data.length < 1000) break;
       from += 1000;
     }
-  }
-  return all.map(r => parseGeralRow(r.colunas));
+    return acumulado;
+  }));
+  const all = resultadosPorTipo.flat();
+
+  _dadosGeralCache = all.map(r => parseGeralRow(r.colunas));
+  _dadosGeralCacheEmpId = empIdAtual;
+  return _dadosGeralCache;
 }
 
 function parseSrvRow(colunas) {
@@ -18847,6 +18873,7 @@ async function masterAcessarEmpresa(empresaId) {
   _impTipoAtivo = null;
   _impColunaData = null;
   _impColunasCarregadas = [];
+  invalidarCacheDadosGeral();
   if (_vnUser?.id) {
     sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
   }
@@ -21853,6 +21880,7 @@ async function confirmarVinculoEImportarPerformance() {
       if (error) throw new Error(error.message);
       inseridos += Math.min(lote, linhas.length - i);
     }
+    invalidarCacheDadosGeral();
 
     closeModal('modal-vincular-prof');
     showToast(`✅ ${inseridos} registros importados para ${nomeProfissional}!`, 'success');
@@ -21982,6 +22010,7 @@ async function operadorAcessarEmpresa(empresaId) {
   localStorage.setItem('vn_empresa_id', emp.id);
   _categorias = []; _categoriasEmpresaId = null; _catMapAtual = {};
   _impTipos = []; _impDadosCarregados = []; _impTipoAtivo = null; _impColunaData = null; _impColunasCarregadas = [];
+  invalidarCacheDadosGeral();
   if (_vnUser?.id) {
     sb.from('logs_acesso').insert({ usuario_id: _vnUser.id, empresa_id: emp.id, acao: 'acesso_empresa', criado_em: new Date().toISOString() }).then(()=>{});
   }
