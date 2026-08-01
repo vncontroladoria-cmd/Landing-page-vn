@@ -7717,6 +7717,10 @@ async function salvarCaixa() {
     await sb.from('pdv_itens').insert(addEmpresaId(payload));
   }
 
+  // Envia o total de "Comandas" desse caixa pra Lançamentos, na conta Dinheiro —
+  // um lançamento só por caixa (soma do dia), sempre vinculado à categoria Dinheiro
+  await sincronizarComandaParaLancamento(caixaId, data_caixa, itens);
+
   showToast('Caixa salvo!', 'success');
   closeModal('modal-pdv-caixa');
   // Limpa tudo para próximo lançamento
@@ -7726,6 +7730,58 @@ async function salvarCaixa() {
   document.getElementById('pdv-status').value = 'aberto';
   document.getElementById('pdv-itens-body').innerHTML = '';
   loadPDV();
+}
+
+// Soma os itens de "Comanda" (entrada) do caixa e cria/atualiza UM lançamento em Dinheiro pra aquele dia.
+// Se o caixa já tinha um lançamento gerado antes (edição), apaga o antigo e recria com o total atualizado —
+// assim nunca duplica e sempre reflete o valor certo.
+async function sincronizarComandaParaLancamento(caixaId, data_caixa, itens) {
+  const totalComanda = itens
+    .filter(i => i.tipo === 'ENTRADA' && (i.forma_pagamento||'').toLowerCase().includes('comanda'))
+    .reduce((s,i) => s + i.valor, 0);
+
+  // Remove o lançamento anterior desse caixa (se existir), pra não duplicar ao editar
+  await sb.from('lancamentos').delete().eq('pdv_caixa_id', caixaId);
+
+  if (totalComanda <= 0) return; // nada de comanda nesse caixa — não cria lançamento
+
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+
+  // Busca os códigos DFC/DRE da categoria "Dinheiro" no Plano de Contas, se existir
+  const { data: catDinheiro } = await qE('plano_contas').select('codigo,demonstrativo').ilike('nome', 'Dinheiro');
+  let catDfc = null, catDre = null;
+  (catDinheiro||[]).forEach(c => {
+    if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') catDfc = c.codigo;
+    if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') catDre = c.codigo;
+  });
+
+  const ano = data_caixa.substring(0,4);
+  const mes = data_caixa.substring(5,7);
+  const { count: total } = await qE('lancamentos').select('*', {count:'exact',head:true});
+  const codigo = `${ano}${mes}${String((total||0)+1).padStart(4,'0')}`;
+
+  await sb.from('lancamentos').insert(addEmpresaId({
+    codigo,
+    data_lancamento: data_caixa,
+    data_competencia: data_caixa,
+    competencia: `${ano}-${mes}`,
+    extrato: 'Comandas PDV',
+    descricao: 'Total de comandas do caixa (gerado automaticamente)',
+    entrada: totalComanda,
+    saida: null,
+    valor: totalComanda,
+    tipo: 'ENTRADA',
+    categoria: 'Dinheiro',
+    categoria_dfc: catDfc,
+    categoria_dre: catDre,
+    banco_nome: 'Dinheiro',
+    mes: `${ano}-${mes}`,
+    status: 'pago',
+    conciliado: true,
+    origem: 'pdv_comanda',
+    pdv_caixa_id: caixaId,
+    criado_em: new Date().toISOString(),
+  }));
 }
 
 async function excluirCaixa(id) {
@@ -9322,6 +9378,11 @@ async function confirmarImportePDV() {
   }));
   const { error: errItens } = await sb.from('pdv_itens').insert(addEmpresaId(payload));
   if (errItens) { showToast('Erro ao salvar itens: ' + errItens.message, 'error'); return; }
+
+  // Busca TODOS os itens desse caixa (não só os recém-importados, pra não perder soma
+  // se já existia caixa nessa data) e sincroniza o total de Comandas pra Lançamentos
+  const { data: todosItensCaixa } = await sb.from('pdv_itens').select('tipo,valor,forma_pagamento').eq('caixa_id', caixaIdFinal);
+  await sincronizarComandaParaLancamento(caixaIdFinal, dataFinal, todosItensCaixa || []);
 
   showToast(`Caixa importado! ${payload.length} itens salvos.`, 'success');
   closeModal('modal-importar-pdv');
