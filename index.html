@@ -4631,6 +4631,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <thead>
                   <tr>
                     <th>SERVIÇO</th>
+                    <th>CATEGORIA</th>
                     <th style="text-align:right">PREÇO</th>
                     <th style="text-align:right">TAX.CARTÃO</th>
                     <th style="text-align:right">IMPOSTO</th>
@@ -22458,13 +22459,14 @@ function renderPrecificacao() {
   const tbody = document.getElementById('prf-servicos-tbody');
   if (!tbody) return;
   if (!_prfServicos.length) {
-    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:20px;color:var(--text2)">Nenhum serviço cadastrado. Importe uma planilha ou clique em "+ Novo Serviço".</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center;padding:20px;color:var(--text2)">Nenhum serviço cadastrado. Importe uma planilha ou clique em "+ Novo Serviço".</td></tr>`;
     return;
   }
   tbody.innerHTML = _prfServicos.map(s => {
     const c = calcularPrecificacao(s);
     return `<tr>
       <td style="font-weight:600">${s.nome}</td>
+      <td style="font-size:11px;color:var(--text2)">${s.categoria||'—'}</td>
       <td style="text-align:right">${fmtBRL(s.preco)}</td>
       <td style="text-align:right;color:var(--text2)">${fmtBRL(c.taxCartao)}</td>
       <td style="text-align:right;color:var(--text2)">${fmtBRL(c.imposto)}</td>
@@ -22572,7 +22574,9 @@ async function previewImportPrecificacao(input) {
 
   const campos = [
     { label:'Serviço',        key:'nome',         guess: findCol(['servico']) },
-    { label:'Preço',          key:'preco',         guess: findCol(['preco']) },
+    { label:'Preço',          key:'preco',         guess: findCol(['preco','valor']) },
+    { label:'Categoria',      key:'categoria',     guess: findCol(['categoria']) },
+    { label:'Descrição',      key:'descricao',     guess: findCol(['descri']) },
     { label:'Toalhas',        key:'toalhas',       guess: findCol(['toalha']) },
     { label:'Produto/Insumo', key:'produto',       guess: findCol(['produto']) },
     { label:'Comissão %',     key:'comissao_pct',  guess: findCol(['comiss']) },
@@ -22603,19 +22607,24 @@ function parseValorBR(v) {
 async function confirmarImportPrecificacao() {
   const colNome = document.getElementById('prf-map-nome')?.value;
   const colPreco = document.getElementById('prf-map-preco')?.value;
+  const colCategoria = document.getElementById('prf-map-categoria')?.value;
+  const colDescricao = document.getElementById('prf-map-descricao')?.value;
   const colToalhas = document.getElementById('prf-map-toalhas')?.value;
   const colProduto = document.getElementById('prf-map-produto')?.value;
   const colComissao = document.getElementById('prf-map-comissao_pct')?.value;
 
-  if (!colNome || !colPreco) { showToast('Selecione ao menos as colunas de Serviço e Preço', 'error'); return; }
+  if (!colNome) { showToast('Selecione ao menos a coluna de Serviço', 'error'); return; }
 
   const linhas = _prfImportRows.map(r => {
     const nome = String(r[colNome]||'').trim();
-    const preco = parseValorBR(r[colPreco]);
-    if (!nome || !preco) return null;
+    if (!nome) return null;
+    // Preço 0 é válido (muitos serviços vêm sem valor fixo ainda) — só descarta se não tiver nome
+    const preco = colPreco ? parseValorBR(r[colPreco]) : 0;
     return {
       nome,
       preco,
+      categoria: colCategoria ? String(r[colCategoria]||'').trim() || null : null,
+      descricao: colDescricao ? String(r[colDescricao]||'').trim() || null : null,
       toalhas: colToalhas ? parseValorBR(r[colToalhas]) : 0,
       produto: colProduto ? parseValorBR(r[colProduto]) : 0,
       comissao_pct: colComissao ? parseValorBR(r[colComissao]) : 0,
