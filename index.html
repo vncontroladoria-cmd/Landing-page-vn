@@ -23471,13 +23471,25 @@ function concluirTarefaData(tarefaId, dataStr, el) {
 
   // Atualização imediata na tela (otimista) — não espera o banco pra dar feedback visual
   if (el) {
-    el.checked = true;
-    el.disabled = true;
-    // Risca o título da linha (1ª div interna, com o texto da tarefa)
-    const divTexto = el.parentElement?.querySelector('div > div:first-child');
-    if (divTexto) {
-      divTexto.style.textDecoration = 'line-through';
-      divTexto.style.color = 'rgba(255,255,255,.35)';
+    if (el.tagName === 'INPUT') {
+      // Aba "Hoje": checkbox — risca o texto, mantém a linha
+      el.checked = true;
+      el.disabled = true;
+      const divTexto = el.parentElement?.querySelector('div > div:first-child');
+      if (divTexto) {
+        divTexto.style.textDecoration = 'line-through';
+        divTexto.style.color = 'rgba(255,255,255,.35)';
+      }
+    } else {
+      // Abas "Atrasados"/"Aguardando cliente": botão "Concluir" — some com o card inteiro na hora,
+      // já que uma tarefa concluída não deveria continuar aparecendo como pendente/atrasada
+      const card = el.closest('div[style*="flex-start"]') || el.parentElement?.parentElement;
+      if (card) {
+        card.style.transition = 'opacity .15s, transform .15s';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(.97)';
+        setTimeout(() => card.remove(), 160);
+      }
     }
   }
   // Marca localmente como concluída pra já refletir nos contadores sem esperar recarregar tudo
