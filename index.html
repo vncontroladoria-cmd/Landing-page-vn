@@ -3787,11 +3787,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Importe o extrato do banco e concilie os lançamentos</div>
-            <div style="display:flex;gap:8px">
-              <button class="btn" onclick="abrirModalImportarExcel()">📊 Importar Excel</button>
-              <button class="btn btn-primary" onclick="abrirModalConciliacao()">↑ Importar extrato</button>
-              <button class="btn" style="background:#7c3aed22;color:#7c3aed;border-color:#7c3aed55" onclick="abrirImportarFaturaCC()">💳 Importar Fatura</button>
-            </div>
           </div>
           <div id="conc-container"><div class="empty">Clique em "Importar extrato" para começar</div></div>
         </div>
@@ -20366,6 +20361,8 @@ function abrirModalProfissionalRH(id) {
   document.getElementById('rh-prof-telefone').value = '';
   document.getElementById('rh-prof-admissao').value = '';
   document.getElementById('rh-prof-email').value = '';
+  document.getElementById('rh-prof-cnpj').value = '';
+  document.getElementById('rh-prof-pix').value = '';
   document.getElementById('rh-prof-ativo').value = 'true';
   document.getElementById('modal-profissional-rh').dataset.editId = id || '';
 
@@ -20378,6 +20375,8 @@ function abrirModalProfissionalRH(id) {
       document.getElementById('rh-prof-telefone').value = p.telefone || '';
       document.getElementById('rh-prof-admissao').value = p.data_admissao || '';
       document.getElementById('rh-prof-email').value = p.email || '';
+      document.getElementById('rh-prof-cnpj').value = p.cnpj || '';
+      document.getElementById('rh-prof-pix').value = p.chave_pix || '';
       document.getElementById('rh-prof-ativo').value = String(!!p.ativo);
     }
   }
@@ -20396,6 +20395,8 @@ async function salvarProfissionalRH() {
     telefone: document.getElementById('rh-prof-telefone').value.trim() || null,
     data_admissao: document.getElementById('rh-prof-admissao').value || null,
     email: document.getElementById('rh-prof-email').value.trim() || null,
+    cnpj: document.getElementById('rh-prof-cnpj').value.trim() || null,
+    chave_pix: document.getElementById('rh-prof-pix').value.trim() || null,
     ativo: document.getElementById('rh-prof-ativo').value === 'true',
   };
 
@@ -25646,6 +25647,14 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
       </div>
       <div class="form-group"><label>E-mail</label>
         <input type="email" id="rh-prof-email" placeholder="email@exemplo.com" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label>CNPJ <span style="font-weight:400;color:var(--text3);font-size:11px">(se prestador PJ)</span></label>
+          <input type="text" id="rh-prof-cnpj" placeholder="00.000.000/0000-00" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+        </div>
+        <div class="form-group"><label>Chave Pix</label>
+          <input type="text" id="rh-prof-pix" placeholder="CPF, e-mail, telefone ou aleatória" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+        </div>
       </div>
       <div class="form-group"><label>Status</label>
         <select id="rh-prof-ativo" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
