@@ -20385,7 +20385,7 @@ async function loadRHProfissionais() {
       <td>${p.telefone||'—'}</td>
       <td style="font-size:12px">${p.cnpj||'—'}</td>
       <td style="font-size:12px">${p.cpf||'—'}</td>
-      <td style="font-size:12px">${p.regime||'—'}</td>
+      <td style="font-size:12px">${p.regime ? `<span class="badge badge-blue" style="font-size:10px">${p.regime}</span>` : `<span style="color:var(--text3)">Pessoa Física</span>`}</td>
       <td style="font-size:12px">${p.chave_pix||'—'}</td>
       <td style="font-size:12px">${p.data_nascimento ? new Date(p.data_nascimento+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
       <td style="font-size:12px">${p.senha_gov ? `<span onclick="this.textContent=this.textContent==='••••••'?'${p.senha_gov}':'••••••'" style="cursor:pointer" title="Clique para mostrar/ocultar">••••••</span>` : '—'}</td>
