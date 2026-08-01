@@ -22371,7 +22371,7 @@ function renderCardsHoje() {
           <input type="checkbox" ${concluida?'checked':''} onchange="concluirTarefaData('${t.id}','${g.hojeStr}',this)"
             ${concluida?'disabled':''} style="cursor:pointer;accent-color:#2a9d5c;width:15px;height:15px;flex-shrink:0">
           <span title="Prioridade ${t.prioridade||'media'}" style="font-size:9px;flex-shrink:0">${prio.emoji}</span>
-          <div style="flex:1;min-width:0">
+          <div onclick="abrirModalTarefa('${t.id}')" style="flex:1;min-width:0;cursor:pointer" title="Clique para ver detalhes">
             <div style="font-size:12px;font-weight:600;color:${concluida?'rgba(255,255,255,.35)':'#fff'};text-decoration:${concluida?'line-through':'none'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.titulo}</div>
             ${t.descricao?`<div style="font-size:10px;color:rgba(255,255,255,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.descricao}</div>`:''}
           </div>
@@ -23823,7 +23823,7 @@ function renderLinhaTarefa(t, opts={}) {
 
   return `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:${enviadaPorOutro ? 'rgba(124,58,237,.08)' : 'rgba(255,255,255,.02)'};border-radius:8px;border:1px solid ${enviadaPorOutro ? 'rgba(124,58,237,.35)' : 'rgba(255,255,255,.05)'}">
-      <div style="flex:1;min-width:0">
+      <div onclick="abrirModalTarefa('${t.id}')" style="flex:1;min-width:0;cursor:pointer" title="Clique para ver detalhes">
         ${enviadaPorOutro ? `<div style="font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:3px">📨 Enviado por ${nomeQuemEnviou}</div>` : ''}
         <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
         ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
