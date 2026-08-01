@@ -5986,6 +5986,13 @@ async function showApp(paginaInicial = 'dashboard') {
   const tituloEl = document.getElementById('page-title');
   if (tituloEl) tituloEl.textContent = pageTitles[paginaInicial] || paginaInicial;
 
+  // Força mês/ano atual no filtro da página (mesma lógica que showPage() já usa) —
+  // senão a página abre em "Todos os meses" e demora/mostra dado velho
+  const _mesSelsInicio = { 'dashboard':'dash-mes', 'lancamentos':'lanc-mes' };
+  const _anoSelsInicio = { 'dashboard':'dash-ano', 'lancamentos':'lanc-ano' };
+  if (_mesSelsInicio[paginaInicial]) setMesAtual(_mesSelsInicio[paginaInicial]);
+  if (_anoSelsInicio[paginaInicial]) setAnoAtual(_anoSelsInicio[paginaInicial]);
+
   if (paginaInicial === 'dashboard') {
     await loadDashboard();
   } else if (paginaInicial === 'lancamentos') {
@@ -6133,6 +6140,8 @@ async function trocarEmpresa(empresaId) {
   const lancNav = document.querySelector('[data-page="lancamentos"]');
   if (lancNav) lancNav.classList.add('active');
   document.getElementById('page-title').textContent = pageTitles['lancamentos'] || 'Lançamentos';
+  setMesAtual('lanc-mes');
+  setAnoAtual('lanc-ano');
   try {
     await loadLancamentos();
   } finally {
