@@ -2214,6 +2214,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <span class="nav-label">Cartão de Crédito</span>
       </div>
 
+      <div class="nav-item" data-page="rh" onclick="showPage('rh',this)">
+        <span class="nav-icon">🧑‍💼</span><span class="nav-label">RH</span>
+      </div>
+
       <!-- RELATÓRIOS grupo colapsável -->
       <div class="nav-group-header" onclick="toggleNavGroup('nav-relatorios')" style="display:flex;align-items:center;padding:6px 0.875rem;cursor:pointer;color:rgba(255,255,255,0.4);font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;user-select:none;gap:6px;margin-top:4px">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
@@ -3699,7 +3703,84 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
         </div>
 
-        <div class="page" id="page-conciliacao">
+        <!-- ═══ PÁGINA: RH ═══ -->
+        <div class="page" id="page-rh">
+          <div class="pg-header">
+            <div><div class="pg-header-title">🧑‍💼 RH</div><div class="pg-header-sub">Profissionais, atestados e faltas</div></div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:16px">
+            <button class="btn btn-primary" id="rh-tab-profissionais" onclick="rhTab('profissionais')">👥 Profissionais</button>
+            <button class="btn" id="rh-tab-ocorrencias" onclick="rhTab('ocorrencias')">📋 Atestados e Faltas</button>
+            <button class="btn" id="rh-tab-resumo" onclick="rhTab('resumo')">📊 Resumo de Faltas</button>
+          </div>
+
+          <!-- ABA: PROFISSIONAIS -->
+          <div id="rh-view-profissionais">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="display:flex;gap:8px">
+                <select id="rh-prof-filtro-tipo" onchange="loadRHProfissionais()" style="padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+                  <option value="">Todos os tipos</option>
+                  <option value="clt">CLT</option>
+                  <option value="profissional">Profissional (prestador)</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="abrirModalProfissionalRH()">+ Novo Profissional</button>
+            </div>
+            <div class="section-card" style="padding:0">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>NOME</th><th>TIPO</th><th>CARGO</th><th>TELEFONE</th><th>E-MAIL</th><th>ADMISSÃO</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
+                  <tbody id="rh-prof-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA: ATESTADOS E FALTAS -->
+          <div id="rh-view-ocorrencias" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+              <div style="display:flex;gap:8px">
+                <select id="rh-oc-filtro-tipo" onchange="loadRHOcorrencias()" style="padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+                  <option value="">Todas</option>
+                  <option value="atestado">🏥 Atestados</option>
+                  <option value="falta">📅 Faltas</option>
+                </select>
+                <select id="rh-oc-mes" onchange="loadRHOcorrencias()" style="padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)"></select>
+                <select id="rh-oc-ano" onchange="loadRHOcorrencias()" style="padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)"></select>
+              </div>
+              <button class="btn btn-primary" onclick="abrirModalOcorrenciaRH()">+ Novo Atestado/Falta</button>
+            </div>
+            <div class="section-card" style="padding:0">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>DATA</th><th>PROFISSIONAL</th><th>TIPO</th><th>MOTIVO</th><th>ANEXO</th><th>AÇÕES</th></tr></thead>
+                  <tbody id="rh-oc-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABA: RESUMO DE FALTAS -->
+          <div id="rh-view-resumo" style="display:none">
+            <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+              <span style="font-size:13px;color:var(--text2)">Mês de referência:</span>
+              <select id="rh-resumo-mes" onchange="loadRHResumoFaltas()" style="padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)"></select>
+              <select id="rh-resumo-ano" onchange="loadRHResumoFaltas()" style="padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)"></select>
+              <button class="btn" onclick="exportarPaginaAtualExcel()" style="margin-left:auto">📊 Exportar Excel</button>
+            </div>
+            <div class="section-card" style="padding:0">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>PROFISSIONAL</th><th>TIPO</th><th style="text-align:center">Nº DE FALTAS NO MÊS</th><th>DATAS</th></tr></thead>
+                  <tbody id="rh-resumo-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
           <div class="pg-header">
             <div><div class="pg-header-title">🔗 Conciliação Bancária</div><div class="pg-header-sub">Cruzamento do extrato com lançamentos cadastrados</div></div>
           </div>
@@ -6147,7 +6228,7 @@ const pageTitles = {
   metricas:'Métricas', conciliacao:'Conciliação',
   'contas-receber':'Contas a Receber', dfc:'DFC', dre:'DRE',
   bancos:'Bancos', fornecedores:'Fornecedores',
-  'plano-contas':'Plano de Contas', usuarios:'Usuários'
+  'plano-contas':'Plano de Contas', usuarios:'Usuários', rh:'RH'
 };
 
 // Seta o mês atual em um select de mês (se ainda estiver em "Todos")
@@ -6218,6 +6299,7 @@ function showPage(id, el) {
   if (id === 'lancamentos')     loadLancamentos();
   if (id === 'lancamentos-dre') loadLancamentosDRE();
   if (id === 'cartao-credito') initCartaoCredito();
+  if (id === 'rh') initRH();
   if (id === 'contas-pagar') { loadContasPagar(); loadDocumentos(); }
   if (id === 'contas-receber') loadContasReceber();
   if (id === 'metricas') loadMetricas();
@@ -20207,6 +20289,266 @@ let _ccLancEditId = null;
 let _ccCartaoEditId = null;
 let _ccLancamentosAtuais = [];
 
+// ═══════════════════════════════════════════════════════
+// RH — Profissionais, Atestados e Faltas
+// ═══════════════════════════════════════════════════════
+let _rhProfissionais = [];
+let _rhTabAtual = 'profissionais';
+
+async function initRH() {
+  popularSelectMesAno('rh-oc-mes', 'rh-oc-ano');
+  popularSelectMesAno('rh-resumo-mes', 'rh-resumo-ano');
+  await loadRHProfissionais();
+  rhTab('profissionais');
+}
+
+// Preenche um par de selects (mês/ano) com o mês/ano atual selecionado por padrão
+function popularSelectMesAno(idMes, idAno) {
+  const selMes = document.getElementById(idMes);
+  const selAno = document.getElementById(idAno);
+  if (!selMes || !selAno || selMes.options.length) return; // já populado
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const hoje = new Date();
+  selMes.innerHTML = meses.map((m,i) => `<option value="${String(i+1).padStart(2,'0')}" ${i===hoje.getMonth()?'selected':''}>${m}</option>`).join('');
+  const anoAtual = hoje.getFullYear();
+  const anos = [anoAtual-1, anoAtual, anoAtual+1];
+  selAno.innerHTML = anos.map(a => `<option value="${a}" ${a===anoAtual?'selected':''}>${a}</option>`).join('');
+}
+
+function rhTab(tab) {
+  _rhTabAtual = tab;
+  ['profissionais','ocorrencias','resumo'].forEach(t => {
+    document.getElementById(`rh-view-${t}`).style.display = t===tab ? 'block' : 'none';
+    const btn = document.getElementById(`rh-tab-${t}`);
+    if (btn) btn.className = t===tab ? 'btn btn-primary' : 'btn';
+  });
+  if (tab === 'profissionais') loadRHProfissionais();
+  if (tab === 'ocorrencias')   loadRHOcorrencias();
+  if (tab === 'resumo')        loadRHResumoFaltas();
+}
+
+// ── Profissionais ──────────────────────────────────────
+async function loadRHProfissionais() {
+  const filtroTipo = document.getElementById('rh-prof-filtro-tipo')?.value || '';
+  let q = qE('rh_profissionais').select('*').order('nome');
+  if (filtroTipo) q = q.eq('tipo', filtroTipo);
+  const { data } = await q;
+  _rhProfissionais = data || [];
+
+  const tbody = document.getElementById('rh-prof-tbody');
+  if (!tbody) return;
+  if (!_rhProfissionais.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text2)">Nenhum profissional cadastrado</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = _rhProfissionais.map(p => `
+    <tr>
+      <td style="font-weight:600">${p.nome}</td>
+      <td><span class="badge ${p.tipo==='clt'?'badge-blue':'badge-green'}" style="font-size:10px">${p.tipo==='clt'?'CLT':'Profissional'}</span></td>
+      <td>${p.cargo||'—'}</td>
+      <td>${p.telefone||'—'}</td>
+      <td style="font-size:12px">${p.email||'—'}</td>
+      <td>${p.data_admissao ? new Date(p.data_admissao+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${p.ativo?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};color:${p.ativo?'#4ade80':'#f87171'};font-weight:700">${p.ativo?'ATIVO':'INATIVO'}</span></td>
+      <td>
+        <button onclick="abrirModalProfissionalRH('${p.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
+        <button onclick="excluirProfissionalRH('${p.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function abrirModalProfissionalRH(id) {
+  document.getElementById('modal-profissional-rh-title').textContent = id ? 'Editar Profissional' : 'Novo Profissional';
+  document.getElementById('rh-prof-nome').value = '';
+  document.getElementById('rh-prof-tipo').value = 'clt';
+  document.getElementById('rh-prof-cargo').value = '';
+  document.getElementById('rh-prof-telefone').value = '';
+  document.getElementById('rh-prof-admissao').value = '';
+  document.getElementById('rh-prof-email').value = '';
+  document.getElementById('rh-prof-ativo').value = 'true';
+  document.getElementById('modal-profissional-rh').dataset.editId = id || '';
+
+  if (id) {
+    const p = _rhProfissionais.find(x => x.id === id);
+    if (p) {
+      document.getElementById('rh-prof-nome').value = p.nome || '';
+      document.getElementById('rh-prof-tipo').value = p.tipo || 'clt';
+      document.getElementById('rh-prof-cargo').value = p.cargo || '';
+      document.getElementById('rh-prof-telefone').value = p.telefone || '';
+      document.getElementById('rh-prof-admissao').value = p.data_admissao || '';
+      document.getElementById('rh-prof-email').value = p.email || '';
+      document.getElementById('rh-prof-ativo').value = String(!!p.ativo);
+    }
+  }
+  document.getElementById('modal-profissional-rh').classList.add('open');
+}
+
+async function salvarProfissionalRH() {
+  const nome = document.getElementById('rh-prof-nome').value.trim();
+  if (!nome) { showToast('Informe o nome', 'error'); return; }
+  const editId = document.getElementById('modal-profissional-rh').dataset.editId;
+
+  const payload = {
+    nome,
+    tipo: document.getElementById('rh-prof-tipo').value,
+    cargo: document.getElementById('rh-prof-cargo').value.trim() || null,
+    telefone: document.getElementById('rh-prof-telefone').value.trim() || null,
+    data_admissao: document.getElementById('rh-prof-admissao').value || null,
+    email: document.getElementById('rh-prof-email').value.trim() || null,
+    ativo: document.getElementById('rh-prof-ativo').value === 'true',
+  };
+
+  const { error } = editId
+    ? await sb.from('rh_profissionais').update(payload).eq('id', editId)
+    : await sb.from('rh_profissionais').insert(addEmpresaId(payload));
+
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('✅ Profissional salvo!', 'success');
+  closeModal('modal-profissional-rh');
+  await loadRHProfissionais();
+}
+
+async function excluirProfissionalRH(id) {
+  if (!confirm('Excluir esse profissional? Os atestados/faltas dele continuam registrados.')) return;
+  const { error } = await sb.from('rh_profissionais').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Profissional excluído', 'success');
+  await loadRHProfissionais();
+}
+
+// ── Atestados e Faltas ─────────────────────────────────
+function toggleAnexoOcorrenciaRH() {
+  const tipo = document.getElementById('rh-oc-tipo').value;
+  document.getElementById('rh-oc-anexo-wrap').style.display = tipo === 'atestado' ? 'block' : 'none';
+}
+
+async function abrirModalOcorrenciaRH() {
+  if (!_rhProfissionais.length) await loadRHProfissionais();
+  const sel = document.getElementById('rh-oc-profissional');
+  sel.innerHTML = _rhProfissionais.map(p => `<option value="${p.id}">${p.nome} ${p.tipo==='clt'?'(CLT)':'(Profissional)'}</option>`).join('');
+  document.getElementById('rh-oc-tipo').value = 'atestado';
+  document.getElementById('rh-oc-data').value = hojeISO();
+  document.getElementById('rh-oc-motivo').value = '';
+  document.getElementById('rh-oc-arquivo').value = '';
+  toggleAnexoOcorrenciaRH();
+  document.getElementById('modal-ocorrencia-rh').classList.add('open');
+}
+
+async function salvarOcorrenciaRH() {
+  const profissionalId = document.getElementById('rh-oc-profissional').value;
+  if (!profissionalId) { showToast('Selecione o profissional', 'error'); return; }
+  const tipo = document.getElementById('rh-oc-tipo').value;
+  const data = document.getElementById('rh-oc-data').value;
+  if (!data) { showToast('Informe a data', 'error'); return; }
+  const motivo = document.getElementById('rh-oc-motivo').value.trim() || null;
+
+  let arquivo_url = null, arquivo_nome = null;
+  const fileInput = document.getElementById('rh-oc-arquivo');
+  const file = fileInput?.files?.[0];
+  if (file) {
+    const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    const path = `rh/${empId}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await sb.storage.from('documentos').upload(path, file, { upsert: true });
+    if (upErr) { showToast('Erro ao anexar arquivo: ' + upErr.message, 'error'); return; }
+    const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+    arquivo_url = urlData?.publicUrl || null;
+    arquivo_nome = file.name;
+  }
+
+  const { error } = await sb.from('rh_ocorrencias').insert(addEmpresaId({
+    profissional_id: profissionalId, tipo, data, motivo, arquivo_url, arquivo_nome,
+  }));
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('✅ Registrado!', 'success');
+  closeModal('modal-ocorrencia-rh');
+  await loadRHOcorrencias();
+}
+
+async function loadRHOcorrencias() {
+  const tbody = document.getElementById('rh-oc-tbody');
+  if (!tbody) return;
+  const filtroTipo = document.getElementById('rh-oc-filtro-tipo')?.value || '';
+  const mes = document.getElementById('rh-oc-mes')?.value;
+  const ano = document.getElementById('rh-oc-ano')?.value;
+
+  let q = qE('rh_ocorrencias').select('*, rh_profissionais(nome,tipo)').order('data', {ascending:false});
+  if (filtroTipo) q = q.eq('tipo', filtroTipo);
+  if (mes && ano) {
+    const ultimoDia = new Date(Number(ano), Number(mes), 0).getDate();
+    q = q.gte('data', `${ano}-${mes}-01`).lte('data', `${ano}-${mes}-${String(ultimoDia).padStart(2,'0')}`);
+  }
+  const { data } = await q;
+  const ocorrencias = data || [];
+
+  if (!ocorrencias.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text2)">Nenhum registro encontrado</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = ocorrencias.map(o => `
+    <tr>
+      <td>${new Date(o.data+'T12:00:00').toLocaleDateString('pt-BR')}</td>
+      <td style="font-weight:600">${o.rh_profissionais?.nome || '—'}</td>
+      <td><span class="badge ${o.tipo==='atestado'?'badge-blue':'badge-amber'}" style="font-size:10px">${o.tipo==='atestado'?'🏥 Atestado':'📅 Falta'}</span></td>
+      <td style="font-size:12px">${o.motivo||'—'}</td>
+      <td>${o.arquivo_url ? `<a href="${o.arquivo_url}" target="_blank" rel="noopener" style="color:var(--accent);font-size:12px">📎 ${o.arquivo_nome||'ver arquivo'}</a>` : '—'}</td>
+      <td>
+        <button onclick="excluirOcorrenciaRH('${o.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function excluirOcorrenciaRH(id) {
+  if (!confirm('Excluir esse registro?')) return;
+  const { error } = await sb.from('rh_ocorrencias').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Excluído', 'success');
+  await loadRHOcorrencias();
+}
+
+// ── Resumo de Faltas do Mês (pra encaminhar pro RH) ────
+async function loadRHResumoFaltas() {
+  const tbody = document.getElementById('rh-resumo-tbody');
+  if (!tbody) return;
+  const mes = document.getElementById('rh-resumo-mes')?.value;
+  const ano = document.getElementById('rh-resumo-ano')?.value;
+  if (!mes || !ano) return;
+
+  const ultimoDia = new Date(Number(ano), Number(mes), 0).getDate();
+  const { data: faltas } = await qE('rh_ocorrencias')
+    .select('data, rh_profissionais(nome,tipo)')
+    .eq('tipo', 'falta')
+    .gte('data', `${ano}-${mes}-01`)
+    .lte('data', `${ano}-${mes}-${String(ultimoDia).padStart(2,'0')}`)
+    .order('data');
+
+  if (!faltas?.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text2)">Nenhuma falta registrada nesse mês 🎉</td></tr>`;
+    return;
+  }
+
+  // Agrupa por profissional
+  const porProfissional = {};
+  faltas.forEach(f => {
+    const nome = f.rh_profissionais?.nome || 'Desconhecido';
+    if (!porProfissional[nome]) porProfissional[nome] = { tipo: f.rh_profissionais?.tipo, datas: [] };
+    porProfissional[nome].datas.push(f.data.split('-').reverse().join('/'));
+  });
+
+  tbody.innerHTML = Object.entries(porProfissional)
+    .sort((a,b) => b[1].datas.length - a[1].datas.length)
+    .map(([nome, info]) => `
+      <tr>
+        <td style="font-weight:600">${nome}</td>
+        <td><span class="badge ${info.tipo==='clt'?'badge-blue':'badge-green'}" style="font-size:10px">${info.tipo==='clt'?'CLT':'Profissional'}</span></td>
+        <td style="text-align:center;font-weight:800;font-size:15px;color:${info.datas.length>=3?'var(--red)':'var(--text)'}">${info.datas.length}</td>
+        <td style="font-size:12px;color:var(--text2)">${info.datas.join(', ')}</td>
+      </tr>
+    `).join('');
+}
+
 async function initCartaoCredito() {
   await loadCartoes();
   await loadCartaoLancamentos();
@@ -25268,6 +25610,87 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
       <button class="btn" onclick="closeModal('modal-lanc-cc')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarLancCC()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVO/EDITAR PROFISSIONAL RH -->
+<div class="modal-overlay" id="modal-profissional-rh">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title" id="modal-profissional-rh-title">Novo Profissional</div>
+      <button onclick="closeModal('modal-profissional-rh')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group"><label>Nome *</label>
+        <input type="text" id="rh-prof-nome" placeholder="Nome completo" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label>Tipo *</label>
+          <select id="rh-prof-tipo" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+            <option value="clt">CLT</option>
+            <option value="profissional">Profissional (prestador)</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Cargo/Função</label>
+          <input type="text" id="rh-prof-cargo" placeholder="Ex: Cabeleireiro, Recepção..." style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+        </div>
+      </div>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label>Telefone</label>
+          <input type="text" id="rh-prof-telefone" placeholder="(11) 90000-0000" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+        </div>
+        <div class="form-group"><label>Data de Admissão</label>
+          <input type="date" id="rh-prof-admissao" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+        </div>
+      </div>
+      <div class="form-group"><label>E-mail</label>
+        <input type="email" id="rh-prof-email" placeholder="email@exemplo.com" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select id="rh-prof-ativo" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+          <option value="true">Ativo</option>
+          <option value="false">Inativo/Desligado</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-profissional-rh')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarProfissionalRH()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVO ATESTADO/FALTA RH -->
+<div class="modal-overlay" id="modal-ocorrencia-rh">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="modal-title">Novo Atestado / Falta</div>
+      <button onclick="closeModal('modal-ocorrencia-rh')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group"><label>Tipo *</label>
+        <select id="rh-oc-tipo" onchange="toggleAnexoOcorrenciaRH()" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+          <option value="atestado">🏥 Atestado</option>
+          <option value="falta">📅 Falta</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Profissional / Funcionário *</label>
+        <select id="rh-oc-profissional" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)"></select>
+      </div>
+      <div class="form-group"><label>Data *</label>
+        <input type="date" id="rh-oc-data" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+      </div>
+      <div class="form-group"><label>Motivo</label>
+        <textarea id="rh-oc-motivo" rows="2" placeholder="Motivo da falta ou observação do atestado..." style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);resize:vertical"></textarea>
+      </div>
+      <div class="form-group" id="rh-oc-anexo-wrap"><label>Anexar Documento (atestado)</label>
+        <input type="file" id="rh-oc-arquivo" accept="image/*,.pdf" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeModal('modal-ocorrencia-rh')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarOcorrenciaRH()">💾 Salvar</button>
     </div>
   </div>
 </div>
