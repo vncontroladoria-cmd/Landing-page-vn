@@ -22547,6 +22547,7 @@ let _prfImportHeader = [];
 async function previewImportPrecificacao(input) {
   const file = input.files?.[0];
   if (!file) return;
+  const XLSX = await loadXLSX();
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
