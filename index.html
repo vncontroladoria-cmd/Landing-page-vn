@@ -23624,7 +23624,11 @@ async function buscarTarefasAtrasadas() {
     // Gera datas do dia DA PRÓPRIA criação até ontem — inclui o dia em que a tarefa foi criada
     // (ex: tarefa criada dia 14 com data marcada pro dia 14 tem que poder ficar atrasada)
     // comparando só o DIA (sem hora, evita bug de horário)
-    let cur = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate());
+    // LIMITE DE SEGURANÇA: tarefa recorrente muito antiga (ex: diária há 2 anos) faria esse loop
+    // rodar milhares de vezes e travar a tela — olha no máximo os últimos 90 dias pra trás
+    const limiteAntigo = new Date(ontemD); limiteAntigo.setDate(limiteAntigo.getDate() - 90);
+    const inicioLoop = new Date(criadoD.getFullYear(), criadoD.getMonth(), criadoD.getDate());
+    let cur = inicioLoop < limiteAntigo ? limiteAntigo : inicioLoop;
     const fimDia = new Date(ontemD.getFullYear(), ontemD.getMonth(), ontemD.getDate());
 
     const conclDatas = conclPorTarefa[t.id] || new Set();
