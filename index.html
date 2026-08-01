@@ -5949,7 +5949,7 @@ async function iniciarSessaoMultiEmpresa() {
   await showApp();
 }
 
-async function showApp() {
+async function showApp(paginaInicial = 'dashboard') {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 
@@ -5977,7 +5977,22 @@ async function showApp() {
     btnVoltar.style.display = (_vnUser?.perfil === 'operador' || _vindoDoMasterControladoria) ? 'flex' : 'none';
   }
 
-  await loadDashboard();
+  // Mostra a página inicial pedida (por padrão Dashboard, mas quem chama pode pedir uma mais leve,
+  // tipo "lancamentos", pra não ter que esperar o Dashboard — que é a página mais pesada — carregar primeiro)
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + paginaInicial);
+  if (pageEl) pageEl.classList.add('active');
+  const navEl = document.querySelector(`.nav-item[data-page="${paginaInicial}"]`);
+  if (navEl) navEl.classList.add('active');
+  const tituloEl = document.getElementById('page-title');
+  if (tituloEl) tituloEl.textContent = pageTitles[paginaInicial] || paginaInicial;
+
+  if (paginaInicial === 'dashboard') {
+    await loadDashboard();
+  } else if (paginaInicial === 'lancamentos') {
+    await loadLancamentos();
+  }
 
   // Seta sempre visível — clique abre seletor
   const tag = document.getElementById('topbar-empresa-tag');
@@ -6111,16 +6126,17 @@ async function trocarEmpresa(empresaId) {
   aplicarTemaEmpresa(emp);
   aplicarPermissoes();
   fecharSeletorEmpresas();
-  // Força navegação para dashboard e recarrega dados da nova empresa
+  // Vai direto pra Lançamentos — bem mais leve que o Dashboard, não precisa esperar
+  // as várias consultas pesadas do Dashboard só pra trocar de empresa
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const dashPage = document.getElementById('page-dashboard');
-  if (dashPage) dashPage.classList.add('active');
-  const dashNav = document.querySelector('[data-page="dashboard"]');
-  if (dashNav) dashNav.classList.add('active');
-  document.getElementById('page-title').textContent = 'Dashboard';
+  const lancPage = document.getElementById('page-lancamentos');
+  if (lancPage) lancPage.classList.add('active');
+  const lancNav = document.querySelector('[data-page="lancamentos"]');
+  if (lancNav) lancNav.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles['lancamentos'] || 'Lançamentos';
   try {
-    await loadDashboard();
+    await loadLancamentos();
   } finally {
     esconderLoadingEmpresa();
   }
@@ -18879,9 +18895,9 @@ async function masterAcessarEmpresa(empresaId) {
   }
   document.getElementById('painel-master').style.display = 'none';
   try {
-    await showApp();
-    // Só libera a tela depois que o Dashboard (dados da empresa nova) realmente carregou
-    await loadDashboard();
+    // Abre direto em Lançamentos — bem mais leve que o Dashboard, não precisa esperar
+    // as várias consultas pesadas do Dashboard só pra entrar na empresa
+    await showApp('lancamentos');
   } finally {
     esconderLoadingEmpresa();
   }
@@ -22017,8 +22033,7 @@ async function operadorAcessarEmpresa(empresaId) {
   document.getElementById('painel-operador').style.display = 'none';
   _vindoDoOperador = true;
   try {
-    await showApp();
-    await loadDashboard();
+    await showApp('lancamentos');
   } finally {
     esconderLoadingEmpresa();
   }
