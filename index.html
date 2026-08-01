@@ -1606,6 +1606,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               style="padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
             <button onclick="document.getElementById('agenda-data-filtro').value=hojeISO();loadAgendaTarefas()" 
               style="padding:7px 12px;font-size:12px;background:rgba(255,255,255,.06);border:none;border-radius:8px;color:rgba(255,255,255,.7);cursor:pointer;font-weight:600">Hoje</button>
+            <select id="agenda-filtro-prioridade" onchange="loadAgendaTarefas()"
+              style="margin-left:auto;padding:7px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;background:#1e293b;color:#fff;font-family:'Outfit',sans-serif">
+              <option value="">Toda prioridade</option>
+              <option value="alta">🔴 Alta</option>
+              <option value="media">🟡 Média</option>
+              <option value="baixa">🟢 Baixa</option>
+            </select>
           </div>
           <div style="display:none;align-items:center;gap:6px;margin-bottom:14px" id="agenda-mes-ano-wrap">
             <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:600">Mês:</span>
@@ -1625,7 +1632,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <select id="pendencias-ano" onchange="recarregarAba('pendencias')" style="padding:6px 8px;font-size:11px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif"></select>
           </div>
           <!-- Sub-abas: Não concluídas / Aguardando cliente -->
-          <div style="display:flex;gap:4px;margin-bottom:14px">
+          <div style="display:flex;gap:4px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
             <button id="pend-sub-atrasadas" onclick="pendenciasSubTab('atrasadas')"
               style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:rgba(239,68,68,.2);color:#f87171;font-family:'Outfit',sans-serif">
               🔴 Não concluídas
@@ -1634,6 +1641,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               style="padding:6px 14px;font-size:12px;font-weight:700;border:none;border-radius:7px;cursor:pointer;background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-family:'Outfit',sans-serif">
               ⏸️ Aguardando cliente
             </button>
+            <select id="pendencias-filtro-prioridade" onchange="loadPendenciasTarefas()"
+              style="margin-left:auto;padding:6px 10px;font-size:12px;border:1.5px solid rgba(255,255,255,.1);border-radius:7px;background:#0f172a;color:rgba(255,255,255,.7);font-family:'Outfit',sans-serif">
+              <option value="">Toda prioridade</option>
+              <option value="alta">🔴 Alta</option>
+              <option value="media">🟡 Média</option>
+              <option value="baixa">🟢 Baixa</option>
+            </select>
           </div>
           <div style="background:#1e293b;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.06)">
             <div id="op-pendencias-lista" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -23290,7 +23304,9 @@ async function loadAgendaTarefas() {
     }
   }
 
-  const todasTarefas = (await buscarTarefasAtivas()).filter(t => t.tipo !== 'pendencia_cliente');
+  const filtroPrioAgenda = document.getElementById('agenda-filtro-prioridade')?.value || '';
+  let todasTarefas = (await buscarTarefasAtivas()).filter(t => t.tipo !== 'pendencia_cliente');
+  if (filtroPrioAgenda) todasTarefas = todasTarefas.filter(t => (t.prioridade||'media') === filtroPrioAgenda);
 
   // Pra cada data, descobre quais tarefas valem
   const porDia = datas.map(dataStr => {
@@ -23644,8 +23660,11 @@ async function loadPendenciasTarefas() {
   limparCronometrosAtivos();
   window._pendingTimers = [];
 
+  const filtroPrio = document.getElementById('pendencias-filtro-prioridade')?.value || '';
+
   if (_pendenciasSubTabAtual === 'atrasadas') {
-    const atrasadas = await buscarTarefasAtrasadas();
+    let atrasadas = await buscarTarefasAtrasadas();
+    if (filtroPrio) atrasadas = atrasadas.filter(t => (t.prioridade||'media') === filtroPrio);
 
     _pendenciasCount = atrasadas.length;
     atualizarTituloAba();
@@ -23678,7 +23697,8 @@ async function loadPendenciasTarefas() {
       const { data: concl } = await sb.from('tarefas_conclusoes').select('tarefa_id').in('tarefa_id', ids);
       (concl||[]).forEach(c => concluidoSet.add(c.tarefa_id));
     }
-    const abertas = pendencias.filter(t => !concluidoSet.has(t.id));
+    let abertas = pendencias.filter(t => !concluidoSet.has(t.id));
+    if (filtroPrio) abertas = abertas.filter(t => (t.prioridade||'media') === filtroPrio);
 
     if (!abertas.length) {
       container.innerHTML = `<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px">Nenhuma pendência aguardando retorno.</div>`;
