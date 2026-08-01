@@ -7814,7 +7814,8 @@ async function abrirConversaChat(userId, userName) {
   await carregarMensagensConversa();
   verificarMensagensNovas(); // atualiza o badge do menu lateral na hora
   verificarMsgNovas(); // atualiza o badge geral do balão flutuante na hora
-  carregarUsuariosChat(); // atualiza o número ao lado do nome na lista de contatos
+  // (Não chama carregarUsuariosChat aqui — ela desenha a LISTA de contatos no mesmo espaço
+  // da conversa, e sobrescrevia por cima, causando o "pisca-pisca" ao abrir uma conversa)
   document.getElementById('chat-input')?.focus();
   clearInterval(_chatInterval);
   _chatInterval = setInterval(carregarMensagensConversa, 5000);
@@ -22802,16 +22803,11 @@ async function loadMensagensOperador() {
   renderMensagensOperadorFiltrado();
 
   // Marca mensagens recebidas como lidas
-  const { data: marcadas, error: errMarcar } = await sb.from('mensagens_operadores')
+  const { error: errMarcar } = await sb.from('mensagens_operadores')
     .update({lida:true, lida_em: new Date().toISOString()})
-    .eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false)
-    .select('id');
+    .eq('para_usuario_id',meuId).eq('de_usuario_id',_opChatCom).eq('lida',false);
 
-  if (errMarcar) {
-    showToast(`❌ Erro ao marcar como lida: ${errMarcar.message}`, 'error');
-  } else {
-    showToast(`🔎 Diagnóstico: ${marcadas?.length || 0} mensagem(ns) marcada(s) como lida`, 'info');
-  }
+  if (errMarcar) console.error('Erro ao marcar mensagem como lida:', errMarcar);
 
   // Atualiza o badge na hora, sem esperar a próxima verificação automática (30s)
   verificarMensagensNovas();
