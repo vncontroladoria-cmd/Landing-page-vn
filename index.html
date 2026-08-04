@@ -9675,8 +9675,10 @@ async function loadLancamentos(forcarBancoFilter) {
   };
   const saldoBanco = (b) => {
     const nomeB = normalizarBanco(b.nome);
+    // Regra canonica: casa por banco_id. Nome so vale como fallback quando banco_id e nulo,
+    // senao um lancamento de OUTRO cadastro com nome parecido entra no saldo (bug do Itau 8.498 x 2.263)
     const lancsB = todos.filter(l =>
-      (l.banco_id === b.id || normalizarBanco(l.banco_nome) === nomeB) &&
+      (l.banco_id ? l.banco_id === b.id : normalizarBanco(l.banco_nome) === nomeB) &&
       (!ultimaDataFiltroGlobal || l.data_lancamento <= ultimaDataFiltroGlobal)
     );
     return lancsB.reduce((s,l) => s + vlLanc(l), 0);
@@ -9710,8 +9712,11 @@ async function loadLancamentos(forcarBancoFilter) {
       ? todos.filter(l => l.data_lancamento <= ultimaDataFiltroGlobal)
       : todos;
 
+    // Mesma regra dos cards por banco, pra Saldo Final e card do banco baterem sempre
+    const bSel = _bancos.find(x => x.id === bancoFilter);
+    const nomeSel = bSel ? normalizarBanco(bSel.nome) : null;
     const lancFiltrados = bancoFilter
-      ? lancAte.filter(l => l.banco_id === bancoFilter)
+      ? lancAte.filter(l => l.banco_id ? l.banco_id === bancoFilter : normalizarBanco(l.banco_nome) === nomeSel)
       : lancAte;
 
     saldoTotal = lancFiltrados.reduce((s, l) => s + vlLanc(l), 0);
