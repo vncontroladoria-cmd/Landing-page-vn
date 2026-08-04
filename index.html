@@ -1079,18 +1079,18 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></polyline></svg>
         Limpar Dados
       </div>
-    </nav>
 
-    <!-- User + Sair -->
-    <div style="padding:12px 16px;border-top:1px solid rgba(255,255,255,.08)">
-      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:8px" id="master-user-email"></div>
-      <button id="master-msg-badge" onclick="irParaMensagens()" style="display:none;width:100%;padding:7px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;margin-bottom:6px">
-        💬 <span id="master-msg-count">0</span> mensagem(s) não lida(s)
-      </button>
-      <button onclick="doLogout()" style="width:100%;padding:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif">
-        Sair
-      </button>
-    </div>
+      <!-- User + Sair -->
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.08)">
+        <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:8px;padding:0 8px;word-break:break-all" id="master-user-email"></div>
+        <button id="master-msg-badge" onclick="irParaMensagens()" style="display:none;width:100%;padding:7px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;margin-bottom:6px">
+          💬 <span id="master-msg-count">0</span> mensagem(s) não lida(s)
+        </button>
+        <button onclick="doLogout()" style="width:100%;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:8px;justify-content:center">
+          🚪 Sair
+        </button>
+      </div>
+    </nav>
   </div>
 
   <!-- CONTEÚDO MASTER -->
