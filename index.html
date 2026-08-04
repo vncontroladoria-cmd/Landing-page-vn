@@ -2380,6 +2380,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
           <span class="nav-label" style="color:#34d399;font-weight:600;text-transform:uppercase">Métricas</span>
         </div>
+        <div class="nav-item" data-page="conciliacao" onclick="showPage('conciliacao',this)" style="background:linear-gradient(90deg,rgba(5,150,105,0.15),transparent);border:1px solid rgba(5,150,105,0.2)">
+          <span class="nav-icon" style="color:#34d399">⇄</span><span class="nav-label" style="color:#34d399;font-weight:600;text-transform:uppercase">Conciliação</span>
+        </div>
         <div class="nav-item" data-page="importacao" onclick="showPage('importacao',this)" style="background:linear-gradient(90deg,rgba(5,150,105,0.15),transparent);border:1px solid rgba(5,150,105,0.2)">
           <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span class="nav-label" style="color:#34d399;font-weight:600;text-transform:uppercase">Importação</span>
@@ -3873,6 +3876,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <div style="font-size:13px;color:var(--text2)">Importe o extrato do banco e concilie os lançamentos</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" onclick="abrirModalImportarExcel()">📊 Importar Excel</button>
+              <button class="btn btn-primary" onclick="abrirModalConciliacao()">↑ Importar extrato</button>
+              <button class="btn" style="background:#7c3aed22;color:#7c3aed;border-color:#7c3aed55" onclick="abrirImportarFaturaCC()">💳 Importar Fatura</button>
+            </div>
           </div>
           <div id="conc-container"><div class="empty">Clique em "Importar extrato" para começar</div></div>
         </div>
@@ -4597,6 +4605,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div class="pg-header-sub">Cadastre os serviços e as taxas para ver a margem e o resultado de cada um</div>
             </div>
             <div class="pg-header-actions">
+              <select id="prf-filtro-categoria" onchange="renderPrecificacao()"
+                style="padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
+                <option value="">Todas as categorias</option>
+              </select>
               <button class="btn" onclick="document.getElementById('prf-arquivo-input').click()">📥 Importar Serviços</button>
               <input type="file" id="prf-arquivo-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="previewImportPrecificacao(this)">
               <button class="btn btn-primary" onclick="abrirModalServicoPrecificacao()">+ Novo Serviço</button>
@@ -4627,24 +4639,24 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <div class="section-card" style="padding:0">
             <div class="table-wrap">
-              <table style="font-size:12px">
+              <table style="font-size:11px">
                 <thead>
-                  <tr>
-                    <th>SERVIÇO</th>
-                    <th>CATEGORIA</th>
-                    <th style="text-align:right">PREÇO</th>
-                    <th style="text-align:right">TAX.CARTÃO</th>
-                    <th style="text-align:right">IMPOSTO</th>
-                    <th style="text-align:right">TOALHAS</th>
-                    <th style="text-align:right">PRODUTO/INSUMO</th>
-                    <th style="text-align:right">VALOR LÍQ.</th>
-                    <th style="text-align:right">COMISSÃO %</th>
-                    <th style="text-align:right">COMISSÃO $</th>
-                    <th style="text-align:right">MARGEM CONTRIB.</th>
-                    <th style="text-align:right">CUSTO OPERAC.</th>
-                    <th style="text-align:right">RESULTADO</th>
-                    <th style="text-align:right">RESULT. %</th>
-                    <th>AÇÕES</th>
+                  <tr style="font-size:9.5px">
+                    <th style="padding:6px">SERVIÇO</th>
+                    <th style="padding:6px">CATEGORIA</th>
+                    <th style="padding:6px;text-align:right">PREÇO</th>
+                    <th style="padding:6px;text-align:right">TAX.CARTÃO</th>
+                    <th style="padding:6px;text-align:right">IMPOSTO</th>
+                    <th style="padding:6px;text-align:right">TOALHAS</th>
+                    <th style="padding:6px;text-align:right">PRODUTO</th>
+                    <th style="padding:6px;text-align:right">VALOR LÍQ.</th>
+                    <th style="padding:6px;text-align:right">COMIS. %</th>
+                    <th style="padding:6px;text-align:right">COMIS. $</th>
+                    <th style="padding:6px;text-align:right">MARGEM</th>
+                    <th style="padding:6px;text-align:right">C. OPERAC.</th>
+                    <th style="padding:6px;text-align:right">RESULTADO</th>
+                    <th style="padding:6px;text-align:right">RESULT. %</th>
+                    <th style="padding:6px">AÇÕES</th>
                   </tr>
                 </thead>
                 <tbody id="prf-servicos-tbody"></tbody>
@@ -22431,6 +22443,8 @@ async function salvarConfigPrecificacao() {
 async function loadPrecificacao() {
   const { data } = await qE('precificacao_itens').select('*').order('nome');
   _prfServicos = data || [];
+  const selCat = document.getElementById('prf-filtro-categoria');
+  if (selCat) selCat.dataset.populado = 'false';
   renderPrecificacao();
 }
 
@@ -22458,28 +22472,39 @@ function calcularPrecificacao(s) {
 function renderPrecificacao() {
   const tbody = document.getElementById('prf-servicos-tbody');
   if (!tbody) return;
-  if (!_prfServicos.length) {
-    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center;padding:20px;color:var(--text2)">Nenhum serviço cadastrado. Importe uma planilha ou clique em "+ Novo Serviço".</td></tr>`;
+
+  // Popula o filtro de categoria (só se ainda não tiver sido preenchido, pra não perder a seleção atual)
+  const selCat = document.getElementById('prf-filtro-categoria');
+  if (selCat && selCat.dataset.populado !== 'true') {
+    const categorias = [...new Set(_prfServicos.map(s => s.categoria).filter(Boolean))].sort();
+    selCat.innerHTML = '<option value="">Todas as categorias</option>' + categorias.map(c => `<option value="${c}">${c}</option>`).join('');
+    selCat.dataset.populado = 'true';
+  }
+  const filtroCat = selCat?.value || '';
+  const lista = filtroCat ? _prfServicos.filter(s => s.categoria === filtroCat) : _prfServicos;
+
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="15" style="text-align:center;padding:20px;color:var(--text2)">${_prfServicos.length ? 'Nenhum serviço nessa categoria.' : 'Nenhum serviço cadastrado. Importe uma planilha ou clique em "+ Novo Serviço".'}</td></tr>`;
     return;
   }
-  tbody.innerHTML = _prfServicos.map(s => {
+  tbody.innerHTML = lista.map(s => {
     const c = calcularPrecificacao(s);
-    return `<tr>
-      <td style="font-weight:600">${s.nome}</td>
-      <td style="font-size:11px;color:var(--text2)">${s.categoria||'—'}</td>
-      <td style="text-align:right">${fmtBRL(s.preco)}</td>
-      <td style="text-align:right;color:var(--text2)">${fmtBRL(c.taxCartao)}</td>
-      <td style="text-align:right;color:var(--text2)">${fmtBRL(c.imposto)}</td>
-      <td style="text-align:right;color:var(--text2)">${fmtBRL(s.toalhas)}</td>
-      <td style="text-align:right;color:var(--text2)">${fmtBRL(s.produto)}</td>
-      <td style="text-align:right;font-weight:600">${fmtBRL(c.valorLiquido)}</td>
-      <td style="text-align:right">${(s.comissao_pct||0).toFixed(0)}%</td>
-      <td style="text-align:right">${fmtBRL(c.comissaoValor)}</td>
-      <td style="text-align:right;font-weight:600">${fmtBRL(c.margemContrib)} <span style="color:var(--text3);font-size:10px">(${c.margemPct.toFixed(0)}%)</span></td>
-      <td style="text-align:right;color:var(--text2)">${fmtBRL(c.custoOperacional)}</td>
-      <td style="text-align:right;font-weight:700;color:${c.resultado>=0?'var(--green)':'var(--red)'}">${fmtBRL(c.resultado)}</td>
-      <td style="text-align:right;font-weight:700;color:${c.resultado>=0?'var(--green)':'var(--red)'}">${c.resultadoPct.toFixed(0)}%</td>
-      <td>
+    return `<tr style="font-size:10.5px">
+      <td style="font-weight:600;padding:5px 6px;white-space:nowrap">${s.nome}</td>
+      <td style="padding:5px 6px;color:var(--text2);white-space:nowrap">${s.categoria||'—'}</td>
+      <td style="padding:5px 6px;text-align:right;white-space:nowrap">${fmtBRL(s.preco)}</td>
+      <td style="padding:5px 6px;text-align:right;color:var(--text2);white-space:nowrap">${fmtBRL(c.taxCartao)}</td>
+      <td style="padding:5px 6px;text-align:right;color:var(--text2);white-space:nowrap">${fmtBRL(c.imposto)}</td>
+      <td style="padding:5px 6px;text-align:right;color:var(--text2);white-space:nowrap">${fmtBRL(s.toalhas)}</td>
+      <td style="padding:5px 6px;text-align:right;color:var(--text2);white-space:nowrap">${fmtBRL(s.produto)}</td>
+      <td style="padding:5px 6px;text-align:right;font-weight:600;white-space:nowrap">${fmtBRL(c.valorLiquido)}</td>
+      <td style="padding:5px 6px;text-align:right;white-space:nowrap">${(s.comissao_pct||0).toFixed(0)}%</td>
+      <td style="padding:5px 6px;text-align:right;white-space:nowrap">${fmtBRL(c.comissaoValor)}</td>
+      <td style="padding:5px 6px;text-align:right;font-weight:600;white-space:nowrap">${fmtBRL(c.margemContrib)} <span style="color:var(--text3);font-size:9px">(${c.margemPct.toFixed(0)}%)</span></td>
+      <td style="padding:5px 6px;text-align:right;color:var(--text2);white-space:nowrap">${fmtBRL(c.custoOperacional)}</td>
+      <td style="padding:5px 6px;text-align:right;font-weight:700;white-space:nowrap;color:${c.resultado>=0?'var(--green)':'var(--red)'}">${fmtBRL(c.resultado)}</td>
+      <td style="padding:5px 6px;text-align:right;font-weight:700;white-space:nowrap;color:${c.resultado>=0?'var(--green)':'var(--red)'}">${c.resultadoPct.toFixed(0)}%</td>
+      <td style="padding:5px 6px;white-space:nowrap">
         <button onclick="abrirModalServicoPrecificacao('${s.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
         <button onclick="excluirServicoPrecificacao('${s.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
       </td>
