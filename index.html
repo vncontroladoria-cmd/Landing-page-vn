@@ -1273,6 +1273,14 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
           <input type="hidden" id="dados-empresa-sel">
         </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)">
+          <button id="btn-backup-empresa" onclick="baixarBackupEmpresa()"
+            style="padding:10px 16px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.35);border-radius:8px;color:#34d399;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
+            💾 Baixar Backup Completo
+          </button>
+          <div id="backup-status" style="font-size:12px;color:rgba(255,255,255,.45);margin-top:8px"></div>
+        </div>
       </div>
 
       <!-- Grid de páginas/tabelas -->
@@ -24469,6 +24477,163 @@ function atualizarBadgeNotificacoes(qtd) {
   }
   btn.onclick = toggleDropdownNotificacoes;
 }
+
+// ===================== BACKUP COMPLETO POR EMPRESA =====================
+// Gera um .zip com uma pasta por area (Lancamentos/, PDV/, RH/...),
+// cada uma com CSV (abre no Excel) e JSON (restauracao fiel).
+let _JSZip = null;
+async function loadJSZip() {
+  if (_JSZip) return _JSZip;
+  if (!window.JSZip) {
+    await new Promise((ok, err) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      sc.onload = ok; sc.onerror = () => err(new Error('Falha ao carregar JSZip'));
+      document.head.appendChild(sc);
+    });
+  }
+  _JSZip = window.JSZip;
+  return _JSZip;
+}
+
+// Tabelas extras que nao estao no TABELAS_EMPRESA (usado pelo Limpar Dados)
+const TABELAS_BACKUP_EXTRA = [
+  { id:'pdv-caixas',    label:'PDV Caixas',            tabela:'pdv_caixas',            icone:'🛒', pasta:'PDV' },
+  { id:'cartao',        label:'Cartao de Credito',     tabela:'cartao_lancamentos',    icone:'💳', pasta:'Cartao de Credito' },
+  { id:'rh-prof',       label:'RH Profissionais',      tabela:'rh_profissionais',      icone:'👥', pasta:'RH' },
+  { id:'rh-ocor',       label:'RH Atestados e Faltas', tabela:'rh_ocorrencias',        icone:'🩺', pasta:'RH' },
+  { id:'precificacao',  label:'Precificacao',          tabela:'precificacao_itens',    icone:'🏷️', pasta:'Precificacao' },
+  { id:'rel-tipos',     label:'Tipos de Relatorio',    tabela:'rel_tipos',             icone:'📊', pasta:'Relatorios' },
+  { id:'notificacoes',  label:'Notificacoes',          tabela:'notificacoes_tarefas',  icone:'🔔', pasta:'Notificacoes' },
+];
+
+// Em qual pasta cada tabela do TABELAS_EMPRESA entra
+const PASTA_POR_TABELA = {
+  lancamentos:'Lancamentos', pdv_itens:'PDV',
+  contas_pagar:'Contas a Pagar', contas_receber:'Contas a Receber',
+  rel_servicos:'Relatorios', rel_lucratividade:'Relatorios', rel_dados_brutos:'Relatorios',
+  fornecedores:'Cadastros', bancos_cadastrados:'Cadastros', profissionais:'Cadastros',
+  metas_profissionais:'Metas', metas_financeiras:'Metas',
+  plano_contas:'Plano de Contas', grupos_plano:'Plano de Contas',
+  documentos_fiscais:'Documentos',
+};
+
+// Converte array de objetos em CSV (separador ; pra abrir direto no Excel BR)
+function toCSV(linhas) {
+  if (!linhas || !linhas.length) return '';
+  const cols = [...new Set(linhas.flatMap(o => Object.keys(o)))];
+  const esc = v => {
+    if (v === null || v === undefined) return '';
+    let t = typeof v === 'object' ? JSON.stringify(v) : String(v);
+    if (/[";\n\r]/.test(t)) t = '"' + t.replace(/"/g, '""') + '"';
+    return t;
+  };
+  return cols.join(';') + '\r\n' +
+         linhas.map(o => cols.map(c => esc(o[c])).join(';')).join('\r\n');
+}
+
+// Busca TODAS as linhas paginando (o Supabase corta em 1000 por padrao)
+async function buscarTudo(tabela, empId) {
+  const passo = 1000; let de = 0; let todas = [];
+  for (;;) {
+    const { data, error } = await sb.from(tabela).select('*')
+      .eq('empresa_id', empId).range(de, de + passo - 1);
+    if (error) throw new Error(`${tabela}: ${error.message}`);
+    todas = todas.concat(data || []);
+    if (!data || data.length < passo) break;
+    de += passo;
+    if (de > 200000) break; // trava de seguranca
+  }
+  return todas;
+}
+
+async function baixarBackupEmpresa() {
+  const empId = document.getElementById('dados-empresa-sel')?.value;
+  if (!empId) { showToast('Selecione uma empresa primeiro', 'error'); return; }
+
+  const btn = document.getElementById('btn-backup-empresa');
+  const st  = document.getElementById('backup-status');
+  const txtOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.style.opacity = '.6';
+
+  try {
+    st.textContent = 'Preparando...';
+    const JSZip = await loadJSZip();
+
+    const { data: emp } = await sb.from('empresas').select('*').eq('id', empId).single();
+    const nomeEmp = (emp?.nome || 'empresa').replace(/[^\w\s-]/g, '').trim();
+
+    // Junta as duas listas
+    const alvos = [
+      ...TABELAS_EMPRESA.map(t => ({ ...t, pasta: PASTA_POR_TABELA[t.tabela] || 'Outros' })),
+      ...TABELAS_BACKUP_EXTRA,
+    ];
+
+    const zip = new JSZip();
+    const raiz = zip.folder(`Backup ${nomeEmp}`);
+    const resumo = [];
+    let feitas = 0;
+
+    for (const t of alvos) {
+      feitas++;
+      btn.innerHTML = `⏳ ${feitas}/${alvos.length} — ${t.label}`;
+      st.textContent = `Baixando ${t.label}...`;
+      let linhas = [];
+      let erro = null;
+      try {
+        linhas = await buscarTudo(t.tabela, empId);
+      } catch (e) {
+        erro = e.message; // tabela pode nao existir nesse projeto — segue o baile
+      }
+      resumo.push({ area: t.pasta, tabela: t.tabela, registros: linhas.length, erro: erro || '' });
+      if (!linhas.length) continue;
+
+      const pasta = raiz.folder(t.pasta);
+      const base = t.tabela;
+      pasta.file(`${base}.csv`,  '\ufeff' + toCSV(linhas));      // BOM: acentos certos no Excel
+      pasta.file(`${base}.json`, JSON.stringify(linhas, null, 2));
+    }
+
+    // Dados cadastrais da empresa + indice do backup
+    raiz.file('empresa.json', JSON.stringify(emp || {}, null, 2));
+    raiz.file('_RESUMO.csv', '\ufeff' + toCSV(resumo));
+    const totalReg = resumo.reduce((a, r) => a + r.registros, 0);
+    raiz.file('_LEIA-ME.txt',
+      `BACKUP — ${emp?.nome || ''}\r\n` +
+      `Gerado em: ${new Date().toLocaleString('pt-BR')}\r\n` +
+      `Total de registros: ${totalReg}\r\n\r\n` +
+      `Cada pasta tem os dados em dois formatos:\r\n` +
+      `  .csv  — abre no Excel/Google Sheets\r\n` +
+      `  .json — usado para restaurar no sistema\r\n\r\n` +
+      `_RESUMO.csv lista quantos registros vieram de cada tabela.\r\n`
+    );
+
+    st.textContent = 'Compactando...';
+    btn.innerHTML = '📦 Compactando...';
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+
+    const hoje = new Date();
+    const carimbo = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Backup_${nomeEmp.replace(/\s+/g,'_')}_${carimbo}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+    st.textContent = `✅ ${totalReg} registros · ${(blob.size/1024/1024).toFixed(1)} MB · salve no Drive da empresa`;
+    showToast(`Backup gerado: ${totalReg} registros`, 'success');
+  } catch (e) {
+    st.textContent = '❌ ' + e.message;
+    showToast('Erro no backup: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.innerHTML = txtOriginal;
+  }
+}
+
 
 // ===================== LIXEIRA =====================
 // Registros apagados sao capturados por trigger no Postgres (fn_lixeira_capturar),
