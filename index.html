@@ -9675,12 +9675,8 @@ async function loadLancamentos(forcarBancoFilter) {
   };
   const saldoBanco = (b) => {
     const nomeB = normalizarBanco(b.nome);
-    // Regra canonica de vinculo lancamento -> banco:
-    // 1) se o banco_id aponta pra um cadastro que EXISTE, vale so o id (evita banco roubar lanc. do outro)
-    // 2) se o banco_id e nulo OU orfao (cadastro apagado), cai no nome
-    // Caso 2 e o da FME: tem lancamento de Itau sem Itau cadastrado
     const lancsB = todos.filter(l =>
-      bancoCasa(l, b.id, nomeB) &&
+      (l.banco_id === b.id || normalizarBanco(l.banco_nome) === nomeB) &&
       (!ultimaDataFiltroGlobal || l.data_lancamento <= ultimaDataFiltroGlobal)
     );
     return lancsB.reduce((s,l) => s + vlLanc(l), 0);
@@ -9714,11 +9710,8 @@ async function loadLancamentos(forcarBancoFilter) {
       ? todos.filter(l => l.data_lancamento <= ultimaDataFiltroGlobal)
       : todos;
 
-    // Mesma regra dos cards por banco, pra Saldo Final e card do banco baterem sempre
-    const bSel = _bancos.find(x => x.id === bancoFilter);
-    const nomeSel = bSel ? normalizarBanco(bSel.nome) : null;
     const lancFiltrados = bancoFilter
-      ? lancAte.filter(l => bancoCasa(l, bancoFilter, nomeSel))
+      ? lancAte.filter(l => l.banco_id === bancoFilter)
       : lancAte;
 
     saldoTotal = lancFiltrados.reduce((s, l) => s + vlLanc(l), 0);
@@ -24449,15 +24442,6 @@ function atualizarBadgeNotificacoes(qtd) {
     btn.title = 'Notificações';
   }
   btn.onclick = toggleDropdownNotificacoes;
-}
-
-// Decide se um lancamento pertence a um banco.
-// banco_id valido (existe em _bancos) -> so o id vale.
-// banco_id nulo ou orfao (cadastro apagado) -> cai no nome.
-function bancoCasa(l, bancoId, nomeNorm) {
-  const idValido = l.banco_id && _bancos.some(x => x.id === l.banco_id);
-  if (idValido) return l.banco_id === bancoId;
-  return nomeNorm ? normalizarBanco(l.banco_nome) === nomeNorm : false;
 }
 
 // Copia um valor pro clipboard e da feedback visual no proprio botao
