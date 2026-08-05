@@ -2387,6 +2387,9 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span class="nav-label" style="color:#34d399;font-weight:600;text-transform:uppercase">Importação</span>
         </div>
+        <div class="nav-item" data-page="lixeira" onclick="showPage('lixeira',this)">
+          <span class="nav-icon">🗑️</span><span class="nav-label">Lixeira</span>
+        </div>
       </div>
 
       <div class="sidebar-footer">
@@ -4983,6 +4986,26 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="card"><div id="usuarios-table"><div class="loading"><div class="spin"></div> Carregando...</div></div></div>
         </div>
 
+        <div class="page" id="page-lixeira">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+            <div style="font-size:13px;color:var(--text2)">Tudo que foi apagado fica aqui e pode ser restaurado</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <select id="lix-tabela" onchange="loadLixeira()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+                <option value="">Todas as origens</option>
+              </select>
+              <select id="lix-status" onchange="loadLixeira()" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+                <option value="ativos">Não restaurados</option>
+                <option value="todos">Todos</option>
+                <option value="restaurados">Já restaurados</option>
+              </select>
+              <button class="btn" onclick="loadLixeira()">↻ Atualizar</button>
+              <button class="btn" style="color:var(--red);border-color:var(--red-dim)" onclick="esvaziarLixeira()">🔥 Esvaziar</button>
+            </div>
+          </div>
+          <div id="lix-resumo" style="margin-bottom:1rem"></div>
+          <div class="card"><div id="lixeira-table"><div class="loading"><div class="spin"></div> Carregando...</div></div></div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -6272,7 +6295,7 @@ const pageTitles = {
   metricas:'Métricas', conciliacao:'Conciliação',
   'contas-receber':'Contas a Receber', dfc:'DFC', dre:'DRE',
   bancos:'Bancos', fornecedores:'Fornecedores',
-  'plano-contas':'Plano de Contas', usuarios:'Usuários', rh:'RH'
+  'plano-contas':'Plano de Contas', usuarios:'Usuários', rh:'RH', lixeira:'Lixeira'
 };
 
 // Seta o mês atual em um select de mês (se ainda estiver em "Todos")
@@ -6336,6 +6359,7 @@ function showPage(id, el) {
   (_mesSels[id]||[]).forEach(selId => setMesAtual(selId));
   if (_anoSels[id]) setAnoAtual(_anoSels[id]);
 
+  if (id === 'lixeira') loadLixeira();
   if (id === 'pdv') initPDV();
   if (id === 'servicos') { preencherFiltrosServicos(); initServicos(); }
   if (id === 'dfc') loadDFC();
@@ -10241,7 +10265,9 @@ fornecedorBate(f, desc)
       categoria_dre: catDre,
       banco_id: bancoId || null,
       banco_nome: bancoNome,
-      mes: `${ano}-${m.padStart(2,'0')}`,
+      // Competencia vem da data da propria linha (nao do dropdown), senao um extrato
+      // com varios meses cai todo na mesma competencia
+      mes: (r.data && /^\d{4}-\d{2}/.test(r.data)) ? r.data.substring(0,7) : `${ano}-${m.padStart(2,'0')}`,
       status: 'pago',
     }));
     if (error) erros++; else count++;
@@ -24443,6 +24469,117 @@ function atualizarBadgeNotificacoes(qtd) {
   }
   btn.onclick = toggleDropdownNotificacoes;
 }
+
+// ===================== LIXEIRA =====================
+// Registros apagados sao capturados por trigger no Postgres (fn_lixeira_capturar),
+// entao pega delete vindo do app OU de SQL manual.
+let _lixeiraRows = [];
+
+async function loadLixeira() {
+  const cont = document.getElementById('lixeira-table');
+  if (!cont) return;
+  cont.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
+
+  const status = document.getElementById('lix-status')?.value || 'ativos';
+  const tabela = document.getElementById('lix-tabela')?.value || '';
+
+  let q = qE('lixeira').select('*').order('excluido_em', { ascending: false }).limit(500);
+  if (status === 'ativos')      q = q.eq('restaurado', false);
+  if (status === 'restaurados') q = q.eq('restaurado', true);
+  if (tabela)                   q = q.eq('tabela_origem', tabela);
+
+  const { data, error } = await q;
+  if (error) {
+    cont.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--text2)">
+      Não consegui ler a lixeira.<br><span style="font-size:12px">${error.message}</span><br>
+      <span style="font-size:12px">Rode o script <b>criar_sistema_lixeira</b> no Supabase.</span></div>`;
+    return;
+  }
+
+  _lixeiraRows = data || [];
+
+  // preenche o filtro de origem uma vez
+  const selT = document.getElementById('lix-tabela');
+  if (selT && selT.options.length <= 1) {
+    const origens = [...new Set(_lixeiraRows.map(r => r.tabela_origem))].sort();
+    selT.innerHTML = '<option value="">Todas as origens</option>' +
+      origens.map(o => `<option value="${o}">${o}</option>`).join('');
+  }
+
+  // resumo por origem
+  const porTab = {};
+  _lixeiraRows.forEach(r => { porTab[r.tabela_origem] = (porTab[r.tabela_origem] || 0) + 1; });
+  document.getElementById('lix-resumo').innerHTML =
+    Object.keys(porTab).length
+      ? `<div style="display:flex;gap:8px;flex-wrap:wrap">` + Object.entries(porTab).map(([t, n]) =>
+          `<div class="metric-card" style="min-width:110px;padding:8px 12px;border:1.5px solid var(--border)">
+             <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">${t}</div>
+             <div style="font-size:15px;font-weight:700">${n}</div>
+           </div>`).join('') + `</div>`
+      : '';
+
+  if (!_lixeiraRows.length) {
+    cont.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text2)">Lixeira vazia 🎉</div>';
+    return;
+  }
+
+  cont.innerHTML = `<table class="table">
+    <thead><tr><th>EXCLUÍDO EM</th><th>ORIGEM</th><th>REGISTRO</th><th>POR</th><th>STATUS</th><th>AÇÕES</th></tr></thead>
+    <tbody>${_lixeiraRows.map(r => `
+      <tr>
+        <td style="font-size:12px;white-space:nowrap">${new Date(r.excluido_em).toLocaleString('pt-BR')}</td>
+        <td><span class="badge badge-blue" style="font-size:10px">${r.tabela_origem}</span></td>
+        <td style="font-size:12px">${(r.resumo || '—')}</td>
+        <td style="font-size:11px;color:var(--text2)">${r.excluido_por || '—'}</td>
+        <td>${r.restaurado
+              ? '<span style="font-size:11px;color:var(--green);font-weight:700">RESTAURADO</span>'
+              : '<span style="font-size:11px;color:var(--text2)">na lixeira</span>'}</td>
+        <td style="white-space:nowrap">
+          <button onclick="verLixeiraJson('${r.id}')" title="Ver dados" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px">🔍</button>
+          ${r.restaurado ? '' : `<button onclick="restaurarLixeira('${r.id}')" title="Restaurar" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--green)">↩️</button>`}
+          <button onclick="excluirDaLixeira('${r.id}')" title="Apagar definitivamente" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
+        </td>
+      </tr>`).join('')}</tbody></table>`;
+}
+
+function verLixeiraJson(id) {
+  const r = _lixeiraRows.find(x => x.id === id);
+  if (!r) return;
+  alert(JSON.stringify(r.dados, null, 2));
+}
+
+async function restaurarLixeira(id) {
+  const r = _lixeiraRows.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`Restaurar este registro em "${r.tabela_origem}"?\n\n${r.resumo || ''}`)) return;
+  const { data, error } = await sb.rpc('fn_lixeira_restaurar', { p_lixeira_id: id });
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast(String(data || 'Restaurado'), 'success');
+  loadLixeira();
+}
+
+async function excluirDaLixeira(id) {
+  const r = _lixeiraRows.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`APAGAR DEFINITIVAMENTE?\n\n${r.resumo || ''}\n\nDepois disso não tem mais como recuperar.`)) return;
+  const { error } = await sb.from('lixeira').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Removido da lixeira', 'success');
+  loadLixeira();
+}
+
+async function esvaziarLixeira() {
+  if (!_empresaAtual?.id) return;
+  const total = _lixeiraRows.length;
+  if (!total) { showToast('Lixeira já está vazia', ''); return; }
+  if (!confirm(`Esvaziar a lixeira de ${_empresaAtual.nome}?\n\n${total} registro(s) serão apagados DEFINITIVAMENTE.\nNão tem como desfazer.`)) return;
+  if (prompt('Digite APAGAR para confirmar:') !== 'APAGAR') { showToast('Cancelado', ''); return; }
+  const { error } = await qE('lixeira').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Lixeira esvaziada', 'success');
+  loadLixeira();
+}
+
 
 // Copia um valor pro clipboard e da feedback visual no proprio botao
 async function copiarCampoRH(btn, valor) {
