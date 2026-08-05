@@ -9675,10 +9675,12 @@ async function loadLancamentos(forcarBancoFilter) {
   };
   const saldoBanco = (b) => {
     const nomeB = normalizarBanco(b.nome);
-    // Regra canonica: casa por banco_id. Nome so vale como fallback quando banco_id e nulo,
-    // senao um lancamento de OUTRO cadastro com nome parecido entra no saldo (bug do Itau 8.498 x 2.263)
+    // Regra canonica de vinculo lancamento -> banco:
+    // 1) se o banco_id aponta pra um cadastro que EXISTE, vale so o id (evita banco roubar lanc. do outro)
+    // 2) se o banco_id e nulo OU orfao (cadastro apagado), cai no nome
+    // Caso 2 e o da FME: tem lancamento de Itau sem Itau cadastrado
     const lancsB = todos.filter(l =>
-      (l.banco_id ? l.banco_id === b.id : normalizarBanco(l.banco_nome) === nomeB) &&
+      bancoCasa(l, b.id, nomeB) &&
       (!ultimaDataFiltroGlobal || l.data_lancamento <= ultimaDataFiltroGlobal)
     );
     return lancsB.reduce((s,l) => s + vlLanc(l), 0);
@@ -9716,7 +9718,7 @@ async function loadLancamentos(forcarBancoFilter) {
     const bSel = _bancos.find(x => x.id === bancoFilter);
     const nomeSel = bSel ? normalizarBanco(bSel.nome) : null;
     const lancFiltrados = bancoFilter
-      ? lancAte.filter(l => l.banco_id ? l.banco_id === bancoFilter : normalizarBanco(l.banco_nome) === nomeSel)
+      ? lancAte.filter(l => bancoCasa(l, bancoFilter, nomeSel))
       : lancAte;
 
     saldoTotal = lancFiltrados.reduce((s, l) => s + vlLanc(l), 0);
@@ -20497,17 +20499,27 @@ async function loadRHProfissionais() {
     tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:20px;color:var(--text2)">Nenhum profissional cadastrado</td></tr>`;
     return;
   }
+  // Celula com botao de copiar (1 clique). Usa clipboard API com fallback pra execCommand
+  const celCopia = (valor) => {
+    if (!valor) return '<td style="font-size:12px">—</td>';
+    const esc = String(valor).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    return `<td style="font-size:12px;white-space:nowrap">
+      <span>${valor}</span>
+      <button onclick="copiarCampoRH(this,'${esc}')" title="Copiar" style="background:none;border:1px solid var(--border);border-radius:5px;padding:1px 5px;margin-left:5px;cursor:pointer;font-size:11px;vertical-align:middle">📋</button>
+    </td>`;
+  };
+
   tbody.innerHTML = _rhProfissionais.map(p => `
     <tr>
       <td style="font-weight:600">${p.nome}</td>
       <td><span class="badge ${p.tipo==='clt'?'badge-blue':p.tipo==='freelancer'?'badge-amber':'badge-green'}" style="font-size:10px">${p.tipo==='clt'?'CLT':p.tipo==='freelancer'?'Freelancer':'Profissional'}</span></td>
       <td>${p.cargo||'—'}</td>
-      <td style="font-size:12px">${p.cnpj||'—'}</td>
-      <td style="font-size:12px">${p.cpf||'—'}</td>
+      ${celCopia(p.cnpj)}
+      ${celCopia(p.cpf)}
       <td style="font-size:12px">${p.regime ? `<span class="badge badge-blue" style="font-size:10px">${p.regime}</span>` : `<span style="color:var(--text3)">Pessoa Física</span>`}</td>
       <td style="font-size:12px">${p.chave_pix||'—'}</td>
       <td style="font-size:12px">${p.data_nascimento ? new Date(p.data_nascimento+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-      <td style="font-size:12px">${p.senha_gov ? `<span onclick="this.textContent=this.textContent==='••••••'?'${p.senha_gov}':'••••••'" style="cursor:pointer" title="Clique para mostrar/ocultar">••••••</span>` : '—'}</td>
+      <td style="font-size:12px;white-space:nowrap">${p.senha_gov ? `<span onclick="this.textContent=this.textContent==='••••••'?'${String(p.senha_gov).replace(/'/g,"\\'")}':'••••••'" style="cursor:pointer" title="Clique para mostrar/ocultar">••••••</span><button onclick="copiarCampoRH(this,'${String(p.senha_gov).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')" title="Copiar senha" style="background:none;border:1px solid var(--border);border-radius:5px;padding:1px 5px;margin-left:5px;cursor:pointer;font-size:11px;vertical-align:middle">📋</button>` : '—'}</td>
       <td>${p.data_admissao ? new Date(p.data_admissao+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
       <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${p.ativo?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)'};color:${p.ativo?'#4ade80':'#f87171'};font-weight:700">${p.ativo?'ATIVO':'INATIVO'}</span></td>
       <td>
@@ -22318,7 +22330,7 @@ function renderCardsHoje() {
             ${t.descricao?`<div style="font-size:10px;color:rgba(255,255,255,.3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.descricao}</div>`:''}
           </div>
           ${timerHtml}
-          ${t.link_url ? `<a href="${t.link_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir link de apoio" style="flex-shrink:0;font-size:14px;text-decoration:none">🔗</a>` : ''}
+          ${t.link_url ? `<a href="${urlApoio(t.link_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Abrir link de apoio" style="flex-shrink:0;font-size:14px;text-decoration:none">🔗</a>` : ''}
           <button onclick="abrirModalTarefa('${t.id}')" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.2);font-size:11px;flex-shrink:0">✏️</button>
         </div>`;
     }).join('');
@@ -23597,7 +23609,7 @@ function renderLinhaTarefa(t, opts={}) {
         ${enviadaPorOutro ? `<div style="font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:3px">📨 Enviado por ${nomeQuemEnviou}</div>` : ''}
         <div style="color:#fff;font-size:13px;font-weight:600">${t.titulo}</div>
         ${t.descricao ? `<div style="color:rgba(255,255,255,.45);font-size:11px;margin-top:3px">${t.descricao}</div>` : ''}
-        ${t.link_url ? `<a href="${t.link_url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:11px;color:#60a5fa;text-decoration:underline">🔗 Abrir link de apoio</a>` : ''}
+        ${t.link_url ? `<a href="${urlApoio(t.link_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:11px;color:#60a5fa;text-decoration:underline">🔗 Abrir link de apoio</a>` : ''}
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
           ${prioBadge}
           ${empresaTag}
@@ -24437,6 +24449,46 @@ function atualizarBadgeNotificacoes(qtd) {
     btn.title = 'Notificações';
   }
   btn.onclick = toggleDropdownNotificacoes;
+}
+
+// Decide se um lancamento pertence a um banco.
+// banco_id valido (existe em _bancos) -> so o id vale.
+// banco_id nulo ou orfao (cadastro apagado) -> cai no nome.
+function bancoCasa(l, bancoId, nomeNorm) {
+  const idValido = l.banco_id && _bancos.some(x => x.id === l.banco_id);
+  if (idValido) return l.banco_id === bancoId;
+  return nomeNorm ? normalizarBanco(l.banco_nome) === nomeNorm : false;
+}
+
+// Copia um valor pro clipboard e da feedback visual no proprio botao
+async function copiarCampoRH(btn, valor) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(valor);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = valor;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    const antes = btn.innerHTML;
+    btn.innerHTML = '✅';
+    setTimeout(() => { btn.innerHTML = antes; }, 1200);
+  } catch (e) {
+    alert('Não consegui copiar. Valor: ' + valor);
+  }
+}
+
+// Normaliza link de apoio: sem http/https o browser trata como caminho relativo e o link quebra
+function urlApoio(u) {
+  const v = (u || '').trim();
+  if (!v) return '';
+  if (/^(https?:|mailto:|tel:)/i.test(v)) return v;
+  return 'https://' + v.replace(/^\/+/, '');
 }
 
 // Monta o HTML de uma notificação (usado no dropdown do sino e na página cheia)
