@@ -16,6 +16,7 @@
   --bg2: #ffffff;
   --bg3: #f8f9fa;
   --bg4: #eef0f3;
+  --zebra: #f7f8fa;
   --border: #e4e6ea;
   --border2: #d0d3d9;
   --text: #1a1d23;
@@ -403,11 +404,20 @@ thead th:hover { color: var(--accent); }
 thead th.no-sort:hover { color: var(--text2); }
 tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
 tbody tr:last-child td { border-bottom: none; }
-tbody tr:hover { background: var(--bg3); }
+/* ZEBRA: linha sim, linha nao, pra nao embaralhar a leitura em tabela longa.
+   Vem ANTES do hover pra que passar o mouse continue destacando por cima. */
+tbody tr:nth-child(even) { background: var(--zebra); }
+
+tbody tr:hover { background: var(--bg4) !important; }
 /* Painel master e operador têm fundo escuro — hover precisa ser escuro também */
 #painel-master tbody tr:hover,
 #painel-operador tbody tr:hover,
 #mpage-produtividade tbody tr:hover { background: rgba(255,255,255,.04) !important; }
+
+/* Nos paineis escuros a zebra tem que ser clara e bem sutil */
+#painel-master tbody tr:nth-child(even),
+#painel-operador tbody tr:nth-child(even),
+#mpage-produtividade tbody tr:nth-child(even) { background: rgba(255,255,255,.025); }
 
 /* BADGES */
 .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em; }
