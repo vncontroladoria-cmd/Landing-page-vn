@@ -10188,7 +10188,12 @@ async function salvarLancamentoInline(id, rowId) {
   const { error } = await sb.from('lancamentos').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('Salvo!','success');
-  loadLancamentos();
+
+  // Guarda onde a pagina estava: sem isso, cada save joga o usuario pro topo
+  const scrollY = window.scrollY;
+  await loadLancamentos();
+  reaplicarFiltroSemCat();
+  window.scrollTo(0, scrollY);
 }
 
 async function excluirLancamento(id) {
@@ -18153,6 +18158,7 @@ function filtrarSemCategoria() {
   // Toggle: se já está filtrando, volta ao normal
   if (btn?.dataset.ativo === '1') {
     btn.dataset.ativo = '0';
+    _filtroSemCatAtivo = false;
     btn.style.background = 'rgba(245,158,11,0.1)';
     btn.style.color = '#b45309';
     document.querySelectorAll('#lanc-tbody tr[id]').forEach(r => r.style.display = '');
@@ -18171,8 +18177,42 @@ function filtrarSemCategoria() {
     btn.style.background = '#f59e0b';
     btn.style.color = '#fff';
   }
+  _filtroSemCatAtivo = true;
 
   showToast(`Mostrando ${semCat.length} lançamento${semCat.length > 1 ? 's' : ''} sem categoria`, 'info');
+}
+
+// Reaplica o filtro "sem categoria" depois que a tabela e redesenhada,
+// pra nao perder a fila de edicao a cada save
+let _filtroSemCatAtivo = false;
+function reaplicarFiltroSemCat() {
+  if (!_filtroSemCatAtivo) return;
+  const semCat = (_lancamentos||[]).filter(l => !l.categoria && !isLancContabil(l));
+  const btn = document.getElementById('btn-sem-cat');
+
+  if (!semCat.length) {
+    _filtroSemCatAtivo = false;
+    if (btn) {
+      btn.dataset.ativo = '0';
+      btn.style.background = 'rgba(245,158,11,0.1)';
+      btn.style.color = '#b45309';
+    }
+    document.querySelectorAll('#lanc-tbody tr[id]').forEach(r => r.style.display = '');
+    showToast('Acabou! Todos os lançamentos têm categoria ✅', 'success');
+    return;
+  }
+
+  const ids = new Set(semCat.map(l => 'lr-' + l.id));
+  document.querySelectorAll('#lanc-tbody tr[id]').forEach(r => {
+    r.style.display = ids.has(r.id) ? '' : 'none';
+  });
+  if (btn) {
+    btn.dataset.ativo = '1';
+    btn.style.background = '#f59e0b';
+    btn.style.color = '#fff';
+  }
+  const n = document.getElementById('lanc-hero-semcat-n');
+  if (n) n.textContent = semCat.length;
 }
 
 function filtrarLancamentos(termo) {
@@ -21052,6 +21092,7 @@ function filtrarSemCategoriaCC() {
 
   if (btn?.dataset.ativo === '1') {
     btn.dataset.ativo = '0';
+    _filtroSemCatAtivoCC = false;
     btn.style.background = 'rgba(245,158,11,0.1)';
     btn.style.color = '#b45309';
     document.querySelectorAll('#cc-tbody tr[id]').forEach(r => r.style.display = '');
@@ -21070,8 +21111,42 @@ function filtrarSemCategoriaCC() {
     btn.style.background = '#f59e0b';
     btn.style.color = '#fff';
   }
+  _filtroSemCatAtivoCC = true;
 
   showToast(`Mostrando ${semCat.length} lançamento${semCat.length > 1 ? 's' : ''} sem categoria`, 'info');
+}
+
+// Reaplica o filtro "sem categoria" depois que a tabela e redesenhada,
+// pra nao perder a fila de edicao a cada save
+let _filtroSemCatAtivoCC = false;
+function reaplicarFiltroSemCatCC() {
+  if (!_filtroSemCatAtivoCC) return;
+  const semCat = (_ccLancamentosAtuais||[]).filter(l => !l.categoria);
+  const btn = document.getElementById('btn-sem-cat-cc');
+
+  if (!semCat.length) {
+    _filtroSemCatAtivoCC = false;
+    if (btn) {
+      btn.dataset.ativo = '0';
+      btn.style.background = 'rgba(245,158,11,0.1)';
+      btn.style.color = '#b45309';
+    }
+    document.querySelectorAll('#cc-tbody tr[id]').forEach(r => r.style.display = '');
+    showToast('Acabou! Todos os lançamentos têm categoria ✅', 'success');
+    return;
+  }
+
+  const ids = new Set(semCat.map(l => 'cc-row-' + l.id));
+  document.querySelectorAll('#cc-tbody tr[id]').forEach(r => {
+    r.style.display = ids.has(r.id) ? '' : 'none';
+  });
+  if (btn) {
+    btn.dataset.ativo = '1';
+    btn.style.background = '#f59e0b';
+    btn.style.color = '#fff';
+  }
+  const n = document.getElementById('cc-hero-semcat-n');
+  if (n) n.textContent = semCat.length;
 }
 
 function filtrarCartaoLanc(termo) {
