@@ -5774,7 +5774,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
       <div class="form-group"><label>Valor (R$)</label><input type="number" id="cp-valor" placeholder="0,00" step="0.01"></div>
       <div class="form-group"><label>Vencimento</label><input type="date" id="cp-venc"></div>
       <div class="form-group"><label>Tipo</label>
-        <select id="cp-tipo"><option>Fixo</option><option>Variável</option></select>
+        <select id="cp-tipo"><option value="fixa">Fixa</option><option value="variavel">Variável</option></select>
       </div>
       <div class="form-group"><label>Recebido?</label>
         <select id="cp-receb"><option value="Sim">Sim</option><option value="Não">Não</option></select>
@@ -10851,6 +10851,12 @@ async function loadContasPagar() {
       const statusCor = { 'pago':'#059669','recebido':'#059669','enviado':'#2563eb','atrasado':'#dc2626','não pago':'#6b7280','a pagar':'#6b7280','pendente':'#6b7280' };
       const statusIcon = { 'pago':'✅','recebido':'✅','enviado':'📤','atrasado':'🔴','não pago':'⚪','a pagar':'🟡','pendente':'🟡' };
       const statusRowBg = { 'pago':'#f0fdf4','recebido':'#f0fdf4','enviado':'#eff6ff','atrasado':'#fff5f5','não pago':'','a pagar':'','pendente':'' };
+      // O sistema tem dois formularios que gravam nessa coluna com grafias diferentes
+      // ("Fixo/Variavel" e "fixa/variavel"), entao aceitamos as duas.
+      const ehFixa = t => ['fixo','fixa'].includes(normS(t));
+      const ehVar  = t => ['variavel','variavél'].includes(normS(t));
+      // Fixa = roxo (previsivel, todo mes) | Variavel = ambar (muda a cada mes)
+      const corTipo = t => ehFixa(t) ? '#7c3aed' : ehVar(t) ? '#d97706' : '#9ca3af';
       const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2);text-align:left';
       let rows = contas.map((c,i) => {
         const statusAtual = c.status || 'pendente';
@@ -10885,6 +10891,14 @@ async function loadContasPagar() {
           <td style="padding:7px 10px;color:var(--text2);white-space:nowrap;font-size:11px">${fmtDate(c.data_vencimento)}${isHoje?'<span style="margin-left:4px;font-size:9px;background:#d97706;color:#fff;border-radius:3px;padding:1px 4px">HOJE</span>':''}</td>
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${c.cnpj||'—'}</td>
           <td style="padding:7px 10px;font-size:11px;color:var(--text2)">${c.categoria||'—'}</td>
+          <td style="padding:7px 10px;text-align:center" onclick="event.stopPropagation()">
+            <select onchange="atualizarTipoConta('${c.id}', this.value, this)"
+              style="padding:2px 6px;font-size:10px;font-weight:700;border-radius:6px;cursor:pointer;font-family:'Outfit',sans-serif;outline:none;border:1.5px solid ${corTipo(c.tipo)};color:${corTipo(c.tipo)};background:${corTipo(c.tipo)}12">
+              <option value="" ${!c.tipo?'selected':''}>—</option>
+              <option value="fixa" ${ehFixa(c.tipo)?'selected':''}>Fixa</option>
+              <option value="variavel" ${ehVar(c.tipo)?'selected':''}>Variável</option>
+            </select>
+          </td>
           <td style="padding:7px 10px">
             <div style="font-size:12px;font-weight:600">${c.descricao||'—'}</div>
             ${c.palavra_chave?`<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>`:''}
@@ -10925,6 +10939,7 @@ async function loadContasPagar() {
           <th style="${TH}">DATA VENC</th>
           <th style="${TH}">FORNECEDOR</th>
           <th style="${TH}">CATEGORIA</th>
+          <th style="${TH};text-align:center">TIPO</th>
           <th style="${TH}">DESCRIÇÃO</th>
           <th style="${TH};text-align:right">VALOR</th>
           <th style="${TH};text-align:center">PARCELA</th>
@@ -10936,6 +10951,16 @@ async function loadContasPagar() {
       </table>`;
     }
   }
+}
+
+// Troca Fixo/Variavel direto na linha da tabela, sem abrir modal
+async function atualizarTipoConta(id, valor, sel) {
+  const { error } = await sb.from('contas_pagar').update({ tipo: valor || null }).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  const n = normStr(valor);
+  const cor = ['fixo','fixa'].includes(n) ? '#7c3aed' : n === 'variavel' ? '#d97706' : '#9ca3af';
+  if (sel) { sel.style.borderColor = cor; sel.style.color = cor; sel.style.background = cor + '12'; }
+  showToast('Tipo atualizado', 'success');
 }
 
 async function darBaixaCP(id) {
@@ -16649,6 +16674,14 @@ async function loadContasReceber() {
           <td style="padding:7px 10px;color:var(--text2);white-space:nowrap;font-size:11px">${fmtDate(c.data_vencimento)}</td>
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${c.cnpj||'—'}</td>
           <td style="padding:7px 10px;font-size:11px;color:var(--text2)">${c.categoria||'—'}</td>
+          <td style="padding:7px 10px;text-align:center" onclick="event.stopPropagation()">
+            <select onchange="atualizarTipoConta('${c.id}', this.value, this)"
+              style="padding:2px 6px;font-size:10px;font-weight:700;border-radius:6px;cursor:pointer;font-family:'Outfit',sans-serif;outline:none;border:1.5px solid ${corTipo(c.tipo)};color:${corTipo(c.tipo)};background:${corTipo(c.tipo)}12">
+              <option value="" ${!c.tipo?'selected':''}>—</option>
+              <option value="fixa" ${ehFixa(c.tipo)?'selected':''}>Fixa</option>
+              <option value="variavel" ${ehVar(c.tipo)?'selected':''}>Variável</option>
+            </select>
+          </td>
           <td style="padding:7px 10px">
             <div style="font-size:12px;font-weight:600">${c.descricao||'—'}</div>
             ${c.palavra_chave?`<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>`:''}
@@ -16676,6 +16709,7 @@ async function loadContasReceber() {
           <th style="${TH}">DATA VENC</th>
           <th style="${TH}">CLIENTE/CNPJ</th>
           <th style="${TH}">CATEGORIA</th>
+          <th style="${TH};text-align:center">TIPO</th>
           <th style="${TH}">DESCRIÇÃO</th>
           <th style="${TH};text-align:right">VALOR</th>
           <th style="${TH};text-align:center">PARCELA</th>
