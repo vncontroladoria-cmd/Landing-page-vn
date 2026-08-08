@@ -419,6 +419,29 @@ tbody tr:hover { background: var(--bg4) !important; }
 #painel-operador tbody tr:nth-child(even),
 #mpage-produtividade tbody tr:nth-child(even) { background: rgba(255,255,255,.025); }
 
+
+/* OVERLAY DE CARREGAMENTO DE PAGINA */
+#page-loader {
+  position: fixed; inset: 0; z-index: 9998;
+  background: rgba(255,255,255,.82);
+  backdrop-filter: blur(2px);
+  display: none;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 14px;
+}
+#page-loader.show { display: flex; }
+#page-loader .pl-spin {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 4px solid var(--border);
+  border-top-color: var(--green);
+  animation: plspin .7s linear infinite;
+}
+#page-loader .pl-txt {
+  font-family: 'Outfit', sans-serif; font-size: 14px;
+  font-weight: 600; color: var(--text2);
+}
+@keyframes plspin { to { transform: rotate(360deg); } }
+
 /* BADGES */
 .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em; }
 .badge-green { background: var(--green-light); color: var(--green); }
@@ -929,6 +952,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 </style>
 </head>
 <body>
+<div id="page-loader">
+  <div class="pl-spin"></div>
+  <div class="pl-txt" id="page-loader-txt">Carregando informações...</div>
+</div>
+
 
 <div id="empresa-loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.92);z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:16px">
   <div class="spin" style="width:40px;height:40px;border-width:4px"></div>
@@ -2515,13 +2543,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="dash-filters-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
               <div style="display:flex;flex-direction:column;gap:2px">
                 <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">ANO</span>
-                <select id="dash-ano" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <select id="dash-ano" onchange="comLoader('Carregando Dashboard...', loadDashboard)" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
                   <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
                 </select>
               </div>
               <div style="display:flex;flex-direction:column;gap:2px">
                 <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">MÊS</span>
-                <select id="dash-mes" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <select id="dash-mes" onchange="comLoader('Carregando Dashboard...', loadDashboard)" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
                   <option value="">Todos os meses</option>
                   <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
                   <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
@@ -2531,14 +2559,14 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </div>
               <div style="display:flex;flex-direction:column;gap:2px">
                 <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">DATA INI</span>
-                <input type="date" id="dash-ini" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <input type="date" id="dash-ini" onchange="comLoader('Carregando Dashboard...', loadDashboard)" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
               </div>
               <div style="display:flex;flex-direction:column;gap:2px">
                 <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">DATA FIM</span>
-                <input type="date" id="dash-fim" onchange="loadDashboard()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+                <input type="date" id="dash-fim" onchange="comLoader('Carregando Dashboard...', loadDashboard)" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
               </div>
-              <button class="btn" onclick="document.getElementById('dash-ini').value='';document.getElementById('dash-fim').value='';loadDashboard()">Limpar</button>
-              <button class="btn btn-primary" onclick="loadDashboard()">↻ Atualizar</button>
+              <button class="btn" onclick="document.getElementById('dash-ini').value='';document.getElementById('dash-fim').value='';comLoader('Carregando Dashboard...', loadDashboard)">Limpar</button>
+              <button class="btn btn-primary" onclick="comLoader('Carregando Dashboard...', loadDashboard)">↻ Atualizar</button>
             </div>
           </div>
 
@@ -5780,6 +5808,33 @@ function limparClassificacao(payload) {
   return payload;
 }
 
+// ===================== LOADER DE PAGINA =====================
+// Cobre a tela enquanto a pagina carrega, pra ninguem ficar olhando
+// tela vazia sem saber se travou ou se ainda esta buscando.
+let _plCount = 0;
+function mostrarLoader(txt) {
+  _plCount++;
+  const box = document.getElementById('page-loader');
+  const t   = document.getElementById('page-loader-txt');
+  if (t) t.textContent = txt || 'Carregando informações...';
+  if (box) box.classList.add('show');
+}
+function esconderLoader() {
+  _plCount = Math.max(0, _plCount - 1);
+  if (_plCount === 0) document.getElementById('page-loader')?.classList.remove('show');
+}
+// Roda as funcoes de carregamento da pagina com o loader na tela.
+// Espera TODAS terminarem — inclusive as async — antes de liberar.
+async function comLoader(txt, ...fns) {
+  mostrarLoader(txt);
+  try {
+    await Promise.all(fns.map(f => { try { return Promise.resolve(f()); } catch(e) { console.warn(e); return null; } }));
+  } finally {
+    // pequeno atraso: evita piscada em pagina que carrega instantaneo
+    setTimeout(esconderLoader, 120);
+  }
+}
+
 // ===================== NORMALIZACAO DE TEXTO (GLOBAL) =====================
 // Usada em TODA busca e comparacao de texto do sistema.
 // Tira acento, cedilha, maiuscula e espaco sobrando: "Alvará da Prefeitura"
@@ -6062,7 +6117,7 @@ async function showApp(paginaInicial = 'dashboard') {
   if (_anoSelsInicio[paginaInicial]) setAnoAtual(_anoSelsInicio[paginaInicial]);
 
   if (paginaInicial === 'dashboard') {
-    await loadDashboard();
+    await comLoader('Carregando Dashboard...', loadDashboard);
   } else if (paginaInicial === 'lancamentos') {
     await loadLancamentos();
   }
@@ -6379,31 +6434,37 @@ function showPage(id, el) {
   (_mesSels[id]||[]).forEach(selId => setMesAtual(selId));
   if (_anoSels[id]) setAnoAtual(_anoSels[id]);
 
-  if (id === 'lixeira') loadLixeira();
-  if (id === 'pdv') initPDV();
-  if (id === 'servicos') { preencherFiltrosServicos(); initServicos(); }
-  if (id === 'dfc') loadDFC();
-  if (id === 'dre') loadDRE();
-  if (id === 'lancamentos')     loadLancamentos();
-  if (id === 'lancamentos-dre') loadLancamentosDRE();
-  if (id === 'cartao-credito') initCartaoCredito();
-  if (id === 'rh') initRH();
-  if (id === 'contas-pagar') { loadContasPagar(); loadDocumentos(); }
-  if (id === 'contas-receber') loadContasReceber();
-  if (id === 'metricas') loadMetricas();
-  if (id === 'empresas') loadEmpresas();
-  if (id === 'lucratividade') loadLucratividade();
-  if (id === 'servicos') loadServicos();
-  if (id === 'clientes') initClientes();
-  if (id === 'produtos') initProdutos();
-  if (id === 'performance') initPerformance();
-  if (id === 'precificacao') initPrecificacao();
-  if (id === 'configuracoes') loadFornecedores();
-  if (id === 'fornecedores') loadFornecedores();
-  if (id === 'plano-contas') loadPlanoContas();
-  if (id === 'bancos') loadBancos();
-  if (id === 'usuarios') loadUsuarios();
-  if (id === 'importacao') loadImportacao();
+  // Cada pagina declara o que precisa carregar; comLoader mostra a bolinha
+  // ate tudo terminar, entao ninguem ve tela vazia achando que travou.
+  const _carga = {
+    'lixeira':         [() => loadLixeira()],
+    'pdv':             [() => initPDV()],
+    'servicos':        [() => preencherFiltrosServicos(), () => initServicos(), () => loadServicos()],
+    'dfc':             [() => loadDFC()],
+    'dre':             [() => loadDRE()],
+    'lancamentos':     [() => loadLancamentos()],
+    'lancamentos-dre': [() => loadLancamentosDRE()],
+    'dashboard':       [() => loadDashboard()],
+    'cartao-credito':  [() => initCartaoCredito()],
+    'rh':              [() => initRH()],
+    'contas-pagar':    [() => loadContasPagar(), () => loadDocumentos()],
+    'contas-receber':  [() => loadContasReceber()],
+    'metricas':        [() => loadMetricas()],
+    'empresas':        [() => loadEmpresas()],
+    'lucratividade':   [() => loadLucratividade()],
+    'clientes':        [() => initClientes()],
+    'produtos':        [() => initProdutos()],
+    'performance':     [() => initPerformance()],
+    'precificacao':    [() => initPrecificacao()],
+    'configuracoes':   [() => loadFornecedores()],
+    'fornecedores':    [() => loadFornecedores()],
+    'plano-contas':    [() => loadPlanoContas()],
+    'bancos':          [() => loadBancos()],
+    'usuarios':        [() => loadUsuarios()],
+    'importacao':      [() => loadImportacao()],
+  };
+  const _titulo = pageTitles[id] || id;
+  if (_carga[id]) comLoader(`Carregando ${_titulo}...`, ..._carga[id]);
 }
 
 
