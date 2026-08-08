@@ -5795,6 +5795,35 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 <div class="toast" id="toast"></div>
 
 <script>
+// Sem categoria nao existe classificacao: zera DFC/DRE se a categoria estiver vazia.
+// Evita o lancamento aparecer no relatorio sem estar classificado.
+function limparClassificacao(payload) {
+  if (!payload) return payload;
+  if (!String(payload.categoria || '').trim()) {
+    payload.categoria = '';
+    payload.categoria_dfc = '';
+    payload.categoria_dre = '';
+  }
+  return payload;
+}
+
+// ===================== NORMALIZACAO DE TEXTO (GLOBAL) =====================
+// Usada em TODA busca e comparacao de texto do sistema.
+// Tira acento, cedilha, maiuscula e espaco sobrando: "Alvará da Prefeitura"
+// passa a casar com "alvara da prefeitura", "ALVARA  DA PREFEITURA", etc.
+function normStr(s) {
+  return (s == null ? '' : String(s))
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')   // remove os acentos separados pelo NFD
+    .replace(/\s+/g, ' ')              // espaco duplo vira simples
+    .trim()
+    .toLowerCase();
+}
+// Compara dois textos ignorando acento/caixa
+function eqStr(a, b) { return normStr(a) === normStr(b); }
+// "a contem b" ignorando acento/caixa
+function incStr(a, b) { return normStr(a).includes(normStr(b)); }
+
 // ─── SUPABASE ───────────────────────────────────────
 const SUPA_URL = 'https://yltzmauxsqtsridloasq.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsdHptYXV4c3F0c3JpZGxvYXNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzY4MDcsImV4cCI6MjA5NTY1MjgwN30.ZrIpmg-X5z-AYwrixrMaXTzn5--4YCvWOeudXdQ6G4k';
@@ -6522,7 +6551,7 @@ function buscarCatTipoImport(texto) {
   const termo = (texto||'').toLowerCase().trim();
   const cats = (_categorias||[]).filter(c =>
     (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') &&
-    (!termo || c.nome.toLowerCase().includes(termo))
+    (!termo || incStr(c.nome, termo))
   );
   if (!cats.length) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
@@ -6930,7 +6959,7 @@ function aplicarFiltrosImport() {
   // Filtro texto
   if (termo) {
     filtrado = filtrado.filter(r =>
-      Object.values(r.colunas || {}).some(v => String(v).toLowerCase().includes(termo))
+      Object.values(r.colunas || {}).some(v => StringincStr((v), termo))
     );
   }
 
@@ -7029,7 +7058,7 @@ function detectarColunaData(cols) {
   // Tenta achar coluna de data pelas palavras-chave
   const chaves = ['data','date','dt','Data Comanda','DataComanda','Data Movimentação','data_comanda'];
   for (const c of chaves) {
-    const found = cols.find(col => col.toLowerCase().includes(c.toLowerCase()));
+    const found = cols.find(col => incStr(col, c));
     if (found) return found;
   }
   return null;
@@ -7358,8 +7387,8 @@ function filtrarPDV() {
     return;
   }
   const filtrado = _pdvCaixasCarregados.filter(c =>
-    fmtDate(c.data_caixa).toLowerCase().includes(termo) ||
-    (c.responsavel||'').toLowerCase().includes(termo) ||
+    fmtDateincStr((c.data_caixa), termo) ||
+    incStr((c.responsavel||''), termo) ||
     (c.data_caixa||'').includes(termo)
   );
   renderPDVLinhas(filtrado, _pdvItensCarregados, _pdvFormas);
@@ -7438,7 +7467,7 @@ async function loadPDV() {
 
   // Colunas = TODAS as categorias cadastradas (fixas), não só as que têm dados
   const normForma = f => (f||'Outros').replace(/\s+(MASTER CARD|VISA|ELO|AMEX|HIPERCARD|HIPER)\b.*/i,'').trim();
-  const formas = _pdvCategorias.filter(c => c.tipo !== 'SAIDA' && c.nome.toLowerCase() !== 'responsável' && c.nome.toLowerCase() !== 'responsavel').map(c => c.nome);
+  const formas = _pdvCategorias.filter(c => c.tipo !== 'SAIDA' && !eqStr(c.nome, 'responsavel')).map(c => c.nome);
 
   // Cards resumo
   const cardsDiv = document.getElementById('pdv-cards-resumo');
@@ -7611,7 +7640,7 @@ function abrirDropPDV(input) {
   const drop = input.nextElementSibling;
   if (!drop) return;
   const termo = input.value.toLowerCase();
-  const lista = _pdvCategorias.filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const lista = _pdvCategorias.filter(c => !termo || incStr(c.nome, termo));
   if (!lista.length) { drop.style.display = 'none'; return; }
   drop.style.display = 'block';
   drop.innerHTML = lista.map(c => `<div onmousedown="selecionarCatPDV(this,event)" data-nome="${c.nome}"
@@ -7716,7 +7745,7 @@ async function salvarCaixa() {
 // assim nunca duplica e sempre reflete o valor certo.
 async function sincronizarComandaParaLancamento(caixaId, data_caixa, itens) {
   const totalComanda = itens
-    .filter(i => i.tipo === 'ENTRADA' && (i.forma_pagamento||'').toLowerCase().includes('comanda'))
+    .filter(i => i.tipo === 'ENTRADA' && incStr((i.forma_pagamento||''), 'comanda'))
     .reduce((s,i) => s + i.valor, 0);
 
   // Remove o lançamento anterior desse caixa (se existir), pra não duplicar ao editar
@@ -7877,10 +7906,6 @@ function processarTextoPDF() {
         if (dataMatch) dataCaixa = `${dataMatch[3]}-${dataMatch[2]}-${dataMatch[1]}`;
   }
   mostrarPreviewPDV(itens, dataCaixa, responsavel);
-}
-
-function normStr(s) {
-  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 }
 
 function processarTextoCola() {
@@ -8229,7 +8254,7 @@ function buscarCatDRE(texto) {
   const termo = (texto||'').toLowerCase().trim();
   const cats = (_categorias||[]).filter(c =>
     (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') &&
-    (!termo || c.nome.toLowerCase().includes(termo))
+    (!termo || incStr(c.nome, termo))
   );
   if (!cats.length) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
@@ -8276,6 +8301,7 @@ async function salvarLancamentoDRE() {
     aparece_dfc: false,   // NÃO aparece no DFC/fluxo de caixa
   };
 
+  limparClassificacao(payload);
   const { error } = await sb.from('lancamentos').insert(addEmpresaId(payload));
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   showToast('✓ Lançamento DRE salvo!', 'success');
@@ -8938,12 +8964,12 @@ async function loadDashboard() {
       (itensPdv||[]).forEach(it => {
         const fp = (it.forma_pagamento||'Outros').trim();
         // Normaliza nomes: agrupa variações
-        const k = fp.toLowerCase().includes('pix') ? 'PIX'
-          : fp.toLowerCase().includes('deb') ? 'Cartão Débito'
-          : fp.toLowerCase().includes('cred') ? 'Cartão Crédito'
-          : fp.toLowerCase().includes('caixa') || fp.toLowerCase().includes('dinheiro') ? 'Caixa'
-          : fp.toLowerCase().includes('boleto') ? 'Boleto'
-          : fp.toLowerCase().includes('voucher') ? 'Voucher'
+        const k = incStr(fp, 'pix') ? 'PIX'
+          : incStr(fp, 'deb') ? 'Cartão Débito'
+          : incStr(fp, 'cred') ? 'Cartão Crédito'
+          : incStr(fp, 'caixa') || incStr(fp, 'dinheiro') ? 'Caixa'
+          : incStr(fp, 'boleto') ? 'Boleto'
+          : incStr(fp, 'voucher') ? 'Voucher'
           : fp;
         entCatMap[k] = (entCatMap[k]||0) + Number(it.valor||0);
       });
@@ -9274,7 +9300,7 @@ function abrirDropPDVPreview(input) {
   const drop = input.nextElementSibling;
   if (!drop) return;
   const termo = input.value.toLowerCase();
-  const lista = _pdvCategorias.filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const lista = _pdvCategorias.filter(c => !termo || incStr(c.nome, termo));
   if (!lista.length) { drop.style.display = 'none'; return; }
   drop.style.display = 'block';
   drop.innerHTML = lista.map(c => `<div onmousedown="selecionarCatPDVPreview(this,event)" data-nome="${c.nome}"
@@ -9409,7 +9435,7 @@ function buscarCatPlanoPDV(texto) {
   const dd = document.getElementById('nova-cat-pdv-plano-dd');
   if (!dd) return;
   const termo = (texto||'').toLowerCase().trim();
-  const cats = (_categorias||[]).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const cats = (_categorias||[]).filter(c => !termo || incStr(c.nome, termo));
   if (!cats.length) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = cats.map(c =>
@@ -9854,12 +9880,12 @@ async function loadLancamentos(forcarBancoFilter) {
       </td>
       <td style="padding:6px 8px;min-width:90px">
         <span class="cell-view" style="font-size:10px">
-          ${l.categoria_dfc ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '<span style="color:var(--text3)">—</span>'}
+          ${(l.categoria && l.categoria_dfc) ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '<span style="color:var(--text3)">—</span>'}
         </span>
       </td>
       <td style="padding:6px 8px;min-width:90px">
         <span class="cell-view" style="font-size:10px">
-          ${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '<span style="color:var(--text3)">—</span>'}
+          ${(l.categoria && l.categoria_dre) ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '<span style="color:var(--text3)">—</span>'}
         </span>
       </td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
@@ -10047,7 +10073,7 @@ function buscarCategoria(texto) {
   if (!dropdown) return;
   const termo = texto.toLowerCase().trim();
   const resultados = Object.values(_catMapAtual).filter(c =>
-    !termo || c.nome.toLowerCase().includes(termo)
+    !termo || incStr(c.nome, termo)
   );
   if (!resultados.length) { dropdown.style.display = 'none'; return; }
   dropdown.style.display = 'block';
@@ -10133,6 +10159,7 @@ async function salvarLancamento() {
     data_competencia: competenciaData || null,
   };
 
+  limparClassificacao(payload);
   const { error } = await sb.from('lancamentos').insert(addEmpresaId(payload));
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('✓ Lançamento salvo!','success');
@@ -10195,6 +10222,7 @@ async function salvarLancamentoInline(id, rowId) {
     banco_id: edits[6].value || null,
     competencia: document.getElementById(`lcomp-${id}`)?.value || null,
   };
+  limparClassificacao(payload);
   const { error } = await sb.from('lancamentos').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
   showToast('Salvo!','success');
@@ -10670,7 +10698,7 @@ async function uploadDocumentos(files) {
 
       // Determina o tipo pelo nome
       const ext = file.name.split('.').pop().toLowerCase();
-      const tipo = ext === 'pdf' ? (file.name.toLowerCase().includes('nf') || file.name.toLowerCase().includes('nota') ? 'nfe' : 'boleto') : ext;
+      const tipo = ext === 'pdf' ? (incStr(file.name, 'nf') || incStr(file.name, 'nota') ? 'nfe' : 'boleto') : ext;
 
       // Salva metadado no banco
       await sb.from('documentos_fiscais').insert(addEmpresaId({
@@ -10931,7 +10959,7 @@ async function initClientes() {
 
   // ── Clientes Novos — continua vindo do relatório separado "Clientes Novos" ──
   const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-  const tiposNovos = (tipos||[]).filter(t => t.nome.toLowerCase().includes('novo'));
+  const tiposNovos = (tipos||[]).filter(t => incStr(t.nome, 'novo'));
 
   const _normCli2 = _normCli;
   const mkGetNovos = (row) => (...ns) => {
@@ -11014,7 +11042,7 @@ async function importarTodosClientes(input) {
 
     // Salva no Supabase
     const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-    let tipo = tipos?.find(t => t.nome.toLowerCase().includes('todos os clientes') || t.nome.toLowerCase() === 'clientes');
+    let tipo = tipos?.find(t => incStr(t.nome, 'todos os clientes') || eqStr(t.nome, 'clientes'));
     if (!tipo) {
       const { data: novo } = await sb.from('rel_tipos').insert(addEmpresaId({nome:'Clientes', descricao:'Relatório de todos os clientes do período'})).select().single();
       tipo = novo;
@@ -11055,7 +11083,7 @@ async function importarClientesNovos(input) {
 
     // Salva no Supabase
     const { data: tipos } = await qE('rel_tipos').select('id,nome').eq('ativo',true);
-    let tipo = tipos?.find(t => t.nome.toLowerCase().includes('clientes novos') || t.nome.toLowerCase().includes('cliente novo'));
+    let tipo = tipos?.find(t => incStr(t.nome, 'clientes novos') || incStr(t.nome, 'cliente novo'));
     if (!tipo) {
       const { data: novo } = await sb.from('rel_tipos').insert(addEmpresaId({nome:'Clientes Novos', descricao:'Relatório de novos cadastros'})).select().single();
       tipo = novo;
@@ -11956,7 +11984,7 @@ async function loadProdutos() {
   let rowsFiltrados = rows;
   if (ano) rowsFiltrados = rowsFiltrados.filter(r => r.data?.startsWith(ano));
   if (mes) rowsFiltrados = rowsFiltrados.filter(r => r.data?.substring(5,7) === mes);
-  if (cat) rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
+  if (cat) rowsFiltrados = rowsFiltrados.filter(r => eqStr((r.categoria||''), cat));
 
   _prodData = rowsFiltrados;
 
@@ -12878,7 +12906,7 @@ async function buscarCatConta(texto) {
   _categorias.forEach(c => {
     if (!map[c.nome]) map[c.nome] = {nome:c.nome, codigo:c.codigo};
   });
-  const res = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const res = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
   if (!res.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = res.slice(0,12).map(c =>
@@ -12905,7 +12933,7 @@ function buscarCatForn(tipo, texto) {
 
   const cats = _categorias.filter(c =>
     (c.demonstrativo === demo || c.demonstrativo === 'AMBOS') &&
-    (!termo || c.nome.toLowerCase().includes(termo) || (c.codigo||'').includes(termo))
+    (!termo || incStr(c.nome, termo) || (c.codigo||'').includes(termo))
   );
 
   if (!cats.length) { dd.style.display = 'none'; return; }
@@ -13063,7 +13091,7 @@ async function saveFornecedor() {
 
   // Verifica duplicata por nome EXATO (não parcial)
   const { data: existeNome } = await qE('fornecedores').select('id,nome').ilike('nome', nome);
-  const dupNome = existeNome?.filter(f => f.id !== id && f.nome.toLowerCase() === nome.toLowerCase());
+  const dupNome = existeNome?.filter(f => f.id !== id && eqStr(f.nome, nome));
   if (dupNome?.length) {
     showToast(`⚠ Já existe um fornecedor com o nome "${dupNome[0].nome}"`, 'error');
     return;
@@ -14080,10 +14108,10 @@ function parseGeralRow(colunas) {
   const kCusto      = findExact('Custo');
   // "Comissão" (valor pago) — precisa ser diferente da chave de percentual mesmo se o nome parecer igual
   const kComissaoValor = keys.find(k => k.trim() === 'Comissão' && k !== kComPct)
-    || keys.find(k => k.toLowerCase().includes('comiss') && k !== kComPct);
+    || keys.find(k => incStr(k, 'comiss') && k !== kComPct);
   const kLiquido    = findExact('Líquido', 'Liquido');
-  const kCelular    = findExact('Celular', 'celular') || keys.find(k => k.toLowerCase().includes('celular'));
-  const kTelefone   = findExact('Telefone', 'telefone') || keys.find(k => k.toLowerCase().includes('telefone'));
+  const kCelular    = findExact('Celular', 'celular') || keys.find(k => incStr(k, 'celular'));
+  const kTelefone   = findExact('Telefone', 'telefone') || keys.find(k => incStr(k, 'telefone'));
 
   const tipoRaw = String(c[kTipo]||'').trim().toLowerCase();
 
@@ -14284,8 +14312,8 @@ async function loadServicos() {
   let rowsFiltrados = rows;
   if (ano)  rowsFiltrados = rowsFiltrados.filter(r => (r.data_comanda||'').substring(0,4) === ano);
   if (mes)  rowsFiltrados = rowsFiltrados.filter(r => (r.data_comanda||'').substring(5,7) === mes);
-  if (prof) rowsFiltrados = rowsFiltrados.filter(r => (r.profissional||'').toLowerCase() === prof.toLowerCase());
-  if (cat)  rowsFiltrados = rowsFiltrados.filter(r => (r.categoria||'').toLowerCase() === cat.toLowerCase());
+  if (prof) rowsFiltrados = rowsFiltrados.filter(r => eqStr((r.profissional||''), prof));
+  if (cat)  rowsFiltrados = rowsFiltrados.filter(r => eqStr((r.categoria||''), cat));
 
   _srvData = rowsFiltrados;
 
@@ -14596,9 +14624,9 @@ function renderSrvDetalhe(data) {
 function filtrarSrvTabela(termo) {
   const t = (termo||'').toLowerCase();
   const filtrado = t ? _srvData.filter(r =>
-    (r.cliente||'').toLowerCase().includes(t) ||
-    (r.servico||'').toLowerCase().includes(t) ||
-    (r.profissional||'').toLowerCase().includes(t)
+    incStr((r.cliente||''), t) ||
+    incStr((r.servico||''), t) ||
+    incStr((r.profissional||''), t)
   ) : _srvData;
   renderSrvDetalhe(filtrado);
 }
@@ -15190,7 +15218,7 @@ async function loadDFC() {
 
   gruposData.forEach((g, gi) => {
     // Insere Resultado Operacional antes do primeiro grupo financeiro
-    if (!roInserido && gruposFinanceiros.some(gf => g.nome.toLowerCase().includes(gf.toLowerCase()))) {
+    if (!roInserido && gruposFinanceiros.some(gf => incStr(g.nome, gf))) {
       roInserido = true;
       const totalRO = resultadoOp.reduce((s,v)=>s+v,0);
       html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
@@ -16839,7 +16867,7 @@ function filtrarTabela(tbodyId, termo) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   tbody.querySelectorAll('tr').forEach(row => {
-    row.style.display = !t || row.textContent.toLowerCase().includes(t) ? '' : 'none';
+    row.style.display = !t || incStr(row.textContent, t) ? '' : 'none';
   });
 }
 
@@ -17149,7 +17177,7 @@ function buscarCatProfissional(texto) {
     garantirCategorias().then(() => buscarCatProfissional(texto));
     return;
   }
-  const cats = (_categorias||[]).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const cats = (_categorias||[]).filter(c => !termo || incStr(c.nome, termo));
   if (!cats.length) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = cats.map(c =>
@@ -18042,7 +18070,7 @@ async function buscaCatInline(texto, lancId) {
   });
 
   // Mostra todas se vazio, ou filtra pelo termo
-  const res = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const res = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
   if (!res.length) { dd.style.display='none'; return; }
 
   dd.style.display = 'block';
@@ -18078,7 +18106,7 @@ async function buscaCatConc(texto, idx) {
     if (c.demonstrativo === 'DFC') map[c.nome].dfc = c.codigo;
     if (c.demonstrativo === 'DRE') map[c.nome].dre = c.codigo;
   });
-  const resultados = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const resultados = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
   if (!resultados.length || !texto) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = resultados.slice(0,10).map(c => {
@@ -20303,7 +20331,7 @@ async function buscarCatNF(termo) {
   await garantirCategorias();
   const dd = document.getElementById('nf-cat-dd');
   if (!dd) return;
-  const cats = (_categorias||[]).filter(c => !termo || c.nome?.toLowerCase().includes(termo.toLowerCase()));
+  const cats = (_categorias||[]).filter(c => !termo || incStr(c.nome, termo));
   if (!cats.length) { dd.style.display = 'none'; return; }
   dd.innerHTML = cats.slice(0,8).map(c =>
     `<div onclick="document.getElementById('nf-categoria').value='${c.nome}';document.getElementById('nf-categoria-busca').value='${c.nome}';document.getElementById('nf-cat-dd').style.display='none'"
@@ -20952,8 +20980,8 @@ async function loadCartaoLancamentos() {
           <div id="cclcat-dd-${l.id}" style="display:none;position:absolute;top:100%;left:0;width:220px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,0.15)"></div>
         </div>
       </td>
-      <td style="font-size:10px"><span class="cell-view">${l.categoria_dfc ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '—'}</span></td>
-      <td style="font-size:10px"><span class="cell-view">${l.categoria_dre ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '—'}</span></td>
+      <td style="font-size:10px"><span class="cell-view">${(l.categoria && l.categoria_dfc) ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '—'}</span></td>
+      <td style="font-size:10px"><span class="cell-view">${(l.categoria && l.categoria_dre) ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '—'}</span></td>
       <td>
         <span class="cell-view">${l.cartoes?.nome || '—'}</span>
         <select class="cell-edit" style="display:none;font-size:11px">
@@ -20986,7 +21014,7 @@ async function buscaCatInlineCC(texto, lancId) {
     if (c.demonstrativo==='DFC') map[c.nome].dfc = c.codigo;
     if (c.demonstrativo==='DRE') map[c.nome].dre = c.codigo;
   });
-  const res = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const res = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
   if (!res.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = res.slice(0, 15).map(c => {
@@ -21162,7 +21190,7 @@ function reaplicarFiltroSemCatCC() {
 function filtrarCartaoLanc(termo) {
   const t = (termo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   document.querySelectorAll('#cc-tbody tr').forEach(r => {
-    r.style.display = !t || r.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(t) ? '' : 'none';
+    r.style.display = !t || incStr(r.textContent, t) ? '' : 'none';
   });
 }
 
@@ -21299,6 +21327,7 @@ async function salvarLancCC() {
     origem: 'manual',
   };
 
+  limparClassificacao(payload);
   const { error } = _ccLancEditId
     ? await sb.from('cartao_lancamentos').update(payload).eq('id', _ccLancEditId)
     : await sb.from('cartao_lancamentos').insert(addEmpresaId(payload));
@@ -21322,7 +21351,7 @@ async function buscaCatCC(termo) {
   const dd = document.getElementById('cc-cat-dropdown');
   if (!dd) return;
   if (!termo || termo.length < 2) { dd.style.display='none'; return; }
-  const data = _categorias.filter(c => c.nome.toLowerCase().includes(termo.toLowerCase()));
+  const data = _categorias.filter(c => incStr(c.nome, termo));
   if (!data?.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = data.map(c => `
@@ -21380,7 +21409,7 @@ async function previewFaturaCC(input) {
   try {
     wb = XLSX.read(arrBuf, {type:'array'});
   } catch (err) {
-    if (String(err.message||'').toLowerCase().includes('password')) {
+    if (StringincStr((err.message||''), 'password')) {
       showToast('Arquivo protegido por senha. Remova a senha do arquivo antes de importar.', 'error');
     } else {
       showToast('Erro ao ler arquivo: ' + err.message, 'error');
@@ -21634,7 +21663,7 @@ async function buscaCatImportCC(texto, idx) {
     if (c.demonstrativo === 'DFC') map[c.nome].dfc = c.codigo;
     if (c.demonstrativo === 'DRE') map[c.nome].dre = c.codigo;
   });
-  const resultados = Object.values(map).filter(c => !termo || c.nome.toLowerCase().includes(termo));
+  const resultados = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
   if (!resultados.length || !texto) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = resultados.slice(0,10).map(c => {
@@ -22413,7 +22442,7 @@ function renderCardsHoje() {
   const cards = _hojeCardsData.map(g => {
     // Filtrar tarefas conforme busca/status/prioridade
     const tarefasFiltradas = g.tarefas.filter(t => {
-      if (busca && !t.titulo.toLowerCase().includes(busca)) return false;
+      if (busca && !incStr(t.titulo, busca)) return false;
       if (filtroStatus === 'pendente' && g.concluidasHoje.has(t.id)) return false;
       if (filtroStatus === 'concluida' && !g.concluidasHoje.has(t.id)) return false;
       if (filtroPrioridade && (t.prioridade || 'media') !== filtroPrioridade) return false;
@@ -23330,7 +23359,7 @@ function renderMensagensOperadorFiltrado() {
       }
       if (filtroDiaSemana !== '' && String(d.getDay()) !== filtroDiaSemana) return false;
       if (filtroMes && String(d.getMonth()+1).padStart(2,'0') !== filtroMes) return false;
-      if (filtroBusca && !(m.mensagem||'').toLowerCase().includes(filtroBusca)) return false;
+      if (filtroBusca && !incStr((m.mensagem||''), filtroBusca)) return false;
       return true;
     });
   }
