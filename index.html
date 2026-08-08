@@ -10752,7 +10752,7 @@ async function loadContasPagar() {
   const enviados  = contas.filter(c => normS(c.status) === 'enviado');
   const pagos     = contas.filter(c => normS(c.status) === 'pago');
   const naoPago   = contas.filter(c => normS(c.status) === 'nao pago');
-  const atrasados = contas.filter(c => normS(c.status) === 'atrasado' || (['pendente','a pagar','nao pago'].includes(normS(c.status)) && c.data_vencimento < hoje));
+  const atrasados = contas.filter(c => !['pago','recebido'].includes(normS(c.status)) && (normS(c.status) === 'atrasado' || (['pendente','a pagar','nao pago'].includes(normS(c.status)) && c.data_vencimento < hoje)));
 
   const _s = (id, val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
   _s('cp-total', fmtBRL(soma(aPagar))); _s('cp-enviado', fmtBRL(soma(enviados)));
@@ -10819,18 +10819,27 @@ async function loadContasPagar() {
       const statusRowBg = { 'pago':'#f0fdf4','recebido':'#f0fdf4','enviado':'#eff6ff','atrasado':'#fff5f5','não pago':'','a pagar':'','pendente':'' };
       const TH = 'font-size:10px;font-weight:700;text-transform:uppercase;padding:7px 10px;background:var(--bg3);border-bottom:1px solid var(--border);color:var(--text2);text-align:left';
       let rows = contas.map((c,i) => {
-        const isHoje = c.data_vencimento === hoje;
-        const isAtrasado = c.data_vencimento < hoje && c.status !== 'pago' && c.status !== 'recebido';
         const statusAtual = c.status || 'pendente';
-        const cor = isAtrasado ? '#dc2626' : isHoje ? '#d97706' : statusCor[statusAtual] || '#6b7280';
-        const icone = isAtrasado ? '🔴' : isHoje ? '🟠' : statusIcon[statusAtual] || '⚪';
-        const rowBg = statusAtual === 'pago' || statusAtual === 'recebido' ? '#f0fdf4'
+        // Conta paga e conta encerrada: nao importa se vence hoje ou se foi adiantada,
+        // ela fica verde. Por isso "quitada" e checada ANTES de isHoje/isAtrasado.
+        const quitada = normS(statusAtual) === 'pago' || normS(statusAtual) === 'recebido';
+        const isHoje = !quitada && c.data_vencimento === hoje;
+        const isAtrasado = !quitada && c.data_vencimento < hoje;
+        const cor = quitada ? '#059669'
+                  : isAtrasado ? '#dc2626'
+                  : isHoje ? '#d97706'
+                  : statusCor[statusAtual] || '#6b7280';
+        const icone = quitada ? '✅'
+                    : isAtrasado ? '🔴'
+                    : isHoje ? '🟠'
+                    : statusIcon[statusAtual] || '⚪';
+        const rowBg = quitada ? '#f0fdf4'
                     : isAtrasado ? '#fff5f5'
                     : isHoje ? '#fffbeb'
                     : statusRowBg[statusAtual] || '';
-        const borderLeft = isAtrasado ? 'border-left:3px solid #dc2626'
+        const borderLeft = quitada ? 'border-left:3px solid #059669'
+                         : isAtrasado ? 'border-left:3px solid #dc2626'
                          : isHoje ? 'border-left:3px solid #d97706'
-                         : statusAtual === 'pago' ? 'border-left:3px solid #059669'
                          : statusAtual === 'enviado' ? 'border-left:3px solid #2563eb'
                          : 'border-left:3px solid transparent';
         const parcLabel = c.total_parcelas ? `${c.parcela_atual||1}/${c.total_parcelas}` : '1/1';
