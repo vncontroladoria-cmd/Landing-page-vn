@@ -6932,7 +6932,7 @@ function aplicarFiltrosImport() {
   // Filtro texto
   if (termo) {
     filtrado = filtrado.filter(r =>
-      Object.values(r.colunas || {}).some(v => StringincStr((v), termo))
+      Object.values(r.colunas || {}).some(v => incStr(String(v), termo))
     );
   }
 
@@ -7360,7 +7360,7 @@ function filtrarPDV() {
     return;
   }
   const filtrado = _pdvCaixasCarregados.filter(c =>
-    fmtDateincStr((c.data_caixa), termo) ||
+    incStr(fmtDate(c.data_caixa), termo) ||
     incStr((c.responsavel||''), termo) ||
     (c.data_caixa||'').includes(termo)
   );
@@ -21391,7 +21391,7 @@ async function previewFaturaCC(input) {
   try {
     wb = XLSX.read(arrBuf, {type:'array'});
   } catch (err) {
-    if (StringincStr((err.message||''), 'password')) {
+    if (incStr(String(err.message||''), 'password')) {
       showToast('Arquivo protegido por senha. Remova a senha do arquivo antes de importar.', 'error');
     } else {
       showToast('Erro ao ler arquivo: ' + err.message, 'error');
