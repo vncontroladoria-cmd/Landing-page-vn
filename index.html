@@ -8445,7 +8445,15 @@ async function renderFluxoCaixaChart(ini, fim) {
     if (Number(l.saida||0)   > 0) saiDia[dia] = (saiDia[dia]||0) + Number(l.saida);
   });
 
-  let acum = 0;
+  // O saldo acumulado precisa partir do saldo que ja existia ANTES do periodo,
+  // senao a linha comeca do zero e nao bate com o saldo real da empresa.
+  const { data: ant } = await qE('lancamentos')
+    .select('entrada,saida')
+    .lt('data_lancamento', ini);
+  const saldoInicial = (ant||[]).reduce(
+    (s,l) => s + Number(l.entrada||0) - Number(l.saida||0), 0);
+
+  let acum = saldoInicial;
   const saldos = dias.map(dia => { acum += (entDia[dia]||0) - (saiDia[dia]||0); return +acum.toFixed(2); });
 
   const totalEnt = Object.values(entDia).reduce((s,v)=>s+v,0);
@@ -8486,7 +8494,9 @@ async function renderFluxoCaixaChart(ini, fim) {
           pointHoverBackgroundColor:'#d4a017',
           pointHoverBorderColor:'#fff',
           pointHoverBorderWidth:2,
-          tension:0.4, fill:false,
+          // tension 0 = linha reta entre os dias. Com curva (0.4) o spline
+          // "estoura" acima/abaixo dos pontos reais e mostra saldo que nao existiu.
+          tension:0, fill:false,
           yAxisID:'y2', order:1
         },
         {
@@ -8532,6 +8542,8 @@ async function renderFluxoCaixaChart(ini, fim) {
               const v = ctx.parsed.y;
               const abs = Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
               if (ctx.dataset.label==='Saldo acumulado') return `  Saldo: R$ ${abs}`;
+              // Dia sem movimento: nao polui o tooltip com "R$ 0,00"
+              if (!v) return null;
               if (ctx.dataset.label==='Saídas') return `  Saídas: R$ ${abs}`;
               return `  Entradas: R$ ${abs}`;
             }
@@ -8555,7 +8567,7 @@ async function renderFluxoCaixaChart(ini, fim) {
           position:'right',
           grid:{ drawOnChartArea:false },
           border:{ display:false },
-          ticks:{ font:{size:10}, color:'#ffffff', callback: v => 'R$'+(v/1000).toFixed(0)+'k' }
+          ticks:{ font:{size:10}, color:'#d4a017', callback: v => 'R$'+(v/1000).toFixed(1)+'k' }
         }
       }
     }
