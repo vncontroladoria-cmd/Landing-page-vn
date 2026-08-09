@@ -3597,7 +3597,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
-            <div style="font-size:13px;color:var(--text2)">Demonstrativo de Fluxo de Caixa</div>
+            <div style="font-size:13px;color:var(--text2)" id="dfc-subtitulo">Demonstrativo de Fluxo de Caixa</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <select id="dfc-ano" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text)">
                 <option value="2026">2026</option><option value="2025">2025</option>
@@ -3606,6 +3606,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <button class="btn" onclick="toggleDropdownMesesDFC(event)" id="dfc-meses-btn" style="min-width:150px;text-align:left">
                 📅 <span id="dfc-meses-label">Todos os meses</span> ▾
               </button>
+              <select id="dfc-regime" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;font-weight:600;border:1.5px solid #7c3aed;border-radius:8px;background:var(--bg3);color:#7c3aed">
+                <option value="caixa">💵 Caixa</option>
+                <option value="competencia">📅 Competência</option>
+              </select>
               <select id="dfc-modo" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;font-weight:600;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg3);color:var(--accent)">
                 <option value="realizado">Realizado</option>
                 <option value="projetado">Projetado</option>
@@ -9929,7 +9933,7 @@ async function loadLancamentos(forcarBancoFilter) {
   _ls('lanc-hero-n', lancs.length.toLocaleString('pt-BR'));
   _ls('lanc-hero-res', fmtBRL(totalEntrada-totalSaida));
 
-  // Confere se o saldo bate com o DFC
+  // Confere se o saldo bate com o DFC (comparacao valida so no regime de caixa)
   conferirSaldoDFC();
 
   // Botão Sem Categoria
@@ -15646,6 +15650,11 @@ async function loadDFC() {
   const mesesSel = (_dfcMesesSel && _dfcMesesSel.length) ? [..._dfcMesesSel].sort() : [];
   const mesFiltro = mesesSel.length === 1 ? mesesSel[0] : '';
 
+  const sub = document.getElementById('dfc-subtitulo');
+  if (sub) sub.textContent = (document.getElementById('dfc-regime')?.value === 'competencia')
+    ? 'Regime de Competência · inclui cartão de crédito pela data da compra'
+    : 'Regime de Caixa · pela data em que o dinheiro entrou ou saiu';
+
   // Botao de salvar so aparece quando ha campo de projecao na tela
   const _modoAtual = document.getElementById('dfc-modo')?.value || 'ambos';
   const _temProj = _modoAtual === 'projetado' || _modoAtual === 'ambos';
@@ -15662,7 +15671,52 @@ async function loadDFC() {
   const grupos = (dfcGruposRaw||[]).filter(g => g.demonstrativo === 'DFC' || g.demonstrativo === 'AMBOS');
   const { data: catsAllDFC } = await sb.from('plano_contas').select('*').eq('empresa_id', empIdDFC).order('ordem');
   const cats = (catsAllDFC||[]).filter(c => c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS');
-  const { data: lancs } = await qE('lancamentos').select('*').gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+  // REGIME
+  //  caixa       = quando o dinheiro entrou/saiu  -> data_lancamento
+  //  competencia = a que mes o gasto pertence     -> campo `mes`, e inclui o cartao
+  const regime = document.getElementById('dfc-regime')?.value || 'caixa';
+  const porCompetencia = regime === 'competencia';
+
+  // A competencia deveria estar sempre como AAAA-MM, mas ha registros antigos
+  // gravados como "DEZEMBRO". Quando o formato nao bate, usamos a data do
+  // lancamento — melhor cair no mes certo do que sumir da tabela.
+  const compDe = l => {
+    const m = String(l.mes || '');
+    return /^\d{4}-\d{2}$/.test(m) ? m : String(l.data_lancamento || '').substring(0,7);
+  };
+
+  let lancs = [];
+  if (porCompetencia) {
+    // Busca amplo e filtra pela competencia (pode cair em ano diferente da data)
+    const { data: base } = await qE('lancamentos').select('*')
+      .gte('data_lancamento', `${parseInt(ano)-1}-01-01`)
+      .lte('data_lancamento', `${parseInt(ano)+1}-12-31`);
+    lancs = (base||[]).filter(l => compDe(l).startsWith(ano));
+
+    // Cartao de credito entra pela competencia da compra
+    try {
+      const { data: cc } = await qE('cartao_lancamentos').select('*');
+      (cc||[]).forEach(c => {
+        const mesComp = /^\d{4}-\d{2}$/.test(String(c.mes||''))
+          ? String(c.mes)
+          : String(c.data_competencia||'').substring(0,7);
+        if (!mesComp.startsWith(ano)) return;
+        const v = Number(c.valor||0);
+        lancs.push({
+          ...c,
+          mes: mesComp,
+          data_lancamento: c.data_competencia || (mesComp + '-01'),
+          entrada: c.tipo === 'ENTRADA' ? v : 0,
+          saida:   c.tipo === 'ENTRADA' ? 0 : v,
+          _doCartao: true
+        });
+      });
+    } catch(e) { console.warn('cartao na competencia:', e); }
+  } else {
+    const { data: base } = await qE('lancamentos').select('*')
+      .gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
+    lancs = base || [];
+  }
 
   if (!grupos?.length) { el.innerHTML = '<div class="empty">Cadastre os grupos do DFC no Plano de Contas</div>'; return; }
 
@@ -15672,8 +15726,13 @@ async function loadDFC() {
   // TOTAL/MÉDIA só fazem sentido com mais de um mês na tela
   const mostraTotais = mCols.length > 1;
 
+  // Em competencia o mes vem do campo `mes` (AAAA-MM); em caixa, da data
+  const mesDoLanc = l => porCompetencia
+    ? compDe(l).substring(5,7)
+    : (l.data_lancamento||'').substring(5,7);
+
   function calcular(fn, mes) {
-    return (lancs||[]).filter(l => l.data_lancamento?.substring(5,7) === mes && fn(l))
+    return (lancs||[]).filter(l => mesDoLanc(l) === mes && fn(l))
       .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
   }
 
@@ -15770,7 +15829,12 @@ async function loadDFC() {
     : (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
 
   // Pré-calcula por grupo
-  const gruposData = (grupos||[]).filter(g => g.nome !== 'Entre Contas').map(g => {
+  const gruposData = (grupos||[])
+    .filter(g => g.nome !== 'Entre Contas')
+    // Em competencia as compras do cartao ja entram na categoria real de cada
+    // compra. Manter o grupo "Cartao de Credito" contaria a mesma despesa 2x.
+    .filter(g => !(porCompetencia && incStr(g.nome, 'cart')))
+    .map(g => {
     const gCats = (cats||[]).filter(c => c.grupo === g.nome);
     const totalGrupo = mCols.map(m => gCats.reduce((s,c) => s + calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m), 0));
     return { ...g, gCats, totalGrupo };
@@ -15781,7 +15845,10 @@ async function loadDFC() {
   // A soma dos grupos ignora "Entre Contas" e lancamentos sem categoria, entao
   // o Saldo Acumulado divergia do Resultado Liquido dentro da propria tabela.
   const movimentoMes = m => (lancs||[])
-    .filter(l => l.data_lancamento?.substring(5,7) === m)
+    .filter(l => mesDoLanc(l) === m)
+    // em competencia, o pagamento da fatura nao conta: a despesa ja entrou
+    // pela compra individual do cartao
+    .filter(l => !(porCompetencia && !l._doCartao && incStr(l.categoria||'', 'cart')))
     .reduce((sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
 
   let acum = saldoInicialTotal;
@@ -15809,11 +15876,7 @@ async function loadDFC() {
   });
 
   // Resultado Líquido = total entradas − total saídas (todos os lançamentos do período)
-  const resultadoLiq = mCols.map((m) => {
-    return (lancs||[])
-      .filter(l => l.data_lancamento?.substring(5,7) === m)
-      .reduce((s,l) => s + Number(l.entrada||0) - Number(l.saida||0), 0);
-  });
+  const resultadoLiq = mCols.map((m) => movimentoMes(m));
 
   const thS = `padding:8px 6px;text-align:right;border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap`;
   const totalCols = mCols.length;
