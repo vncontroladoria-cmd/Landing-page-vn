@@ -269,6 +269,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 /* Cards hero coloridos (gradiente) */
 .hero-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
 .hero-cards.cols-5 { grid-template-columns:repeat(5,1fr); }
+.hero-cards.cols-7 { grid-template-columns:repeat(7,1fr); }
 .hero-cards.cols-3 { grid-template-columns:repeat(3,1fr); }
 .hero-cards.cols-2 { grid-template-columns:repeat(2,1fr); }
 .hcards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:10px; }
@@ -603,7 +604,8 @@ tbody tr:hover { background: var(--bg4) !important; }
   /* Hero cards — 2 colunas, texto menor */
   .hero-cards,
   .hero-cards.cols-5,
-  .hero-cards.cols-6 { 
+  .hero-cards.cols-6,
+  .hero-cards.cols-7 { 
     grid-template-columns: repeat(2, 1fr) !important; 
     gap: 6px !important; 
   }
@@ -3085,18 +3087,29 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <option value="atrasado">Atrasados</option>
                 </select>
               </div>
+              <div class="filter-group">
+                <span class="filter-label">TIPO</span>
+                <select class="filter-select" id="cp-tipo-filtro" onchange="loadContasPagar()">
+                  <option value="">Todas</option>
+                  <option value="fixa">Fixas</option>
+                  <option value="variavel">Variáveis</option>
+                  <option value="sem">Sem tipo</option>
+                </select>
+              </div>
               <button class="btn" onclick="loadContasPagar()">↻ Atualizar</button>
               <button class="btn btn-primary" onclick="abrirModalConta('pagar')">+ Nova conta a pagar</button>
             </div>
           </div>
 
           <!-- CARDS HERO -->
-          <div class="hero-cards cols-5" style="margin-bottom:14px">
+          <div class="hero-cards cols-7" style="margin-bottom:14px">
             <div class="hcard red"><div class="hcard-label">A Pagar</div><div class="hcard-value sm" id="cp-hero-apagar">—</div><div class="hcard-sub">pendente</div><div class="hcard-icon">📤</div></div>
             <div class="hcard amber"><div class="hcard-label">Enviado</div><div class="hcard-value sm" id="cp-hero-env">—</div><div class="hcard-sub">aguardando</div><div class="hcard-icon">📨</div></div>
             <div class="hcard green"><div class="hcard-label">Pago</div><div class="hcard-value sm" id="cp-hero-pago">—</div><div class="hcard-sub">quitado</div><div class="hcard-icon">✅</div></div>
             <div class="hcard purple"><div class="hcard-label">Não Pago</div><div class="hcard-value sm" id="cp-hero-npago">—</div><div class="hcard-sub">sem baixa</div><div class="hcard-icon">❌</div></div>
             <div class="hcard dark"><div class="hcard-label">Total Mês</div><div class="hcard-value sm" id="cp-hero-total">—</div><div class="hcard-sub">soma do período</div><div class="hcard-icon">💰</div></div>
+            <div class="hcard" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)"><div class="hcard-label">Custo Fixo</div><div class="hcard-value sm" id="cp-hero-fixa">—</div><div class="hcard-sub" id="cp-hero-fixa-sub">— do total</div><div class="hcard-icon">🔒</div></div>
+            <div class="hcard amber"><div class="hcard-label">Custo Variável</div><div class="hcard-value sm" id="cp-hero-var">—</div><div class="hcard-sub" id="cp-hero-var-sub">— do total</div><div class="hcard-icon">📈</div></div>
           </div>
 
           <!-- LINHA 2: Gráfico vencimentos por dia (largura total) -->
@@ -10781,6 +10794,23 @@ async function loadContasPagar() {
     );
   }
 
+  // Fixo/Variavel: o sistema ja gravou com grafias diferentes ("Fixo" e "fixa"),
+  // entao as duas contam como fixa.
+  const _ehFixa = t => ['fixo','fixa'].includes(normS(t));
+  const _ehVar  = t => normS(t).startsWith('vari');
+
+  // Totais por tipo — calculados ANTES do filtro, senao o card mostraria
+  // sempre 100% do que esta filtrado e perderia a comparacao
+  const somaTipo = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
+  const _totalGeral = somaTipo(contas);
+  const _totFixa = somaTipo(contas.filter(c => _ehFixa(c.tipo)));
+  const _totVar  = somaTipo(contas.filter(c => _ehVar(c.tipo)));
+
+  const tipoFiltro = document.getElementById('cp-tipo-filtro')?.value || '';
+  if (tipoFiltro === 'fixa')      contas = contas.filter(c => _ehFixa(c.tipo));
+  else if (tipoFiltro === 'variavel') contas = contas.filter(c => _ehVar(c.tipo));
+  else if (tipoFiltro === 'sem')  contas = contas.filter(c => !_ehFixa(c.tipo) && !_ehVar(c.tipo));
+
   const soma = arr => arr.reduce((s,c) => s + (Number(c.valor)||0), 0);
   const aPagar    = contas.filter(c => ['a pagar','pendente','nao pago'].includes(normS(c.status)));
   const enviados  = contas.filter(c => normS(c.status) === 'enviado');
@@ -10795,6 +10825,11 @@ async function loadContasPagar() {
   _s('cp-hero-apagar', fmtBRL(soma(aPagar))); _s('cp-hero-env', fmtBRL(soma(enviados)));
   _s('cp-hero-pago', fmtBRL(soma(pagos))); _s('cp-hero-npago', fmtBRL(soma(naoPago)));
   _s('cp-hero-total', fmtBRL(soma(contas)));
+  _s('cp-hero-fixa', fmtBRL(_totFixa));
+  _s('cp-hero-var',  fmtBRL(_totVar));
+  const _pct = v => _totalGeral > 0 ? (v/_totalGeral*100).toFixed(0) + '% do total' : '— do total';
+  _s('cp-hero-fixa-sub', _pct(_totFixa));
+  _s('cp-hero-var-sub',  _pct(_totVar));
 
   // ── Gráfico: vencimentos por dia ──────────────────────
   const diasMap = {};
