@@ -16007,19 +16007,22 @@ async function loadDFC() {
     </tr>`;
   }
 
-  // Resultado Líquido
+  // Resultado Líquido — azul claro (é resultado do período)
   const totalRL = resultadoLiq.reduce((s,v)=>s+v,0);
-  html += `<tr style="background:#1e293b">
-    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#1e293b;z-index:10;color:#fff;font-size:11px">Resultado Líquido</td>
-    ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':`<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;background:#0f172a;color:#fb923c">${entradasDoMes[mCols[i]]>0&&v?(Math.abs(v)/entradasDoMes[mCols[i]]*100).toFixed(0)+'%':''}</td>`) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:#0f172a"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:#0f172a"></td>` : '')).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/mCols.length)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#0f172a;color:#fb923c">${totalEntradasPeriodo>0?(Math.abs(totalRL)/totalEntradasPeriodo*100).toFixed(1)+'%':''}</td>`}
+  const BG_RL = '#dbeafe', BG_RL2 = '#eff6ff';
+  html += `<tr style="background:${BG_RL};border-top:2px solid #93c5fd">
+    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_RL};z-index:10;color:#1e3a8a;font-size:11px">Resultado Líquido</td>
+    ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':`<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:#6d28d9">${entradasDoMes[mCols[i]]>0&&v?(Math.abs(v)/entradasDoMes[mCols[i]]*100).toFixed(0)+'%':''}</td>`) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td>` : '')).join('')}
+    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_RL2};color:${totalRL>=0?'#15803d':'#b91c1c'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:${BG_RL2};color:#1e40af">${fmtNum(totalRL/mCols.length)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:${BG_RL2};color:#6d28d9">${totalEntradasPeriodo>0?(Math.abs(totalRL)/totalEntradasPeriodo*100).toFixed(1)+'%':''}</td>`}
   </tr>`;
 
-  // Saldo Acumulado
-  html += `<tr style="background:#111;border-top:3px solid var(--accent)">
-    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#111;z-index:10;font-size:11px;color:#ffffff">Saldo Acumulado</td>
-    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':'<td style="background:#0d0d1a"></td>') + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:#0d0d1a"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:#0d0d1a"></td>` : '')).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a"></td><td style="padding:10px 6px;background:#0d0d1a"></td>`}
+  // Saldo Acumulado — verde claro (é o dinheiro que sobra em caixa)
+  const BG_SA = '#dcfce7', BG_SA2 = '#f0fdf4';
+  const ultimoSA = saldoFinalMes[saldoFinalMes.length-1];
+  html += `<tr style="background:${BG_SA};border-top:2px solid var(--accent)">
+    <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_SA};z-index:10;font-size:11px;color:#14532d">Saldo Acumulado</td>
+    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':'<td></td>') + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td>` : '')).join('')}
+    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_SA2};color:${ultimoSA>=0?'#15803d':'#b91c1c'}">${fmtNum(ultimoSA)}</td><td style="padding:10px 6px;background:${BG_SA2}"></td><td style="padding:10px 6px;background:${BG_SA2}"></td>`}
   </tr>`;
 
   html += '</tbody></table></div>';
