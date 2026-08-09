@@ -15883,6 +15883,18 @@ async function loadDFC() {
   // Resultado Líquido = total entradas − total saídas (todos os lançamentos do período)
   const resultadoLiq = mCols.map((m) => movimentoMes(m));
 
+  // ANÁLISE VERTICAL: quanto cada linha representa do total de entradas.
+  // Entradas viram a base 100% — é assim que se lê peso de custo/despesa.
+  const totalEntradasPeriodo = (lancs||[])
+    .filter(l => mCols.includes(mesDoLanc(l)))
+    .reduce((sm,l) => sm + Number(l.entrada||0), 0);
+
+  const celAV = valor => {
+    if (!mostraTotais) return '';
+    const pct = totalEntradasPeriodo > 0 ? (Math.abs(valor) / totalEntradasPeriodo * 100) : null;
+    return `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#fff7ed;color:#c2410c">${pct===null||!valor?'':pct.toFixed(1)+'%'}</td>`;
+  };
+
   const thS = `padding:8px 6px;text-align:right;border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap`;
   const totalCols = mCols.length;
 
@@ -15905,7 +15917,7 @@ async function loadDFC() {
             <th class="${clsProj(m)}" style="${dispProj(m)}${thS};color:#7c3aed;font-size:9px">PROJ</th>
             <th class="${clsProj(m)}" style="${dispProj(m)}${thS};color:#7c3aed;font-size:9px">%</th>`;
         }).join('')}
-        ${!mostraTotais ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th>`}
+        ${!mostraTotais ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th><th style="${thS};color:#c2410c" title="Quanto representa do total de entradas do período">% TOTAL</th>`}
       </tr>
     </thead>
     <tbody>`;
@@ -15914,7 +15926,7 @@ async function loadDFC() {
   html += `<tr style="background:#f0fdf4">
     <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:10;font-size:11px">Saldo Inicial</td>
     ${saldoInicialMes.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px`)).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>`}
+    ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>${mostraTotais?'<td style="background:#fff7ed"></td>':''}`}
   </tr>`;
 
   // Grupos
@@ -15930,7 +15942,7 @@ async function loadDFC() {
       html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
         <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
         ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`)).join('')}
-        ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/mCols.length)}</td>`}
+        ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/mCols.length)}</td>` + celAV(totalRO)}
       </tr>`;
     }
     const totalG = g.totalGrupo.reduce((s,v) => s+v, 0);
@@ -15944,7 +15956,7 @@ async function loadDFC() {
         <span id="${gId}-arrow" style="margin-right:6px;font-size:10px">▶</span>${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:10px;color:var(--text2)">${g.sinal}</span>
       </td>
       ${g.totalGrupo.map((v,i) => celulasResumo(mCols[i], v, g.gCats.reduce((sm,c)=>sm+projDeCat(c,mCols[i]),0), `padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px`)).join('')}
-      ${!mostraTotais ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>`}
+      ${!mostraTotais ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>` + celAV(totalG)}
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
@@ -15955,7 +15967,7 @@ async function loadDFC() {
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
         <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
         ${vals.map((v,i) => celulasCat(c, mCols[i], v)).join('')}
-        ${!mostraTotais ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
+        ${!mostraTotais ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>` + celAV(total)}
       </tr>`;
     });
   });
@@ -15966,7 +15978,7 @@ async function loadDFC() {
     html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
       <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
       ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`)).join('')}
-      ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>`}
+      ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>${mostraTotais?'<td style="background:#fff7ed"></td>':''}`}
     </tr>`;
   }
 
@@ -15975,14 +15987,14 @@ async function loadDFC() {
   html += `<tr style="background:#1e293b">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#1e293b;z-index:10;color:#fff;font-size:11px">Resultado Líquido</td>
     ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>` + (modo==='ambos'&&mesAberto(mCols[i]) ? '<td style="background:#1e293b"></td><td style="background:#1e293b"></td>' : '')).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/mCols.length)}</td>`}
+    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/mCols.length)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#0f172a;color:#fb923c">${totalEntradasPeriodo>0?(Math.abs(totalRL)/totalEntradasPeriodo*100).toFixed(1)+'%':''}</td>`}
   </tr>`;
 
   // Saldo Acumulado
   html += `<tr style="background:#111;border-top:3px solid var(--accent)">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#111;z-index:10;font-size:11px;color:#ffffff">Saldo Acumulado</td>
     ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>` + (modo==='ambos'&&mesAberto(mCols[i]) ? '<td style="background:#0d0d1a"></td><td style="background:#0d0d1a"></td>' : '')).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a;color:#ffffff"></td>`}
+    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a"></td><td style="padding:10px 6px;background:#0d0d1a"></td>`}
   </tr>`;
 
   html += '</tbody></table></div>';
