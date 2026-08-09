@@ -3596,11 +3596,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <select id="dfc-modo" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;font-weight:600;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg3);color:var(--accent)">
                 <option value="realizado">Realizado</option>
                 <option value="projetado">Projetado</option>
-                <option value="ambos">Realizado + Projetado</option>
+                <option value="ambos" selected>Realizado + Projetado</option>
               </select>
               <button class="btn" onclick="loadDFC()">↻ Atualizar</button>
               <button class="btn" id="dfc-btn-expandir-meses" onclick="toggleTodosMesesDFC()" style="display:none;color:#7c3aed;border-color:#7c3aed">⊞ Expandir meses</button>
-              <button class="btn" id="dfc-btn-replicar" onclick="replicarProjecaoDFC()" style="display:none;color:#7c3aed;border-color:#7c3aed">📋 Replicar mês</button>
               <button class="btn btn-primary" id="dfc-btn-salvar-proj" onclick="salvarProjecoesDFC()" style="display:none">💾 Salvar projeções</button>
             </div>
           </div>
@@ -3615,7 +3614,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <div style="display:none;padding:8px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;margin-bottom:10px;font-size:12px;color:#5b21b6" id="dfc-dica-proj">
-            💡 No modo <strong>Realizado + Projetado</strong>, clique no <strong>+</strong> do mês para abrir as colunas de projeção. Digite os valores e clique em <strong>Salvar projeções</strong>.
+            💡 Clique no <strong>+</strong> do mês para abrir a projeção. O <strong>📋</strong> ao lado da categoria replica o valor daquele mês <strong>para os meses seguintes</strong>. No fim, clique em <strong>Salvar projeções</strong>.
           </div>
           <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
         </div>
@@ -15379,38 +15378,43 @@ function atualizarBotaoExpandirDFC() {
   btn.textContent = todosAbertos ? '⊟ Recolher meses' : '⊞ Expandir meses';
 }
 
-// Copia os valores projetados de um mes para os demais meses do ano.
-// Trabalha so no que ja esta na tela — precisa clicar em Salvar depois.
-function replicarProjecaoDFC() {
-  const inputs = document.querySelectorAll('.dfc-proj-input');
-  if (!inputs.length) { showToast('Nenhum campo de projeção na tela', 'error'); return; }
-
-  const meses = [...new Set([...inputs].map(i => i.dataset.mes))].sort();
-  if (meses.length < 2) { showToast('Só há um mês na tela para replicar', 'error'); return; }
+// Replica o valor projetado de UMA categoria a partir do mes escolhido
+// PARA FRENTE (meses seguintes). Nao altera meses anteriores — o passado
+// ja aconteceu, nao faz sentido reprojetar.
+function replicarCategoriaDFC(catId, mesOrigem) {
+  const inp = document.querySelector(`.dfc-proj-input[data-cat="${catId}"][data-mes="${mesOrigem}"]`);
+  if (!inp) return;
+  const valor = inp.value;
+  if (valor === '' || isNaN(parseFloat(valor))) {
+    showToast('Digite um valor nesse mês antes de replicar', 'error');
+    return;
+  }
 
   const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const lista = meses.map(m => `${m} = ${nomes[parseInt(m)-1]}`).join('\n');
-  const origem = prompt(
-    'Replicar a projeção de qual mês para todos os outros?\n\n' + lista + '\n\nDigite o número do mês (ex: 01):'
-  );
-  if (!origem) return;
-  const mo = String(origem).padStart(2,'0');
-  if (!meses.includes(mo)) { showToast('Mês inválido', 'error'); return; }
-
-  // valores de origem, por categoria
-  const valores = {};
-  document.querySelectorAll(`.dfc-proj-input[data-mes="${mo}"]`).forEach(i => {
-    valores[i.dataset.cat] = i.value;
-  });
-
   let n = 0;
-  inputs.forEach(i => {
-    if (i.dataset.mes === mo) return;
-    const v = valores[i.dataset.cat];
-    if (v !== undefined && v !== '') { i.value = v; n++; i.dispatchEvent(new Event('input')); }
+  document.querySelectorAll(`.dfc-proj-input[data-cat="${catId}"]`).forEach(alvo => {
+    if (alvo.dataset.mes <= mesOrigem) return;   // so pra frente
+    alvo.value = valor;
+    alvo.dispatchEvent(new Event('input'));
+    n++;
   });
 
-  showToast(`${nomes[parseInt(mo)-1]} replicado para ${meses.length-1} mês(es) · ${n} campos. Clique em Salvar.`, 'success');
+  if (!n) { showToast('Não há meses seguintes na tela', 'error'); return; }
+  showToast(`${fmtBRL(parseFloat(valor))} replicado de ${nomes[parseInt(mesOrigem)-1]} para ${n} mês(es) seguinte(s). Clique em Salvar.`, 'success');
+}
+
+// Abre o seletor de mês de origem para replicar a categoria
+function abrirReplicarCategoria(catId, nomeCat) {
+  const inputs = [...document.querySelectorAll(`.dfc-proj-input[data-cat="${catId}"]`)];
+  if (!inputs.length) { showToast('Ative o modo Projetado para replicar', 'error'); return; }
+  const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const comValor = inputs.filter(i => i.value !== '' && !isNaN(parseFloat(i.value)));
+  const dica = comValor.length
+    ? '\nMeses já preenchidos: ' + comValor.map(i => nomes[parseInt(i.dataset.mes)-1]).join(', ')
+    : '';
+  const m = prompt(`Replicar "${nomeCat}" a partir de qual mês?\n(o valor vai para os meses SEGUINTES)${dica}\n\nDigite o número do mês (ex: 01):`);
+  if (!m) return;
+  replicarCategoriaDFC(catId, String(m).padStart(2,'0'));
 }
 
 async function salvarProjecoesDFC() {
@@ -15550,14 +15554,12 @@ async function loadDFC() {
   const mesFiltro = mesesSel.length === 1 ? mesesSel[0] : '';
 
   // Botao de salvar so aparece quando ha campo de projecao na tela
-  const _modoAtual = document.getElementById('dfc-modo')?.value || 'realizado';
+  const _modoAtual = document.getElementById('dfc-modo')?.value || 'ambos';
   const _temProj = _modoAtual === 'projetado' || _modoAtual === 'ambos';
   const btnProj  = document.getElementById('dfc-btn-salvar-proj');
   const dicaProj = document.getElementById('dfc-dica-proj');
-  const btnRep = document.getElementById('dfc-btn-replicar');
   const btnExp = document.getElementById('dfc-btn-expandir-meses');
   if (btnProj)  btnProj.style.display  = _temProj ? '' : 'none';
-  if (btnRep)   btnRep.style.display   = _temProj ? '' : 'none';
   // Expandir mes so existe no modo "ambos" — nos outros nao ha o que abrir
   if (btnExp)   btnExp.style.display   = _modoAtual === 'ambos' ? '' : 'none';
   if (dicaProj) dicaProj.style.display = _temProj ? '' : 'none';
@@ -15583,7 +15585,7 @@ async function loadDFC() {
   }
 
   // ── PROJEÇÕES: carrega o ANO inteiro, mes a mes ──────────
-  const modo = document.getElementById('dfc-modo')?.value || 'realizado';
+  const modo = document.getElementById('dfc-modo')?.value || 'ambos';
   const mostraReal = modo === 'realizado' || modo === 'ambos';
   const mostraProj = modo === 'projetado' || modo === 'ambos';
 
@@ -15767,7 +15769,10 @@ async function loadDFC() {
       const media = total / mCols.length;
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
-        <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
+        <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">
+          ${c.codigo} — ${c.nome}
+          ${mostraProj ? `<button onclick="event.stopPropagation();abrirReplicarCategoria('${c.id}','${(c.nome||'').replace(/'/g,"\\'")}')" title="Replicar projeção desta categoria para os meses seguintes" style="margin-left:6px;background:none;border:1px solid #ddd6fe;border-radius:4px;padding:0 4px;cursor:pointer;font-size:9px;color:#7c3aed">📋</button>` : ''}
+        </td>
         ${vals.map((v,i) => celulasCat(c, mCols[i], v)).join('')}
         ${!mostraTotais ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
       </tr>`;
