@@ -8473,10 +8473,13 @@ async function renderFluxoCaixaChart(ini, fim) {
 
   if (window._dashFluxoChart) { try { window._dashFluxoChart.destroy(); } catch(e){} }
 
-  // Garante que o canvas tem o tamanho certo antes de criar o chart
-  const container = canvas.parentElement;
-  canvas.width  = container.offsetWidth;
-  canvas.height = container.offsetHeight;
+  // NAO definir canvas.width/height na mao: isso descasa o sistema de coordenadas
+  // do Chart.js do tamanho real na tela, e o hover passa a apontar pro dia errado.
+  // Com responsive:true o proprio Chart.js cuida do dimensionamento.
+  canvas.removeAttribute('width');
+  canvas.removeAttribute('height');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
 
   const labels = dias.map(d => d.substring(8,10));
 
@@ -8494,10 +8497,12 @@ async function renderFluxoCaixaChart(ini, fim) {
           pointHoverBackgroundColor:'#d4a017',
           pointHoverBorderColor:'#fff',
           pointHoverBorderWidth:2,
-          // tension 0 = linha reta entre os dias. Com curva (0.4) o spline
-          // "estoura" acima/abaixo dos pontos reais e mostra saldo que nao existiu.
+          // Um eixo so pra tudo: com dois eixos a linha "flutuava" numa escala
+          // invisivel e nao dava pra comparar com as barras.
+          // tension 0 = reta entre os dias, sem inventar valor no meio.
           tension:0, fill:false,
-          yAxisID:'y2', order:1
+          pointRadius:2.5, pointBackgroundColor:'#d4a017',
+          yAxisID:'y', order:1
         },
         {
           type:'bar', label:'Entradas',
@@ -8517,10 +8522,11 @@ async function renderFluxoCaixaChart(ini, fim) {
     },
     options: {
       responsive:true, maintainAspectRatio:false,
+      // 'nearest' + intersect false: passa o mouse em qualquer altura da coluna
+      // e ele pega o dia certo, sem precisar acertar em cima da barra.
       interaction:{ mode:'index', intersect:false, axis:'x' },
-      onResize(chart, size) {
-        chart.canvas.parentNode.style.height = '320px';
-      },
+      hover:{ mode:'index', intersect:false, axis:'x' },
+      resizeDelay: 100,
       plugins:{
         legend:{
           display:true, position:'bottom',
@@ -8560,15 +8566,11 @@ async function renderFluxoCaixaChart(ini, fim) {
           position:'left',
           grid:{ color:'rgba(148,163,184,0.1)', drawBorder:false },
           border:{ display:false },
-          ticks:{ font:{size:10}, color:'#94a3b8', callback: v => 'R$'+( v/1000).toFixed(0)+'k' },
+          ticks:{ font:{size:10}, color:'#94a3b8',
+            callback: v => (Math.abs(v) >= 1000 ? 'R$'+(v/1000).toFixed(1)+'k' : 'R$'+v.toFixed(0)) },
           stacked:false
         },
-        y2:{
-          position:'right',
-          grid:{ drawOnChartArea:false },
-          border:{ display:false },
-          ticks:{ font:{size:10}, color:'#d4a017', callback: v => 'R$'+(v/1000).toFixed(1)+'k' }
-        }
+        y2:{ display:false }
       }
     }
   });
