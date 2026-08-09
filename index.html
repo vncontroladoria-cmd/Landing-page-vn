@@ -3627,7 +3627,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <div style="display:none;padding:8px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;margin-bottom:10px;font-size:12px;color:#5b21b6" id="dfc-dica-proj">
-            💡 Clique no <strong>+</strong> do mês para abrir a projeção. O <strong>📋</strong> ao lado da categoria replica o valor daquele mês <strong>para os meses seguintes</strong>. No fim, clique em <strong>Salvar projeções</strong>.
+            💡 Clique no <strong>+</strong> do mês para abrir a projeção. O <strong>▶</strong> ao lado do valor replica ele <strong>para os meses seguintes</strong>. No fim, clique em <strong>Salvar projeções</strong>.
           </div>
           <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
         </div>
@@ -15402,35 +15402,25 @@ function replicarCategoriaDFC(catId, mesOrigem) {
   if (!inp) return;
   const valor = inp.value;
   if (valor === '' || isNaN(parseFloat(valor))) {
-    showToast('Digite um valor nesse mês antes de replicar', 'error');
+    showToast('Digite um valor antes de replicar', 'error');
+    inp.focus();
     return;
   }
 
-  const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   let n = 0;
   document.querySelectorAll(`.dfc-proj-input[data-cat="${catId}"]`).forEach(alvo => {
-    if (alvo.dataset.mes <= mesOrigem) return;   // so pra frente
+    if (alvo.dataset.mes <= mesOrigem) return;   // so pra frente, nunca pra tras
     alvo.value = valor;
     alvo.dispatchEvent(new Event('input'));
+    // pisca o campo preenchido, pra ficar visivel o que mudou
+    alvo.style.transition = 'background .5s';
+    alvo.style.background = '#ddd6fe';
+    setTimeout(() => { alvo.style.background = 'var(--bg2)'; }, 550);
     n++;
   });
 
-  if (!n) { showToast('Não há meses seguintes na tela', 'error'); return; }
-  showToast(`${fmtBRL(parseFloat(valor))} replicado de ${nomes[parseInt(mesOrigem)-1]} para ${n} mês(es) seguinte(s). Clique em Salvar.`, 'success');
-}
-
-// Abre o seletor de mês de origem para replicar a categoria
-function abrirReplicarCategoria(catId, nomeCat) {
-  const inputs = [...document.querySelectorAll(`.dfc-proj-input[data-cat="${catId}"]`)];
-  if (!inputs.length) { showToast('Ative o modo Projetado para replicar', 'error'); return; }
-  const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const comValor = inputs.filter(i => i.value !== '' && !isNaN(parseFloat(i.value)));
-  const dica = comValor.length
-    ? '\nMeses já preenchidos: ' + comValor.map(i => nomes[parseInt(i.dataset.mes)-1]).join(', ')
-    : '';
-  const m = prompt(`Replicar "${nomeCat}" a partir de qual mês?\n(o valor vai para os meses SEGUINTES)${dica}\n\nDigite o número do mês (ex: 01):`);
-  if (!m) return;
-  replicarCategoriaDFC(catId, String(m).padStart(2,'0'));
+  if (!n) { showToast('Não há meses seguintes abertos na tela', 'error'); return; }
+  showToast(`Replicado para ${n} mês(es). Clique em Salvar projeções.`, 'success');
 }
 
 async function salvarProjecoesDFC() {
@@ -15720,11 +15710,17 @@ async function loadDFC() {
     const pj  = projDeCat(cat, m);
     const r   = Math.abs(realizado);
     const pct = pj ? (r / Math.abs(pj) * 100) : null;
+    // Input + botao de replicar juntos: clicou, copia esse valor pros meses seguintes
     const inputProj = `<td class="${clsProj(m)}" style="${dispProj(m)}padding:4px 4px;text-align:right;background:#f5f3ff">
-        <input type="number" step="0.01" class="dfc-proj-input" data-cat="${cat.id}" data-mes="${m}"
-          value="${pj || ''}" placeholder="0"
-          oninput="recalcPctDFC('${cat.id}','${m}',${r})"
-          style="width:78px;padding:3px 5px;font-size:10px;text-align:right;font-family:'DM Mono',monospace;border:1px solid #ddd6fe;border-radius:5px;background:var(--bg2);color:var(--text)">
+        <span style="display:inline-flex;align-items:center;gap:3px">
+          <input type="number" step="0.01" class="dfc-proj-input" data-cat="${cat.id}" data-mes="${m}"
+            value="${pj || ''}" placeholder="0"
+            oninput="recalcPctDFC('${cat.id}','${m}',${r})"
+            style="width:72px;padding:3px 5px;font-size:10px;text-align:right;font-family:'DM Mono',monospace;border:1px solid #ddd6fe;border-radius:5px;background:var(--bg2);color:var(--text)">
+          <button onclick="event.stopPropagation();replicarCategoriaDFC('${cat.id}','${m}')"
+            title="Replicar este valor para os meses seguintes"
+            style="background:none;border:1px solid #ddd6fe;border-radius:4px;padding:1px 3px;cursor:pointer;font-size:9px;color:#7c3aed;line-height:1.4">▶</button>
+        </span>
       </td>`;
     const celPct = `<td id="dfc-pct-${cat.id}-${m}" class="${clsProj(m)}" style="${dispProj(m)}${CEL};font-weight:700;background:#f5f3ff;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
     const celReal = `<td style="${CEL};color:${cor(realizado)}">${realizado!==0?fmtNum(Math.abs(realizado)):''}</td>`;
@@ -15869,10 +15865,7 @@ async function loadDFC() {
       const media = total / mCols.length;
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
-        <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">
-          ${c.codigo} — ${c.nome}
-          ${mostraProj ? `<button onclick="event.stopPropagation();abrirReplicarCategoria('${c.id}','${(c.nome||'').replace(/'/g,"\\'")}')" title="Replicar projeção desta categoria para os meses seguintes" style="margin-left:6px;background:none;border:1px solid #ddd6fe;border-radius:4px;padding:0 4px;cursor:pointer;font-size:9px;color:#7c3aed">📋</button>` : ''}
-        </td>
+        <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
         ${vals.map((v,i) => celulasCat(c, mCols[i], v)).join('')}
         ${!mostraTotais ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
       </tr>`;
