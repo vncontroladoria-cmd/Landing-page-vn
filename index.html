@@ -3602,6 +3602,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="ambos">Realizado + Projetado</option>
               </select>
               <button class="btn" onclick="loadDFC()">↻ Atualizar</button>
+              <button class="btn" id="dfc-btn-replicar" onclick="replicarProjecaoDFC()" style="display:none;color:#7c3aed;border-color:#7c3aed">📋 Replicar mês</button>
               <button class="btn btn-primary" id="dfc-btn-salvar-proj" onclick="salvarProjecoesDFC()" style="display:none">💾 Salvar projeções</button>
             </div>
           </div>
@@ -15308,11 +15309,55 @@ function recalcPctDFC(catId, mes, realizado) {
   cel.style.color = pct >= 100 ? 'var(--green)' : pct >= 80 ? '#d97706' : 'var(--red)';
 }
 
-// Expande/recolhe um mes pra mostrar projetado e % ao lado do realizado
+// Expande/recolhe um mes. NAO recarrega a tabela: as celulas ja estao no DOM,
+// so alternamos o display. Sem refetch, sem piscar.
 function toggleMesDFC(mes) {
   if (!window._dfcMesesAbertos) window._dfcMesesAbertos = {};
-  window._dfcMesesAbertos[mes] = !window._dfcMesesAbertos[mes];
-  loadDFC();
+  const abrir = !window._dfcMesesAbertos[mes];
+  window._dfcMesesAbertos[mes] = abrir;
+  document.querySelectorAll('.dfc-px-' + mes).forEach(td => {
+    td.style.display = abrir ? '' : 'none';
+  });
+  const ico = document.getElementById('dfc-ico-' + mes);
+  if (ico) {
+    ico.textContent = abrir ? '−' : '+';
+    ico.style.background = abrir ? 'var(--accent)' : 'var(--border)';
+    ico.style.color      = abrir ? '#fff' : 'var(--text2)';
+  }
+}
+
+// Copia os valores projetados de um mes para os demais meses do ano.
+// Trabalha so no que ja esta na tela — precisa clicar em Salvar depois.
+function replicarProjecaoDFC() {
+  const inputs = document.querySelectorAll('.dfc-proj-input');
+  if (!inputs.length) { showToast('Nenhum campo de projeção na tela', 'error'); return; }
+
+  const meses = [...new Set([...inputs].map(i => i.dataset.mes))].sort();
+  if (meses.length < 2) { showToast('Só há um mês na tela para replicar', 'error'); return; }
+
+  const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const lista = meses.map(m => `${m} = ${nomes[parseInt(m)-1]}`).join('\n');
+  const origem = prompt(
+    'Replicar a projeção de qual mês para todos os outros?\n\n' + lista + '\n\nDigite o número do mês (ex: 01):'
+  );
+  if (!origem) return;
+  const mo = String(origem).padStart(2,'0');
+  if (!meses.includes(mo)) { showToast('Mês inválido', 'error'); return; }
+
+  // valores de origem, por categoria
+  const valores = {};
+  document.querySelectorAll(`.dfc-proj-input[data-mes="${mo}"]`).forEach(i => {
+    valores[i.dataset.cat] = i.value;
+  });
+
+  let n = 0;
+  inputs.forEach(i => {
+    if (i.dataset.mes === mo) return;
+    const v = valores[i.dataset.cat];
+    if (v !== undefined && v !== '') { i.value = v; n++; i.dispatchEvent(new Event('input')); }
+  });
+
+  showToast(`${nomes[parseInt(mo)-1]} replicado para ${meses.length-1} mês(es) · ${n} campos. Clique em Salvar.`, 'success');
 }
 
 async function salvarProjecoesDFC() {
@@ -15374,7 +15419,9 @@ async function loadDFC() {
   const _temProj = _modoAtual === 'projetado' || _modoAtual === 'ambos';
   const btnProj  = document.getElementById('dfc-btn-salvar-proj');
   const dicaProj = document.getElementById('dfc-dica-proj');
+  const btnRep = document.getElementById('dfc-btn-replicar');
   if (btnProj)  btnProj.style.display  = _temProj ? '' : 'none';
+  if (btnRep)   btnRep.style.display   = _temProj ? '' : 'none';
   if (dicaProj) dicaProj.style.display = _temProj ? '' : 'none';
 
   const empIdDFC = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
@@ -15417,12 +15464,14 @@ async function loadDFC() {
                       : pct >= 100 ? 'var(--green)'
                       : pct >= 80  ? '#d97706' : 'var(--red)';
 
-  // Quais meses estao expandidos (mostrando projetado ao lado do realizado).
-  // Guardado fora da funcao pra sobreviver ao reload da tabela.
+  // Quais meses estao expandidos. As colunas de projecao sao SEMPRE renderizadas
+  // e apenas escondidas por CSS — assim abrir/fechar nao recarrega a tabela
+  // e a tela nao pisca.
   if (!window._dfcMesesAbertos) window._dfcMesesAbertos = {};
   const mesAberto = m => modo === 'ambos' ? !!window._dfcMesesAbertos[m] : false;
-  // Quantas colunas o mes ocupa: 1 (so realizado / so projetado) ou 3 (expandido)
-  const colsDoMes = m => (modo === 'ambos' && mesAberto(m)) ? 3 : 1;
+  // Classe + display das celulas extras de cada mes
+  const clsProj = m => `dfc-px dfc-px-${m}`;
+  const dispProj = m => mesAberto(m) ? '' : 'display:none;';
 
   const CEL = "padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px";
   const cor = v => v>0?'var(--green)':v<0?'var(--red)':'var(--text3)';
@@ -15432,18 +15481,18 @@ async function loadDFC() {
     const pj  = projDeCat(cat, m);
     const r   = Math.abs(realizado);
     const pct = pj ? (r / Math.abs(pj) * 100) : null;
-    const inputProj = `<td style="padding:4px 4px;text-align:right;background:#f5f3ff">
+    const inputProj = `<td class="${clsProj(m)}" style="${dispProj(m)}padding:4px 4px;text-align:right;background:#f5f3ff">
         <input type="number" step="0.01" class="dfc-proj-input" data-cat="${cat.id}" data-mes="${m}"
           value="${pj || ''}" placeholder="0"
           oninput="recalcPctDFC('${cat.id}','${m}',${r})"
           style="width:78px;padding:3px 5px;font-size:10px;text-align:right;font-family:'DM Mono',monospace;border:1px solid #ddd6fe;border-radius:5px;background:var(--bg2);color:var(--text)">
       </td>`;
-    const celPct = `<td id="dfc-pct-${cat.id}-${m}" style="${CEL};font-weight:700;background:#f5f3ff;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
+    const celPct = `<td id="dfc-pct-${cat.id}-${m}" class="${clsProj(m)}" style="${dispProj(m)}${CEL};font-weight:700;background:#f5f3ff;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
     const celReal = `<td style="${CEL};color:${cor(realizado)}">${realizado!==0?fmtNum(Math.abs(realizado)):''}</td>`;
 
     if (modo === 'realizado') return celReal;
     if (modo === 'projetado') return inputProj;
-    return mesAberto(m) ? (celReal + inputProj + celPct) : celReal;
+    return celReal + inputProj + celPct;
   }
 
   // Celulas de um mes para GRUPO / totais (so leitura)
@@ -15452,11 +15501,11 @@ async function loadDFC() {
     const r = Math.abs(realizado), pj = Math.abs(projetado||0);
     const pct = pj ? (r / pj * 100) : null;
     const celReal = `<td style="${st};color:${cor(realizado)}">${realizado!==0?fmtNum(r):''}</td>`;
-    const celProj = `<td style="${st};background:#ede9fe;color:var(--text2)">${pj?fmtNum(pj):''}</td>`;
-    const celPct  = `<td style="${st};background:#ede9fe;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
+    const celProj = `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe;color:var(--text2)">${pj?fmtNum(pj):''}</td>`;
+    const celPct  = `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
     if (modo === 'realizado') return celReal;
     if (modo === 'projetado') return celProj;
-    return mesAberto(m) ? (celReal + celProj + celPct) : celReal;
+    return celReal + celProj + celPct;
   }
 
   // Celulas vazias, pra linhas que nao tem projecao (Saldo Inicial etc)
@@ -15464,7 +15513,8 @@ async function loadDFC() {
     const st = estilo || CEL;
     const celReal = `<td style="${st};color:${cor(realizado)}">${fmtNum(realizado)}</td>`;
     if (modo === 'projetado') return `<td style="${st}"></td>`;
-    return mesAberto(m) ? (celReal + `<td style="${st};background:#ede9fe"></td><td style="${st};background:#ede9fe"></td>`) : celReal;
+    if (modo === 'realizado') return celReal;
+    return celReal + `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td><td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td>`;
   }
 
   const { data: bancos } = await qE('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
@@ -15523,13 +15573,11 @@ async function loadDFC() {
           if (modo !== 'ambos')
             return `<th style="${thS}">${nome}</th>`;
           const aberto = mesAberto(m);
-          return `<th style="${thS};cursor:pointer" colspan="${aberto?3:1}" onclick="toggleMesDFC('${m}')" title="${aberto?'Recolher':'Expandir projetado'}">
-            <span style="display:inline-flex;align-items:center;gap:4px;justify-content:flex-end">
-              <span style="background:${aberto?'var(--accent)':'var(--border)'};color:${aberto?'#fff':'var(--text2)'};border-radius:4px;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;line-height:1">${aberto?'−':'+'}</span>
-              ${nome}
-            </span>
-            ${aberto?`<div style="font-size:8px;font-weight:400;color:var(--text3);margin-top:2px">real · proj · %</div>`:''}
-          </th>`;
+          return `<th style="${thS};cursor:pointer" onclick="toggleMesDFC('${m}')" title="Expandir/recolher projeção">
+              <span id="dfc-ico-${m}" style="background:${aberto?'var(--accent)':'var(--border)'};color:${aberto?'#fff':'var(--text2)'};border-radius:4px;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;line-height:1;margin-right:4px">${aberto?'−':'+'}</span>${nome}
+            </th>
+            <th class="${clsProj(m)}" style="${dispProj(m)}${thS};color:#7c3aed;font-size:9px">PROJ</th>
+            <th class="${clsProj(m)}" style="${dispProj(m)}${thS};color:#7c3aed;font-size:9px">%</th>`;
         }).join('')}
         ${mesFiltro ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th>`}
       </tr>
