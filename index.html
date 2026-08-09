@@ -3596,12 +3596,17 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
                 <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
               </select>
+              <select id="dfc-modo" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;font-weight:600;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg3);color:var(--accent)">
+                <option value="realizado">Realizado</option>
+                <option value="projetado">Projetado</option>
+                <option value="ambos">Realizado + Projetado</option>
+              </select>
               <button class="btn" onclick="loadDFC()">↻ Atualizar</button>
               <button class="btn btn-primary" id="dfc-btn-salvar-proj" onclick="salvarProjecoesDFC()" style="display:none">💾 Salvar projeções</button>
             </div>
           </div>
           <div style="display:none;padding:8px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;margin-bottom:10px;font-size:12px;color:#5b21b6" id="dfc-dica-proj">
-            💡 Digite o valor projetado de cada categoria na coluna roxa e clique em <strong>Salvar projeções</strong>. O % atingido atualiza na hora.
+            💡 No modo <strong>Realizado + Projetado</strong>, clique no <strong>+</strong> do mês para abrir as colunas de projeção. Digite os valores e clique em <strong>Salvar projeções</strong>.
           </div>
           <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
         </div>
@@ -6438,7 +6443,7 @@ function showPage(id, el) {
     'importacao':    ['imp-filtro-mes'],
     'contas-pagar':  ['cp-mes'],
     'contas-receber':['cr-mes'],
-    'dfc':           ['dfc-mes'],
+    'dfc':           [],   // DFC abre com TODOS os meses, nao so o mes atual
     'cartao-credito':['cc-mes'],
     'metricas':      ['met-mes'],
   };
@@ -15291,9 +15296,9 @@ const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Ag
 
 // ─── PROJEÇÃO DFC (editada direto na tabela do DFC) ──────
 // Recalcula o % assim que o usuario digita, sem precisar salvar antes
-function recalcPctDFC(catId, realizado) {
-  const inp = document.querySelector(`.dfc-proj-input[data-cat="${catId}"]`);
-  const cel = document.getElementById('dfc-pct-' + catId);
+function recalcPctDFC(catId, mes, realizado) {
+  const inp = document.querySelector(`.dfc-proj-input[data-cat="${catId}"][data-mes="${mes}"]`);
+  const cel = document.getElementById(`dfc-pct-${catId}-${mes}`);
   if (!inp || !cel) return;
   const pj = Math.abs(parseFloat(inp.value) || 0);
   const r  = Math.abs(Number(realizado) || 0);
@@ -15303,10 +15308,15 @@ function recalcPctDFC(catId, realizado) {
   cel.style.color = pct >= 100 ? 'var(--green)' : pct >= 80 ? '#d97706' : 'var(--red)';
 }
 
+// Expande/recolhe um mes pra mostrar projetado e % ao lado do realizado
+function toggleMesDFC(mes) {
+  if (!window._dfcMesesAbertos) window._dfcMesesAbertos = {};
+  window._dfcMesesAbertos[mes] = !window._dfcMesesAbertos[mes];
+  loadDFC();
+}
+
 async function salvarProjecoesDFC() {
   const ano = document.getElementById('dfc-ano')?.value || '2026';
-  const mes = document.getElementById('dfc-mes')?.value || '';
-  if (!mes) { showToast('Selecione um mês para projetar', 'error'); return; }
 
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   if (!empId) { showToast('Empresa não identificada', 'error'); return; }
@@ -15316,22 +15326,28 @@ async function salvarProjecoesDFC() {
 
   try {
     const linhas = [];
+    const mesesEditados = new Set();
     document.querySelectorAll('.dfc-proj-input').forEach(inp => {
+      const mm = inp.dataset.mes;
+      mesesEditados.add(parseInt(mm));
       const v = parseFloat(inp.value);
       if (!isNaN(v) && v !== 0) {
         linhas.push({
           empresa_id: empId,
           categoria_id: inp.dataset.cat,
-          mes: parseInt(mes),
+          mes: parseInt(mm),
           ano: parseInt(ano),
           valor: v
         });
       }
     });
 
-    // Regrava so o mes/ano em edicao — nao toca nos outros meses
+    if (!mesesEditados.size) { showToast('Nenhum campo de projeção na tela', 'error'); return; }
+
+    // Regrava so os meses que estao na tela — nao toca nos demais
     await sb.from('projecoes_dfc').delete()
-      .eq('empresa_id', empId).eq('ano', parseInt(ano)).eq('mes', parseInt(mes));
+      .eq('empresa_id', empId).eq('ano', parseInt(ano))
+      .in('mes', [...mesesEditados]);
 
     if (linhas.length) {
       const { error } = await sb.from('projecoes_dfc').insert(linhas);
@@ -15353,11 +15369,13 @@ async function loadDFC() {
   const ano = document.getElementById('dfc-ano')?.value || '2026';
   const mesFiltro = document.getElementById('dfc-mes')?.value || '';
 
-  // Projetar so faz sentido com um mes selecionado
+  // Botao de salvar so aparece quando ha campo de projecao na tela
+  const _modoAtual = document.getElementById('dfc-modo')?.value || 'realizado';
+  const _temProj = _modoAtual === 'projetado' || _modoAtual === 'ambos';
   const btnProj  = document.getElementById('dfc-btn-salvar-proj');
   const dicaProj = document.getElementById('dfc-dica-proj');
-  if (btnProj)  btnProj.style.display  = mesFiltro ? '' : 'none';
-  if (dicaProj) dicaProj.style.display = mesFiltro ? '' : 'none';
+  if (btnProj)  btnProj.style.display  = _temProj ? '' : 'none';
+  if (dicaProj) dicaProj.style.display = _temProj ? '' : 'none';
 
   const empIdDFC = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   const { data: dfcGruposRaw } = await sb.from('grupos_plano').select('*').eq('empresa_id', empIdDFC).order('ordem');
@@ -15377,46 +15395,77 @@ async function loadDFC() {
       .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
   }
 
-  // Projecoes do DFC (tabela propria, independente do DRE).
-  // So faz sentido comparar com 1 mes filtrado — com 12 meses lado a lado
-  // nao ha espaco pra 3 colunas por mes.
+  // ── PROJEÇÕES: carrega o ANO inteiro, mes a mes ──────────
+  const modo = document.getElementById('dfc-modo')?.value || 'realizado';
+  const mostraReal = modo === 'realizado' || modo === 'ambos';
+  const mostraProj = modo === 'projetado' || modo === 'ambos';
+
+  // projPorCat[categoria_id]['01'] = valor projetado daquele mes
   const projPorCat = {};
-  if (mesFiltro) {
-    try {
-      const { data: projs } = await sb.from('projecoes_dfc').select('categoria_id,valor')
-        .eq('empresa_id', empIdDFC).eq('ano', parseInt(ano)).eq('mes', parseInt(mesFiltro));
-      (projs||[]).forEach(pj => { projPorCat[pj.categoria_id] = Number(pj.valor||0); });
-    } catch(e) { console.warn('projecoes_dfc:', e); }
-  }
-  const projDeCat = c => projPorCat[c.id] || 0;
+  try {
+    const { data: projs } = await sb.from('projecoes_dfc').select('categoria_id,mes,valor')
+      .eq('empresa_id', empIdDFC).eq('ano', parseInt(ano));
+    (projs||[]).forEach(pj => {
+      const mm = String(pj.mes).padStart(2,'0');
+      if (!projPorCat[pj.categoria_id]) projPorCat[pj.categoria_id] = {};
+      projPorCat[pj.categoria_id][mm] = Number(pj.valor||0);
+    });
+  } catch(e) { console.warn('projecoes_dfc:', e); }
+  const projDeCat = (c, m) => projPorCat[c.id]?.[m] || 0;
 
   const corPct = pct => pct === null ? 'var(--text3)'
                       : pct >= 100 ? 'var(--green)'
                       : pct >= 80  ? '#d97706' : 'var(--red)';
 
-  // Celula EDITAVEL: digita o projetado direto na linha da categoria
-  const celProjInput = (realizado, cat) => {
-    if (!mesFiltro) return '';
-    const pj = projDeCat(cat);
-    const r = Math.abs(realizado);
-    const pct = pj > 0 ? (r / Math.abs(pj) * 100) : null;
-    return `<td style="padding:4px 6px;text-align:right;background:#f5f3ff">
-        <input type="number" step="0.01" class="dfc-proj-input" data-cat="${cat.id}"
-          value="${pj || ''}" placeholder="0,00"
-          oninput="recalcPctDFC('${cat.id}', ${r})"
-          style="width:90px;padding:3px 6px;font-size:10px;text-align:right;font-family:'DM Mono',monospace;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text)">
-      </td>
-      <td id="dfc-pct-${cat.id}" style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#f5f3ff;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
-  };
+  // Quais meses estao expandidos (mostrando projetado ao lado do realizado).
+  // Guardado fora da funcao pra sobreviver ao reload da tabela.
+  if (!window._dfcMesesAbertos) window._dfcMesesAbertos = {};
+  const mesAberto = m => modo === 'ambos' ? !!window._dfcMesesAbertos[m] : false;
+  // Quantas colunas o mes ocupa: 1 (so realizado / so projetado) ou 3 (expandido)
+  const colsDoMes = m => (modo === 'ambos' && mesAberto(m)) ? 3 : 1;
 
-  // Celula so de leitura, usada na linha de GRUPO (soma das categorias)
-  const celProj = (realizado, projetado) => {
-    if (!mesFiltro) return '';
-    const r = Math.abs(realizado), pj = Math.abs(projetado);
-    const pct = pj > 0 ? (r / pj * 100) : null;
-    return `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#ede9fe;color:var(--text2)">${pj?fmtNum(pj):''}</td>`
-         + `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#ede9fe;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
-  };
+  const CEL = "padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px";
+  const cor = v => v>0?'var(--green)':v<0?'var(--red)':'var(--text3)';
+
+  // Celulas de um mes para uma CATEGORIA (projetado editavel)
+  function celulasCat(cat, m, realizado) {
+    const pj  = projDeCat(cat, m);
+    const r   = Math.abs(realizado);
+    const pct = pj ? (r / Math.abs(pj) * 100) : null;
+    const inputProj = `<td style="padding:4px 4px;text-align:right;background:#f5f3ff">
+        <input type="number" step="0.01" class="dfc-proj-input" data-cat="${cat.id}" data-mes="${m}"
+          value="${pj || ''}" placeholder="0"
+          oninput="recalcPctDFC('${cat.id}','${m}',${r})"
+          style="width:78px;padding:3px 5px;font-size:10px;text-align:right;font-family:'DM Mono',monospace;border:1px solid #ddd6fe;border-radius:5px;background:var(--bg2);color:var(--text)">
+      </td>`;
+    const celPct = `<td id="dfc-pct-${cat.id}-${m}" style="${CEL};font-weight:700;background:#f5f3ff;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
+    const celReal = `<td style="${CEL};color:${cor(realizado)}">${realizado!==0?fmtNum(Math.abs(realizado)):''}</td>`;
+
+    if (modo === 'realizado') return celReal;
+    if (modo === 'projetado') return inputProj;
+    return mesAberto(m) ? (celReal + inputProj + celPct) : celReal;
+  }
+
+  // Celulas de um mes para GRUPO / totais (so leitura)
+  function celulasResumo(m, realizado, projetado, estilo) {
+    const st = estilo || `${CEL};font-weight:600`;
+    const r = Math.abs(realizado), pj = Math.abs(projetado||0);
+    const pct = pj ? (r / pj * 100) : null;
+    const celReal = `<td style="${st};color:${cor(realizado)}">${realizado!==0?fmtNum(r):''}</td>`;
+    const celProj = `<td style="${st};background:#ede9fe;color:var(--text2)">${pj?fmtNum(pj):''}</td>`;
+    const celPct  = `<td style="${st};background:#ede9fe;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
+    if (modo === 'realizado') return celReal;
+    if (modo === 'projetado') return celProj;
+    return mesAberto(m) ? (celReal + celProj + celPct) : celReal;
+  }
+
+  // Celulas vazias, pra linhas que nao tem projecao (Saldo Inicial etc)
+  function celulasVazias(m, realizado, estilo) {
+    const st = estilo || CEL;
+    const celReal = `<td style="${st};color:${cor(realizado)}">${fmtNum(realizado)}</td>`;
+    if (modo === 'projetado') return `<td style="${st}"></td>`;
+    return mesAberto(m) ? (celReal + `<td style="${st};background:#ede9fe"></td><td style="${st};background:#ede9fe"></td>`) : celReal;
+  }
 
   const { data: bancos } = await qE('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
   const saldoInicialTotal = (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
@@ -15469,8 +15518,20 @@ async function loadDFC() {
           DESCRIÇÃO
           <button onclick="toggleAllDFC()" id="dfc-expand-btn" style="margin-left:8px;font-size:10px;padding:2px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer">Expandir</button>
         </th>
-        ${mNomes.map(m => `<th style="${thS}">${m}</th>`).join('')}
-        ${mesFiltro ? `<th style="${thS};color:#7c3aed">PROJETADO</th><th style="${thS};color:#7c3aed">% ATING.</th>` : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th>`}
+        ${mCols.map((m, i) => {
+          const nome = mNomes[i];
+          if (modo !== 'ambos')
+            return `<th style="${thS}">${nome}</th>`;
+          const aberto = mesAberto(m);
+          return `<th style="${thS};cursor:pointer" colspan="${aberto?3:1}" onclick="toggleMesDFC('${m}')" title="${aberto?'Recolher':'Expandir projetado'}">
+            <span style="display:inline-flex;align-items:center;gap:4px;justify-content:flex-end">
+              <span style="background:${aberto?'var(--accent)':'var(--border)'};color:${aberto?'#fff':'var(--text2)'};border-radius:4px;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;line-height:1">${aberto?'−':'+'}</span>
+              ${nome}
+            </span>
+            ${aberto?`<div style="font-size:8px;font-weight:400;color:var(--text3);margin-top:2px">real · proj · %</div>`:''}
+          </th>`;
+        }).join('')}
+        ${mesFiltro ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th>`}
       </tr>
     </thead>
     <tbody>`;
@@ -15478,8 +15539,8 @@ async function loadDFC() {
   // Saldo Inicial
   html += `<tr style="background:#f0fdf4">
     <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:10;font-size:11px">Saldo Inicial</td>
-    ${saldoInicialMes.map(v => `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--green)">${fmtNum(v)}</td>`).join('')}
-    ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>`}
+    ${saldoInicialMes.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px`)).join('')}
+    ${mesFiltro ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>`}
   </tr>`;
 
   // Grupos
@@ -15494,8 +15555,8 @@ async function loadDFC() {
       const totalRO = resultadoOp.reduce((s,v)=>s+v,0);
       html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
         <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
-        ${resultadoOp.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>`).join('')}
-        ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/12)}</td>`}
+        ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`)).join('')}
+        ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/12)}</td>`}
       </tr>`;
     }
     const totalG = g.totalGrupo.reduce((s,v) => s+v, 0);
@@ -15508,8 +15569,8 @@ async function loadDFC() {
       <td style="padding:9px 10px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgG};z-index:10;font-size:11px">
         <span id="${gId}-arrow" style="margin-right:6px;font-size:10px">▶</span>${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:10px;color:var(--text2)">${g.sinal}</span>
       </td>
-      ${g.totalGrupo.map(v => `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>`).join('')}
-      ${mesFiltro ? celProj(totalG, g.gCats.reduce((s,c)=>s+projDeCat(c),0)) : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>`}
+      ${g.totalGrupo.map((v,i) => celulasResumo(mCols[i], v, g.gCats.reduce((sm,c)=>sm+projDeCat(c,mCols[i]),0), `padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px`)).join('')}
+      ${mesFiltro ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>`}
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
@@ -15519,8 +15580,8 @@ async function loadDFC() {
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
         <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
-        ${vals.map(v => `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>`).join('')}
-        ${mesFiltro ? celProjInput(total, c) : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
+        ${vals.map((v,i) => celulasCat(c, mCols[i], v)).join('')}
+        ${mesFiltro ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
       </tr>`;
     });
   });
@@ -15530,8 +15591,8 @@ async function loadDFC() {
     const totalRO2 = resultadoOp.reduce((s,v)=>s+v,0);
     html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
       <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
-      ${resultadoOp.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>`).join('')}
-      ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>`}
+      ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`)).join('')}
+      ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>`}
     </tr>`;
   }
 
@@ -15539,15 +15600,15 @@ async function loadDFC() {
   const totalRL = resultadoLiq.reduce((s,v)=>s+v,0);
   html += `<tr style="background:#1e293b">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#1e293b;z-index:10;color:#fff;font-size:11px">Resultado Líquido</td>
-    ${resultadoLiq.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>`).join('')}
-    ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/12)}</td>`}
+    ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>` + (modo==='ambos'&&mesAberto(mCols[i]) ? '<td style="background:#1e293b"></td><td style="background:#1e293b"></td>' : '')).join('')}
+    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/12)}</td>`}
   </tr>`;
 
   // Saldo Acumulado
   html += `<tr style="background:#111;border-top:3px solid var(--accent)">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#111;z-index:10;font-size:11px;color:#ffffff">Saldo Acumulado</td>
-    ${saldoFinalMes.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>`).join('')}
-    ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a;color:#ffffff"></td>`}
+    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>` + (modo==='ambos'&&mesAberto(mCols[i]) ? '<td style="background:#0d0d1a"></td><td style="background:#0d0d1a"></td>' : '')).join('')}
+    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a;color:#ffffff"></td>`}
   </tr>`;
 
   html += '</tbody></table></div>';
