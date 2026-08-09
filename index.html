@@ -13177,11 +13177,9 @@ async function editarFornecedorForm(id) {
 
 // ─── FORNECEDORES ─────────────────────────────────────
 function filtrarFornecedores(termo) {
-  const t = (termo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  const rows = document.querySelectorAll('#forn-tbody tr');
-  rows.forEach(row => {
-    const txt = row.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    row.style.display = !t || txt.includes(t) ? '' : 'none';
+  const t = normStr(termo);
+  document.querySelectorAll('#forn-tbody tr').forEach(row => {
+    row.style.display = !t || normStr(textoDaLinha(row)).includes(t) ? '' : 'none';
   });
 }
 
@@ -19013,18 +19011,39 @@ function reaplicarFiltroSemCat() {
   if (n) n.textContent = semCat.length;
 }
 
+// Monta o texto pesquisavel de uma linha.
+// CUIDADO: row.textContent inclui TODAS as <option> dos selects de edicao inline.
+// Como esses selects listam o plano de contas inteiro, qualquer busca por nome
+// de categoria batia em TODAS as linhas. Por isso montamos o texto celula a
+// celula, ignorando as options e usando so o valor selecionado.
+function textoDaLinha(row) {
+  let txt = '';
+  row.querySelectorAll('td').forEach(td => {
+    td.childNodes.forEach(function coleta(no) {
+      if (no.nodeType === 3) { txt += ' ' + no.nodeValue; return; }      // texto puro
+      if (no.nodeType !== 1) return;
+      const tag = no.tagName;
+      if (tag === 'SELECT') {
+        const op = no.selectedOptions?.[0];
+        txt += ' ' + (op ? op.textContent : (no.value || ''));
+        return;                                                          // nao desce nas options
+      }
+      if (tag === 'INPUT')  { txt += ' ' + (no.value || ''); return; }
+      if (tag === 'OPTION') return;
+      no.childNodes.forEach(coleta);
+    });
+  });
+  return txt;
+}
+
 function filtrarLancamentos(termo) {
-  const t = (termo||'').toLowerCase().trim();
+  const t = normStr(termo);
   const tbody = document.getElementById('lanc-tbody');
   if (!tbody) { console.warn('filtrarLancamentos: #lanc-tbody não encontrado'); return; }
   const rows = tbody.querySelectorAll('tr[id]');
   rows.forEach(row => {
     if (!t) { row.style.display = ''; row.hidden = false; return; }
-    // Pega todo o texto da linha incluindo banco, categoria, descrição, extrato, e também
-    // o valor digitado em campos de input/select (que não entram no textContent normal)
-    let allText = row.textContent.toLowerCase();
-    row.querySelectorAll('input, select').forEach(el => { allText += ' ' + (el.value||'').toLowerCase(); });
-    const bate = allText.includes(t);
+    const bate = normStr(textoDaLinha(row)).includes(t);
     row.style.display = bate ? '' : 'none';
     row.hidden = !bate;
   });
@@ -22079,9 +22098,11 @@ function reaplicarFiltroSemCatCC() {
 }
 
 function filtrarCartaoLanc(termo) {
-  const t = (termo||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  // textoDaLinha ignora as <option> dos selects de edicao inline — senao
+  // toda linha bateria com qualquer nome de categoria do plano de contas
+  const t = normStr(termo);
   document.querySelectorAll('#cc-tbody tr').forEach(r => {
-    r.style.display = !t || incStr(r.textContent, t) ? '' : 'none';
+    r.style.display = !t || normStr(textoDaLinha(r)).includes(t) ? '' : 'none';
   });
 }
 
