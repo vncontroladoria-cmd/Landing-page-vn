@@ -5821,6 +5821,31 @@ function limparClassificacao(payload) {
   return payload;
 }
 
+// ===================== CORRECAO DE HOVER NOS GRAFICOS =====================
+// O body usa `zoom: 1.3` (ver CSS). O Chart.js calcula a posicao do mouse a
+// partir de getBoundingClientRect(), que JA vem escalado pelo zoom, mas compara
+// com o tamanho interno do canvas, que NAO esta escalado. O resultado e um
+// hover deslocado, com erro crescente da esquerda pra direita.
+// Aqui corrigimos na origem, entao vale pros 23 graficos do sistema de uma vez.
+(function corrigirHoverZoom() {
+  function aplicar() {
+    if (!window.Chart || window.Chart.__zoomCorrigido) return;
+    const helpers = window.Chart.helpers;
+    if (!helpers || !helpers.getRelativePosition) return;
+    const original = helpers.getRelativePosition;
+    helpers.getRelativePosition = function (evt, chart) {
+      const pos = original.call(this, evt, chart);
+      const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+      if (z === 1) return pos;
+      return { x: pos.x / z, y: pos.y / z };
+    };
+    window.Chart.__zoomCorrigido = true;
+  }
+  aplicar();
+  document.addEventListener('DOMContentLoaded', aplicar);
+  window.addEventListener('load', aplicar);
+})();
+
 // ===================== LOADER DE PAGINA =====================
 // Cobre a tela enquanto a pagina carrega, pra ninguem ficar olhando
 // tela vazia sem saber se travou ou se ainda esta buscando.
@@ -8473,9 +8498,9 @@ async function renderFluxoCaixaChart(ini, fim) {
 
   if (window._dashFluxoChart) { try { window._dashFluxoChart.destroy(); } catch(e){} }
 
-  // NAO definir canvas.width/height na mao: isso descasa o sistema de coordenadas
-  // do Chart.js do tamanho real na tela, e o hover passa a apontar pro dia errado.
-  // Com responsive:true o proprio Chart.js cuida do dimensionamento.
+  // O body usa `zoom: 1.3`. O Chart.js le a posicao do mouse em coordenadas
+  // NAO escaladas, entao sem compensar isso o hover aponta pro dia errado
+  // (o erro cresce da esquerda pra direita). Neutralizamos o zoom so no canvas.
   canvas.removeAttribute('width');
   canvas.removeAttribute('height');
   canvas.style.width = '100%';
