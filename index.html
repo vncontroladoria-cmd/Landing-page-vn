@@ -19112,35 +19112,99 @@ async function sincronizarCategoriasLancamentos() {
     return;
   }
 
-  // Mapa nome da categoria -> código certo (separado por DRE e DFC)
+  // Mapa nome da categoria -> código certo (separado por DRE e DFC).
+  // Chave normalizada: acento/caixa nao podem quebrar o casamento.
   const codDre = {}, codDfc = {};
+  const existeNoPlano = {};
   plano.forEach(p => {
-    if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[p.nome] = p.codigo;
-    if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[p.nome] = p.codigo;
+    const k = normStr(p.nome);
+    existeNoPlano[k] = p.nome;
+    if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[k] = p.codigo;
+    if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[k] = p.codigo;
   });
 
-  const mudancas = []; // { nome, de, para, campo }
+  const mudancas = [];      // { nome, de, para, campo }
   const atualizacoes = [];
+  const orfas = {};         // categoria que NAO existe mais no plano -> quantos lancamentos
 
   lancs.forEach(l => {
     if (!l.categoria) return;
-    const certoDre = codDre[l.categoria] ?? null;
-    const certoDfc = codDfc[l.categoria] ?? null;
+    const k = normStr(l.categoria);
+
+    // ÓRFÃ: a categoria foi apagada/renomeada no Plano de Contas.
+    // Antes o codigo simplesmente ignorava esse caso, entao o lancamento
+    // continuava exibindo um codigo DFC/DRE que nao existe mais.
+    if (!existeNoPlano[k]) {
+      orfas[l.categoria] = (orfas[l.categoria] || 0) + 1;
+      // Zera categoria, DFC e DRE: o lancamento cai no filtro "Sem categoria"
+      // e voce reclassifica em fila, sem caçar um por um.
+      atualizacoes.push({ id: l.id, payload: { categoria: '', categoria_dre: null, categoria_dfc: null } });
+      mudancas.push({ nome: l.categoria, de: l.categoria_dfc || l.categoria_dre || '—', para: 'em branco', campo: 'ÓRFÃ' });
+      return;
+    }
+
+    const certoDre = codDre[k] ?? null;
+    const certoDfc = codDfc[k] ?? null;
     const payload = {};
-    if (certoDre !== null && l.categoria_dre !== certoDre) {
+
+    // Categoria existe, mas nao pertence mais aquele demonstrativo -> limpa o codigo
+    if (certoDre === null && l.categoria_dre) {
+      payload.categoria_dre = null;
+      mudancas.push({ nome: l.categoria, de: l.categoria_dre, para: '—', campo: 'DRE' });
+    } else if (certoDre !== null && l.categoria_dre !== certoDre) {
       payload.categoria_dre = certoDre;
       mudancas.push({ nome: l.categoria, de: l.categoria_dre || '—', para: certoDre, campo: 'DRE' });
     }
-    if (certoDfc !== null && l.categoria_dfc !== certoDfc) {
+
+    if (certoDfc === null && l.categoria_dfc) {
+      payload.categoria_dfc = null;
+      mudancas.push({ nome: l.categoria, de: l.categoria_dfc, para: '—', campo: 'DFC' });
+    } else if (certoDfc !== null && l.categoria_dfc !== certoDfc) {
       payload.categoria_dfc = certoDfc;
       mudancas.push({ nome: l.categoria, de: l.categoria_dfc || '—', para: certoDfc, campo: 'DFC' });
     }
+
     if (Object.keys(payload).length) atualizacoes.push({ id: l.id, payload });
   });
 
-  if (!atualizacoes.length) {
+  const listaOrfas = Object.entries(orfas).sort((a,b) => b[1]-a[1]);
+
+  // Zerar categoria apaga texto — precisa de confirmacao explicita
+  if (listaOrfas.length) {
+    const totalOrfas = listaOrfas.reduce((sm,[,q]) => sm + q, 0);
+    const ok = confirm(
+      `⚠️ ${listaOrfas.length} categoria(s) não existem mais no Plano de Contas:\n\n` +
+      listaOrfas.map(([n,q]) => `• "${n}"  —  ${q} lançamento(s)`).join('\n') +
+      `\n\n${totalOrfas} lançamento(s) ficarão SEM CATEGORIA.\n` +
+      `Depois use o filtro "Sem categoria" para reclassificar.\n\n` +
+      `Se preferir manter, cadastre a categoria no Plano de Contas antes.\n\n` +
+      `Continuar?`
+    );
+    if (!ok) {
+      if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+      showToast('Cancelado', '');
+      return;
+    }
+  }
+
+  if (!atualizacoes.length && !listaOrfas.length) {
     showToast('✅ Tudo certo! Nenhuma categoria desatualizada.', 'success');
     if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    return;
+  }
+
+  if (!atualizacoes.length && listaOrfas.length) {
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    alert(
+      `⚠️ CATEGORIAS QUE NÃO EXISTEM MAIS NO PLANO DE CONTAS\n\n` +
+      listaOrfas.map(([n,q]) => `• "${n}"  —  ${q} lançamento(s)`).join('\n') +
+      `\n\nElas foram apagadas ou renomeadas no Plano de Contas, mas os\n` +
+      `lançamentos continuam apontando para elas.\n\n` +
+      `COMO RESOLVER\n` +
+      `  1) Recadastrar a categoria com o mesmo nome; ou\n` +
+      `  2) Editar os lançamentos e escolher a categoria nova.\n\n` +
+      `Use o filtro "Sem categoria" para achá-los mais rápido.`
+    );
     return;
   }
 
@@ -19161,7 +19225,12 @@ async function sincronizarCategoriasLancamentos() {
   const linhasResumo = Object.entries(resumoMap).map(([chave, n]) => `• ${chave}  (${n}x)`).join('\n');
 
   if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
-  alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}`);
+  const aviso = listaOrfas.length
+    ? `\n\n⚠️ CATEGORIAS QUE NÃO EXISTEM MAIS NO PLANO DE CONTAS:\n` +
+      listaOrfas.map(([n,q]) => `• "${n}"  —  ${q} lançamento(s)`).join('\n') +
+      `\n\nEsses lançamentos ficaram SEM CATEGORIA.\nUse o filtro "Sem categoria" para reclassificar em fila.`
+    : '';
+  alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}${aviso}`);
   showToast(`${atualizacoes.length} lançamento(s) sincronizado(s)!`, 'success');
   atualizarLancamentos();
 }
@@ -19189,34 +19258,91 @@ async function sincronizarCategoriasCC() {
     return;
   }
 
+  // Mesma regra dos lancamentos: chave normalizada e deteccao de categoria orfa
   const codDre = {}, codDfc = {};
+  const existeNoPlano = {};
   plano.forEach(p => {
-    if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[p.nome] = p.codigo;
-    if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[p.nome] = p.codigo;
+    const k = normStr(p.nome);
+    existeNoPlano[k] = p.nome;
+    if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[k] = p.codigo;
+    if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[k] = p.codigo;
   });
 
   const mudancas = [];
   const atualizacoes = [];
+  const orfas = {};
 
   lancs.forEach(l => {
     if (!l.categoria) return;
-    const certoDre = codDre[l.categoria] ?? null;
-    const certoDfc = codDfc[l.categoria] ?? null;
+    const k = normStr(l.categoria);
+
+    // Categoria apagada/renomeada no Plano de Contas
+    if (!existeNoPlano[k]) {
+      orfas[l.categoria] = (orfas[l.categoria] || 0) + 1;
+      // Zera categoria, DFC e DRE: o lancamento cai no filtro "Sem categoria"
+      // e voce reclassifica em fila, sem caçar um por um.
+      atualizacoes.push({ id: l.id, payload: { categoria: '', categoria_dre: null, categoria_dfc: null } });
+      mudancas.push({ nome: l.categoria, de: l.categoria_dfc || l.categoria_dre || '—', para: 'em branco', campo: 'ÓRFÃ' });
+      return;
+    }
+
+    const certoDre = codDre[k] ?? null;
+    const certoDfc = codDfc[k] ?? null;
     const payload = {};
-    if (certoDre !== null && l.categoria_dre !== certoDre) {
+
+    if (certoDre === null && l.categoria_dre) {
+      payload.categoria_dre = null;
+      mudancas.push({ nome: l.categoria, de: l.categoria_dre, para: '—', campo: 'DRE' });
+    } else if (certoDre !== null && l.categoria_dre !== certoDre) {
       payload.categoria_dre = certoDre;
       mudancas.push({ nome: l.categoria, de: l.categoria_dre || '—', para: certoDre, campo: 'DRE' });
     }
-    if (certoDfc !== null && l.categoria_dfc !== certoDfc) {
+
+    if (certoDfc === null && l.categoria_dfc) {
+      payload.categoria_dfc = null;
+      mudancas.push({ nome: l.categoria, de: l.categoria_dfc, para: '—', campo: 'DFC' });
+    } else if (certoDfc !== null && l.categoria_dfc !== certoDfc) {
       payload.categoria_dfc = certoDfc;
       mudancas.push({ nome: l.categoria, de: l.categoria_dfc || '—', para: certoDfc, campo: 'DFC' });
     }
+
     if (Object.keys(payload).length) atualizacoes.push({ id: l.id, payload });
   });
 
-  if (!atualizacoes.length) {
+  const listaOrfas = Object.entries(orfas).sort((a,b) => b[1]-a[1]);
+
+  // Zerar categoria apaga texto — precisa de confirmacao explicita
+  if (listaOrfas.length) {
+    const totalOrfas = listaOrfas.reduce((sm,[,q]) => sm + q, 0);
+    const ok = confirm(
+      `⚠️ ${listaOrfas.length} categoria(s) não existem mais no Plano de Contas:\n\n` +
+      listaOrfas.map(([n,q]) => `• "${n}"  —  ${q} lançamento(s)`).join('\n') +
+      `\n\n${totalOrfas} lançamento(s) ficarão SEM CATEGORIA.\n` +
+      `Depois use o filtro "Sem categoria" para reclassificar.\n\n` +
+      `Se preferir manter, cadastre a categoria no Plano de Contas antes.\n\n` +
+      `Continuar?`
+    );
+    if (!ok) {
+      if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+      showToast('Cancelado', '');
+      return;
+    }
+  }
+
+  if (!atualizacoes.length && !listaOrfas.length) {
     showToast('✅ Tudo certo! Nenhuma categoria desatualizada.', 'success');
     if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    return;
+  }
+
+  // Nada pra corrigir, mas existem categorias que sumiram do plano
+  if (!atualizacoes.length && listaOrfas.length) {
+    if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
+    alert(
+      `⚠️ CATEGORIAS QUE NÃO EXISTEM MAIS NO PLANO DE CONTAS\n\n` +
+      listaOrfas.map(([n,q]) => `• "${n}"  —  ${q} lançamento(s)`).join('\n') +
+      `\n\nEsses lançamentos ficaram SEM CATEGORIA.\nUse o filtro "Sem categoria" para reclassificar em fila.`
+    );
     return;
   }
 
@@ -19235,7 +19361,12 @@ async function sincronizarCategoriasCC() {
   const linhasResumo = Object.entries(resumoMap).map(([chave, n]) => `• ${chave}  (${n}x)`).join('\n');
 
   if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
-  alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}`);
+  const aviso = listaOrfas.length
+    ? `\n\n⚠️ CATEGORIAS QUE NÃO EXISTEM MAIS NO PLANO DE CONTAS:\n` +
+      listaOrfas.map(([n,q]) => `• "${n}"  —  ${q} lançamento(s)`).join('\n') +
+      `\n\nEsses lançamentos ficaram SEM CATEGORIA.\nUse o filtro "Sem categoria" para reclassificar em fila.`
+    : '';
+  alert(`✅ ${atualizacoes.length} lançamento(s) corrigido(s)!\n\nO que mudou:\n${linhasResumo}${aviso}`);
   showToast(`${atualizacoes.length} lançamento(s) sincronizado(s)!`, 'success');
   loadCartaoLancamentos();
 }
