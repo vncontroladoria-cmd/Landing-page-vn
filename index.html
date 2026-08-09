@@ -4772,10 +4772,14 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div class="card" style="padding:0;overflow:hidden">
             <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <div>
-                <div style="font-weight:600;font-size:13px">📊 Projeção DRE por Categoria</div>
+                <div style="font-weight:600;font-size:13px">📊 Projeção por Categoria</div>
                 <div style="font-size:11px;color:var(--text2);margin-top:2px">Defina o valor projetado para cada categoria do Plano de Contas</div>
               </div>
               <div style="display:flex;gap:8px;align-items:center">
+                <select id="proj-demo" onchange="loadProjecaoDRE()" style="padding:5px 10px;font-size:12px;font-weight:700;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg2);color:var(--accent)">
+                  <option value="DFC">💧 DFC · Caixa</option>
+                  <option value="DRE">📈 DRE · Resultado</option>
+                </select>
                 <select id="proj-ano" onchange="loadProjecaoDRE()" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
                   <option value="2026">2026</option><option value="2027">2027</option><option value="2025">2025</option>
                 </select>
@@ -15092,22 +15096,27 @@ let _cliNovosImportados = []; // lista de nomes de clientes novos importados
 // ─── PROJEÇÃO DRE ─────────────────────────────────────────
 const MESES_PROJ = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
+// Qual demonstrativo esta sendo projetado agora (DFC ou DRE)
+function projDemo() { return document.getElementById('proj-demo')?.value || 'DFC'; }
+function projTabela() { return projDemo() === 'DFC' ? 'projecoes_dfc' : 'projecoes_dre'; }
+
 async function loadProjecaoDRE() {
   const ano = document.getElementById('proj-ano')?.value || '2026';
   const container = document.getElementById('proj-dre-container');
   if (!container) return;
+  const demo = projDemo();
 
   container.innerHTML = '<div class="loading"><div class="spin"></div> Carregando...</div>';
 
   // Carrega grupos DRE + categorias + projeções salvas
   const [{ data: grupos }, { data: cats }, { data: projs }] = await Promise.all([
-    qE('grupos_plano').select('*').in('demonstrativo',['DRE','AMBOS']).order('ordem'),
-    qE('plano_contas').select('*').in('demonstrativo',['DRE','AMBOS']).order('ordem'),
-    qE('projecoes_dre').select('*').eq('ano', ano)
+    qE('grupos_plano').select('*').in('demonstrativo',[demo,'AMBOS']).order('ordem'),
+    qE('plano_contas').select('*').in('demonstrativo',[demo,'AMBOS']).order('ordem'),
+    qE(projTabela()).select('*').eq('ano', ano)
   ]);
 
   if (!cats?.length) {
-    container.innerHTML = '<div class="empty" style="padding:1.5rem">Nenhuma categoria cadastrada no DRE.</div>';
+    container.innerHTML = `<div class="empty" style="padding:1.5rem">Nenhuma categoria cadastrada no ${demo}.</div>`;
     return;
   }
 
@@ -15256,12 +15265,12 @@ async function salvarProjecaoToda() {
   try {
     const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
     // Apaga projeções do ano desta empresa e recria
-    await sb.from('projecoes_dre').delete().eq('ano', parseInt(ano)).eq('empresa_id', empId);
+    await sb.from(projTabela()).delete().eq('ano', parseInt(ano)).eq('empresa_id', empId);
     const comValor = rows.filter(r => r.valor > 0);
     if (comValor.length) {
       const lote = 500;
       for (let i = 0; i < comValor.length; i += lote) {
-        const { error } = await sb.from('projecoes_dre').insert(comValor.slice(i, i+lote).map(r=>addEmpresaId(r)));
+        const { error } = await sb.from(projTabela()).insert(comValor.slice(i, i+lote).map(r=>addEmpresaId(r)));
         if (error) throw new Error(error.message);
       }
     }
@@ -15301,6 +15310,28 @@ async function loadDFC() {
     return (lancs||[]).filter(l => l.data_lancamento?.substring(5,7) === mes && fn(l))
       .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
   }
+
+  // Projecoes do DFC (tabela propria, independente do DRE).
+  // So faz sentido comparar com 1 mes filtrado — com 12 meses lado a lado
+  // nao ha espaco pra 3 colunas por mes.
+  const projPorCat = {};
+  if (mesFiltro) {
+    try {
+      const { data: projs } = await sb.from('projecoes_dfc').select('categoria_id,valor')
+        .eq('empresa_id', empIdDFC).eq('ano', parseInt(ano)).eq('mes', parseInt(mesFiltro));
+      (projs||[]).forEach(pj => { projPorCat[pj.categoria_id] = Number(pj.valor||0); });
+    } catch(e) { console.warn('projecoes_dfc:', e); }
+  }
+  const projDeCat = c => projPorCat[c.id] || 0;
+  // % atingido = realizado / projetado
+  const celProj = (realizado, projetado) => {
+    if (!mesFiltro) return '';
+    const r = Math.abs(realizado), pj = Math.abs(projetado);
+    const pct = pj > 0 ? (r / pj * 100) : null;
+    const cor = pct === null ? 'var(--text3)' : pct >= 100 ? 'var(--green)' : pct >= 80 ? '#d97706' : 'var(--red)';
+    return `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#f5f3ff;color:var(--text2)">${pj?fmtNum(pj):''}</td>`
+         + `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#f5f3ff;color:${cor}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
+  };
 
   const { data: bancos } = await qE('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
   const saldoInicialTotal = (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
@@ -15354,7 +15385,7 @@ async function loadDFC() {
           <button onclick="toggleAllDFC()" id="dfc-expand-btn" style="margin-left:8px;font-size:10px;padding:2px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;cursor:pointer">Expandir</button>
         </th>
         ${mNomes.map(m => `<th style="${thS}">${m}</th>`).join('')}
-        ${mesFiltro ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th>`}
+        ${mesFiltro ? `<th style="${thS};color:#7c3aed">PROJETADO</th><th style="${thS};color:#7c3aed">% ATING.</th>` : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th>`}
       </tr>
     </thead>
     <tbody>`;
@@ -15363,7 +15394,7 @@ async function loadDFC() {
   html += `<tr style="background:#f0fdf4">
     <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:10;font-size:11px">Saldo Inicial</td>
     ${saldoInicialMes.map(v => `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--green)">${fmtNum(v)}</td>`).join('')}
-    ${mesFiltro ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>`}
+    ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>`}
   </tr>`;
 
   // Grupos
@@ -15379,7 +15410,7 @@ async function loadDFC() {
       html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
         <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
         ${resultadoOp.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>`).join('')}
-        ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/12)}</td>`}
+        ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/12)}</td>`}
       </tr>`;
     }
     const totalG = g.totalGrupo.reduce((s,v) => s+v, 0);
@@ -15393,7 +15424,7 @@ async function loadDFC() {
         <span id="${gId}-arrow" style="margin-right:6px;font-size:10px">▶</span>${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:10px;color:var(--text2)">${g.sinal}</span>
       </td>
       ${g.totalGrupo.map(v => `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>`).join('')}
-      ${mesFiltro ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>`}
+      ${mesFiltro ? celProj(totalG, g.gCats.reduce((s,c)=>s+projDeCat(c),0)) : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>`}
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
@@ -15404,7 +15435,7 @@ async function loadDFC() {
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
         <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
         ${vals.map(v => `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>`).join('')}
-        ${mesFiltro ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
+        ${mesFiltro ? celProj(total, projDeCat(c)) : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
       </tr>`;
     });
   });
@@ -15415,7 +15446,7 @@ async function loadDFC() {
     html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
       <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
       ${resultadoOp.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'var(--green)':'var(--red)'}">${fmtNum(v)}</td>`).join('')}
-      ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>`}
+      ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>`}
     </tr>`;
   }
 
@@ -15424,14 +15455,14 @@ async function loadDFC() {
   html += `<tr style="background:#1e293b">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#1e293b;z-index:10;color:#fff;font-size:11px">Resultado Líquido</td>
     ${resultadoLiq.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>`).join('')}
-    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/12)}</td>`}
+    ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0f172a;color:${totalRL>=0?'#4ade80':'#f87171'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#0f172a;color:#94a3b8">${fmtNum(totalRL/12)}</td>`}
   </tr>`;
 
   // Saldo Acumulado
   html += `<tr style="background:#111;border-top:3px solid var(--accent)">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:#111;z-index:10;font-size:11px;color:#ffffff">Saldo Acumulado</td>
     ${saldoFinalMes.map(v => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#4ade80':'#f87171'}">${fmtNum(v)}</td>`).join('')}
-    ${mesFiltro ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a;color:#ffffff"></td>`}
+    ${mesFiltro ? `<td style="background:#f5f3ff"></td><td style="background:#f5f3ff"></td>` : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#0d0d1a;color:${saldoFinalMes[saldoFinalMes.length-1]>=0?'#4ade80':'#f87171'}">${fmtNum(saldoFinalMes[saldoFinalMes.length-1])}</td><td style="padding:10px 6px;background:#0d0d1a;color:#ffffff"></td>`}
   </tr>`;
 
   html += '</tbody></table></div>';
@@ -22082,8 +22113,30 @@ async function loadProjecaoCaixa() {
     .eq('mes', _projMes)
     .limit(1);
   
-  const meta = Number(metaData?.[0]?.meta || 0);
+  let meta = Number(metaData?.[0]?.meta || 0);
   const diasAbertos = Number(metaData?.[0]?.dias_abertos || 22);
+
+  // A projecao do DFC e o guia oficial. Se houver orcamento lancado para o mes,
+  // ele manda; metas_financeiras vira so o fallback pra quem nao usa o DFC.
+  try {
+    const { data: catsDfc } = await sb.from('plano_contas')
+      .select('id,grupo,demonstrativo').eq('empresa_id', empId)
+      .in('demonstrativo',['DFC','AMBOS']);
+    const { data: projDfc } = await sb.from('projecoes_dfc')
+      .select('categoria_id,valor')
+      .eq('empresa_id', empId).eq('ano', _projAno).eq('mes', _projMes);
+    if (projDfc?.length) {
+      // Receita projetada = categorias dos grupos de receita/entrada
+      const ehReceita = g => /receita|entrada/i.test(g||'');
+      const mapaGrupo = {};
+      (catsDfc||[]).forEach(c => { mapaGrupo[c.id] = c.grupo; });
+      const receitaProj = projDfc
+        .filter(pj => ehReceita(mapaGrupo[pj.categoria_id]))
+        .reduce((sm,pj) => sm + Math.abs(Number(pj.valor||0)), 0);
+      if (receitaProj > 0) meta = receitaProj;
+    }
+  } catch(e) { console.warn('projecao DFC no dashboard:', e); }
+
   const metaDia = diasAbertos > 0 ? meta / diasAbertos : 0;
 
   // Média diária atual (dos dias realizados)
