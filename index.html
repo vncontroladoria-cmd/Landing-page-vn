@@ -5821,6 +5821,27 @@ function limparClassificacao(payload) {
   return payload;
 }
 
+// ===================== CORRECAO DE ZOOM NOS GRAFICOS =====================
+// O body usa `zoom: 1.3`. O Chart.js nao considera zoom ao converter a posicao
+// do mouse, entao o hover fica deslocado (erro cresce da esquerda pra direita).
+// Anulando o zoom dentro do container, o canvas volta a escala 1:1 e as
+// coordenadas batem. A altura e multiplicada pelo mesmo fator pra que o
+// grafico continue com o mesmo tamanho visual.
+// Chamar SEMPRE antes de criar um `new Chart(...)`.
+function ajustarZoomGrafico(canvas, alturaPx) {
+  if (!canvas) return;
+  canvas.removeAttribute('width');
+  canvas.removeAttribute('height');
+  const box = canvas.parentElement;
+  const zb = parseFloat(getComputedStyle(document.body).zoom) || 1;
+  if (box && zb !== 1) {
+    box.style.zoom = String(1 / zb);
+    box.style.height = (alturaPx * zb) + 'px';
+  }
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+}
+
 // ===================== LOADER DE PAGINA =====================
 // Cobre a tela enquanto a pagina carrega, pra ninguem ficar olhando
 // tela vazia sem saber se travou ou se ainda esta buscando.
@@ -8478,19 +8499,7 @@ async function renderFluxoCaixaChart(ini, fim) {
   // (o erro cresce da esquerda pra direita). Neutralizamos o zoom so no canvas.
   canvas.removeAttribute('width');
   canvas.removeAttribute('height');
-  // O body usa `zoom: 1.3`. Zoom NAO e considerado pelo Chart.js ao converter a
-  // posicao do mouse, entao o hover fica deslocado (erro cresce pra direita).
-  // Em vez de compensar na conta, anulamos o zoom dentro do container: o canvas
-  // volta a escala 1:1 e as coordenadas batem. A altura e multiplicada pelo
-  // mesmo fator pra que o grafico continue do mesmo tamanho na tela.
-  const box = canvas.parentElement;
-  const zb = parseFloat(getComputedStyle(document.body).zoom) || 1;
-  if (zb !== 1 && box) {
-    box.style.zoom = String(1 / zb);
-    box.style.height = (320 * zb) + 'px';
-  }
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
+  ajustarZoomGrafico(canvas, 320);
 
   const labels = dias.map(d => d.substring(8,10));
 
@@ -10876,6 +10885,7 @@ async function loadContasPagar() {
 
   if (!window._cpChartDias) window._cpChartDias = null;
   const ctxDias = document.getElementById('cp-chart-dias')?.getContext('2d');
+  ajustarZoomGrafico(document.getElementById('cp-chart-dias'), 200);
   if (ctxDias) {
     if (window._cpChartDias) window._cpChartDias.destroy();
     window._cpChartDias = new Chart(ctxDias, {
@@ -10900,6 +10910,7 @@ async function loadContasPagar() {
 
   if (!window._cpChartCat) window._cpChartCat = null;
   const ctxCat = document.getElementById('cp-chart-cat')?.getContext('2d');
+  ajustarZoomGrafico(document.getElementById('cp-chart-cat'), 200);
   if (ctxCat && catArr.length) {
     if (window._cpChartCat) window._cpChartCat.destroy();
     window._cpChartCat = new Chart(ctxCat, donutOpts(catArr.map(([n])=>n), catArr.map(([,v])=>v), CORES_CP, fmtBRL));
@@ -14772,6 +14783,7 @@ function renderSrvCharts(catRanking, profRanking) {
 
   // Gráfico categorias (barras verticais)
   const ctxCat = document.getElementById('srv-chart-cat')?.getContext('2d');
+  ajustarZoomGrafico(document.getElementById('srv-chart-cat'), 380);
   if (ctxCat) {
     if (_srvChartCat) _srvChartCat.destroy();
     const totalSrvCat = catRanking.reduce((s,[,v])=>s+v.total,0);
@@ -14804,6 +14816,7 @@ function renderSrvCharts(catRanking, profRanking) {
 
   // Gráfico profissional (barras horizontais)
   const ctxProf = document.getElementById('srv-chart-prof')?.getContext('2d');
+  ajustarZoomGrafico(document.getElementById('srv-chart-prof'), 380);
   if (ctxProf) {
     if (_srvChartProf) _srvChartProf.destroy();
     _srvChartProf = new Chart(ctxProf, {
@@ -16693,6 +16706,7 @@ async function loadContasReceber() {
 
   if (!window._crChartDias) window._crChartDias = null;
   const ctxDiasR = document.getElementById('cr-chart-dias')?.getContext('2d');
+  ajustarZoomGrafico(document.getElementById('cr-chart-dias'), 200);
   if (ctxDiasR) {
     if (window._crChartDias) window._crChartDias.destroy();
     window._crChartDias = new Chart(ctxDiasR, {
@@ -16714,6 +16728,7 @@ async function loadContasReceber() {
 
   if (!window._crChartCat) window._crChartCat = null;
   const ctxCatR = document.getElementById('cr-chart-cat')?.getContext('2d');
+  ajustarZoomGrafico(document.getElementById('cr-chart-cat'), 160);
   if (ctxCatR && catArrR.length) {
     if (window._crChartCat) window._crChartCat.destroy();
     window._crChartCat = new Chart(ctxCatR, donutOpts(catArrR.map(([n])=>n), catArrR.map(([,v])=>v), CORES_CR, fmtBRL));
@@ -22125,6 +22140,8 @@ async function loadProjecaoCaixa() {
 
   // 7. Renderizar gráfico
   if (_chartProjecao) { _chartProjecao.destroy(); _chartProjecao = null; }
+
+  ajustarZoomGrafico(canvas, 220);   // container tem height:220px
 
   _chartProjecao = new Chart(canvas, {
     type: 'bar',
