@@ -17440,14 +17440,16 @@ async function excluirProfissional(id) {
 async function abrirModalMetaFinanceira() {
   const ano = document.getElementById('met-ano')?.value || '2026';
   const { data: metas } = await qE('metas_financeiras').select('*').eq('ano', ano);
+  // `mes` e gravado como NUMERO (1..12). A chave do mapa precisa ser numero
+  // tambem, senao '07' nunca casa com 7 e a tela abre toda zerada.
   const metaMap = {};
-  (metas||[]).forEach(m => { metaMap[m.mes] = { meta: m.meta, dias: m.dias_abertos || 0 }; });
+  (metas||[]).forEach(m => { metaMap[parseInt(m.mes,10)] = { meta: m.meta, dias: m.dias_abertos || 0 }; });
 
   let grid = '';
   MESES_NOMES.forEach((m, i) => {
-    const mesNum = String(i+1).padStart(2,'0');
-    const metaVal = metaMap[mesNum]?.meta || '';
-    const diasVal = metaMap[mesNum]?.dias || '';
+    const mesNum = String(i+1).padStart(2,'0');   // usado so nos ids do HTML
+    const metaVal = metaMap[i+1]?.meta || '';
+    const diasVal = metaMap[i+1]?.dias || '';
     const metaDia = metaVal && diasVal ? fmtBRL(Number(metaVal) / Number(diasVal)) : '—';
     grid += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--border)">
       <div style="font-size:13px;font-weight:500">${m}</div>
@@ -17455,7 +17457,7 @@ async function abrirModalMetaFinanceira() {
         oninput="calcMetaDia('${mesNum}')"
         style="font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
       <div style="display:flex;align-items:center;gap:6px">
-        <input type="number" id="metafin-dias-${mesNum}" placeholder="dias/sem" value="${diasVal}" min="1" max="7"
+        <input type="number" id="metafin-dias-${mesNum}" placeholder="dias" value="${diasVal}" min="1" max="31"
           oninput="calcMetaDia('${mesNum}')"
           style="width:65px;font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);text-align:center">
         <span id="metafin-dia-${mesNum}" style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;white-space:nowrap">${metaDia}</span>
@@ -17467,6 +17469,7 @@ async function abrirModalMetaFinanceira() {
 }
 
 function calcMetaDia(mesNum) {
+  // "dias" = dias ABERTOS no mes (ex: 22), nao dias da semana
   const meta = parseValor(document.getElementById(`metafin-meta-${mesNum}`)?.value || '0');
   const diasSem = parseInt(document.getElementById(`metafin-dias-${mesNum}`)?.value || '0');
   const el = document.getElementById(`metafin-dia-${mesNum}`);
@@ -22092,6 +22095,7 @@ async function loadProjecaoCaixa() {
   const mediaDia = diasRealizados > 0 ? totalRealizado / diasRealizados : 0;
 
   // 5. Calcular curvas
+  const mesEncerradoCalc = (_projAno < anoAtual) || (_projAno === anoAtual && _projMes < mesAtual);
   const saldoRealizado   = [];
   const saldoMeta        = [];
   const saldoMedia       = [];
@@ -22115,26 +22119,36 @@ async function loadProjecaoCaixa() {
     } else {
       acumMeta = acumReal !== null ? acumReal : acumMeta;
     }
-    saldoMeta.push(acumMeta);
+    // Mes encerrado: nao ha futuro pra projetar, entao a linha nem aparece
+    saldoMeta.push(mesEncerradoCalc ? null : acumMeta);
     // Projeção média
     if (d > diaHoje || !ehMesAtual) {
       acumMed += mediaDia - (contasPorDia[d]||0);
     } else {
       acumMed = acumReal !== null ? acumReal : acumMed;
     }
-    saldoMedia.push(acumMed);
+    saldoMedia.push(mesEncerradoCalc ? null : acumMed);
     // Barras de contas a pagar
     barrasContas.push(contasPorDia[d] ? -(contasPorDia[d]) : 0);
   }
 
   // 6. Cards resumo
-  const fmt = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2});
-  const saldoFinal = saldoMeta[saldoMeta.length-1];
+  // maximumFractionDigits: sem isso o toLocaleString mostra 3 casas ("123.665,934")
+  const fmt = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+  // Mes passado nao tem projecao — o que vale e o que de fato aconteceu.
+  // Sem isso, julho aparecia projetando a meta de agosto pra frente.
+  const mesEncerrado = mesEncerradoCalc;
+  const ultimoReal = [...saldoRealizado].reverse().find(v => v !== null);
+  const saldoFinal = mesEncerrado
+    ? (ultimoReal !== undefined ? ultimoReal : saldoInicial)
+    : saldoMeta[saldoMeta.length-1];
 
   if (document.getElementById('proj-saldo-ini')) 
     document.getElementById('proj-saldo-ini').textContent = fmt(saldoInicial);
   if (document.getElementById('proj-receita'))   
-    document.getElementById('proj-receita').textContent = fmt(meta || mediaDia * diasNoMes);
+    document.getElementById('proj-receita').textContent = mesEncerrado
+      ? fmt(Object.values(entradaPorDia).reduce((a,b)=>a+b,0))
+      : fmt(meta || mediaDia * diasNoMes);
   if (document.getElementById('proj-contas'))    
     document.getElementById('proj-contas').textContent = fmt(totalContas);
   
