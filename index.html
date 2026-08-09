@@ -15817,15 +15817,20 @@ async function loadDFC() {
     return celReal + `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td><td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td>`;
   }
 
-  // O saldo inicial pode estar em DOIS lugares: no cadastro do banco OU como
-  // lancamento ("Saldo Inicial" em 01/01). Se estiver como lancamento, ele ja
-  // entra no movimento — somar o campo do banco contaria em dobro.
-  const temLancSaldoInicial = (lancs||[]).some(l =>
-    incStr(l.categoria || '', 'saldo inicial') || incStr(l.descricao || '', 'saldo inicial')
-  );
+  // SALDO INICIAL — e abertura, nao movimento do mes.
+  // Ele pode vir de dois lugares: como lancamento ("Saldo inicial — Itau", 01/01)
+  // ou do campo saldo_inicial do cadastro do banco. Se vier como lancamento,
+  // separamos ele do movimento: senao o saldo de abertura apareceria como se
+  // fosse receita de janeiro, e a linha "Saldo Inicial" ficaria zerada.
+  const ehSaldoInicial = l =>
+    incStr(l.categoria || '', 'saldo inicial') || incStr(l.descricao || '', 'saldo inicial');
+
+  const lancsSaldoIni = (lancs||[]).filter(ehSaldoInicial);
+  lancs = (lancs||[]).filter(l => !ehSaldoInicial(l));   // fora do movimento
+
   const { data: bancos } = await qE('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
-  const saldoInicialTotal = temLancSaldoInicial
-    ? 0
+  const saldoInicialTotal = lancsSaldoIni.length
+    ? lancsSaldoIni.reduce((s,l) => s + Number(l.entrada||0) - Number(l.saida||0), 0)
     : (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
 
   // Pré-calcula por grupo
