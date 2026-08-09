@@ -3602,6 +3602,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="ambos">Realizado + Projetado</option>
               </select>
               <button class="btn" onclick="loadDFC()">↻ Atualizar</button>
+              <button class="btn" id="dfc-btn-expandir-meses" onclick="toggleTodosMesesDFC()" style="display:none;color:#7c3aed;border-color:#7c3aed">⊞ Expandir meses</button>
               <button class="btn" id="dfc-btn-replicar" onclick="replicarProjecaoDFC()" style="display:none;color:#7c3aed;border-color:#7c3aed">📋 Replicar mês</button>
               <button class="btn btn-primary" id="dfc-btn-salvar-proj" onclick="salvarProjecoesDFC()" style="display:none">💾 Salvar projeções</button>
             </div>
@@ -10027,6 +10028,7 @@ async function loadLancamentos(forcarBancoFilter) {
     </tr>`;
   });
   el.innerHTML = html;
+  atualizarBotaoExpandirDFC();
 
   // Reaplicar filtro de busca se houver texto digitado
   const termoBusca = document.getElementById('lanc-busca')?.value || '';
@@ -15309,6 +15311,35 @@ function recalcPctDFC(catId, mes, realizado) {
   cel.style.color = pct >= 100 ? 'var(--green)' : pct >= 80 ? '#d97706' : 'var(--red)';
 }
 
+// Abre ou fecha TODOS os meses de uma vez. Mesma tecnica do toggle individual:
+// so mexe no display, sem recarregar a tabela.
+function toggleTodosMesesDFC() {
+  const btn = document.getElementById('dfc-btn-expandir-meses');
+  const meses = [...new Set(
+    [...document.querySelectorAll('[id^="dfc-ico-"]')].map(e => e.id.replace('dfc-ico-',''))
+  )];
+  if (!meses.length) return;
+
+  if (!window._dfcMesesAbertos) window._dfcMesesAbertos = {};
+  // Se algum ainda esta fechado, o botao ABRE tudo. Se todos abertos, FECHA tudo.
+  const algumFechado = meses.some(m => !window._dfcMesesAbertos[m]);
+
+  meses.forEach(m => {
+    window._dfcMesesAbertos[m] = algumFechado;
+    document.querySelectorAll('.dfc-px-' + m).forEach(td => {
+      td.style.display = algumFechado ? '' : 'none';
+    });
+    const ico = document.getElementById('dfc-ico-' + m);
+    if (ico) {
+      ico.textContent = algumFechado ? '−' : '+';
+      ico.style.background = algumFechado ? 'var(--accent)' : 'var(--border)';
+      ico.style.color      = algumFechado ? '#fff' : 'var(--text2)';
+    }
+  });
+
+  if (btn) btn.textContent = algumFechado ? '⊟ Recolher meses' : '⊞ Expandir meses';
+}
+
 // Expande/recolhe um mes. NAO recarrega a tabela: as celulas ja estao no DOM,
 // so alternamos o display. Sem refetch, sem piscar.
 function toggleMesDFC(mes) {
@@ -15324,6 +15355,17 @@ function toggleMesDFC(mes) {
     ico.style.background = abrir ? 'var(--accent)' : 'var(--border)';
     ico.style.color      = abrir ? '#fff' : 'var(--text2)';
   }
+  atualizarBotaoExpandirDFC();
+}
+
+// Mantem o rotulo do botao coerente com o estado real dos meses
+function atualizarBotaoExpandirDFC() {
+  const btn = document.getElementById('dfc-btn-expandir-meses');
+  if (!btn) return;
+  const meses = [...document.querySelectorAll('[id^="dfc-ico-"]')].map(e => e.id.replace('dfc-ico-',''));
+  if (!meses.length) return;
+  const todosAbertos = meses.every(m => window._dfcMesesAbertos?.[m]);
+  btn.textContent = todosAbertos ? '⊟ Recolher meses' : '⊞ Expandir meses';
 }
 
 // Copia os valores projetados de um mes para os demais meses do ano.
@@ -15420,8 +15462,11 @@ async function loadDFC() {
   const btnProj  = document.getElementById('dfc-btn-salvar-proj');
   const dicaProj = document.getElementById('dfc-dica-proj');
   const btnRep = document.getElementById('dfc-btn-replicar');
+  const btnExp = document.getElementById('dfc-btn-expandir-meses');
   if (btnProj)  btnProj.style.display  = _temProj ? '' : 'none';
   if (btnRep)   btnRep.style.display   = _temProj ? '' : 'none';
+  // Expandir mes so existe no modo "ambos" — nos outros nao ha o que abrir
+  if (btnExp)   btnExp.style.display   = _modoAtual === 'ambos' ? '' : 'none';
   if (dicaProj) dicaProj.style.display = _temProj ? '' : 'none';
 
   const empIdDFC = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
