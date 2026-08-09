@@ -3597,7 +3597,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
               </select>
               <button class="btn" onclick="loadDFC()">↻ Atualizar</button>
+              <button class="btn btn-primary" id="dfc-btn-salvar-proj" onclick="salvarProjecoesDFC()" style="display:none">💾 Salvar projeções</button>
             </div>
+          </div>
+          <div style="display:none;padding:8px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;margin-bottom:10px;font-size:12px;color:#5b21b6" id="dfc-dica-proj">
+            💡 Digite o valor projetado de cada categoria na coluna roxa e clique em <strong>Salvar projeções</strong>. O % atingido atualiza na hora.
           </div>
           <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
         </div>
@@ -15285,6 +15289,62 @@ async function salvarProjecaoToda() {
 // ─── DFC ─────────────────────────────────────────────────
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+// ─── PROJEÇÃO DFC (editada direto na tabela do DFC) ──────
+// Recalcula o % assim que o usuario digita, sem precisar salvar antes
+function recalcPctDFC(catId, realizado) {
+  const inp = document.querySelector(`.dfc-proj-input[data-cat="${catId}"]`);
+  const cel = document.getElementById('dfc-pct-' + catId);
+  if (!inp || !cel) return;
+  const pj = Math.abs(parseFloat(inp.value) || 0);
+  const r  = Math.abs(Number(realizado) || 0);
+  if (!pj) { cel.textContent = '—'; cel.style.color = 'var(--text3)'; return; }
+  const pct = r / pj * 100;
+  cel.textContent = pct.toFixed(0) + '%';
+  cel.style.color = pct >= 100 ? 'var(--green)' : pct >= 80 ? '#d97706' : 'var(--red)';
+}
+
+async function salvarProjecoesDFC() {
+  const ano = document.getElementById('dfc-ano')?.value || '2026';
+  const mes = document.getElementById('dfc-mes')?.value || '';
+  if (!mes) { showToast('Selecione um mês para projetar', 'error'); return; }
+
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!empId) { showToast('Empresa não identificada', 'error'); return; }
+
+  const btn = document.getElementById('dfc-btn-salvar-proj');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Salvando...'; }
+
+  try {
+    const linhas = [];
+    document.querySelectorAll('.dfc-proj-input').forEach(inp => {
+      const v = parseFloat(inp.value);
+      if (!isNaN(v) && v !== 0) {
+        linhas.push({
+          empresa_id: empId,
+          categoria_id: inp.dataset.cat,
+          mes: parseInt(mes),
+          ano: parseInt(ano),
+          valor: v
+        });
+      }
+    });
+
+    // Regrava so o mes/ano em edicao — nao toca nos outros meses
+    await sb.from('projecoes_dfc').delete()
+      .eq('empresa_id', empId).eq('ano', parseInt(ano)).eq('mes', parseInt(mes));
+
+    if (linhas.length) {
+      const { error } = await sb.from('projecoes_dfc').insert(linhas);
+      if (error) throw new Error(error.message);
+    }
+    showToast(`✅ ${linhas.length} projeção(ões) salva(s)`, 'success');
+  } catch (e) {
+    showToast('Erro: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Salvar projeções'; }
+  }
+}
+
 async function loadDFC() {
   const el = document.getElementById('dfc-table');
   if (!el) return;
@@ -15292,6 +15352,12 @@ async function loadDFC() {
 
   const ano = document.getElementById('dfc-ano')?.value || '2026';
   const mesFiltro = document.getElementById('dfc-mes')?.value || '';
+
+  // Projetar so faz sentido com um mes selecionado
+  const btnProj  = document.getElementById('dfc-btn-salvar-proj');
+  const dicaProj = document.getElementById('dfc-dica-proj');
+  if (btnProj)  btnProj.style.display  = mesFiltro ? '' : 'none';
+  if (dicaProj) dicaProj.style.display = mesFiltro ? '' : 'none';
 
   const empIdDFC = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   const { data: dfcGruposRaw } = await sb.from('grupos_plano').select('*').eq('empresa_id', empIdDFC).order('ordem');
@@ -15323,14 +15389,33 @@ async function loadDFC() {
     } catch(e) { console.warn('projecoes_dfc:', e); }
   }
   const projDeCat = c => projPorCat[c.id] || 0;
-  // % atingido = realizado / projetado
+
+  const corPct = pct => pct === null ? 'var(--text3)'
+                      : pct >= 100 ? 'var(--green)'
+                      : pct >= 80  ? '#d97706' : 'var(--red)';
+
+  // Celula EDITAVEL: digita o projetado direto na linha da categoria
+  const celProjInput = (realizado, cat) => {
+    if (!mesFiltro) return '';
+    const pj = projDeCat(cat);
+    const r = Math.abs(realizado);
+    const pct = pj > 0 ? (r / Math.abs(pj) * 100) : null;
+    return `<td style="padding:4px 6px;text-align:right;background:#f5f3ff">
+        <input type="number" step="0.01" class="dfc-proj-input" data-cat="${cat.id}"
+          value="${pj || ''}" placeholder="0,00"
+          oninput="recalcPctDFC('${cat.id}', ${r})"
+          style="width:90px;padding:3px 6px;font-size:10px;text-align:right;font-family:'DM Mono',monospace;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text)">
+      </td>
+      <td id="dfc-pct-${cat.id}" style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#f5f3ff;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
+  };
+
+  // Celula so de leitura, usada na linha de GRUPO (soma das categorias)
   const celProj = (realizado, projetado) => {
     if (!mesFiltro) return '';
     const r = Math.abs(realizado), pj = Math.abs(projetado);
     const pct = pj > 0 ? (r / pj * 100) : null;
-    const cor = pct === null ? 'var(--text3)' : pct >= 100 ? 'var(--green)' : pct >= 80 ? '#d97706' : 'var(--red)';
-    return `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#f5f3ff;color:var(--text2)">${pj?fmtNum(pj):''}</td>`
-         + `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#f5f3ff;color:${cor}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
+    return `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#ede9fe;color:var(--text2)">${pj?fmtNum(pj):''}</td>`
+         + `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#ede9fe;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
   };
 
   const { data: bancos } = await qE('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
@@ -15435,7 +15520,7 @@ async function loadDFC() {
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
         <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
         ${vals.map(v => `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:${v>0?'var(--green)':v<0?'var(--red)':'var(--text3)'}">${v!==0?fmtNum(Math.abs(v)):''}</td>`).join('')}
-        ${mesFiltro ? celProj(total, projDeCat(c)) : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
+        ${mesFiltro ? celProjInput(total, c) : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>`}
       </tr>`;
     });
   });
