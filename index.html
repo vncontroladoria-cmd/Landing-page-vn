@@ -2778,34 +2778,45 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- LINHA 4: TOP 3 CARDS -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
-            <div class="card" style="padding:0;overflow:hidden">
+          <!-- align-items:stretch faz os 3 cards terem sempre a mesma altura -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;align-items:stretch">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
                 <span style="background:#fef3c7;color:#d97706;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">🏆</span>
-                <span style="font-weight:600;font-size:12px">Top 5 Profissionais</span>
+                <div>
+                  <div style="font-weight:600;font-size:12px">Top 5 Profissionais</div>
+                  <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">faturamento gerado</div>
+                </div>
               </div>
-              <div id="dash-top-prof"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+              <div id="dash-top-prof" style="flex:1"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
                 <span style="background:#ede9fe;color:#7c3aed;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">✂️</span>
-                <span style="font-weight:600;font-size:12px">Top 5 Serviços</span>
+                <div>
+                  <div style="font-weight:600;font-size:12px">Top 5 Serviços</div>
+                  <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">quantidade realizada</div>
+                </div>
               </div>
-              <div id="dash-top-srv"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+              <div id="dash-top-srv" style="flex:1"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
                 <span style="background:#dbeafe;color:#2563eb;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">👤</span>
-                <span style="font-weight:600;font-size:12px">Top 5 Clientes</span>
+                <div>
+                  <div style="font-weight:600;font-size:12px">Top 5 Clientes</div>
+                  <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">total gasto</div>
+                </div>
               </div>
-              <div id="dash-top-cli"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+              <div id="dash-top-cli" style="flex:1"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
             </div>
           </div>
 
           <!-- LINHA 5: NOVOS VS RECORRENTES + CANAIS + TENDÊNCIA -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:14px;margin-bottom:14px">
+          <!-- align-items:stretch + flex nos filhos = os 3 cards com a mesma altura -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:14px;margin-bottom:14px;align-items:stretch">
             <!-- Novos vs Recorrentes -->
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
                 <span style="background:#dcfce7;color:#059669;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">👥</span>
                 <div>
@@ -2828,7 +2839,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               </div>
             </div>
             <!-- Canais de Aquisição -->
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
                 <span style="background:#fce7f3;color:#db2777;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">📡</span>
                 <div>
@@ -2836,10 +2847,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                   <div style="font-size:10px;color:var(--text2)">origem dos novos clientes</div>
                 </div>
               </div>
-              <div id="dash-canais" style="padding:8px 0"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
+              <div id="dash-canais" style="padding:8px 0;flex:1;display:flex;flex-direction:column;justify-content:center"><div class="empty" style="padding:1rem;font-size:11px">Sem dados</div></div>
             </div>
             <!-- Tendência 6 meses -->
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
                 <span style="background:#f0fdf4;color:#16a34a;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:700">📊</span>
                 <div>
@@ -2883,41 +2894,6 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- LINHA 7: 4 CARDS RESUMO + ÚLTIMOS LANÇAMENTOS -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">
-            <div class="card" style="padding:12px 14px">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:18px">🚀</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Maior Faturamento</span>
-              </div>
-              <div style="font-size:14px;font-weight:800;color:var(--green);font-family:'DM Mono',monospace" id="dash-maior-fat">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px" id="dash-maior-fat-d">dia do período</div>
-            </div>
-            <div class="card" style="padding:12px 14px">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:18px">💼</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Serviço + Vendido</span>
-              </div>
-              <div style="font-size:12px;font-weight:700;color:var(--accent)" id="dash-top1-srv">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px" id="dash-top1-srv-d">—</div>
-            </div>
-            <div class="card" style="padding:12px 14px">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:18px">⭐</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Melhor Profissional</span>
-              </div>
-              <div style="font-size:12px;font-weight:700;color:#7c3aed" id="dash-top1-prof">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px" id="dash-top1-prof-d">—</div>
-            </div>
-            <div class="card" style="padding:12px 14px">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:18px">📉</span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Lucro Líquido</span>
-              </div>
-              <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace" id="m-luc">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px" id="m-luc-d">entradas − saídas</div>
-            </div>
-          </div>
 
 
 
@@ -8519,8 +8495,11 @@ async function renderFluxoCaixaChart(ini, fim) {
           pointHoverBorderWidth:2,
           // Um eixo so pra tudo: com dois eixos a linha "flutuava" numa escala
           // invisivel e nao dava pra comparar com as barras.
-          // tension 0 = reta entre os dias, sem inventar valor no meio.
-          tension:0, fill:false,
+          // monotone: curva suave que respeita os valores reais. Diferente do
+          // spline padrao, ela NAO ultrapassa os pontos (era o que fazia a linha
+          // "estourar" pra R$14k num trecho onde o saldo nunca chegou la).
+          cubicInterpolationMode:'monotone',
+          tension:0.4, fill:false,
           // Uma bolinha visivel por dia, pra ficar claro que cada ponto = um dia
           pointRadius:4,
           pointBackgroundColor:'#d4a017',
@@ -9249,24 +9228,51 @@ async function loadDashboard() {
   if (chartTend) chartTend.destroy();
   const ctxT = el('chart-tend')?.getContext('2d');
   if (ctxT) {
+    // Linha de saldo acumulado sobre as barras, no mesmo estilo da Projecao de Caixa
+    let acTend = 0;
+    const saldoTend = valsTend.map(v => { acTend += Number(v||0); return +acTend.toFixed(2); });
+
+    ajustarZoomGrafico(el('chart-tend'), 120);
     chartTend = new Chart(ctxT, {
-      type: 'bar',
-      data: { labels: mesesTend, datasets:[{
-        label: 'Faturamento',
-        data: valsTend,
-        backgroundColor: '#1a5c38',
-        borderRadius: 5,
-        borderSkipped: false
-      }]},
+      data: { labels: mesesTend, datasets:[
+        {
+          type: 'line',
+          label: 'Saldo acumulado',
+          data: saldoTend,
+          borderColor: '#d4a017',
+          backgroundColor: 'rgba(212,160,23,0.06)',
+          borderWidth: 2,
+          // monotone = curva suave que NAO ultrapassa os valores reais
+          cubicInterpolationMode: 'monotone',
+          tension: 0.4,
+          pointRadius: 3,
+          pointBackgroundColor: '#d4a017',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1.5,
+          pointHitRadius: 14,
+          fill: false,
+          order: 1
+        },
+        {
+          type: 'bar',
+          label: 'Faturamento',
+          data: valsTend,
+          backgroundColor: '#1a5c38',
+          borderRadius: 5,
+          borderSkipped: false,
+          order: 2
+        }
+      ]},
       options: {
         responsive: true, maintainAspectRatio: false,
+        interaction: { mode:'index', intersect:false, axis:'x' },
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: c => ' ' + fmtBRL(c.raw) } }
+          tooltip: { callbacks: { label: c => '  ' + c.dataset.label + ': ' + fmtBRL(c.raw) } }
         },
         scales: {
           x: { ticks:{ font:{size:9} }, grid:{ display:false } },
-          y: { ticks:{ font:{size:9}, callback: v => v>=1000?'R$'+(v/1000).toFixed(0)+'k':'' }, grid:{ color:'rgba(0,0,0,0.04)' } }
+          y: { ticks:{ font:{size:9}, callback: v => Math.abs(v)>=1000?'R$'+(v/1000).toFixed(0)+'k':'' }, grid:{ color:'rgba(0,0,0,0.04)' } }
         }
       }
     });
