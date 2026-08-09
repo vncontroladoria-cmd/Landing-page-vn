@@ -15488,16 +15488,25 @@ async function conferirSaldoDFC() {
     const movimento = (lancsAno||[]).reduce(
       (sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
 
-    // Saldo inicial cadastrado nos bancos (o que o DFC usa como ponto de partida)
+    // O saldo inicial pode existir como lancamento OU como campo no cadastro do
+    // banco. Se existir nos DOIS, o valor e contado em dobro — e isso que a
+    // conferencia procura.
+    const { data: lancSI } = await qE('lancamentos')
+      .select('entrada,saida,descricao,categoria')
+      .gte('data_lancamento', `${ano}-01-01`).lte('data_lancamento', `${ano}-12-31`);
+    const temLancSI = (lancSI||[]).some(l =>
+      incStr(l.categoria || '', 'saldo inicial') || incStr(l.descricao || '', 'saldo inicial'));
+
     const { data: bancos } = await qE('bancos_cadastrados')
       .select('nome,saldo_inicial').not('saldo_inicial','is',null);
     const saldoInicialBancos = (bancos||[]).reduce((sm,b) => sm + Number(b.saldo_inicial||0), 0);
 
-    const saldoDFC  = saldoInicialBancos + movimento;   // como o DFC calcula
-    const saldoLanc = movimento;                        // como Lancamentos calcula
+    // Se ja ha lancamento de saldo inicial, o DFC nao soma o campo do banco
+    const saldoDFC  = (temLancSI ? 0 : saldoInicialBancos) + movimento;
+    const saldoLanc = movimento;
     const dif = +(saldoDFC - saldoLanc).toFixed(2);
 
-    _divergenciaSaldo = { ano, saldoDFC, saldoLanc, dif, saldoInicialBancos, movimento, bancos: bancos||[] };
+    _divergenciaSaldo = { ano, saldoDFC, saldoLanc, dif, saldoInicialBancos, movimento, temLancSI, bancos: bancos||[] };
 
     if (Math.abs(dif) < 0.01) {
       btn.style.display = 'none';
@@ -15538,15 +15547,12 @@ COMO CADA UM CALCULA
 SALDO INICIAL CADASTRADO NOS BANCOS
 ${lista}
 
+SALDO INICIAL COMO LANÇAMENTO: ${d.temLancSI ? 'SIM' : 'NÃO'}
+
 CAUSA MAIS PROVÁVEL
-A diferença é igual ao saldo inicial dos bancos. Ou seja: o saldo
-inicial está cadastrado no banco mas não existe como lançamento.
-
-COMO RESOLVER (escolha um)
-  1) Lançar o saldo inicial como lançamento de entrada em 01/01; ou
-  2) Zerar o campo "saldo inicial" no cadastro do banco.
-
-Use um dos dois — os dois juntos contam o valor em dobro.`
+${d.temLancSI
+  ? 'O saldo inicial existe como lançamento E como campo no cadastro do\nbanco. Está sendo contado duas vezes.\n\nCOMO RESOLVER\n  Zere o campo "saldo inicial" no cadastro dos bancos acima —\n  o lançamento de 01/01 já cobre esse valor.'
+  : 'O saldo inicial está no cadastro do banco mas não existe como\nlançamento.\n\nCOMO RESOLVER (escolha um)\n  1) Lançar o saldo inicial como entrada em 01/01; ou\n  2) Zerar o campo "saldo inicial" no cadastro do banco.\n\n  Use um dos dois — os dois juntos contam o valor em dobro.'}`
   );
 }
 
@@ -15752,8 +15758,16 @@ async function loadDFC() {
     return celReal + `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td><td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td>`;
   }
 
+  // O saldo inicial pode estar em DOIS lugares: no cadastro do banco OU como
+  // lancamento ("Saldo Inicial" em 01/01). Se estiver como lancamento, ele ja
+  // entra no movimento — somar o campo do banco contaria em dobro.
+  const temLancSaldoInicial = (lancs||[]).some(l =>
+    incStr(l.categoria || '', 'saldo inicial') || incStr(l.descricao || '', 'saldo inicial')
+  );
   const { data: bancos } = await qE('bancos_cadastrados').select('saldo_inicial').not('saldo_inicial','is',null);
-  const saldoInicialTotal = (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
+  const saldoInicialTotal = temLancSaldoInicial
+    ? 0
+    : (bancos||[]).reduce((s,b) => s + (Number(b.saldo_inicial)||0), 0);
 
   // Pré-calcula por grupo
   const gruposData = (grupos||[]).filter(g => g.nome !== 'Entre Contas').map(g => {
@@ -15762,7 +15776,14 @@ async function loadDFC() {
     return { ...g, gCats, totalGrupo };
   });
 
-  // Saldo acumulado
+  // Saldo acumulado.
+  // IMPORTANTE: usa TODOS os lancamentos do mes, nao a soma dos grupos.
+  // A soma dos grupos ignora "Entre Contas" e lancamentos sem categoria, entao
+  // o Saldo Acumulado divergia do Resultado Liquido dentro da propria tabela.
+  const movimentoMes = m => (lancs||[])
+    .filter(l => l.data_lancamento?.substring(5,7) === m)
+    .reduce((sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
+
   let acum = saldoInicialTotal;
   const saldoFinalMes = [];
   const saldoInicialMes = [];
@@ -15770,8 +15791,7 @@ async function loadDFC() {
   window._dfcConferencia = { ano, saldoInicialBancos: saldoInicialTotal };
   mCols.forEach((m, i) => {
     saldoInicialMes.push(acum);
-    const movMes = gruposData.reduce((s,g) => s + g.totalGrupo[i], 0);
-    acum += movMes;
+    acum += movimentoMes(m);
     saldoFinalMes.push(acum);
   });
   window._dfcConferencia.saldoFinal = saldoFinalMes[saldoFinalMes.length-1] || 0;
