@@ -15899,7 +15899,8 @@ async function loadDFC() {
       .reduce((sm,l) => sm + Number(l.entrada||0), 0);
   });
 
-  const AVCEL = "padding:6px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;background:#fff7ed;color:#c2410c";
+  // Sem fundo: a cor do numero ja destaca e a tabela fica mais limpa
+  const AVCEL = "padding:6px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:#7c3aed";
 
   // % do mes — sempre visivel, coluna fixa ao lado do valor
   const celAVMes = (m, valor) => {
@@ -15912,7 +15913,7 @@ async function loadDFC() {
   const celAV = valor => {
     if (!mostraTotais) return '';
     const pct = totalEntradasPeriodo > 0 ? (Math.abs(valor) / totalEntradasPeriodo * 100) : null;
-    return `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:#fed7aa;color:#9a3412">${pct===null||!valor?'':pct.toFixed(1)+'%'}</td>`;
+    return `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#6d28d9">${pct===null||!valor?'':pct.toFixed(1)+'%'}</td>`;
   };
 
   const thS = `padding:8px 6px;text-align:right;border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap`;
@@ -15929,7 +15930,7 @@ async function loadDFC() {
         ${mCols.map((m, i) => {
           const nome = mNomes[i];
           // % do mes vem sempre, colado no valor
-          const thAV = `<th style="${thS};color:#c2410c;font-size:9px" title="Peso sobre as entradas do mês">%</th>`;
+          const thAV = `<th style="${thS};color:#7c3aed;font-size:9px" title="Peso sobre as entradas do mês">%</th>`;
           if (modo === 'projetado')
             return `<th style="${thS}">${nome}</th>`;
           if (modo !== 'ambos')
@@ -15941,7 +15942,7 @@ async function loadDFC() {
             <th class="${clsProj(m)}" style="${dispProj(m)}${thS};color:#7c3aed;font-size:9px">PROJ</th>
             <th class="${clsProj(m)}" style="${dispProj(m)}${thS};color:#7c3aed;font-size:9px">%AT</th>`;
         }).join('')}
-        ${!mostraTotais ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th><th style="${thS};color:#c2410c" title="Quanto representa do total de entradas do período">% TOTAL</th>`}
+        ${!mostraTotais ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th><th style="${thS};color:#6d28d9" title="Quanto representa do total de entradas do período">% TOTAL</th>`}
       </tr>
     </thead>
     <tbody>`;
@@ -15950,7 +15951,7 @@ async function loadDFC() {
   html += `<tr style="background:#f0fdf4">
     <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:10;font-size:11px">Saldo Inicial</td>
     ${saldoInicialMes.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px`)).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>${mostraTotais?'<td style="background:#fff7ed"></td>':''}`}
+    ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>${mostraTotais?'<td></td>':''}`}
   </tr>`;
 
   // Grupos
@@ -16002,7 +16003,7 @@ async function loadDFC() {
     html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
       <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
       ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`)).join('')}
-      ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>${mostraTotais?'<td style="background:#fff7ed"></td>':''}`}
+      ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>${mostraTotais?'<td></td>':''}`}
     </tr>`;
   }
 
