@@ -443,6 +443,14 @@ tbody tr:hover { background: var(--bg4) !important; }
 }
 @keyframes plspin { to { transform: rotate(360deg); } }
 
+
+/* Alerta de saldo divergente — pisca pra nao passar despercebido */
+@keyframes piscaAlerta {
+  0%, 100% { background:#fef2f2; border-color:#dc2626; }
+  50%      { background:#fee2e2; border-color:#991b1b; }
+}
+#lanc-alerta-saldo.piscando { animation: piscaAlerta 1.1s ease-in-out infinite; }
+
 /* BADGES */
 .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em; }
 .badge-green { background: var(--green-light); color: var(--green); }
@@ -2968,7 +2976,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <!-- CARDS UMA LINHA: saldo bancos + entradas + saídas + saldo mês + saldo total -->
           <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:nowrap;overflow-x:auto;align-items:stretch">
-            <div id="lanc-saldo-bancos" style="display:flex;gap:8px;"></div>
+            <button id="lanc-alerta-saldo" onclick="detalharDivergenciaSaldo()" style="display:none;width:100%;margin-bottom:10px;padding:10px 14px;background:#fef2f2;border:2px solid #dc2626;border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#dc2626;text-align:left;align-items:center;gap:8px">
+            <span id="lanc-alerta-icone" style="font-size:16px">⚠️</span>
+            <span id="lanc-alerta-texto">Saldo divergente</span>
+            <span style="margin-left:auto;font-size:11px;font-weight:600;text-decoration:underline">ver detalhes</span>
+          </button>
+          <div id="lanc-saldo-bancos" style="display:flex;gap:8px;"></div>
             <div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Entradas</div>
               <div id="lanc-total-entrada" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
@@ -9916,6 +9929,9 @@ async function loadLancamentos(forcarBancoFilter) {
   _ls('lanc-hero-n', lancs.length.toLocaleString('pt-BR'));
   _ls('lanc-hero-res', fmtBRL(totalEntrada-totalSaida));
 
+  // Confere se o saldo bate com o DFC
+  conferirSaldoDFC();
+
   // Botão Sem Categoria
   const semCat = lancs.filter(l => !l.categoria && !isLancContabil(l));
   const btnSemCat = document.getElementById('btn-sem-cat');
@@ -15463,6 +15479,87 @@ async function salvarProjecoesDFC() {
   }
 }
 
+// ─── CONFERÊNCIA DE SALDO: DFC × LANÇAMENTOS ─────────────
+// O DFC parte do saldo_inicial cadastrado nos bancos e soma os movimentos.
+// A tela de Lancamentos soma so os lancamentos. Se os dois nao chegam no
+// mesmo saldo final, algo esta inconsistente e precisa ser conferido.
+let _divergenciaSaldo = null;
+
+async function conferirSaldoDFC() {
+  const btn = document.getElementById('lanc-alerta-saldo');
+  if (!btn) return;
+  try {
+    const ano = document.getElementById('lanc-ano')?.value || String(new Date().getFullYear());
+
+    // Soma dos lancamentos do ano (o que a pagina de Lancamentos considera)
+    const { data: lancsAno } = await qE('lancamentos')
+      .select('entrada,saida')
+      .gte('data_lancamento', `${ano}-01-01`).lte('data_lancamento', `${ano}-12-31`);
+    const movimento = (lancsAno||[]).reduce(
+      (sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
+
+    // Saldo inicial cadastrado nos bancos (o que o DFC usa como ponto de partida)
+    const { data: bancos } = await qE('bancos_cadastrados')
+      .select('nome,saldo_inicial').not('saldo_inicial','is',null);
+    const saldoInicialBancos = (bancos||[]).reduce((sm,b) => sm + Number(b.saldo_inicial||0), 0);
+
+    const saldoDFC  = saldoInicialBancos + movimento;   // como o DFC calcula
+    const saldoLanc = movimento;                        // como Lancamentos calcula
+    const dif = +(saldoDFC - saldoLanc).toFixed(2);
+
+    _divergenciaSaldo = { ano, saldoDFC, saldoLanc, dif, saldoInicialBancos, movimento, bancos: bancos||[] };
+
+    if (Math.abs(dif) < 0.01) {
+      btn.style.display = 'none';
+      btn.classList.remove('piscando');
+      return;
+    }
+
+    document.getElementById('lanc-alerta-texto').textContent =
+      `Saldo divergente: DFC ${fmtBRL(saldoDFC)} × Lançamentos ${fmtBRL(saldoLanc)} · diferença ${fmtBRL(Math.abs(dif))}`;
+    btn.style.display = 'flex';
+    btn.classList.add('piscando');
+  } catch(e) {
+    console.warn('conferirSaldoDFC:', e);
+    btn.style.display = 'none';
+  }
+}
+
+function detalharDivergenciaSaldo() {
+  const d = _divergenciaSaldo;
+  if (!d) return;
+  const lista = d.bancos.length
+    ? d.bancos.map(b => `   • ${b.nome}: ${fmtBRL(Number(b.saldo_inicial||0))}`).join('\n')
+    : '   (nenhum banco com saldo inicial cadastrado)';
+
+  alert(
+`CONFERÊNCIA DE SALDO — ${d.ano}
+
+DFC (Saldo Acumulado).......: ${fmtBRL(d.saldoDFC)}
+Lançamentos (Saldo Final)...: ${fmtBRL(d.saldoLanc)}
+DIFERENÇA...................: ${fmtBRL(Math.abs(d.dif))}
+
+COMO CADA UM CALCULA
+  DFC        = saldo inicial dos bancos + movimento
+             = ${fmtBRL(d.saldoInicialBancos)} + ${fmtBRL(d.movimento)}
+  Lançamentos = só o movimento
+             = ${fmtBRL(d.movimento)}
+
+SALDO INICIAL CADASTRADO NOS BANCOS
+${lista}
+
+CAUSA MAIS PROVÁVEL
+A diferença é igual ao saldo inicial dos bancos. Ou seja: o saldo
+inicial está cadastrado no banco mas não existe como lançamento.
+
+COMO RESOLVER (escolha um)
+  1) Lançar o saldo inicial como lançamento de entrada em 01/01; ou
+  2) Zerar o campo "saldo inicial" no cadastro do banco.
+
+Use um dos dois — os dois juntos contam o valor em dobro.`
+  );
+}
+
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
 function toggleDropdownMesesDFC(ev) {
   if (ev) ev.stopPropagation();
@@ -15673,12 +15770,15 @@ async function loadDFC() {
   let acum = saldoInicialTotal;
   const saldoFinalMes = [];
   const saldoInicialMes = [];
+  // Guarda o que o DFC calculou, pra pagina de Lancamentos poder conferir
+  window._dfcConferencia = { ano, saldoInicialBancos: saldoInicialTotal };
   mCols.forEach((m, i) => {
     saldoInicialMes.push(acum);
     const movMes = gruposData.reduce((s,g) => s + g.totalGrupo[i], 0);
     acum += movMes;
     saldoFinalMes.push(acum);
   });
+  window._dfcConferencia.saldoFinal = saldoFinalMes[saldoFinalMes.length-1] || 0;
 
   // Resultado Operacional = Receita Operacional - Custo Variável - Marketing - Administrativa - Equipe - Impostos
   // Resultado Operacional = Grupo 1 − Grupos 3, 4, 5, 6, 7 (por ordem)
