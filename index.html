@@ -15849,11 +15849,12 @@ function toggleListaNaoAgrupados() {
   if (!linhas.length) {
     box.innerHTML = '<div class="empty" style="padding:1rem;font-size:12px">Nada a listar</div>';
   } else {
-    // Separa por motivo: sem categoria e o que precisa de acao
+    // Tres motivos diferentes, cada um com um tratamento:
     const semCat = linhas.filter(l => !String(l.categoria||'').trim());
-    const entreContas = linhas.filter(l => String(l.categoria||'').trim());
-    const totalSem = semCat.reduce((sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
-    const totalEC  = entreContas.reduce((sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
+    const cartao = linhas.filter(l => String(l.categoria||'').trim() && incStr(l.categoria,'cart'));
+    const entreContas = linhas.filter(l => String(l.categoria||'').trim() && !incStr(l.categoria,'cart'));
+    const soma = arr => arr.reduce((sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
+    const totalSem = soma(semCat), totalEC = soma(entreContas), totalCC = soma(cartao);
 
     const tabela = (titulo, arr, total, cor) => !arr.length ? '' : `
       <div style="margin-bottom:14px">
@@ -15882,6 +15883,7 @@ function toggleListaNaoAgrupados() {
       </div>
       ${tabela('❗ Sem categoria — precisa classificar', semCat, totalSem, '#dc2626')}
       ${tabela('🔄 Entre contas — normal, não entra no DFC', entreContas, totalEC, '#7c3aed')}
+      ${tabela('💳 Cartão de crédito — no regime de Competência as compras entram nas categorias reais, então o pagamento da fatura fica fora', cartao, totalCC, '#2563eb')}
     </div>`;
   }
 
@@ -16275,6 +16277,10 @@ async function loadDFC() {
     gruposData.forEach(g => g.gCats.forEach(c => catsAgrupadas.add(c.nome)));
     window._dfcNaoAgrupados = (lancs||[])
       .filter(l => mCols.includes(mesDoLanc(l)))
+      // Mesma exclusao do movimentoMes: em competencia o pagamento da fatura
+      // nao conta (a despesa ja entrou pela compra individual do cartao).
+      // Sem isso a lista mostrava a fatura como se estivesse fora do DFC.
+      .filter(l => !(porCompetencia && !l._doCartao && incStr(l.categoria||'', 'cart')))
       .filter(l => !catsAgrupadas.has(l.categoria || l.categoria_dfc || ''))
       .sort((a,b) => (a.data_lancamento||'').localeCompare(b.data_lancamento||''));
 
