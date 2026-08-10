@@ -15599,6 +15599,14 @@ function validarCategoria(texto) {
   return achou ? achou.nome : null;
 }
 
+// Uma linha so conta como "na tela" se nao estiver escondida por filtro.
+// Sem isso, o "selecionar todos" marcava tambem o que o filtro escondeu —
+// e o botao ao lado e "Excluir selecionados".
+function linhaVisivel(el) {
+  const tr = el.closest('tr');
+  return tr && tr.style.display !== 'none' && !tr.hidden;
+}
+
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
 function toggleDropdownMesesDFC(ev) {
   if (ev) ev.stopPropagation();
@@ -19168,15 +19176,28 @@ function filtrarLancamentos(termo) {
   if (!tbody) { console.warn('filtrarLancamentos: #lanc-tbody não encontrado'); return; }
   const rows = tbody.querySelectorAll('tr[id]');
   rows.forEach(row => {
-    if (!t) { row.style.display = ''; row.hidden = false; return; }
-    const bate = normStr(textoDaLinha(row)).includes(t);
+    const bate = !t || normStr(textoDaLinha(row)).includes(t);
     row.style.display = bate ? '' : 'none';
     row.hidden = !bate;
+    // Linha que saiu da tela nao pode continuar selecionada: senao uma
+    // exclusao em massa levaria junto o que voce nem esta vendo.
+    if (!bate) {
+      const cb = row.querySelector('.lanc-check');
+      if (cb && cb.checked) cb.checked = false;
+    }
   });
+  const all = document.getElementById('lanc-check-all');
+  if (all) all.checked = false;
+  if (typeof atualizarSelecao === 'function') atualizarSelecao();
 }
 
 function selecionarTodosLanc(checked) {
-  document.querySelectorAll('.lanc-check').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('.lanc-check').forEach(cb => {
+    // Marca apenas o que esta visivel. Desmarcar limpa tudo, inclusive o
+    // que ficou escondido por um filtro anterior.
+    if (checked) { if (linhaVisivel(cb)) cb.checked = true; }
+    else cb.checked = false;
+  });
   atualizarSelecao();
 }
 
@@ -22125,7 +22146,10 @@ async function salvarLancamentoInlineCC(id, rowId) {
 
 // ── Filtrar lançamentos ───────────────────────────────
 function selecionarTodosCC(checked) {
-  document.querySelectorAll('.cc-check').forEach(cb => cb.checked = checked);
+  document.querySelectorAll('.cc-check').forEach(cb => {
+    if (checked) { if (linhaVisivel(cb)) cb.checked = true; }
+    else cb.checked = false;
+  });
   atualizarSelecaoCC();
 }
 
@@ -22243,8 +22267,16 @@ function filtrarCartaoLanc(termo) {
   // toda linha bateria com qualquer nome de categoria do plano de contas
   const t = normStr(termo);
   document.querySelectorAll('#cc-tbody tr').forEach(r => {
-    r.style.display = !t || normStr(textoDaLinha(r)).includes(t) ? '' : 'none';
+    const bate = !t || normStr(textoDaLinha(r)).includes(t);
+    r.style.display = bate ? '' : 'none';
+    if (!bate) {
+      const cb = r.querySelector('.cc-check');
+      if (cb && cb.checked) cb.checked = false;
+    }
   });
+  const all = document.getElementById('cc-check-all');
+  if (all) all.checked = false;
+  if (typeof atualizarSelecaoCC === 'function') atualizarSelecaoCC();
 }
 
 // ── Modal Cartão ──────────────────────────────────────
