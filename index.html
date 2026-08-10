@@ -3633,8 +3633,10 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div style="display:none;padding:8px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;margin-bottom:10px;font-size:12px;color:#5b21b6" id="dfc-dica-proj">
             💡 Clique no <strong>+</strong> do mês para abrir a projeção. O <strong>▶</strong> ao lado do valor replica ele <strong>para os meses seguintes</strong>. No fim, clique em <strong>Salvar projeções</strong>.
           </div>
-          <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div>
-          <div id="dfc-lista-na" style="display:none;margin-top:14px"></div></div>
+          <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+          <!-- Lista dos lançamentos fora dos grupos. FORA do #dfc-table, senão
+               seria destruída toda vez que a tabela é redesenhada. -->
+          <div id="dfc-lista-na" style="display:none;margin-top:14px"></div>
         </div>
 
         <!-- DRE -->
@@ -10075,6 +10077,10 @@ async function loadLancamentos(forcarBancoFilter) {
   });
   el.innerHTML = html;
   atualizarBotaoExpandirDFC();
+  // A lista de nao agrupados fica fora da tabela; fecha ao recarregar
+  // pra nunca exibir dados de um filtro anterior.
+  const _boxNA = document.getElementById('dfc-lista-na');
+  if (_boxNA) _boxNA.style.display = 'none';
 
   // Reaplicar filtro de busca se houver texto digitado
   const termoBusca = document.getElementById('lanc-busca')?.value || '';
@@ -15725,7 +15731,7 @@ function toggleListaNaoAgrupados() {
 
   box.style.display = 'block';
   if (seta) seta.textContent = '▼';
-  box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  if (box.scrollIntoView) box.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
 async function loadDFC() {
@@ -16118,6 +16124,7 @@ async function loadDFC() {
     html += `<tr style="background:#fffbeb;border-top:1px dashed #f59e0b;cursor:pointer" onclick="toggleListaNaoAgrupados()" title="Clique para ver quais lançamentos são">
       <td style="padding:8px 10px;font-weight:600;position:sticky;left:0;background:#fffbeb;z-index:10;color:#92400e;font-size:10px">
         <span id="dfc-na-seta">▶</span> ⚠️ Entre contas / sem categoria
+        <span style="font-size:9px;font-weight:400;text-decoration:underline;margin-left:4px">ver lista</span>
       </td>
       ${naoAgrupado.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600`)).join('')}
       ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;background:#e8f0fe;color:${totalNA>=0?'var(--green)':'var(--red)'}">${fmtNum(totalNA)}</td><td style="background:#fef9f0"></td><td></td>`}
