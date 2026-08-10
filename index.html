@@ -3007,9 +3007,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <span style="font-size:12px;color:#1e40af;font-weight:600">= Saldo: <span id="lanc-sel-saldo" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
             <span style="font-size:12px;color:#92400e">|</span>
             <span style="font-size:12px;color:#92400e;font-weight:600">Mudar categoria para:</span>
-            <select id="lanc-massa-cat" style="padding:5px 8px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif;min-width:190px">
-              <option value="">— escolha —</option>
-            </select>
+            <span style="position:relative;display:inline-block">
+              <input type="text" id="lanc-massa-cat" placeholder="Digite a categoria..." autocomplete="off"
+                oninput="buscaCatMassa(this.value,'lanc')"
+                onfocus="buscaCatMassa(this.value,'lanc')"
+                onblur="setTimeout(()=>{const d=document.getElementById('lanc-massa-dd');if(d)d.style.display='none'},200)"
+                style="padding:5px 8px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif;width:190px">
+              <input type="hidden" id="lanc-massa-dfc"><input type="hidden" id="lanc-massa-dre">
+              <div id="lanc-massa-dd" style="display:none;position:absolute;top:100%;left:0;width:250px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:220px;overflow-y:auto;z-index:900;box-shadow:0 4px 16px rgba(0,0,0,.15)"></div>
+            </span>
             <button class="btn btn-sm btn-primary" onclick="aplicarCategoriaEmMassa()">✔ Aplicar</button>
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionados()">🗑️ Excluir selecionados</button>
             <button class="btn btn-sm" onclick="limparSelecao()">✕ Cancelar</button>
@@ -3821,9 +3827,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <span style="font-size:12px;color:#92400e;font-weight:600">❌ Saídas: <span id="cc-sel-sai" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
             <span style="font-size:12px;color:#92400e">|</span>
             <span style="font-size:12px;color:#92400e;font-weight:600">Mudar categoria para:</span>
-            <select id="cc-massa-cat" style="padding:5px 8px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif;min-width:190px">
-              <option value="">— escolha —</option>
-            </select>
+            <span style="position:relative;display:inline-block">
+              <input type="text" id="cc-massa-cat" placeholder="Digite a categoria..." autocomplete="off"
+                oninput="buscaCatMassa(this.value,'cc')"
+                onfocus="buscaCatMassa(this.value,'cc')"
+                onblur="setTimeout(()=>{const d=document.getElementById('cc-massa-dd');if(d)d.style.display='none'},200)"
+                style="padding:5px 8px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif;width:190px">
+              <input type="hidden" id="cc-massa-dfc"><input type="hidden" id="cc-massa-dre">
+              <div id="cc-massa-dd" style="display:none;position:absolute;top:100%;left:0;width:250px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:220px;overflow-y:auto;z-index:900;box-shadow:0 4px 16px rgba(0,0,0,.15)"></div>
+            </span>
             <button class="btn btn-sm btn-primary" onclick="aplicarCategoriaEmMassaCC()">✔ Aplicar</button>
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionadosCC()">🗑️ Excluir selecionados</button>
             <button class="btn btn-sm" onclick="limparSelecaoCC()">✕ Cancelar</button>
@@ -15621,39 +15633,46 @@ function linhaVisivel(el) {
 }
 
 // ─── ALTERAÇÃO DE CATEGORIA EM MASSA ─────────────────────
-// Preenche o select da barra de selecao com o Plano de Contas da empresa.
-// So categorias reais entram — nao ha digitacao livre aqui.
-async function preencherSelectCategoriaMassa(idSelect) {
-  const sel = document.getElementById(idSelect);
-  if (!sel) return;
+// Autocomplete igual ao da edicao inline: digita e vai filtrando.
+async function buscaCatMassa(texto, alvo) {
+  await garantirCategorias();
+  const dd = document.getElementById(`${alvo}-massa-dd`);
+  if (!dd) return;
+  const termo = normStr(texto);
 
-  // _categorias so e carregado em algumas telas. Na de Lancamentos pode
-  // estar vazio — garantirCategorias() busca o Plano de Contas da empresa.
-  let lista = (typeof _categorias !== 'undefined' && _categorias) ? _categorias : [];
-  if (!lista.length) {
-    if (sel.dataset.carregando === '1') return;
-    sel.dataset.carregando = '1';
-    sel.innerHTML = '<option value="">carregando...</option>';
-    await garantirCategorias();
-    lista = (typeof _categorias !== 'undefined' && _categorias) ? _categorias : [];
-    sel.dataset.carregando = '0';
-  }
-  if (!lista.length) {
-    sel.innerHTML = '<option value="">Plano de Contas vazio</option>';
-    return;
-  }
-  const atual = sel.value;
-  // Agrupa por grupo do plano, pra ficar mais facil achar
-  const porGrupo = {};
-  lista.forEach(c => { (porGrupo[c.grupo || 'Outros'] ||= []).push(c); });
-  sel.innerHTML = '<option value="">— escolha —</option>' +
-    Object.keys(porGrupo).sort().map(g =>
-      `<optgroup label="${g}">` +
-      porGrupo[g].sort((a,b) => a.nome.localeCompare(b.nome))
-        .map(c => `<option value="${String(c.nome).replace(/"/g,'&quot;')}">${c.nome}</option>`).join('') +
-      `</optgroup>`
-    ).join('');
-  if (atual) sel.value = atual;
+  // Junta DFC e DRE da mesma categoria numa entrada so
+  const map = {};
+  (_categorias||[]).forEach(c => {
+    if (!map[c.nome]) map[c.nome] = { nome:c.nome, grupo:c.grupo, dfc:null, dre:null };
+    if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') map[c.nome].dfc = c.codigo;
+    if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') map[c.nome].dre = c.codigo;
+  });
+
+  const res = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
+  if (!res.length) { dd.style.display = 'none'; return; }
+
+  dd.style.display = 'block';
+  dd.innerHTML = res.slice(0, 20).map(c => {
+    const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
+    const nomeEsc = String(c.nome).replace(/'/g, "\\'");
+    return `<div onmousedown="selecionarCatMassa('${alvo}','${nomeEsc}','${c.dfc||''}','${c.dre||''}')"
+      style="padding:8px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong>
+      <div style="color:var(--text3);font-size:9px">${c.grupo || ''} ${refs ? '· ' + refs : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function selecionarCatMassa(alvo, nome, dfc, dre) {
+  const inp  = document.getElementById(`${alvo}-massa-cat`);
+  const hDfc = document.getElementById(`${alvo}-massa-dfc`);
+  const hDre = document.getElementById(`${alvo}-massa-dre`);
+  if (inp)  inp.value  = nome;
+  if (hDfc) hDfc.value = dfc || '';
+  if (hDre) hDre.value = dre || '';
+  const dd = document.getElementById(`${alvo}-massa-dd`);
+  if (dd) dd.style.display = 'none';
 }
 
 async function aplicarCategoriaEmMassa() {
@@ -15687,6 +15706,7 @@ async function aplicarCategoriaEmMassa() {
   }
 
   showToast(`✅ ${ok} lançamento(s) → ${oficial}`, 'success');
+  if (sel) sel.value = '';
   limparSelecao();
   const scrollY = window.scrollY;
   await loadLancamentos();
@@ -15724,6 +15744,7 @@ async function aplicarCategoriaEmMassaCC() {
   }
 
   showToast(`✅ ${ok} lançamento(s) → ${oficial}`, 'success');
+  if (sel) sel.value = '';
   const scrollY = window.scrollY;
   await loadCartaoLancamentos();
   if (typeof reaplicarFiltroSemCatCC === 'function') reaplicarFiltroSemCatCC();
@@ -19330,7 +19351,6 @@ function atualizarSelecao() {
   const count = document.getElementById('lanc-sel-count');
   if (selecionados.length > 0) {
     bar.style.display = 'flex';
-    preencherSelectCategoriaMassa('lanc-massa-cat');
     count.textContent = `${selecionados.length} selecionado${selecionados.length > 1 ? 's' : ''}`;
     // Calcular totais dos selecionados usando dados reais
     let totalEnt = 0, totalSai = 0;
@@ -22284,7 +22304,6 @@ function atualizarSelecaoCC() {
   const count = document.getElementById('cc-sel-count');
   if (selecionados.length > 0) {
     bar.style.display = 'flex';
-    preencherSelectCategoriaMassa('cc-massa-cat');
     count.textContent = `${selecionados.length} selecionado${selecionados.length > 1 ? 's' : ''}`;
     let totalEnt = 0, totalSai = 0;
     selecionados.forEach(cb => {
