@@ -3005,6 +3005,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <span style="font-size:12px;color:#166534;font-weight:600">✅ Entradas: <span id="lanc-sel-ent" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
             <span style="font-size:12px;color:#92400e;font-weight:600">❌ Saídas: <span id="lanc-sel-sai" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
             <span style="font-size:12px;color:#1e40af;font-weight:600">= Saldo: <span id="lanc-sel-saldo" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
+            <span style="font-size:12px;color:#92400e">|</span>
+            <span style="font-size:12px;color:#92400e;font-weight:600">Mudar categoria para:</span>
+            <select id="lanc-massa-cat" style="padding:5px 8px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif;min-width:190px">
+              <option value="">— escolha —</option>
+            </select>
+            <button class="btn btn-sm btn-primary" onclick="aplicarCategoriaEmMassa()">✔ Aplicar</button>
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionados()">🗑️ Excluir selecionados</button>
             <button class="btn btn-sm" onclick="limparSelecao()">✕ Cancelar</button>
           </div>
@@ -3813,6 +3819,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <span style="font-size:12px;color:#92400e">|</span>
             <span style="font-size:12px;color:#166534;font-weight:600">✅ Entradas: <span id="cc-sel-ent" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
             <span style="font-size:12px;color:#92400e;font-weight:600">❌ Saídas: <span id="cc-sel-sai" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
+            <span style="font-size:12px;color:#92400e">|</span>
+            <span style="font-size:12px;color:#92400e;font-weight:600">Mudar categoria para:</span>
+            <select id="cc-massa-cat" style="padding:5px 8px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif;min-width:190px">
+              <option value="">— escolha —</option>
+            </select>
+            <button class="btn btn-sm btn-primary" onclick="aplicarCategoriaEmMassaCC()">✔ Aplicar</button>
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionadosCC()">🗑️ Excluir selecionados</button>
             <button class="btn btn-sm" onclick="limparSelecaoCC()">✕ Cancelar</button>
           </div>
@@ -15607,6 +15619,102 @@ function linhaVisivel(el) {
   return tr && tr.style.display !== 'none' && !tr.hidden;
 }
 
+// ─── ALTERAÇÃO DE CATEGORIA EM MASSA ─────────────────────
+// Preenche o select da barra de selecao com o Plano de Contas da empresa.
+// So categorias reais entram — nao ha digitacao livre aqui.
+function preencherSelectCategoriaMassa(idSelect) {
+  const sel = document.getElementById(idSelect);
+  if (!sel) return;
+  const lista = (typeof _categorias !== 'undefined' && _categorias) ? _categorias : [];
+  if (!lista.length) return;
+  const atual = sel.value;
+  // Agrupa por grupo do plano, pra ficar mais facil achar
+  const porGrupo = {};
+  lista.forEach(c => { (porGrupo[c.grupo || 'Outros'] ||= []).push(c); });
+  sel.innerHTML = '<option value="">— escolha —</option>' +
+    Object.keys(porGrupo).sort().map(g =>
+      `<optgroup label="${g}">` +
+      porGrupo[g].sort((a,b) => a.nome.localeCompare(b.nome))
+        .map(c => `<option value="${String(c.nome).replace(/"/g,'&quot;')}">${c.nome}</option>`).join('') +
+      `</optgroup>`
+    ).join('');
+  if (atual) sel.value = atual;
+}
+
+async function aplicarCategoriaEmMassa() {
+  const sel = document.getElementById('lanc-massa-cat');
+  const nova = sel?.value || '';
+  if (!nova) { showToast('Escolha a categoria', 'error'); sel?.focus(); return; }
+
+  const marcados = [...document.querySelectorAll('.lanc-check:checked')];
+  if (!marcados.length) { showToast('Nenhum lançamento selecionado', 'error'); return; }
+
+  const oficial = validarCategoria(nova);
+  if (!oficial) { showToast(`"${nova}" não existe no Plano de Contas`, 'error'); return; }
+
+  if (!confirm(`Mudar ${marcados.length} lançamento(s) para "${oficial}"?\n\nA categoria atual de cada um será substituída.`)) return;
+
+  // Codigos DFC/DRE da categoria escolhida
+  const cat = (_categorias||[]).find(c => normStr(c.nome) === normStr(oficial));
+  const dfc = (cat && ['DFC','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+  const dre = (cat && ['DRE','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+
+  const ids = marcados.map(cb => cb.dataset.id).filter(Boolean);
+  const LOTE = 50;
+  let ok = 0;
+  for (let i = 0; i < ids.length; i += LOTE) {
+    const fatia = ids.slice(i, i + LOTE);
+    const { error } = await sb.from('lancamentos')
+      .update({ categoria: oficial, categoria_dfc: dfc, categoria_dre: dre })
+      .in('id', fatia);
+    if (error) { showToast('Erro: ' + error.message, 'error'); break; }
+    ok += fatia.length;
+  }
+
+  showToast(`✅ ${ok} lançamento(s) → ${oficial}`, 'success');
+  limparSelecao();
+  const scrollY = window.scrollY;
+  await loadLancamentos();
+  if (typeof reaplicarFiltroSemCat === 'function') reaplicarFiltroSemCat();
+  window.scrollTo(0, scrollY);
+}
+
+async function aplicarCategoriaEmMassaCC() {
+  const sel = document.getElementById('cc-massa-cat');
+  const nova = sel?.value || '';
+  if (!nova) { showToast('Escolha a categoria', 'error'); sel?.focus(); return; }
+
+  const marcados = [...document.querySelectorAll('.cc-check:checked')];
+  if (!marcados.length) { showToast('Nenhum lançamento selecionado', 'error'); return; }
+
+  const oficial = validarCategoria(nova);
+  if (!oficial) { showToast(`"${nova}" não existe no Plano de Contas`, 'error'); return; }
+
+  if (!confirm(`Mudar ${marcados.length} lançamento(s) para "${oficial}"?\n\nA categoria atual de cada um será substituída.`)) return;
+
+  const cat = (_categorias||[]).find(c => normStr(c.nome) === normStr(oficial));
+  const dfc = (cat && ['DFC','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+  const dre = (cat && ['DRE','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+
+  const ids = marcados.map(cb => cb.dataset.id).filter(Boolean);
+  const LOTE = 50;
+  let ok = 0;
+  for (let i = 0; i < ids.length; i += LOTE) {
+    const fatia = ids.slice(i, i + LOTE);
+    const { error } = await sb.from('cartao_lancamentos')
+      .update({ categoria: oficial, categoria_dfc: dfc, categoria_dre: dre })
+      .in('id', fatia);
+    if (error) { showToast('Erro: ' + error.message, 'error'); break; }
+    ok += fatia.length;
+  }
+
+  showToast(`✅ ${ok} lançamento(s) → ${oficial}`, 'success');
+  const scrollY = window.scrollY;
+  await loadCartaoLancamentos();
+  if (typeof reaplicarFiltroSemCatCC === 'function') reaplicarFiltroSemCatCC();
+  window.scrollTo(0, scrollY);
+}
+
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
 function toggleDropdownMesesDFC(ev) {
   if (ev) ev.stopPropagation();
@@ -19207,6 +19315,7 @@ function atualizarSelecao() {
   const count = document.getElementById('lanc-sel-count');
   if (selecionados.length > 0) {
     bar.style.display = 'flex';
+    preencherSelectCategoriaMassa('lanc-massa-cat');
     count.textContent = `${selecionados.length} selecionado${selecionados.length > 1 ? 's' : ''}`;
     // Calcular totais dos selecionados usando dados reais
     let totalEnt = 0, totalSai = 0;
@@ -22159,6 +22268,7 @@ function atualizarSelecaoCC() {
   const count = document.getElementById('cc-sel-count');
   if (selecionados.length > 0) {
     bar.style.display = 'flex';
+    preencherSelectCategoriaMassa('cc-massa-cat');
     count.textContent = `${selecionados.length} selecionado${selecionados.length > 1 ? 's' : ''}`;
     let totalEnt = 0, totalSai = 0;
     selecionados.forEach(cb => {
