@@ -16005,6 +16005,26 @@ async function loadDFC() {
     </tr>`;
   }
 
+  // ── LINHA DE RECONCILIAÇÃO ───────────────────────────────
+  // Os grupos exibidos NAO cobrem tudo: ficam de fora o grupo "Entre Contas"
+  // e os lancamentos sem categoria. Sem essa linha, somar as colunas nao
+  // chega no Resultado Liquido e a tabela parece errada.
+  const naoAgrupado = mCols.map((m, i) => {
+    const somaGrupos = gruposData.reduce((sm,g) => sm + g.totalGrupo[i], 0);
+    return +(resultadoLiq[i] - somaGrupos).toFixed(2);
+  });
+
+  if (naoAgrupado.some(v => Math.abs(v) >= 0.01)) {
+    const totalNA = naoAgrupado.reduce((s,v)=>s+v,0);
+    html += `<tr style="background:#fffbeb;border-top:1px dashed #f59e0b">
+      <td style="padding:8px 10px;font-weight:600;position:sticky;left:0;background:#fffbeb;z-index:10;color:#92400e;font-size:10px" title="Lançamentos que não entram em nenhum grupo do DFC: transferências entre contas e lançamentos sem categoria">
+        ⚠️ Entre contas / sem categoria
+      </td>
+      ${naoAgrupado.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600`)).join('')}
+      ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;background:#e8f0fe;color:${totalNA>=0?'var(--green)':'var(--red)'}">${fmtNum(totalNA)}</td><td style="background:#fef9f0"></td><td></td>`}
+    </tr>`;
+  }
+
   // Resultado Líquido — azul claro (é resultado do período)
   const totalRL = resultadoLiq.reduce((s,v)=>s+v,0);
   const BG_RL = '#dbeafe', BG_RL2 = '#eff6ff';
