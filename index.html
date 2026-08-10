@@ -3633,7 +3633,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div style="display:none;padding:8px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;margin-bottom:10px;font-size:12px;color:#5b21b6" id="dfc-dica-proj">
             💡 Clique no <strong>+</strong> do mês para abrir a projeção. O <strong>▶</strong> ao lado do valor replica ele <strong>para os meses seguintes</strong>. No fim, clique em <strong>Salvar projeções</strong>.
           </div>
-          <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div></div>
+          <div id="dfc-table"><div class="loading"><div class="spin"></div> Carregando...</div>
+          <div id="dfc-lista-na" style="display:none;margin-top:14px"></div></div>
         </div>
 
         <!-- DRE -->
@@ -5827,6 +5828,21 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 // Evita o lancamento aparecer no relatorio sem estar classificado.
 function limparClassificacao(payload) {
   if (!payload) return payload;
+
+  // Categoria que nao existe no Plano de Contas nao entra: o lancamento
+  // ficaria com um texto solto que nenhum relatorio reconhece.
+  const digitada = String(payload.categoria || '').trim();
+  if (digitada && typeof validarCategoria === 'function') {
+    const oficial = validarCategoria(digitada);
+    if (!oficial) {
+      if (typeof showToast === 'function')
+        showToast(`"${digitada}" não existe no Plano de Contas — salvo sem categoria`, 'error');
+      payload.categoria = '';
+    } else {
+      payload.categoria = oficial;   // grava com a grafia oficial do plano
+    }
+  }
+
   if (!String(payload.categoria || '').trim()) {
     payload.categoria = '';
     payload.categoria_dfc = '';
@@ -13838,7 +13854,9 @@ async function salvarBancoInline(id, rowId) {
       }).eq('id', lancs[0].id);
     } else {
       // Cria se não existia
-      const mes = new Date(dataSaldo).toLocaleString('pt-BR',{month:'long'}).toUpperCase();
+      // Competencia SEMPRE no padrao AAAA-MM. Antes gravava o nome do mes
+    // ("DEZEMBRO"), o que quebrava o filtro por competencia no DFC.
+    const mes = String(dataSaldo).substring(0,7);
       await sb.from('lancamentos').insert(addEmpresaId({
         data_lancamento: dataSaldo, extrato: descricao, descricao,
         entrada: saldo, valor: saldo, tipo: 'ENTRADA',
@@ -13885,7 +13903,9 @@ async function saveBanco() {
     showToast('Banco e lançamento atualizados!','success');
   } else if (!editId && saldo > 0 && dataSaldo) {
     // Novo banco — cria lançamento automático
-    const mes = new Date(dataSaldo).toLocaleString('pt-BR',{month:'long'}).toUpperCase();
+    // Competencia SEMPRE no padrao AAAA-MM. Antes gravava o nome do mes
+    // ("DEZEMBRO"), o que quebrava o filtro por competencia no DFC.
+    const mes = String(dataSaldo).substring(0,7);
     await sb.from('lancamentos').insert(addEmpresaId({
       data_lancamento: dataSaldo,
       extrato: `Saldo inicial — ${nome}`,
@@ -15558,6 +15578,21 @@ ${d.temLancSI
   );
 }
 
+// Valida uma categoria contra o Plano de Contas da empresa.
+// Campo de categoria e autocomplete de texto livre: sem isso o usuario
+// digita "L" e o sistema grava "L", que nao existe em lugar nenhum.
+// Retorna o nome OFICIAL (com a grafia do plano) ou null.
+function validarCategoria(texto) {
+  const t = normStr(texto);
+  if (!t) return null;
+  // _categorias e declarado com `let` mais abaixo; acessar direto antes da
+  // inicializacao lanca ReferenceError. window.* nao tem esse problema.
+  const lista = (typeof _categorias !== 'undefined' && _categorias) ? _categorias : [];
+  if (!lista.length) return texto;   // plano ainda nao carregou: nao bloqueia
+  const achou = lista.find(c => normStr(c.nome) === t);
+  return achou ? achou.nome : null;
+}
+
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
 function toggleDropdownMesesDFC(ev) {
   if (ev) ev.stopPropagation();
@@ -15637,6 +15672,61 @@ document.addEventListener('click', e => {
   if (!dd || dd.style.display === 'none') return;
   if (!dd.contains(e.target) && e.target.id !== 'dfc-meses-btn') dd.style.display = 'none';
 });
+
+
+// Mostra/esconde a lista dos lancamentos que nao entram em nenhum grupo,
+// pra voce achar rapido o que falta categorizar.
+function toggleListaNaoAgrupados() {
+  const box = document.getElementById('dfc-lista-na');
+  const seta = document.getElementById('dfc-na-seta');
+  if (!box) return;
+
+  if (box.style.display !== 'none') {
+    box.style.display = 'none';
+    if (seta) seta.textContent = '▶';
+    return;
+  }
+
+  const linhas = window._dfcNaoAgrupados || [];
+  if (!linhas.length) {
+    box.innerHTML = '<div class="empty" style="padding:1rem;font-size:12px">Nada a listar</div>';
+  } else {
+    // Separa por motivo: sem categoria e o que precisa de acao
+    const semCat = linhas.filter(l => !String(l.categoria||'').trim());
+    const entreContas = linhas.filter(l => String(l.categoria||'').trim());
+    const totalSem = semCat.reduce((sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
+    const totalEC  = entreContas.reduce((sm,l) => sm + Number(l.entrada||0) - Number(l.saida||0), 0);
+
+    const tabela = (titulo, arr, total, cor) => !arr.length ? '' : `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:${cor}15;border-left:3px solid ${cor};border-radius:6px 6px 0 0">
+          <span style="font-weight:700;font-size:12px;color:${cor}">${titulo} · ${arr.length} lançamento(s)</span>
+          <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${cor}">${fmtBRL(total)}</span>
+        </div>
+        <table class="table" style="font-size:11px">
+          <thead><tr><th>DATA</th><th>EXTRATO</th><th>DESCRIÇÃO</th><th>CATEGORIA</th><th>BANCO</th><th style="text-align:right">VALOR</th></tr></thead>
+          <tbody>${arr.map(l => `<tr>
+            <td style="white-space:nowrap">${fmtDate(l.data_lancamento)}</td>
+            <td>${l.extrato || '—'}</td>
+            <td>${l.descricao || '—'}</td>
+            <td>${l.categoria || '<span style="color:var(--red);font-weight:700">sem categoria</span>'}</td>
+            <td>${l.banco_nome || '—'}</td>
+            <td style="text-align:right;font-family:'DM Mono',monospace;color:${Number(l.entrada||0)>0?'var(--green)':'var(--red)'}">${fmtNum(Number(l.entrada||0) - Number(l.saida||0))}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+
+    box.innerHTML = `<div class="card" style="padding:14px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:10px">Lançamentos fora dos grupos do DFC</div>
+      ${tabela('❗ Sem categoria — precisa classificar', semCat, totalSem, '#dc2626')}
+      ${tabela('🔄 Entre contas — normal, não entra no DFC', entreContas, totalEC, '#7c3aed')}
+    </div>`;
+  }
+
+  box.style.display = 'block';
+  if (seta) seta.textContent = '▼';
+  box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
 
 async function loadDFC() {
   const el = document.getElementById('dfc-table');
@@ -16015,10 +16105,19 @@ async function loadDFC() {
   });
 
   if (naoAgrupado.some(v => Math.abs(v) >= 0.01)) {
+    // Guarda os lancamentos que compoem essa linha, pra poder listar embaixo
+    const nomesGrupos = gruposData.map(g => normStr(g.nome));
+    const catsAgrupadas = new Set();
+    gruposData.forEach(g => g.gCats.forEach(c => catsAgrupadas.add(normStr(c.nome))));
+    window._dfcNaoAgrupados = (lancs||[])
+      .filter(l => mCols.includes(mesDoLanc(l)))
+      .filter(l => !catsAgrupadas.has(normStr(l.categoria || '')))
+      .sort((a,b) => (a.data_lancamento||'').localeCompare(b.data_lancamento||''));
+
     const totalNA = naoAgrupado.reduce((s,v)=>s+v,0);
-    html += `<tr style="background:#fffbeb;border-top:1px dashed #f59e0b">
-      <td style="padding:8px 10px;font-weight:600;position:sticky;left:0;background:#fffbeb;z-index:10;color:#92400e;font-size:10px" title="Lançamentos que não entram em nenhum grupo do DFC: transferências entre contas e lançamentos sem categoria">
-        ⚠️ Entre contas / sem categoria
+    html += `<tr style="background:#fffbeb;border-top:1px dashed #f59e0b;cursor:pointer" onclick="toggleListaNaoAgrupados()" title="Clique para ver quais lançamentos são">
+      <td style="padding:8px 10px;font-weight:600;position:sticky;left:0;background:#fffbeb;z-index:10;color:#92400e;font-size:10px">
+        <span id="dfc-na-seta">▶</span> ⚠️ Entre contas / sem categoria
       </td>
       ${naoAgrupado.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600`)).join('')}
       ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;background:#e8f0fe;color:${totalNA>=0?'var(--green)':'var(--red)'}">${fmtNum(totalNA)}</td><td style="background:#fef9f0"></td><td></td>`}
@@ -19168,6 +19267,8 @@ async function sincronizarCategoriasLancamentos() {
 
   lancs.forEach(l => {
     if (!l.categoria) return;
+    // Nao mexer nas categorias contabeis do sistema
+    if (typeof isLancContabil === 'function' && isLancContabil(l)) return;
     const k = normStr(l.categoria);
 
     // ÓRFÃ: a categoria foi apagada/renomeada no Plano de Contas.
@@ -19313,6 +19414,9 @@ async function sincronizarCategoriasCC() {
 
   lancs.forEach(l => {
     if (!l.categoria) return;
+    // Saldo Inicial e Entre Contas sao categorias CONTABEIS do sistema:
+    // nao existem no Plano de Contas de proposito e nao podem ser zeradas.
+    if (typeof isLancContabil === 'function' && isLancContabil(l)) return;
     const k = normStr(l.categoria);
 
     // Categoria apagada/renomeada no Plano de Contas
@@ -21406,9 +21510,11 @@ function gerarVariacoesBanco(normNome) {
 // ─── LANÇAMENTOS CONTÁBEIS ───────────────────────────
 // Saldo Inicial: abertura de saldo, não é movimento — fica fora das somas de Entradas/Saídas
 function isSaldoInicial(l) {
-  const cat = (l.categoria||'').toLowerCase();
-  const desc = (l.descricao||'').toLowerCase();
-  return cat.includes('saldo inicial') || desc === 'saldo inicial';
+  // normStr: ignora acento e caixa. A descricao gerada e "Saldo inicial — Itau",
+  // entao usamos "contem" tambem na descricao, nao igualdade.
+  return normStr(l.categoria).includes('saldo inicial')
+      || normStr(l.descricao).includes('saldo inicial')
+      || normStr(l.extrato).includes('saldo inicial');
 }
 // Entre Contas: transferência entre bancos — conta nas somas de Lançamentos/Dashboard,
 // mas é excluída do DFC e do DRE (filtro próprio por nome do grupo nesses relatórios)
@@ -21979,9 +22085,17 @@ async function salvarLancamentoInlineCC(id, rowId) {
   const entradaVal  = parseFloat(edits[2]?.value) || 0;
   const saidaVal    = parseFloat(edits[3]?.value) || 0;
   const descricao   = edits[4]?.value || '';
-  const categoria   = document.getElementById(`cclcat-${id}`)?.value || '';
-  const catDfc      = document.getElementById(`cclcat-dfc-${id}`)?.value || '';
-  const catDre      = document.getElementById(`cclcat-dre-${id}`)?.value || '';
+  const catDigitada = document.getElementById(`cclcat-${id}`)?.value || '';
+  const catValida   = validarCategoria(catDigitada);
+
+  // Categoria que nao existe no Plano de Contas nao pode ser gravada:
+  // ela sumiria dos relatorios e ficaria "invisivel". Salva em branco.
+  if (catDigitada.trim() && !catValida) {
+    showToast(`"${catDigitada}" não existe no Plano de Contas — salvo sem categoria`, 'error');
+  }
+  const categoria = catValida || '';
+  const catDfc = catValida ? (document.getElementById(`cclcat-dfc-${id}`)?.value || '') : '';
+  const catDre = catValida ? (document.getElementById(`cclcat-dre-${id}`)?.value || '') : '';
   const cartaoId    = edits[6]?.value || null;
   const dataComp    = edits[7]?.value || null;
 
