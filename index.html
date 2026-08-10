@@ -9803,6 +9803,7 @@ async function initLancamentos() {
 }
 
 async function loadLancamentos(forcarBancoFilter) {
+  garantirCategorias();
   const el = document.getElementById('lanc-tbody');
   if (!el) return;
 
@@ -15622,11 +15623,25 @@ function linhaVisivel(el) {
 // ─── ALTERAÇÃO DE CATEGORIA EM MASSA ─────────────────────
 // Preenche o select da barra de selecao com o Plano de Contas da empresa.
 // So categorias reais entram — nao ha digitacao livre aqui.
-function preencherSelectCategoriaMassa(idSelect) {
+async function preencherSelectCategoriaMassa(idSelect) {
   const sel = document.getElementById(idSelect);
   if (!sel) return;
-  const lista = (typeof _categorias !== 'undefined' && _categorias) ? _categorias : [];
-  if (!lista.length) return;
+
+  // _categorias so e carregado em algumas telas. Na de Lancamentos pode
+  // estar vazio — garantirCategorias() busca o Plano de Contas da empresa.
+  let lista = (typeof _categorias !== 'undefined' && _categorias) ? _categorias : [];
+  if (!lista.length) {
+    if (sel.dataset.carregando === '1') return;
+    sel.dataset.carregando = '1';
+    sel.innerHTML = '<option value="">carregando...</option>';
+    await garantirCategorias();
+    lista = (typeof _categorias !== 'undefined' && _categorias) ? _categorias : [];
+    sel.dataset.carregando = '0';
+  }
+  if (!lista.length) {
+    sel.innerHTML = '<option value="">Plano de Contas vazio</option>';
+    return;
+  }
   const atual = sel.value;
   // Agrupa por grupo do plano, pra ficar mais facil achar
   const porGrupo = {};
@@ -22040,6 +22055,7 @@ async function loadCartoes() {
 
 // ── Carregar lançamentos ──────────────────────────────
 async function loadCartaoLancamentos() {
+  garantirCategorias();
   const tbody = document.getElementById('cc-tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px"><div class="spin"></div></td></tr>';
