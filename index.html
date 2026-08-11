@@ -10028,10 +10028,11 @@ async function loadLancamentos(forcarBancoFilter) {
     const saida = Number(l.saida || (l.tipo==='SAIDA'? l.valor : 0) || 0);
     saldoAcum += entrada - saida;
     const MESES_ABR = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    // A coluna COMPETENCIA precisa mostrar a competencia, nao a data de pagamento.
-    // Ordem: competencia (DRE) > mes (DFC) > data do lancamento.
-    const compReal = (l.competencia && /^\d{4}-\d{2}$/.test(l.competencia)) ? l.competencia
-                   : (l.mes && /^\d{4}-\d{2}$/.test(l.mes)) ? l.mes
+    // A coluna COMPETENCIA mostra a competencia, nao a data de pagamento.
+    // `mes` vem PRIMEIRO: e o campo oficial, usado pelo DFC, pelos filtros e
+    // pela edicao. Ler `competencia` antes fazia a tela exibir valor antigo.
+    const compReal = (l.mes && /^\d{4}-\d{2}$/.test(l.mes)) ? l.mes
+                   : (l.competencia && /^\d{4}-\d{2}$/.test(l.competencia)) ? l.competencia
                    : (l.data_lancamento || '').substring(0,7);
     const compAno  = compReal.substring(0,4);
     const compMes  = MESES_ABR[parseInt(compReal.substring(5,7)) - 1] || '';
@@ -10101,7 +10102,7 @@ async function loadLancamentos(forcarBancoFilter) {
         </span>
         <div class="cell-edit" style="display:none">
           <div style="font-size:9px;color:var(--text3);margin-bottom:2px">Competência</div>
-          <input type="month" id="lcomp-${l.id}" value="${l.competencia || l.mes || ''}" style="font-size:10px;border:1.5px solid var(--border);border-radius:6px;padding:3px 5px;background:var(--bg3);color:var(--text);width:100%">
+          <input type="month" id="lcomp-${l.id}" value="${l.mes || l.competencia || ''}" style="font-size:10px;border:1.5px solid var(--border);border-radius:6px;padding:3px 5px;background:var(--bg3);color:var(--text);width:100%">
           <div style="font-size:9px;color:var(--text3);margin-top:1px">vazio = usa a data de pagamento</div>
         </div>
       </td>
@@ -10440,11 +10441,12 @@ async function salvarLancamentoInline(id, rowId) {
 
   // Espelha em `competencia` (usado pela DRE). Se a coluna nao existir no
   // projeto, ignora silenciosamente — o `mes` ja foi salvo acima.
-  try {
-    await sb.from('lancamentos')
-      .update({ competencia: compEdit || null })
-      .eq('id', id);
-  } catch (e) { /* coluna opcional */ }
+  // O Supabase nao lanca excecao: retorna { error }. Por isso conferimos o
+  // retorno em vez de usar try/catch — senao a falha passava despercebida.
+  const rc = await sb.from('lancamentos')
+    .update({ competencia: compEdit || null })
+    .eq('id', id);
+  if (rc?.error) console.warn('coluna competencia indisponivel:', rc.error.message);
 
   showToast('Salvo!','success');
 
