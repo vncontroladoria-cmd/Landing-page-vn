@@ -2963,7 +2963,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 oninput="filtrarLancamentos(this.value)"
                 style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="atualizarLancamentos()">↻ Atualizar</button>
-              <button class="btn" id="btn-sincronizar-cat" onclick="sincronizarCategoriasLancamentos()" title="Corrige o código DRE/DFC de todos os lançamentos com base no Plano de Contas atual">🔄 Sincronizar categorias</button>
+              <button class="btn" id="btn-sincronizar-cat" onclick="sincronizarCategoriasLancamentos()" title="Corrige o código DRE/DFC e a COMPETÊNCIA de todos os lançamentos com base no Plano de Contas atual (categorias marcadas como Mês anterior têm a competência ajustada)">🔄 Sincronizar categorias</button>
               <button class="btn" onclick="exportarLancamentosExcel()" title="Exporta todos os lançamentos filtrados, com todas as colunas">📊 Exportar Excel</button>
               <button id="btn-sem-cat" onclick="filtrarSemCategoria()" style="display:none;padding:7px 12px;font-size:13px;border:1.5px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,0.1);color:#b45309;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;gap:6px;align-items:center">
                 ⚠️ Sem categoria: <span id="lanc-hero-semcat-n" style="background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:2px">0</span>
@@ -3813,7 +3813,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 oninput="filtrarCartaoLanc(this.value)"
                 style="padding:7px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif;width:180px">
               <button class="btn" onclick="loadCartaoLancamentos()">↻ Atualizar</button>
-              <button class="btn" id="btn-sincronizar-cat-cc" onclick="sincronizarCategoriasCC()" title="Corrige o código DRE/DFC de todos os lançamentos com base no Plano de Contas atual">🔄 Sincronizar categorias</button>
+              <button class="btn" id="btn-sincronizar-cat-cc" onclick="sincronizarCategoriasCC()" title="Corrige o código DRE/DFC e a COMPETÊNCIA de todos os lançamentos com base no Plano de Contas atual (categorias marcadas como Mês anterior têm a competência ajustada)">🔄 Sincronizar categorias</button>
               <button class="btn" onclick="exportarPaginaAtualExcel()">📊 Exportar Excel</button>
               <button id="btn-sem-cat-cc" onclick="filtrarSemCategoriaCC()" style="display:none;padding:7px 12px;font-size:13px;border:1.5px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,0.1);color:#b45309;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;gap:6px;align-items:center">
                 ⚠️ Sem categoria: <span id="cc-hero-semcat-n" style="background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:2px">0</span>
@@ -19730,15 +19730,26 @@ async function sincronizarCategoriasCC() {
     return;
   }
 
-  // Mesma regra dos lancamentos: chave normalizada e deteccao de categoria orfa
+  // Mesma regra dos lancamentos: chave normalizada, deteccao de orfa e competencia
   const codDre = {}, codDfc = {};
   const existeNoPlano = {};
+  const compAnterior = {};
   plano.forEach(p => {
     const k = normStr(p.nome);
     existeNoPlano[k] = p.nome;
+    if (p.competencia_tipo === 'anterior') compAnterior[k] = true;
     if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[k] = p.codigo;
     if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[k] = p.codigo;
   });
+
+  const mesAnteriorDe = (data) => {
+    if (!data) return null;
+    const ano = parseInt(data.substring(0,4));
+    const mes = parseInt(data.substring(5,7));
+    const m = mes === 1 ? 12 : mes - 1;
+    const a = mes === 1 ? ano - 1 : ano;
+    return `${a}-${String(m).padStart(2,'0')}`;
+  };
 
   const mudancas = [];
   const atualizacoes = [];
@@ -19781,12 +19792,12 @@ async function sincronizarCategoriasCC() {
       mudancas.push({ nome: l.categoria, de: l.categoria_dfc || '—', para: certoDfc, campo: 'DFC' });
     }
 
-    // COMPETENCIA: se a categoria esta marcada como "Mês anterior", o mes do
-    // lancamento passa a ser o anterior ao pagamento. Sem isso, marcar a
-    // categoria no Plano de Contas nao surtia efeito nenhum nos lancamentos.
+    // COMPETENCIA no cartao: a base e a DATA DA COMPRA (data_competencia),
+    // nao a data de pagamento da fatura. Categoria "Mês anterior" recua um mes.
+    const baseCC = (l.data_competencia || '').substring(0,10) || (l.data_lancamento || '');
     const compEsperada = compAnterior[k]
-      ? mesAnteriorDe(l.data_lancamento)
-      : (l.data_lancamento || '').substring(0,7);
+      ? mesAnteriorDe(baseCC)
+      : (baseCC || '').substring(0,7);
 
     if (compEsperada && l.mes !== compEsperada) {
       payload.mes = compEsperada;
