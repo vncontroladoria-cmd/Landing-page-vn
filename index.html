@@ -19561,12 +19561,25 @@ async function sincronizarCategoriasLancamentos() {
   // Chave normalizada: acento/caixa nao podem quebrar o casamento.
   const codDre = {}, codDfc = {};
   const existeNoPlano = {};
+  const compAnterior = {};   // categorias marcadas como "Mês anterior"
   plano.forEach(p => {
     const k = normStr(p.nome);
     existeNoPlano[k] = p.nome;
+    if (p.competencia_tipo === 'anterior') compAnterior[k] = true;
     if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[k] = p.codigo;
     if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[k] = p.codigo;
   });
+
+  // Categoria marcada como "Mês anterior": a competencia e o mes ANTES do
+  // pagamento. Ex: pago em 05/01 -> competencia 12 do ano anterior.
+  const mesAnteriorDe = (dataPag) => {
+    if (!dataPag) return null;
+    const ano = parseInt(dataPag.substring(0,4));
+    const mes = parseInt(dataPag.substring(5,7));
+    const m = mes === 1 ? 12 : mes - 1;
+    const a = mes === 1 ? ano - 1 : ano;
+    return `${a}-${String(m).padStart(2,'0')}`;
+  };
 
   const mudancas = [];      // { nome, de, para, campo }
   const atualizacoes = [];
@@ -19609,6 +19622,18 @@ async function sincronizarCategoriasLancamentos() {
     } else if (certoDfc !== null && l.categoria_dfc !== certoDfc) {
       payload.categoria_dfc = certoDfc;
       mudancas.push({ nome: l.categoria, de: l.categoria_dfc || '—', para: certoDfc, campo: 'DFC' });
+    }
+
+    // COMPETENCIA: se a categoria esta marcada como "Mês anterior", o mes do
+    // lancamento passa a ser o anterior ao pagamento. Sem isso, marcar a
+    // categoria no Plano de Contas nao surtia efeito nenhum nos lancamentos.
+    const compEsperada = compAnterior[k]
+      ? mesAnteriorDe(l.data_lancamento)
+      : (l.data_lancamento || '').substring(0,7);
+
+    if (compEsperada && l.mes !== compEsperada) {
+      payload.mes = compEsperada;
+      mudancas.push({ nome: l.categoria, de: l.mes || '—', para: compEsperada, campo: 'COMPET.' });
     }
 
     if (Object.keys(payload).length) atualizacoes.push({ id: l.id, payload });
@@ -19754,6 +19779,18 @@ async function sincronizarCategoriasCC() {
     } else if (certoDfc !== null && l.categoria_dfc !== certoDfc) {
       payload.categoria_dfc = certoDfc;
       mudancas.push({ nome: l.categoria, de: l.categoria_dfc || '—', para: certoDfc, campo: 'DFC' });
+    }
+
+    // COMPETENCIA: se a categoria esta marcada como "Mês anterior", o mes do
+    // lancamento passa a ser o anterior ao pagamento. Sem isso, marcar a
+    // categoria no Plano de Contas nao surtia efeito nenhum nos lancamentos.
+    const compEsperada = compAnterior[k]
+      ? mesAnteriorDe(l.data_lancamento)
+      : (l.data_lancamento || '').substring(0,7);
+
+    if (compEsperada && l.mes !== compEsperada) {
+      payload.mes = compEsperada;
+      mudancas.push({ nome: l.categoria, de: l.mes || '—', para: compEsperada, campo: 'COMPET.' });
     }
 
     if (Object.keys(payload).length) atualizacoes.push({ id: l.id, payload });
