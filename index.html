@@ -10027,7 +10027,17 @@ async function loadLancamentos(forcarBancoFilter) {
     const entrada = Number(l.entrada || (l.tipo==='ENTRADA'? l.valor : 0) || 0);
     const saida = Number(l.saida || (l.tipo==='SAIDA'? l.valor : 0) || 0);
     saldoAcum += entrada - saida;
-    const mesNome = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(l.data_lancamento?.substring(5,7))-1] || '';
+    const MESES_ABR = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    // A coluna COMPETENCIA precisa mostrar a competencia, nao a data de pagamento.
+    // Ordem: competencia (DRE) > mes (DFC) > data do lancamento.
+    const compReal = (l.competencia && /^\d{4}-\d{2}$/.test(l.competencia)) ? l.competencia
+                   : (l.mes && /^\d{4}-\d{2}$/.test(l.mes)) ? l.mes
+                   : (l.data_lancamento || '').substring(0,7);
+    const compAno  = compReal.substring(0,4);
+    const compMes  = MESES_ABR[parseInt(compReal.substring(5,7)) - 1] || '';
+    // Marca quando a competencia e diferente do mes do pagamento
+    const compDifere = compReal && (l.data_lancamento||'').substring(0,7) !== compReal;
+    const mesNome = MESES_ABR[parseInt(l.data_lancamento?.substring(5,7))-1] || '';
     const bancoNome = _bancos.find(b=>b.id===l.banco_id)?.nome || l.banco_nome || '—';
     html += `<tr id="lr-${l.id}" style="border-bottom:1px solid var(--border)">
       <td style="padding:9px 12px">
@@ -10087,13 +10097,12 @@ async function loadLancamentos(forcarBancoFilter) {
       </td>
       <td style="padding:6px 8px;font-size:10px;color:var(--text2);white-space:nowrap;min-width:80px">
         <span class="cell-view">
-          <div style="font-size:10px;font-weight:600">${l.data_competencia ? new Date(l.data_competencia+'T12:00:00').toLocaleDateString('pt-BR') : `${mesNome.substring(0,3)} ${ano}`}</div>
-          ${!l.data_competencia && l.competencia && l.competencia !== l.mes ? `<div style="font-size:9px;color:var(--accent);font-weight:600">◀ ${l.competencia.split('-')[1]}/${l.competencia.split('-')[0].substring(2)}</div>` : ''}
+          <div style="font-size:10px;font-weight:600;${compDifere ? 'color:var(--accent)' : ''}">${compMes} ${compAno}</div>
         </span>
         <div class="cell-edit" style="display:none">
-          <div style="font-size:9px;color:var(--text3);margin-bottom:2px">Competência DRE</div>
-          <input type="month" id="lcomp-${l.id}" value="${l.competencia||''}" style="font-size:10px;border:1.5px solid var(--border);border-radius:6px;padding:3px 5px;background:var(--bg3);color:var(--text);width:100%">
-          <div style="font-size:9px;color:var(--text3);margin-top:1px">vazio = usa pagamento</div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:2px">Competência</div>
+          <input type="month" id="lcomp-${l.id}" value="${l.competencia || l.mes || ''}" style="font-size:10px;border:1.5px solid var(--border);border-radius:6px;padding:3px 5px;background:var(--bg3);color:var(--text);width:100%">
+          <div style="font-size:9px;color:var(--text3);margin-top:1px">vazio = usa a data de pagamento</div>
         </div>
       </td>
       <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--green)':'var(--red)'}">
@@ -10416,8 +10425,21 @@ async function salvarLancamentoInline(id, rowId) {
     categoria_dfc: catDfc,
     categoria_dre: catDre,
     banco_id: edits[6].value || null,
-    competencia: document.getElementById(`lcomp-${id}`)?.value || null,
   };
+
+  // Competencia: o sistema tem dois campos — `mes` (DFC) e `competencia` (DRE).
+  // Editar so um deixava o lancamento em meses diferentes nos dois relatorios,
+  // e a coluna (que mostra `mes`) parecia nao mudar. Agora grava nos dois.
+  const compEdit = document.getElementById(`lcomp-${id}`)?.value || '';
+  if (compEdit) {
+    payload.competencia = compEdit;
+    payload.mes = compEdit;
+  } else {
+    // vazio = volta a seguir a data de pagamento
+    payload.competencia = null;
+    const dt = edits[0]?.value || '';
+    if (dt) payload.mes = dt.substring(0,7);
+  }
   limparClassificacao(payload);
   const { error } = await sb.from('lancamentos').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
