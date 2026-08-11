@@ -3016,6 +3016,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <input type="hidden" id="lanc-massa-dfc"><input type="hidden" id="lanc-massa-dre">
               <div id="lanc-massa-dd" style="display:none;position:absolute;top:100%;left:0;width:250px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:220px;overflow-y:auto;z-index:900;box-shadow:0 4px 16px rgba(0,0,0,.15)"></div>
             </span>
+            <span style="font-size:12px;color:#92400e;font-weight:600">Banco:</span>
+            <select id="lanc-massa-banco" style="padding:5px 8px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif">
+              <option value="">— manter —</option>
+            </select>
+            <span style="font-size:12px;color:#92400e;font-weight:600">Competência:</span>
+            <input type="month" id="lanc-massa-comp" style="padding:4px 6px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif">
             <button class="btn btn-sm btn-primary" onclick="aplicarCategoriaEmMassa()">✔ Aplicar</button>
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionados()">🗑️ Excluir selecionados</button>
             <button class="btn btn-sm" onclick="limparSelecao()">✕ Cancelar</button>
@@ -3836,6 +3842,8 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <input type="hidden" id="cc-massa-dfc"><input type="hidden" id="cc-massa-dre">
               <div id="cc-massa-dd" style="display:none;position:absolute;top:100%;left:0;width:250px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:220px;overflow-y:auto;z-index:900;box-shadow:0 4px 16px rgba(0,0,0,.15)"></div>
             </span>
+            <span style="font-size:12px;color:#92400e;font-weight:600">Competência:</span>
+            <input type="month" id="cc-massa-comp" style="padding:4px 6px;font-size:12px;border:1.5px solid #f59e0b;border-radius:6px;background:#fff;color:var(--text);font-family:'Outfit',sans-serif">
             <button class="btn btn-sm btn-primary" onclick="aplicarCategoriaEmMassaCC()">✔ Aplicar</button>
             <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);font-weight:600" onclick="excluirSelecionadosCC()">🗑️ Excluir selecionados</button>
             <button class="btn btn-sm" onclick="limparSelecaoCC()">✕ Cancelar</button>
@@ -15714,38 +15722,72 @@ function selecionarCatMassa(alvo, nome, dfc, dre) {
   if (dd) dd.style.display = 'none';
 }
 
+// Preenche o select de bancos da barra de selecao
+async function preencherBancosMassa() {
+  const sel = document.getElementById('lanc-massa-banco');
+  if (!sel || sel.options.length > 1) return;
+  try {
+    const { data } = await qE('bancos_cadastrados').select('id,nome').order('nome');
+    sel.innerHTML = '<option value="">— manter —</option>' +
+      (data||[]).map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
+  } catch (e) { console.warn('bancos:', e); }
+}
+
 async function aplicarCategoriaEmMassa() {
-  const sel = document.getElementById('lanc-massa-cat');
-  const nova = sel?.value || '';
-  if (!nova) { showToast('Escolha a categoria', 'error'); sel?.focus(); return; }
+  const sel   = document.getElementById('lanc-massa-cat');
+  const selB  = document.getElementById('lanc-massa-banco');
+  const inpC  = document.getElementById('lanc-massa-comp');
+  const nova  = sel?.value || '';
+  const bcoId = selB?.value || '';
+  const comp  = inpC?.value || '';   // AAAA-MM
 
   const marcados = [...document.querySelectorAll('.lanc-check:checked')];
   if (!marcados.length) { showToast('Nenhum lançamento selecionado', 'error'); return; }
 
-  const oficial = validarCategoria(nova);
-  if (!oficial) { showToast(`"${nova}" não existe no Plano de Contas`, 'error'); return; }
+  // Monta so o que foi preenchido — campo vazio significa "nao mexer"
+  const payload = {};
+  const resumo = [];
 
-  if (!confirm(`Mudar ${marcados.length} lançamento(s) para "${oficial}"?\n\nA categoria atual de cada um será substituída.`)) return;
+  if (nova) {
+    const oficial = validarCategoria(nova);
+    if (!oficial) { showToast(`"${nova}" não existe no Plano de Contas`, 'error'); return; }
+    const cat = (_categorias||[]).find(c => normStr(c.nome) === normStr(oficial));
+    payload.categoria     = oficial;
+    payload.categoria_dfc = (cat && ['DFC','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+    payload.categoria_dre = (cat && ['DRE','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+    resumo.push(`Categoria → ${oficial}`);
+  }
 
-  // Codigos DFC/DRE da categoria escolhida
-  const cat = (_categorias||[]).find(c => normStr(c.nome) === normStr(oficial));
-  const dfc = (cat && ['DFC','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
-  const dre = (cat && ['DRE','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+  if (bcoId) {
+    const nomeB = selB.selectedOptions[0]?.text || '';
+    payload.banco_id   = bcoId;
+    payload.banco_nome = nomeB;   // grava os dois: o sistema usa nome em varios lugares
+    resumo.push(`Banco → ${nomeB}`);
+  }
+
+  if (comp) {
+    payload.mes = comp;
+    resumo.push(`Competência → ${comp}`);
+  }
+
+  if (!resumo.length) { showToast('Preencha categoria, banco ou competência', 'error'); return; }
+
+  if (!confirm(`Alterar ${marcados.length} lançamento(s)?\n\n${resumo.join('\n')}\n\nOs valores atuais serão substituídos.`)) return;
 
   const ids = marcados.map(cb => cb.dataset.id).filter(Boolean);
   const LOTE = 50;
   let ok = 0;
   for (let i = 0; i < ids.length; i += LOTE) {
     const fatia = ids.slice(i, i + LOTE);
-    const { error } = await sb.from('lancamentos')
-      .update({ categoria: oficial, categoria_dfc: dfc, categoria_dre: dre })
-      .in('id', fatia);
+    const { error } = await sb.from('lancamentos').update(payload).in('id', fatia);
     if (error) { showToast('Erro: ' + error.message, 'error'); break; }
     ok += fatia.length;
   }
 
-  showToast(`✅ ${ok} lançamento(s) → ${oficial}`, 'success');
-  if (sel) sel.value = '';
+  showToast(`✅ ${ok} lançamento(s) alterado(s)`, 'success');
+  if (sel)  sel.value  = '';
+  if (selB) selB.value = '';
+  if (inpC) inpC.value = '';
   limparSelecao();
   const scrollY = window.scrollY;
   await loadLancamentos();
@@ -15754,36 +15796,50 @@ async function aplicarCategoriaEmMassa() {
 }
 
 async function aplicarCategoriaEmMassaCC() {
-  const sel = document.getElementById('cc-massa-cat');
+  const sel  = document.getElementById('cc-massa-cat');
+  const inpC = document.getElementById('cc-massa-comp');
   const nova = sel?.value || '';
-  if (!nova) { showToast('Escolha a categoria', 'error'); sel?.focus(); return; }
+  const comp = inpC?.value || '';
 
   const marcados = [...document.querySelectorAll('.cc-check:checked')];
   if (!marcados.length) { showToast('Nenhum lançamento selecionado', 'error'); return; }
 
-  const oficial = validarCategoria(nova);
-  if (!oficial) { showToast(`"${nova}" não existe no Plano de Contas`, 'error'); return; }
+  const payload = {};
+  const resumo = [];
 
-  if (!confirm(`Mudar ${marcados.length} lançamento(s) para "${oficial}"?\n\nA categoria atual de cada um será substituída.`)) return;
+  if (nova) {
+    const oficial = validarCategoria(nova);
+    if (!oficial) { showToast(`"${nova}" não existe no Plano de Contas`, 'error'); return; }
+    const cat = (_categorias||[]).find(c => normStr(c.nome) === normStr(oficial));
+    payload.categoria     = oficial;
+    payload.categoria_dfc = (cat && ['DFC','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+    payload.categoria_dre = (cat && ['DRE','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+    resumo.push(`Categoria → ${oficial}`);
+  }
 
-  const cat = (_categorias||[]).find(c => normStr(c.nome) === normStr(oficial));
-  const dfc = (cat && ['DFC','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
-  const dre = (cat && ['DRE','AMBOS'].includes(cat.demonstrativo)) ? cat.codigo : '';
+  if (comp) {
+    payload.mes = comp;
+    payload.data_competencia = comp + '-01';
+    resumo.push(`Competência → ${comp}`);
+  }
+
+  if (!resumo.length) { showToast('Preencha categoria ou competência', 'error'); return; }
+
+  if (!confirm(`Alterar ${marcados.length} lançamento(s)?\n\n${resumo.join('\n')}\n\nOs valores atuais serão substituídos.`)) return;
 
   const ids = marcados.map(cb => cb.dataset.id).filter(Boolean);
   const LOTE = 50;
   let ok = 0;
   for (let i = 0; i < ids.length; i += LOTE) {
     const fatia = ids.slice(i, i + LOTE);
-    const { error } = await sb.from('cartao_lancamentos')
-      .update({ categoria: oficial, categoria_dfc: dfc, categoria_dre: dre })
-      .in('id', fatia);
+    const { error } = await sb.from('cartao_lancamentos').update(payload).in('id', fatia);
     if (error) { showToast('Erro: ' + error.message, 'error'); break; }
     ok += fatia.length;
   }
 
-  showToast(`✅ ${ok} lançamento(s) → ${oficial}`, 'success');
-  if (sel) sel.value = '';
+  showToast(`✅ ${ok} lançamento(s) alterado(s)`, 'success');
+  if (sel)  sel.value  = '';
+  if (inpC) inpC.value = '';
   const scrollY = window.scrollY;
   await loadCartaoLancamentos();
   if (typeof reaplicarFiltroSemCatCC === 'function') reaplicarFiltroSemCatCC();
@@ -19402,6 +19458,7 @@ function atualizarSelecao() {
   const count = document.getElementById('lanc-sel-count');
   if (selecionados.length > 0) {
     bar.style.display = 'flex';
+    preencherBancosMassa();
     count.textContent = `${selecionados.length} selecionado${selecionados.length > 1 ? 's' : ''}`;
     // Calcular totais dos selecionados usando dados reais
     let totalEnt = 0, totalSai = 0;
