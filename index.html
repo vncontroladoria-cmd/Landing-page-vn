@@ -19542,7 +19542,7 @@ async function sincronizarCategoriasLancamentos() {
   const textoOriginal = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Verificando...'; btn.style.opacity = '.6'; }
 
-  const { data: plano } = await sb.from('plano_contas').select('nome,codigo,demonstrativo').eq('empresa_id', empId);
+  const { data: plano } = await sb.from('plano_contas').select('nome,codigo,demonstrativo,competencia_tipo').eq('empresa_id', empId);
   if (!plano?.length) {
     showToast('Nenhuma categoria cadastrada.', 'error');
     if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
@@ -19565,7 +19565,12 @@ async function sincronizarCategoriasLancamentos() {
   plano.forEach(p => {
     const k = normStr(p.nome);
     existeNoPlano[k] = p.nome;
-    if (p.competencia_tipo === 'anterior') compAnterior[k] = true;
+    // A competencia so pode vir da linha DFC: e o `mes` que ela controla.
+    // Sem esse filtro, a linha DRE (que costuma estar como "anterior")
+    // sobrescrevia a do DFC e o resultado ficava imprevisivel.
+    if (p.competencia_tipo === 'anterior' && ['DFC','AMBOS'].includes(p.demonstrativo)) {
+      compAnterior[k] = true;
+    }
     if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[k] = p.codigo;
     if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[k] = p.codigo;
   });
@@ -19715,7 +19720,7 @@ async function sincronizarCategoriasCC() {
   const textoOriginal = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Verificando...'; btn.style.opacity = '.6'; }
 
-  const { data: plano } = await sb.from('plano_contas').select('nome,codigo,demonstrativo').eq('empresa_id', empId);
+  const { data: plano } = await sb.from('plano_contas').select('nome,codigo,demonstrativo,competencia_tipo').eq('empresa_id', empId);
   if (!plano?.length) {
     showToast('Nenhuma categoria cadastrada.', 'error');
     if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
@@ -19737,7 +19742,12 @@ async function sincronizarCategoriasCC() {
   plano.forEach(p => {
     const k = normStr(p.nome);
     existeNoPlano[k] = p.nome;
-    if (p.competencia_tipo === 'anterior') compAnterior[k] = true;
+    // A competencia so pode vir da linha DFC: e o `mes` que ela controla.
+    // Sem esse filtro, a linha DRE (que costuma estar como "anterior")
+    // sobrescrevia a do DFC e o resultado ficava imprevisivel.
+    if (p.competencia_tipo === 'anterior' && ['DFC','AMBOS'].includes(p.demonstrativo)) {
+      compAnterior[k] = true;
+    }
     if (p.demonstrativo === 'DRE' || p.demonstrativo === 'AMBOS') codDre[k] = p.codigo;
     if (p.demonstrativo === 'DFC' || p.demonstrativo === 'AMBOS') codDfc[k] = p.codigo;
   });
