@@ -10427,22 +10427,25 @@ async function salvarLancamentoInline(id, rowId) {
     banco_id: edits[6].value || null,
   };
 
-  // Competencia: o sistema tem dois campos — `mes` (DFC) e `competencia` (DRE).
-  // Editar so um deixava o lancamento em meses diferentes nos dois relatorios,
-  // e a coluna (que mostra `mes`) parecia nao mudar. Agora grava nos dois.
+  // Competencia. O campo `mes` e o oficial (usado por DFC e filtros).
+  // `competencia` e opcional e pode nao existir em todos os projetos — por isso
+  // ele e gravado numa segunda tentativa: se a coluna nao existir, o update
+  // inteiro falharia e nem o `mes` seria salvo.
   const compEdit = document.getElementById(`lcomp-${id}`)?.value || '';
-  if (compEdit) {
-    payload.competencia = compEdit;
-    payload.mes = compEdit;
-  } else {
-    // vazio = volta a seguir a data de pagamento
-    payload.competencia = null;
-    const dt = edits[0]?.value || '';
-    if (dt) payload.mes = dt.substring(0,7);
-  }
+  const dtPag = edits[0]?.value || '';
+  payload.mes = compEdit || (dtPag ? dtPag.substring(0,7) : payload.mes);
   limparClassificacao(payload);
   const { error } = await sb.from('lancamentos').update(payload).eq('id', id);
   if (error) { showToast('Erro: '+error.message,'error'); return; }
+
+  // Espelha em `competencia` (usado pela DRE). Se a coluna nao existir no
+  // projeto, ignora silenciosamente — o `mes` ja foi salvo acima.
+  try {
+    await sb.from('lancamentos')
+      .update({ competencia: compEdit || null })
+      .eq('id', id);
+  } catch (e) { /* coluna opcional */ }
+
   showToast('Salvo!','success');
 
   // Guarda onde a pagina estava: sem isso, cada save joga o usuario pro topo
