@@ -13789,17 +13789,56 @@ async function excluirCategoria(id) {
   const cat = (_categorias||[]).find(c => c.id === id);
   const nome = cat?.nome || '';
 
-  // Verifica lançamentos que usam essa categoria
+  // Verifica lançamentos que usam essa categoria.
+  // NAO usar .or(): ele separa por virgula e delimita por parenteses, entao
+  // nomes como "Rescisão (não recorrente)" ou "Market / Comercial" quebram a
+  // sintaxe, o count vem undefined e o aviso simplesmente nao aparecia.
   if (nome) {
-    const { count } = await qE('lancamentos')
-      .select('id', { count: 'exact', head: true })
-      .or(`categoria.eq.${nome},categoria_dfc.eq.${nome},categoria_dre.eq.${nome}`);
+    const contar = async (tabela, coluna) => {
+      try {
+        const { count, error } = await qE(tabela)
+          .select('id', { count: 'exact', head: true })
+          .eq(coluna, nome);
+        return error ? 0 : (count || 0);
+      } catch (e) { return 0; }
+    };
 
-    if (count > 0) {
-      const msg = `⚠️ A categoria "${nome}" está sendo usada em ${count} lançamento${count > 1 ? 's' : ''}.\n\nExcluir a categoria deixará esses lançamentos sem categoria.\n\nDeseja continuar mesmo assim?`;
+    const [nLanc, nDfc, nDre, nCartao] = await Promise.all([
+      contar('lancamentos', 'categoria'),
+      contar('lancamentos', 'categoria_dfc'),
+      contar('lancamentos', 'categoria_dre'),
+      contar('cartao_lancamentos', 'categoria'),
+    ]);
+
+    const [nProjDfc, nProjDre] = await Promise.all([
+      (async () => { try { const { count } = await qE('projecoes_dfc').select('id',{count:'exact',head:true}).eq('categoria_id', id); return count||0; } catch(e){ return 0; } })(),
+      (async () => { try { const { count } = await qE('projecoes_dre').select('id',{count:'exact',head:true}).eq('categoria_id', id); return count||0; } catch(e){ return 0; } })(),
+    ]);
+
+    const usos = [];
+    if (nLanc)   usos.push(`• ${nLanc} lançamento(s) com essa categoria`);
+    if (nCartao) usos.push(`• ${nCartao} lançamento(s) de cartão de crédito`);
+    if (nDfc)    usos.push(`• ${nDfc} com código DFC vinculado`);
+    if (nDre)    usos.push(`• ${nDre} com código DRE vinculado`);
+    if (nProjDfc) usos.push(`• ${nProjDfc} projeção(ões) no DFC`);
+    if (nProjDre) usos.push(`• ${nProjDre} projeção(ões) na DRE`);
+
+    if (usos.length) {
+      const msg =
+        `⚠️ A categoria "${nome}" ESTÁ EM USO:\n\n` + usos.join('\n') +
+        `\n\nSe excluir, esses registros ficam SEM CATEGORIA e somem dos\n` +
+        `relatórios até serem reclassificados.\n\n` +
+        `Alternativa: renomeie a categoria em vez de excluir.\n\n` +
+        `Excluir mesmo assim?`;
       if (!confirm(msg)) return;
+      // Segunda barreira: uso alto pede confirmacao digitada
+      const total = nLanc + nCartao;
+      if (total >= 10 && prompt(`São ${total} lançamentos. Digite EXCLUIR para confirmar:`) !== 'EXCLUIR') {
+        showToast('Cancelado', '');
+        return;
+      }
     } else {
-      if (!confirm(`Excluir a categoria "${nome}"?`)) return;
+      if (!confirm(`Excluir a categoria "${nome}"?\n\nNenhum lançamento usa ela.`)) return;
     }
   } else {
     if (!confirm('Excluir esta categoria?')) return;
