@@ -19549,8 +19549,11 @@ async function sincronizarCategoriasLancamentos() {
     return;
   }
 
+  // data_lancamento e mes SAO NECESSARIOS: sem eles a regra de competencia
+  // ("Mês anterior") nao tem como calcular nada e era silenciosamente ignorada.
   const { data: lancs } = await sb.from('lancamentos')
-    .select('id,categoria,categoria_dre,categoria_dfc').eq('empresa_id', empId);
+    .select('id,categoria,categoria_dre,categoria_dfc,data_lancamento,mes,descricao,extrato')
+    .eq('empresa_id', empId);
   if (!lancs?.length) {
     showToast('Nenhum lançamento encontrado.', 'error');
     if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
@@ -19727,8 +19730,11 @@ async function sincronizarCategoriasCC() {
     return;
   }
 
+  // Mesmas colunas extras dos lancamentos: sem data/competencia a regra
+  // de "Mês anterior" nao consegue calcular.
   const { data: lancs } = await sb.from('cartao_lancamentos')
-    .select('id,categoria,categoria_dre,categoria_dfc').eq('empresa_id', empId);
+    .select('id,categoria,categoria_dre,categoria_dfc,data_competencia,data_lancamento,mes')
+    .eq('empresa_id', empId);
   if (!lancs?.length) {
     showToast('Nenhum lançamento encontrado.', 'error');
     if (btn) { btn.disabled = false; btn.textContent = textoOriginal; btn.style.opacity = '1'; }
