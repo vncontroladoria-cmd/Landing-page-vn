@@ -8960,14 +8960,19 @@ async function loadDashboard() {
 
   // Serviços: atendimentos de rel_servicos
   const fatSrv    = srvRows.reduce((s,r)=>s+r.total,0);
-  const nServicos = srvRows.length;
+  const nServicos = srvRows.length;   // linhas do relatorio = servicos realizados
+  // Atendimentos = comandas unicas (cliente + nº comanda). Um cliente que fez
+  // corte + escova na mesma visita conta 1 atendimento e 2 servicos.
+  const nAtendSrv = new Set(srvRows.map(r =>
+    (r.cliente||'x') + '|' + (r.numero_comanda || r.data_comanda || '?')
+  )).size;
   const nProd     = prodRows.reduce((s,r)=>s+(r.qtd||1),0);
   const diasComMov= new Set(srvRows.map(r=>r.data_comanda?.substring(0,10)).filter(Boolean)).size;
 
   // Clientes únicos no período (de rel_servicos, filtrado pelo período selecionado)
   const nClientesSrv = new Set(srvRows.map(r=>r.cliente).filter(Boolean)).size;
   const nClientes    = nClientesSrv;
-  const nClientesSub = nClientesSrv > 0 ? 'únicos no período' : 'sem importação para o período';
+  const nClientesSub = nClientesSrv > 0 ? 'clientes únicos atendidos' : 'sem importação para o período';
 
   // Novos clientes: do relatório de clientes novos
   const nNovos = _cliNovosData?.length || 0;
@@ -8985,7 +8990,7 @@ async function loadDashboard() {
   if(el('m-cli'))       el('m-cli').textContent      = nClientes.toLocaleString('pt-BR');
   if(el('m-cli-d'))     el('m-cli-d').textContent    = nClientesSub;
   if(el('m-srv'))       el('m-srv').textContent      = nServicos.toLocaleString('pt-BR');
-  if(el('m-srv-d'))     el('m-srv-d').textContent    = 'atendimentos · rel. serviços';
+  if(el('m-srv-d'))     el('m-srv-d').textContent    = `serviços realizados · ${nAtendSrv} atendimento(s)`;
   if(el('m-prod'))      el('m-prod').textContent     = nProd.toLocaleString('pt-BR');
   if(el('m-prod-d'))    el('m-prod-d').textContent   = 'unidades vendidas';
   if(el('m-ticket'))    el('m-ticket').textContent   = fmtBRL(ticketSrv);
