@@ -269,6 +269,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 /* Cards hero coloridos (gradiente) */
 .hero-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
 .hero-cards.cols-5 { grid-template-columns:repeat(5,1fr); }
+.hero-cards.cols-6 { grid-template-columns:repeat(6,1fr); }
 .hero-cards.cols-7 { grid-template-columns:repeat(7,1fr); }
 .hero-cards.cols-3 { grid-template-columns:repeat(3,1fr); }
 .hero-cards.cols-2 { grid-template-columns:repeat(2,1fr); }
@@ -4129,7 +4130,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- CARDS HERO -->
-          <div class="hero-cards cols-4" style="margin-bottom:14px">
+          <div class="hero-cards cols-6" style="margin-bottom:14px">
             <div class="hcard green">
               <div class="hcard-label">Faturamento Total</div>
               <div class="hcard-value sm" id="srv-fat">—</div>
@@ -4141,6 +4142,18 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <div class="hcard-value" id="srv-qtd">—</div>
               <div class="hcard-sub" id="srv-qtd-d"></div>
               <div class="hcard-icon">✂️</div>
+            </div>
+            <div class="hcard" style="background:linear-gradient(135deg,#0891b2,#22d3ee)">
+              <div class="hcard-label">Serviços Realizados</div>
+              <div class="hcard-value" id="srv-nsrv">—</div>
+              <div class="hcard-sub" id="srv-nsrv-d"></div>
+              <div class="hcard-icon">📋</div>
+            </div>
+            <div class="hcard" style="background:linear-gradient(135deg,#db2777,#f472b6)">
+              <div class="hcard-label">Clientes Atendidos</div>
+              <div class="hcard-value" id="srv-ncli">—</div>
+              <div class="hcard-sub" id="srv-ncli-d"></div>
+              <div class="hcard-icon">👥</div>
             </div>
             <div class="hcard amber">
               <div class="hcard-label">Ticket Médio</div>
@@ -14843,6 +14856,13 @@ function renderServicos(data) {
   if (el('srv-profs')) el('srv-profs').textContent = profs;
 
   // Explica de onde vem cada numero, pra nao restar duvida na leitura
+  // Servicos realizados = linhas do relatorio | Clientes = nomes distintos
+  const nClientesSrv = new Set(data.map(r => normKey(r.cliente)).filter(k => k && k !== '')).size;
+  if (el('srv-nsrv')) el('srv-nsrv').textContent = data.length.toLocaleString('pt-BR');
+  if (el('srv-ncli')) el('srv-ncli').textContent = nClientesSrv.toLocaleString('pt-BR');
+  if (el('srv-nsrv-d')) el('srv-nsrv-d').textContent = `linhas do relatório · ${atend} atendimento(s)`;
+  if (el('srv-ncli-d')) el('srv-ncli-d').textContent = `nomes distintos · ${atend > 0 ? (atend/Math.max(nClientesSrv,1)).toFixed(1) : 0} visita(s) por cliente`;
+
   if (el('srv-fat-d'))  el('srv-fat-d').textContent  = `soma de valor_cobrado · ${data.length} linha(s)`;
   if (el('srv-qtd-d'))  el('srv-qtd-d').textContent  = `comandas únicas (cliente + nº comanda) · ${data.length} serviços`;
   if (el('srv-ticket-d')) el('srv-ticket-d').textContent = `faturamento ÷ ${atend} atendimento(s)`;
