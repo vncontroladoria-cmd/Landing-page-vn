@@ -566,7 +566,9 @@ table.table { min-width: 520px; }
   overflow: hidden !important;
 }
 /* A lista rola DENTRO do card, não estica a página */
-.srv-box > div[id] { overflow-y: auto !important; }
+.srv-box > div[id] { overflow-y: auto !important; flex: 1 1 auto !important; min-height: 0 !important; }
+/* O canvas do gráfico não pode empurrar o card */
+.srv-box canvas { max-height: 100% !important; }
 
 @media (max-width: 768px) {
   .srv-box { height: 360px !important; min-height: 360px !important; max-height: 360px !important; }
