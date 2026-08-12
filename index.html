@@ -9010,7 +9010,14 @@ async function loadDashboard() {
   const nClientesSub = nClientesSrv > 0 ? 'clientes únicos atendidos' : 'sem importação para o período';
 
   // Novos clientes: do relatório de clientes novos
-  const nNovos = _cliNovosData?.length || 0;
+  // Clientes novos DO PERIODO. Sem esse filtro o card somava todos os
+  // cadastros ja importados e mostrava "152 novos / 0 recorrentes".
+  const novosNoPeriodo = (_cliNovosData || []).filter(c => {
+    const d = String(c.dataCadastro || '').substring(0,10);
+    if (!d) return false;
+    return d >= ini && d <= fim;
+  });
+  const nNovos = novosNoPeriodo.length;
 
   // Ticket médio = faturamento PDV / atendimentos (serviços)
   const ticketSrv = nServicos > 0 ? fatPDV / nServicos : 0;
@@ -9408,8 +9415,13 @@ async function loadDashboard() {
     : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
 
   // ── 9. Novos vs Recorrentes ─── usa relatório clientes novos e todos ──
-  const novosCount = nNovos; // de _cliNovosData (relatório clientes novos)
-  const recCount   = Math.max(0, nClientes - novosCount);
+  // Cruza pelo NOME: cliente do periodo que aparece na lista de novos e "novo";
+  // o resto e recorrente. Comparar so pela contagem dava numero negativo ou
+  // zerado quando os dois relatorios tinham bases diferentes.
+  const setNovos = new Set(novosNoPeriodo.map(c => normStr(c.nome)).filter(Boolean));
+  const clientesPeriodo = [...new Set(srvRows.map(r => normStr(r.cliente)).filter(Boolean))];
+  const novosCount = clientesPeriodo.filter(n => setNovos.has(n)).length || nNovos;
+  const recCount   = Math.max(0, clientesPeriodo.length - novosCount);
   if(el('dash-novos-n'))     el('dash-novos-n').textContent     = novosCount;
   if(el('dash-rec-n'))       el('dash-rec-n').textContent       = recCount;
   if(el('dash-novorec-sub')) el('dash-novorec-sub').textContent = nClientes + ' clientes · ' + mesLabel;
@@ -9422,7 +9434,7 @@ async function loadDashboard() {
 
   // ── 10. Canais de Aquisição ───────────────────────────
   const canalMap = {};
-  (_cliNovosData||[]).forEach(c=>{ const k=c.canal||'Não informado'; canalMap[k]=(canalMap[k]||0)+1; });
+  (novosNoPeriodo||[]).forEach(c=>{ const k=c.canal||'Não informado'; canalMap[k]=(canalMap[k]||0)+1; });
   const canalEntries = Object.entries(canalMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const totalCanal = canalEntries.reduce((s,[,v])=>s+v,0);
   if(el('dash-canais')) el('dash-canais').innerHTML = canalEntries.length
