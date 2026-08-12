@@ -16491,6 +16491,40 @@ async function loadDFC() {
     .filter(l => mCols.includes(mesDoLanc(l)))
     .reduce((sm,l) => sm + Number(l.entrada||0), 0);
 
+  // ── MESES FECHADOS ───────────────────────────────────────
+  // A media so deve considerar mes COMPLETO. Um mes conta como fechado quando:
+  //  a) ja existe lancamento no mes SEGUINTE (prova que a virada aconteceu); ou
+  //  b) o mes ja passou no calendario (mes anterior ao atual, ou ano passado).
+  // O criterio (b) cobre o caso de o mes seguinte ainda nao ter movimento
+  // (feriado, fim de semana) e evita contar mes vazio como aberto.
+  const mesesComLanc = new Set((lancs||[]).map(l => mesDoLanc(l)).filter(Boolean));
+  const hojeD   = new Date();
+  const mesHoje = String(hojeD.getMonth()+1).padStart(2,'0');
+  const anoHoje = hojeD.getFullYear();
+
+  const mesFechado = (m) => {
+    const anoNum = parseInt(ano);
+    if (anoNum < anoHoje) return true;                       // ano passado: fechado
+    if (anoNum > anoHoje) return false;                      // futuro: aberto
+    if (parseInt(m) < parseInt(mesHoje)) return true;        // mes ja passou
+    if (parseInt(m) > parseInt(mesHoje)) return false;       // mes futuro
+    // Mes corrente: so fecha se ja houver lancamento no mes seguinte
+    const prox = parseInt(m) === 12 ? '01' : String(parseInt(m)+1).padStart(2,'0');
+    return mesesComLanc.has(prox);
+  };
+
+  const mesesFechados = mCols.filter(mesFechado);
+  const nFech = mesesFechados.length;
+
+  // Media considera SO os meses fechados: mes em andamento puxaria o valor
+  // pra baixo e daria uma leitura errada.
+  const mediaFechados = (valores) => {
+    if (!nFech) return null;
+    let soma = 0;
+    mCols.forEach((m, i) => { if (mesFechado(m)) soma += Number(valores[i] || 0); });
+    return soma / nFech;
+  };
+
   // Base de cada MES: entradas daquele mes. Assim o % acompanha a coluna
   // e da pra ler o peso do custo mes a mes, nao so no acumulado.
   const entradasDoMes = {};
@@ -16569,7 +16603,7 @@ async function loadDFC() {
             <th class="${clsProj(m)}" style="${dispProj(m)}${thS};color:#7c3aed;font-size:9px">PROJ</th>
             <th class="${clsProj(m)}" style="${dispProj(m)}${thS};color:#7c3aed;font-size:9px">%AT</th>`;
         }).join('')}
-        ${!mostraTotais ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309">MÉDIA</th><th style="${thS};color:#6d28d9" title="Quanto representa do total de entradas do período">% TOTAL</th>`}
+        ${!mostraTotais ? '' : `<th style="${thS};color:#1a56db">TOTAL</th><th style="${thS};color:#b45309" title="Média dos meses FECHADOS. Um mês é considerado fechado quando já existe lançamento no mês seguinte, ou quando o mês já passou no calendário.">MÉDIA${nFech ? `<div style="font-size:8px;font-weight:400;color:var(--text3)">${nFech} ${nFech>1?'meses':'mês'}</div>` : `<div style="font-size:8px;font-weight:400;color:var(--red)">nenhum fechado</div>`}</th><th style="${thS};color:#6d28d9" title="Quanto representa do total de entradas do período">% TOTAL</th>`}
       </tr>
     </thead>
     <tbody>`;
@@ -16594,11 +16628,11 @@ async function loadDFC() {
       html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
         <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
         ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`, i>0 ? resultadoOp[i-1] : null, true)).join('')}
-        ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/mCols.length)}</td>` + celAV(totalRO)}
+        ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(mediaFechados(resultadoOp)||0)}</td>` + celAV(totalRO)}
       </tr>`;
     }
     const totalG = g.totalGrupo.reduce((s,v) => s+v, 0);
-    const mediaG = totalG / mCols.length;
+    const mediaG = mediaFechados(g.totalGrupo) || 0;
     const corG = g.cor || '#6b7280';
     const bgG = gi%2===0 ? 'var(--bg3)' : '#f8fafc';
     const gId = 'dfc-g-' + gi;
@@ -16614,7 +16648,7 @@ async function loadDFC() {
     g.gCats.forEach((c, ci) => {
       const vals = mCols.map(m => calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m));
       const total = vals.reduce((s,v) => s+v, 0);
-      const media = total / mCols.length;
+      const media = mediaFechados(vals) || 0;
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
         <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
@@ -16676,7 +16710,7 @@ async function loadDFC() {
   html += `<tr style="background:${BG_RL};border-top:2px solid #93c5fd">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_RL};z-index:10;color:#1e3a8a;font-size:11px">Resultado Líquido</td>
     ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':`<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:#6d28d9">${entradasDoMes[mCols[i]]>0&&v?(Math.abs(v)/entradasDoMes[mCols[i]]*100).toFixed(0)+'%':''}</td>`) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td>` : '')).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_RL2};color:${totalRL>=0?'#15803d':'#b91c1c'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:${BG_RL2};color:#1e40af">${fmtNum(totalRL/mCols.length)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:${BG_RL2};color:#6d28d9">${totalEntradasPeriodo>0?(Math.abs(totalRL)/totalEntradasPeriodo*100).toFixed(1)+'%':''}</td>`}
+    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_RL2};color:${totalRL>=0?'#15803d':'#b91c1c'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:${BG_RL2};color:#1e40af">${fmtNum(mediaFechados(resultadoLiq)||0)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:${BG_RL2};color:#6d28d9">${totalEntradasPeriodo>0?(Math.abs(totalRL)/totalEntradasPeriodo*100).toFixed(1)+'%':''}</td>`}
   </tr>`;
 
   // Saldo Acumulado — verde claro (é o dinheiro que sobra em caixa)
