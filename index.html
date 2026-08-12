@@ -3742,6 +3742,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <option value="caixa">💵 Caixa</option>
                 <option value="competencia">📅 Competência</option>
               </select>
+              <select id="dfc-analise" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;font-weight:600;border:1.5px solid #7c3aed;border-radius:8px;background:var(--bg3);color:#7c3aed">
+                <option value="nenhuma">Sem análise</option>
+                <option value="vertical" selected>% Vertical (AV)</option>
+                <option value="horizontal">% Horizontal (AH)</option>
+                <option value="todas">AV + AH</option>
+              </select>
               <select id="dfc-modo" onchange="loadDFC()" style="padding:6px 10px;font-size:13px;font-weight:600;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg3);color:var(--accent)">
                 <option value="realizado">Realizado</option>
                 <option value="projetado">Projetado</option>
@@ -16358,7 +16364,7 @@ async function loadDFC() {
   const cor = v => v>0?'var(--green)':v<0?'var(--red)':'var(--text3)';
 
   // Celulas de um mes para uma CATEGORIA (projetado editavel)
-  function celulasCat(cat, m, realizado) {
+  function celulasCat(cat, m, realizado, anterior, ehEntrada) {
     const pj  = projDeCat(cat, m);
     const r   = Math.abs(realizado);
     const pct = pj ? (r / Math.abs(pj) * 100) : null;
@@ -16377,29 +16383,31 @@ async function loadDFC() {
     const celPct = `<td id="dfc-pct-${cat.id}-${m}" class="${clsProj(m)}" style="${dispProj(m)}${CEL};font-weight:700;background:#f5f3ff;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
     const celReal = `<td style="${CEL};color:${cor(realizado)}">${realizado!==0?fmtNum(Math.abs(realizado)):''}</td>`;
 
-    if (modo === 'realizado') return celReal + celAVMes(m, realizado);
+    const analises = celAVMes(m, realizado) + celAHMes(realizado, anterior, ehEntrada);
+    if (modo === 'realizado') return celReal + analises;
     if (modo === 'projetado') return inputProj;
-    return celReal + celAVMes(m, realizado) + inputProj + celPct;
+    return celReal + analises + inputProj + celPct;
   }
 
   // Celulas de um mes para GRUPO / totais (so leitura)
-  function celulasResumo(m, realizado, projetado, estilo) {
+  function celulasResumo(m, realizado, projetado, estilo, anterior, ehEntrada) {
     const st = estilo || `${CEL};font-weight:600`;
     const r = Math.abs(realizado), pj = Math.abs(projetado||0);
     const pct = pj ? (r / pj * 100) : null;
     const celReal = `<td style="${st};color:${cor(realizado)}">${realizado!==0?fmtNum(r):''}</td>`;
     const celProj = `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe;color:var(--text2)">${pj?fmtNum(pj):''}</td>`;
     const celPct  = `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
-    if (modo === 'realizado') return celReal + celAVMes(m, realizado);
+    const analises = celAVMes(m, realizado) + celAHMes(realizado, anterior, ehEntrada);
+    if (modo === 'realizado') return celReal + analises;
     if (modo === 'projetado') return celProj;
-    return celReal + celAVMes(m, realizado) + celProj + celPct;
+    return celReal + analises + celProj + celPct;
   }
 
   // Celulas vazias, pra linhas que nao tem projecao (Saldo Inicial etc)
   function celulasVazias(m, realizado, estilo) {
     const st = estilo || CEL;
     const celReal = `<td style="${st};color:${cor(realizado)}">${fmtNum(realizado)}</td>`;
-    const vazioAV = `<td style="${AVCEL}"></td>`;
+    const vazioAV = (temAV ? `<td style="${AVCEL}"></td>` : '') + (temAH ? `<td style="${AHCEL}"></td>` : '');
     if (modo === 'projetado') return `<td style="${st}"></td>`;
     if (modo === 'realizado') return celReal + vazioAV;
     return celReal + vazioAV + `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td><td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td>`;
@@ -16488,12 +16496,37 @@ async function loadDFC() {
 
   // Sem fundo: a cor do numero ja destaca e a tabela fica mais limpa
   const AVCEL = "padding:6px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:#7c3aed";
+  const AHCEL = "padding:6px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700";
 
-  // % do mes — sempre visivel, coluna fixa ao lado do valor
+  // Qual analise mostrar. AV = peso sobre as entradas do mes.
+  // AH = variacao em relacao ao mes ANTERIOR da propria linha.
+  const analise = document.getElementById('dfc-analise')?.value || 'vertical';
+  const temAV = analise === 'vertical'   || analise === 'todas';
+  const temAH = analise === 'horizontal' || analise === 'todas';
+
+  // ANALISE VERTICAL: quanto a linha representa das entradas daquele mes
   const celAVMes = (m, valor) => {
+    if (!temAV) return '';
     const base = entradasDoMes[m] || 0;
     const pct = base > 0 && valor ? (Math.abs(valor) / base * 100) : null;
-    return `<td style="${AVCEL}">${pct===null?'':pct.toFixed(0)+'%'}</td>`;
+    return `<td class="dfc-av" style="${AVCEL}">${pct===null?'':pct.toFixed(0)+'%'}</td>`;
+  };
+
+  // ANALISE HORIZONTAL: variacao contra o mes anterior, com seta.
+  // Para SAIDA a leitura inverte: gastar mais e ruim, entao a seta pra cima
+  // aparece em vermelho. Por isso passamos se a linha e de entrada ou saida.
+  const celAHMes = (atual, anterior, ehEntrada) => {
+    if (!temAH) return '';
+    const a = Number(atual || 0), b = Number(anterior || 0);
+    if (!b) return `<td class="dfc-ah" style="${AHCEL};color:var(--text3)">${a ? 'novo' : ''}</td>`;
+    const varPct = (Math.abs(a) - Math.abs(b)) / Math.abs(b) * 100;
+    if (!isFinite(varPct)) return `<td class="dfc-ah" style="${AHCEL}"></td>`;
+    const subiu = varPct > 0;
+    const seta = Math.abs(varPct) < 0.5 ? '=' : (subiu ? '▲' : '▼');
+    // entrada subindo = bom (verde) | saida subindo = ruim (vermelho)
+    const bom = ehEntrada ? subiu : !subiu;
+    const cor = Math.abs(varPct) < 0.5 ? 'var(--text3)' : (bom ? 'var(--green)' : 'var(--red)');
+    return `<td class="dfc-ah" style="${AHCEL};color:${cor}">${seta}${Math.abs(varPct).toFixed(0)}%</td>`;
   };
 
   // % da coluna TOTAL
@@ -16517,7 +16550,8 @@ async function loadDFC() {
         ${mCols.map((m, i) => {
           const nome = mNomes[i];
           // % do mes vem sempre, colado no valor
-          const thAV = `<th style="${thS};color:#7c3aed;font-size:9px" title="Peso sobre as entradas do mês">%</th>`;
+          const thAV = (temAV ? `<th style="${thS};color:#7c3aed;font-size:9px" title="Análise Vertical: peso sobre as entradas do mês">AV%</th>` : '')
+                     + (temAH ? `<th style="${thS};color:#0891b2;font-size:9px" title="Análise Horizontal: variação em relação ao mês anterior">AH%</th>` : '');
           if (modo === 'projetado')
             return `<th style="${thS}">${nome}</th>`;
           if (modo !== 'ambos')
@@ -16567,7 +16601,7 @@ async function loadDFC() {
       <td style="padding:9px 10px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgG};z-index:10;font-size:11px">
         <span id="${gId}-arrow" style="margin-right:6px;font-size:10px">▶</span>${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:10px;color:var(--text2)">${g.sinal}</span>
       </td>
-      ${g.totalGrupo.map((v,i) => celulasResumo(mCols[i], v, g.gCats.reduce((sm,c)=>sm+projDeCat(c,mCols[i]),0), `padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px`)).join('')}
+      ${g.totalGrupo.map((v,i) => celulasResumo(mCols[i], v, g.gCats.reduce((sm,c)=>sm+projDeCat(c,mCols[i]),0), `padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px`, i>0 ? g.totalGrupo[i-1] : null, g.tipo === 'ENTRADA')).join('')}
       ${!mostraTotais ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>` + celAV(totalG)}
     </tr>`;
 
@@ -16578,7 +16612,7 @@ async function loadDFC() {
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
         <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
-        ${vals.map((v,i) => celulasCat(c, mCols[i], v)).join('')}
+        ${vals.map((v,i) => celulasCat(c, mCols[i], v, i>0 ? vals[i-1] : null, g.tipo === 'ENTRADA')).join('')}
         ${!mostraTotais ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>` + celAV(total)}
       </tr>`;
     });
@@ -16644,7 +16678,7 @@ async function loadDFC() {
   const ultimoSA = saldoFinalMes[saldoFinalMes.length-1];
   html += `<tr style="background:${BG_SA};border-top:2px solid var(--accent)">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_SA};z-index:10;font-size:11px;color:#14532d">Saldo Acumulado</td>
-    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':'<td></td>') + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td>` : '')).join('')}
+    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'': (temAV?'<td></td>':'') + (temAH?'<td></td>':'')) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td>` : '')).join('')}
     ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_SA2};color:${ultimoSA>=0?'#15803d':'#b91c1c'}">${fmtNum(ultimoSA)}</td><td style="padding:10px 6px;background:${BG_SA2}"></td><td style="padding:10px 6px;background:${BG_SA2}"></td>`}
   </tr>`;
 
