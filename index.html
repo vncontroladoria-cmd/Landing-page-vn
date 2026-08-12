@@ -4145,13 +4145,13 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard amber">
               <div class="hcard-label">Ticket Médio</div>
               <div class="hcard-value sm" id="srv-ticket">—</div>
-              <div class="hcard-sub">por atendimento</div>
+              <div class="hcard-sub" id="srv-ticket-d">por atendimento</div>
               <div class="hcard-icon">🎫</div>
             </div>
             <div class="hcard purple">
               <div class="hcard-label">Profissionais Ativos</div>
               <div class="hcard-value" id="srv-profs">—</div>
-              <div class="hcard-sub">com serviços no período</div>
+              <div class="hcard-sub" id="srv-profs-d">com serviços no período</div>
               <div class="hcard-icon">👩‍💼</div>
             </div>
           </div>
@@ -4424,7 +4424,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard blue">
               <div class="hcard-label">Produtos Vendidos</div>
               <div class="hcard-value" id="prod-qtd">—</div>
-              <div class="hcard-sub">total de unidades</div>
+              <div class="hcard-sub" id="prod-qtd-d">total de unidades</div>
               <div class="hcard-icon">📦</div>
             </div>
             <div class="hcard red">
@@ -4436,7 +4436,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard amber">
               <div class="hcard-label">Ticket Médio</div>
               <div class="hcard-value sm" id="prod-ticket">—</div>
-              <div class="hcard-sub">valor médio por unidade</div>
+              <div class="hcard-sub" id="prod-ticket-d">valor médio por unidade</div>
               <div class="hcard-icon">🎫</div>
             </div>
           </div>
@@ -4533,25 +4533,25 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div class="hcard green">
               <div class="hcard-label">Faturamento</div>
               <div class="hcard-value sm" id="perf-fat">—</div>
-              <div class="hcard-sub">total de serviços vendidos</div>
+              <div class="hcard-sub" id="perf-fat-d">total de serviços vendidos</div>
               <div class="hcard-icon">💰</div>
             </div>
             <div class="hcard blue">
               <div class="hcard-label">Atendimentos</div>
               <div class="hcard-value" id="perf-atend">—</div>
-              <div class="hcard-sub">comandas únicas no período</div>
+              <div class="hcard-sub" id="perf-atend-d">comandas únicas no período</div>
               <div class="hcard-icon">📋</div>
             </div>
             <div class="hcard purple">
               <div class="hcard-label">Comissão Profissional</div>
               <div class="hcard-value sm" id="perf-comissao">—</div>
-              <div class="hcard-sub">total pago aos profissionais</div>
+              <div class="hcard-sub" id="perf-comissao-d">total pago aos profissionais</div>
               <div class="hcard-icon">💼</div>
             </div>
             <div class="hcard amber">
               <div class="hcard-label">Ticket Médio</div>
               <div class="hcard-value sm" id="perf-ticket">—</div>
-              <div class="hcard-sub">faturamento ÷ atendimentos</div>
+              <div class="hcard-sub" id="perf-ticket-d">faturamento ÷ atendimentos</div>
               <div class="hcard-icon">🎫</div>
             </div>
           </div>
@@ -12460,6 +12460,11 @@ function renderProdutos(rows) {
   if(el('prod-ticket')) el('prod-ticket').textContent = fmtBRL(ticket);
   if(el('prod-margem')) el('prod-margem').textContent = custo > 0 ? `Margem: ${margem}%` : '';
 
+  // Origem de cada numero
+  if(el('prod-fat-d'))    el('prod-fat-d').textContent    = `soma de valor_cobrado · ${rows.length} linha(s)`;
+  if(el('prod-qtd-d'))    el('prod-qtd-d').textContent    = 'soma da coluna Qtd.';
+  if(el('prod-ticket-d')) el('prod-ticket-d').textContent = `faturamento ÷ ${qtd} unidade(s)`;
+
   // ── Ranking de produtos ─────────────────────────────────
   const prodMap = {};
   rows.forEach(r => {
@@ -12699,6 +12704,14 @@ async function loadPerformance() {
   if(el('perf-atend'))   el('perf-atend').textContent   = totalAtend.toLocaleString('pt-BR');
   if(el('perf-comissao'))el('perf-comissao').textContent= fmtBRL(totalComissao);
   if(el('perf-ticket'))  el('perf-ticket').textContent  = fmtBRL(ticket);
+
+  // Origem de cada numero. Atencao: aqui a comanda unica inclui o PROFISSIONAL,
+  // entao um cliente atendido por 2 profissionais conta 2 — diferente da
+  // pagina de Servicos, que agrupa por cliente.
+  if(el('perf-fat-d'))      el('perf-fat-d').textContent      = `soma de valor_cobrado · ${rows.length} linha(s)`;
+  if(el('perf-atend-d'))    el('perf-atend-d').textContent    = 'comandas únicas (profissional + nº comanda)';
+  if(el('perf-comissao-d')) el('perf-comissao-d').textContent = 'soma da coluna Comissão';
+  if(el('perf-ticket-d'))   el('perf-ticket-d').textContent   = `faturamento ÷ ${totalAtend} atendimento(s)`;
 
   const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const mesNome = mes ? meses[parseInt(mes)-1] : 'Todos';
@@ -14823,6 +14836,12 @@ function renderServicos(data) {
   if (el('srv-qtd')) el('srv-qtd').textContent = atend.toLocaleString('pt-BR');
   if (el('srv-ticket')) el('srv-ticket').textContent = fmtBRL(ticket);
   if (el('srv-profs')) el('srv-profs').textContent = profs;
+
+  // Explica de onde vem cada numero, pra nao restar duvida na leitura
+  if (el('srv-fat-d'))  el('srv-fat-d').textContent  = `soma de valor_cobrado · ${data.length} linha(s)`;
+  if (el('srv-qtd-d'))  el('srv-qtd-d').textContent  = `comandas únicas (cliente + nº comanda) · ${data.length} serviços`;
+  if (el('srv-ticket-d')) el('srv-ticket-d').textContent = `faturamento ÷ ${atend} atendimento(s)`;
+  if (el('srv-profs-d')) el('srv-profs-d').textContent = 'nomes distintos na coluna profissional';
 
   // Ranking serviços
   const srvMap = {};
