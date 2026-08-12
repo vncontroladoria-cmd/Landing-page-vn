@@ -508,6 +508,10 @@ table.table { min-width: 520px; }
     grid-template-columns: 1fr !important;
   }
 
+  /* Cards de relatorio: altura fixa nao cabe no celular */
+  [style*="height:440px"] { height: 320px !important; }
+  [style*="height:380px"] { height: 300px !important; }
+
   /* Graficos: altura fixa em px estoura no celular */
   [style*="height:320px"], [style*="height: 320px"],
   [style*="height:380px"], [style*="height: 380px"] { height: 220px !important; }
@@ -4150,15 +4154,15 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                align-items:stretch (padrao do grid) + flex nos filhos faz os dois
                cards acompanharem o mais alto, independente do conteudo. -->
           <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:stretch">
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;height:440px">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;flex-shrink:0">
-                🏆 Ranking de Serviços
+                🏆 Ranking de Serviços <span style="font-size:11px;color:var(--text2);font-weight:400">· top 10</span>
               </div>
               <div id="srv-ranking" style="flex:1;min-height:0;overflow-y:auto">
                 <div class="empty">Importe o relatório para ver os dados</div>
               </div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;height:440px">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;flex-shrink:0">
                 📂 Distribuição por Categoria
               </div>
@@ -4432,7 +4436,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <!-- LINHA 1: Ranking + Gráfico com a MESMA altura.
                stretch + flex faz os dois acompanharem o mais alto, sem sobra. -->
           <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:stretch">
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;height:440px">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
                 <span>🏆 Ranking de Produtos</span>
                 <span id="prod-rank-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
@@ -4441,7 +4445,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div class="empty">Importe o relatório de Produtos</div>
               </div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;height:440px">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
                 <span>📂 Faturamento por Categoria</span>
                 <span id="prod-cat-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
@@ -4454,7 +4458,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <!-- LINHA 2: Vendas por profissional + Clientes que compraram -->
           <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:stretch">
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;height:380px">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
                 <span>👩‍💼 Vendas por Profissional</span>
                 <span id="prod-prof-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
@@ -4463,7 +4467,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div class="empty">Sem dados</div>
               </div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;height:380px">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
                 <span>🛍️ Clientes que Compraram</span>
                 <span id="prod-cli-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
@@ -12312,7 +12316,7 @@ function renderClientes(linhas, ano, mes) {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL</th>
       </tr></thead>
-      <tbody>${novosSort.slice(0,30).map(([nome,v],i) => `
+      <tbody>${novosSort.slice(0,10).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:6px 8px;text-align:center;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:6px 10px">
@@ -12473,7 +12477,7 @@ function renderProdutos(rows) {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">%</th>
       </tr></thead>
-      <tbody>${prodRank.slice(0,25).map(([nome,v],i) => {
+      <tbody>${prodRank.slice(0,10).map(([nome,v],i) => {
         const barW = (v.total/maxProd*100).toFixed(1);
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
         const pctTotal = total>0 ? (v.total/total*100) : 0;
@@ -12604,7 +12608,7 @@ function renderProdutos(rows) {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
-      <tbody>${cliRank.slice(0,20).map(([nome,v],i) => {
+      <tbody>${cliRank.slice(0,10).map(([nome,v],i) => {
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
         return `<tr style="border-bottom:1px solid var(--border)">
           <td style="padding:6px 10px;font-size:${i<3?'14':'11'}px;text-align:center">${pod}</td>
@@ -12802,7 +12806,7 @@ async function loadPerformance() {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD.</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
-      <tbody>${srvRank.slice(0,20).map(([nome,v],i) => `
+      <tbody>${srvRank.slice(0,10).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
@@ -12835,7 +12839,7 @@ async function loadPerformance() {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
-      <tbody>${cliPerfRank.slice(0,20).map(([nome,v],i) => `
+      <tbody>${cliPerfRank.slice(0,10).map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
@@ -14832,7 +14836,7 @@ function renderServicos(data) {
         <th style="${TH_STYLE};text-align:right">TOTAL</th>
         <th style="${TH_STYLE};text-align:right">%</th>
       </tr></thead>
-      <tbody>${srvRanking.slice(0,25).map(([nome, v], i) => {
+      <tbody>${srvRanking.slice(0,10).map(([nome, v], i) => {
         const pct = (v.total/total*100).toFixed(1);
         const barW = (v.total/maxSrv*100).toFixed(1);
         const podio = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
