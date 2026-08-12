@@ -559,11 +559,13 @@ table.table { min-width: 520px; }
    !important porque `.card { overflow-x:auto }` e outras regras `.card`
    aparecem depois no arquivo e venciam por ordem de declaração.
    min-height + max-height travam a altura mesmo com conteúdo maior. */
-.srv-box {
+div.card.srv-box {
   height: 520px !important;
   min-height: 520px !important;
   max-height: 520px !important;
   overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 /* A lista rola DENTRO do card, não estica a página */
 .srv-box > div[id] { overflow-y: auto !important; flex: 1 1 auto !important; min-height: 0 !important; }
@@ -571,8 +573,11 @@ table.table { min-width: 520px; }
 .srv-box > div:not([id]) { flex: 1 1 auto !important; min-height: 0 !important; zoom: 1 !important; height: auto !important; }
 .srv-box canvas { max-height: 100% !important; max-width: 100% !important; }
 
-@media (max-width: 768px) {
-  .srv-box { height: 360px !important; min-height: 360px !important; max-height: 360px !important; }
+/* O body usa zoom:1.3, entao a largura que a media query enxerga e ~77% da
+   real (1440px viram ~1108px). Por isso o corte do celular precisa ser bem
+   mais baixo, senao o desktop cai na regra de celular. */
+@media (max-width: 500px) {
+  div.card.srv-box { height: 360px !important; min-height: 360px !important; max-height: 360px !important; }
 }
 
 /* BADGES */
