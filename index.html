@@ -14997,7 +14997,9 @@ function renderSrvHistoricoCliente(data) {
     const nome = (r.cliente||'—').trim();
     if(nome==='—') return;
     const k = normKey(nome);
-    if(!cliMap[k]) cliMap[k] = { label:nome, atend:[], totalVal:0, totalSrv:0, celular: r.celular||'' };
+    if(!cliMap[k]) cliMap[k] = { label:nome, atend:[], totalVal:0, totalSrv:0, visitas:new Set(), celular: r.celular||'' };
+    // Visita = comanda unica (ou a data, quando nao ha numero de comanda)
+    cliMap[k].visitas.add(r.numero_comanda || r.data_comanda || '?');
     cliMap[k].atend.push({
       data: r.data_comanda,
       servico: cleanSrv(r.servico||''),
@@ -15009,10 +15011,20 @@ function renderSrvHistoricoCliente(data) {
     if (!cliMap[k].celular && r.celular) cliMap[k].celular = r.celular;
   });
 
-  const clientes = Object.values(cliMap)
-    .sort((a,b) => b.totalVal - a.totalVal);
+  // Guarda pra reordenar sem refazer a consulta
+  window._srvClientes = Object.values(cliMap);
+  const ordem = window._srvCliOrdem || { col: 'total', desc: true };
+  const cmp = {
+    nome:     (a,b) => String(a.label).localeCompare(String(b.label)),
+    visitas:  (a,b) => a.visitas.size - b.visitas.size,
+    servicos: (a,b) => a.totalSrv - b.totalSrv,
+    total:    (a,b) => a.totalVal - b.totalVal,
+  }[ordem.col] || ((a,b) => a.totalVal - b.totalVal);
 
-  const maxVal = clientes[0]?.totalVal || 1;
+  const clientes = window._srvClientes.slice()
+    .sort((a,b) => ordem.desc ? cmp(b,a) : cmp(a,b));
+
+  const maxVal = Math.max(...clientes.map(c => c.totalVal), 1);
 
   el.innerHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -15020,10 +15032,11 @@ function renderSrvHistoricoCliente(data) {
         <tr style="background:var(--bg3)">
           <th style="padding:8px 10px;width:36px"></th>
           <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">#</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CLIENTE</th>
+          <th class="srv-cli-th" data-col="nome" style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;user-select:none">CLIENTE ⇅</th>
           <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text2)">CELULAR</th>
-          <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">SERVIÇOS</th>
-          <th style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2)">TOTAL GASTO</th>
+          <th class="srv-cli-th" data-col="visitas" style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;user-select:none">VISITAS ⇅</th>
+          <th class="srv-cli-th" data-col="servicos" style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;user-select:none">SERVIÇOS ⇅</th>
+          <th class="srv-cli-th" data-col="total" style="padding:8px 10px;text-align:right;font-size:10px;font-weight:600;color:var(--text2);cursor:pointer;user-select:none">TOTAL GASTO ⇅</th>
         </tr>
       </thead>
       <tbody>
@@ -15044,11 +15057,12 @@ function renderSrvHistoricoCliente(data) {
                 </div>
               </td>
               <td style="padding:7px 10px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${c.celular ? formatarTelefoneCliente(c.celular) : '—'}</td>
+              <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;color:#7c3aed">${c.visitas.size}</td>
               <td style="padding:7px 10px;text-align:right;font-size:12px;color:var(--text2)">${c.totalSrv}</td>
               <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(c.totalVal)}</td>
             </tr>
             <tr id="${id}" style="display:none;background:var(--bg3)">
-              <td colspan="6" style="padding:0 0 12px 44px">
+              <td colspan="7" style="padding:0 0 12px 44px">
                 <table style="width:calc(100%-44px);border-collapse:collapse;font-size:11px;background:var(--bg2);border-radius:8px;border:1px solid var(--border);overflow:hidden">
                   <thead>
                     <tr style="background:var(--bg3)">
@@ -15080,6 +15094,22 @@ function renderSrvHistoricoCliente(data) {
     </table>
     ${clientes.length ? `<div style="padding:10px;text-align:center;font-size:11px;color:var(--text3);background:var(--bg3)">Mostrando todos os ${clientes.length} clientes</div>` : ''}
   `;
+
+  // Cabecalho clicavel: 1o clique ordena do maior pro menor, 2o inverte.
+  // Nao dá pra usar o sortTable generico aqui porque cada cliente tem uma
+  // linha extra escondida (o detalhe) que precisa acompanhar a linha principal.
+  el.querySelectorAll('.srv-cli-th').forEach(th => {
+    const col = th.dataset.col;
+    if (col === ordem.col) {
+      th.style.color = 'var(--accent)';
+      th.innerHTML = th.innerHTML.replace(' ⇅', ordem.desc ? ' ▼' : ' ▲');
+    }
+    th.onclick = () => {
+      const mesma = window._srvCliOrdem?.col === col;
+      window._srvCliOrdem = { col, desc: mesma ? !window._srvCliOrdem.desc : true };
+      renderSrvHistoricoCliente(data);
+    };
+  });
 }
 
 function srvToggleCli(id) {
