@@ -16383,7 +16383,9 @@ async function loadDFC() {
     const celPct = `<td id="dfc-pct-${cat.id}-${m}" class="${clsProj(m)}" style="${dispProj(m)}${CEL};font-weight:700;background:#f5f3ff;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
     const celReal = `<td style="${CEL};color:${cor(realizado)}">${realizado!==0?fmtNum(Math.abs(realizado)):''}</td>`;
 
-    const analises = celAVMes(m, realizado) + celAHMes(realizado, anterior, ehEntrada);
+    const iAtual = mCols.indexOf(m);
+    const mAnt = iAtual > 0 ? mCols[iAtual-1] : null;
+    const analises = celAVMes(m, realizado, mAnt, anterior, ehEntrada) + celAHMes(realizado, anterior, ehEntrada);
     if (modo === 'realizado') return celReal + analises;
     if (modo === 'projetado') return inputProj;
     return celReal + analises + inputProj + celPct;
@@ -16397,7 +16399,9 @@ async function loadDFC() {
     const celReal = `<td style="${st};color:${cor(realizado)}">${realizado!==0?fmtNum(r):''}</td>`;
     const celProj = `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe;color:var(--text2)">${pj?fmtNum(pj):''}</td>`;
     const celPct  = `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe;color:${corPct(pct)}">${pct===null?'—':pct.toFixed(0)+'%'}</td>`;
-    const analises = celAVMes(m, realizado) + celAHMes(realizado, anterior, ehEntrada);
+    const iAtual = mCols.indexOf(m);
+    const mAnt = iAtual > 0 ? mCols[iAtual-1] : null;
+    const analises = celAVMes(m, realizado, mAnt, anterior, ehEntrada) + celAHMes(realizado, anterior, ehEntrada);
     if (modo === 'realizado') return celReal + analises;
     if (modo === 'projetado') return celProj;
     return celReal + analises + celProj + celPct;
@@ -16544,12 +16548,32 @@ async function loadDFC() {
   const temAV = analise === 'vertical'   || analise === 'todas';
   const temAH = analise === 'horizontal' || analise === 'todas';
 
-  // ANALISE VERTICAL: quanto a linha representa das entradas daquele mes
-  const celAVMes = (m, valor) => {
-    if (!temAV) return '';
+  // ANALISE VERTICAL: quanto a linha representa das entradas daquele mes.
+  // A seta compara o PERCENTUAL com o do mes anterior — util porque o peso
+  // pode piorar mesmo com o valor absoluto caindo (se a receita caiu mais).
+  const pctAV = (m, valor) => {
     const base = entradasDoMes[m] || 0;
-    const pct = base > 0 && valor ? (Math.abs(valor) / base * 100) : null;
-    return `<td class="dfc-av" style="${AVCEL}">${pct===null?'':pct.toFixed(0)+'%'}</td>`;
+    return (base > 0 && valor) ? (Math.abs(valor) / base * 100) : null;
+  };
+
+  const celAVMes = (m, valor, mAnterior, valorAnterior, ehEntrada) => {
+    if (!temAV) return '';
+    const pct = pctAV(m, valor);
+    if (pct === null) return `<td class="dfc-av" style="${AVCEL}"></td>`;
+
+    const pctAnt = (mAnterior != null) ? pctAV(mAnterior, valorAnterior) : null;
+    let seta = '', cor = '#7c3aed';
+    if (pctAnt !== null) {
+      const dif = pct - pctAnt;                 // diferenca em pontos percentuais
+      if (Math.abs(dif) >= 0.5) {
+        const subiu = dif > 0;
+        seta = subiu ? '▲' : '▼';
+        // peso de entrada subindo = bom | peso de custo subindo = ruim
+        const bom = ehEntrada ? subiu : !subiu;
+        cor = bom ? 'var(--green)' : 'var(--red)';
+      }
+    }
+    return `<td class="dfc-av" style="${AVCEL};color:${cor}" title="${pctAnt!==null?`Mês anterior: ${pctAnt.toFixed(0)}%`:''}">${seta}${pct.toFixed(0)}%</td>`;
   };
 
   // ANALISE HORIZONTAL: variacao contra o mes anterior, com seta.
