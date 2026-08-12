@@ -4193,7 +4193,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:stretch">
             <div class="card srv-box" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;flex-shrink:0">
-                🏆 Ranking de Serviços <span style="font-size:11px;color:var(--text2);font-weight:400">· top 10</span>
+                🏆 Ranking de Serviços <span style="font-size:11px;color:var(--text2);font-weight:400" id="srv-rank-sub"></span>
               </div>
               <div id="srv-ranking" style="flex:1;min-height:0;overflow-y:auto">
                 <div class="empty">Importe o relatório para ver os dados</div>
@@ -12358,7 +12358,7 @@ function renderClientes(linhas, ano, mes) {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">TOTAL</th>
       </tr></thead>
-      <tbody>${novosSort.slice(0,10).map(([nome,v],i) => `
+      <tbody>${novosSort.map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:6px 8px;text-align:center;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:6px 10px">
@@ -12524,7 +12524,7 @@ function renderProdutos(rows) {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">%</th>
       </tr></thead>
-      <tbody>${prodRank.slice(0,10).map(([nome,v],i) => {
+      <tbody>${prodRank.map(([nome,v],i) => {
         const barW = (v.total/maxProd*100).toFixed(1);
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
         const pctTotal = total>0 ? (v.total/total*100) : 0;
@@ -12655,7 +12655,7 @@ function renderProdutos(rows) {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
-      <tbody>${cliRank.slice(0,10).map(([nome,v],i) => {
+      <tbody>${cliRank.map(([nome,v],i) => {
         const pod = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
         return `<tr style="border-bottom:1px solid var(--border)">
           <td style="padding:6px 10px;font-size:${i<3?'14':'11'}px;text-align:center">${pod}</td>
@@ -12861,7 +12861,7 @@ async function loadPerformance() {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">QTD.</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
-      <tbody>${srvRank.slice(0,10).map(([nome,v],i) => `
+      <tbody>${srvRank.map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
@@ -12894,7 +12894,7 @@ async function loadPerformance() {
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VISITAS</th>
         <th style="position:sticky;top:0;z-index:10;background:var(--bg3);cursor:pointer;user-select:none;white-space:nowrap;font-size:10px;font-weight:700;color:var(--text2);padding:7px 8px;text-align:right">VALOR</th>
       </tr></thead>
-      <tbody>${cliPerfRank.slice(0,10).map(([nome,v],i) => `
+      <tbody>${cliPerfRank.map(([nome,v],i) => `
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
@@ -14898,6 +14898,9 @@ function renderServicos(data) {
   const srvRanking = Object.entries(srvMap).sort((a,b) => b[1].total - a[1].total);
   const maxSrv = srvRanking[0]?.[1].total || 1;
 
+  const subRank = el('srv-rank-sub');
+  if (subRank) subRank.textContent = `· ${srvRanking.length} serviço(s) · role para ver todos`;
+
   const rankingEl = el('srv-ranking');
   if (rankingEl) {
     _setTable(rankingEl, `<table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -14909,7 +14912,7 @@ function renderServicos(data) {
         <th style="${TH_STYLE};text-align:right">TOTAL</th>
         <th style="${TH_STYLE};text-align:right">%</th>
       </tr></thead>
-      <tbody>${srvRanking.slice(0,10).map(([nome, v], i) => {
+      <tbody>${srvRanking.map(([nome, v], i) => {
         const pct = (v.total/total*100).toFixed(1);
         const barW = (v.total/maxSrv*100).toFixed(1);
         const podio = i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1);
