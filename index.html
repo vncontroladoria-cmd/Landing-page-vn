@@ -14443,7 +14443,8 @@ function addTfoot(el) {
   const colunaNaoSomavel = (ci) => {
     if (ci === 0) return true; // coluna de posição/# nunca soma, só recebe a palavra "TOTAL"
     const h = headers[ci] || '';
-    return /CELULAR|TELEFONE|CANAL/.test(h);
+    // CATEGORIA e texto: somar nao faz sentido e geraria "0" no rodape
+    return /CELULAR|TELEFONE|CANAL|CATEGORIA|PRODUTO|SERVI|CLIENTE|PROFISSIONAL/.test(h);
   };
 
   // Para cada coluna, tenta somar valores numéricos
@@ -14819,9 +14820,12 @@ function renderServicos(data) {
   const srvMap = {};
   data.forEach(r => {
     if (!r.servico) return;
-    if (!srvMap[r.servico]) srvMap[r.servico] = { total: 0, qtd: 0 };
+    // Guarda a categoria junto. Se o mesmo servico aparecer em categorias
+    // diferentes, mostramos as duas em vez de esconder a divergencia.
+    if (!srvMap[r.servico]) srvMap[r.servico] = { total: 0, qtd: 0, cats: new Set() };
     srvMap[r.servico].total += Number(r.valor_cobrado ?? r.total ?? 0);
     srvMap[r.servico].qtd += 1;
+    if (r.categoria) srvMap[r.servico].cats.add(r.categoria);
   });
   const srvRanking = Object.entries(srvMap).sort((a,b) => b[1].total - a[1].total);
   const maxSrv = srvRanking[0]?.[1].total || 1;
@@ -14832,6 +14836,7 @@ function renderServicos(data) {
       <thead><tr>
         <th style="${TH_STYLE};text-align:left;width:36px">#</th>
         <th style="${TH_STYLE};text-align:left">SERVIÇO</th>
+        <th style="${TH_STYLE};text-align:left">CATEGORIA</th>
         <th style="${TH_STYLE};text-align:right">QTD</th>
         <th style="${TH_STYLE};text-align:right">TOTAL</th>
         <th style="${TH_STYLE};text-align:right">%</th>
@@ -14848,6 +14853,11 @@ function renderServicos(data) {
               <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,var(--accent),#34d399);border-radius:3px"></div>
             </div>
           </td>
+          <td style="padding:6px 8px;font-size:10px;color:var(--text2)">${
+            v.cats.size === 0 ? '<span style="color:var(--text3)">—</span>'
+            : v.cats.size === 1 ? [...v.cats][0]
+            : `<span style="color:var(--amber)" title="${[...v.cats].join(', ')}">${v.cats.size} categorias</span>`
+          }</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
           <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
