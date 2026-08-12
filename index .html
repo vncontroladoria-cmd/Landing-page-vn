@@ -4479,7 +4479,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           <!-- LINHA 1: Ranking + Gráfico com a MESMA altura.
                stretch + flex faz os dois acompanharem o mais alto, sem sobra. -->
           <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:stretch">
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card srv-box" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
                 <span>🏆 Ranking de Produtos</span>
                 <span id="prod-rank-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
@@ -4488,12 +4488,12 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 <div class="empty">Importe o relatório de Produtos</div>
               </div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card srv-box" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
                 <span>📂 Faturamento por Categoria</span>
                 <span id="prod-cat-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
               </div>
-              <div style="padding:12px;flex:1;min-height:240px;position:relative">
+              <div style="padding:12px;flex:1;min-height:0;position:relative">
                 <canvas id="prod-chart-cat"></canvas>
               </div>
             </div>
@@ -4501,21 +4501,21 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <!-- LINHA 2: Vendas por profissional + Clientes que compraram -->
           <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:stretch">
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card srv-box" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
                 <span>👩‍💼 Vendas por Profissional</span>
                 <span id="prod-prof-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
               </div>
-              <div id="prod-por-prof" style="flex:1;min-height:0;max-height:320px;overflow-y:auto">
+              <div id="prod-por-prof" style="flex:1;min-height:0;overflow-y:auto">
                 <div class="empty">Sem dados</div>
               </div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+            <div class="card srv-box" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
               <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
                 <span>🛍️ Clientes que Compraram</span>
                 <span id="prod-cli-sub" style="font-size:11px;color:var(--text2);font-weight:400"></span>
               </div>
-              <div id="prod-por-cli" style="flex:1;min-height:0;max-height:320px;overflow-y:auto">
+              <div id="prod-por-cli" style="flex:1;min-height:0;overflow-y:auto">
                 <div class="empty">Sem dados</div>
               </div>
             </div>
@@ -12564,7 +12564,8 @@ function renderProdutos(rows) {
 
   const CORES = ['#059669','#2563eb','#7c3aed','#d97706','#0891b2','#dc2626','#16a34a','#9333ea','#ea580c'];
   const ctxCat = el('prod-chart-cat')?.getContext('2d');
-  ajustarZoomGrafico(el('prod-chart-cat'), null);   // null = acompanha a altura do card
+  // Sem ajustarZoomGrafico: ele aplica zoom/height inline no container e o
+  // card encolhe, deixando de acompanhar o Ranking ao lado.
   if (ctxCat) {
     if (_prodChartCat) _prodChartCat.destroy();
     const totalProdCat = catRank.reduce((s,[,v])=>s+v,0);
