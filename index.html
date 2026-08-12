@@ -16413,8 +16413,11 @@ async function loadDFC() {
   function celulasVazias(m, realizado, estilo, anterior, ehEntrada) {
     const st = estilo || CEL;
     const celReal = `<td style="${st};color:${cor(realizado)}">${fmtNum(realizado)}</td>`;
-    // AV nao faz sentido em saldo (nao e parte das entradas), so AH
-    const analises = (temAV ? `<td style="${AVCEL}"></td>` : '')
+    const iAtual = mCols.indexOf(m);
+    const mAnt = iAtual > 0 ? mCols[iAtual-1] : null;
+    const analises = (temAV ? (anterior === undefined
+                        ? `<td style="${AVCEL}"></td>`
+                        : celAVMes(m, realizado, mAnt, anterior, ehEntrada !== false)) : '')
                    + (temAH ? (anterior === undefined
                         ? `<td style="${AHCEL}"></td>`
                         : celAHMes(realizado, anterior, ehEntrada !== false)) : '');
@@ -16733,7 +16736,21 @@ async function loadDFC() {
   const BG_RL = '#dbeafe', BG_RL2 = '#eff6ff';
   html += `<tr style="background:${BG_RL};border-top:2px solid #93c5fd">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_RL};z-index:10;color:#1e3a8a;font-size:11px">Resultado Líquido</td>
-    ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':`<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:#6d28d9">${entradasDoMes[mCols[i]]>0&&v?(Math.abs(v)/entradasDoMes[mCols[i]]*100).toFixed(0)+'%':''}</td>`) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td>` : '')).join('')}
+    ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':
+   (temAV ? (() => {
+      // Margem liquida do mes + seta comparando com o mes anterior
+      const base = entradasDoMes[mCols[i]] || 0;
+      const pct  = (base > 0 && v) ? Math.abs(v)/base*100 : null;
+      const baseA = i>0 ? (entradasDoMes[mCols[i-1]] || 0) : 0;
+      const pctA  = (i>0 && baseA > 0 && resultadoLiq[i-1]) ? Math.abs(resultadoLiq[i-1])/baseA*100 : null;
+      let seta = '', cor = '#6d28d9';
+      if (pct !== null && pctA !== null) {
+        const dif = pct - pctA;
+        if (Math.abs(dif) >= 0.5) { seta = dif > 0 ? '▲' : '▼'; cor = dif > 0 ? '#15803d' : '#b91c1c'; }
+      }
+      return `<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:${cor}" title="${pctA!==null?'Mês anterior: '+pctA.toFixed(0)+'%':''}">${pct===null?'':seta+pct.toFixed(0)+'%'}</td>`;
+    })() : '')
+ + (temAH ? celAHMes(v, i>0?resultadoLiq[i-1]:null, true) : '')) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td>` : '')).join('')}
     ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_RL2};color:${totalRL>=0?'#15803d':'#b91c1c'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:${BG_RL2};color:#1e40af">${fmtNum(mediaFechados(resultadoLiq)||0)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:${BG_RL2};color:#6d28d9">${totalEntradasPeriodo>0?(Math.abs(totalRL)/totalEntradasPeriodo*100).toFixed(1)+'%':''}</td>`}
   </tr>`;
 
@@ -16742,7 +16759,16 @@ async function loadDFC() {
   const ultimoSA = saldoFinalMes[saldoFinalMes.length-1];
   html += `<tr style="background:${BG_SA};border-top:2px solid var(--accent)">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_SA};z-index:10;font-size:11px;color:#14532d">Saldo Acumulado</td>
-    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'': (temAV?'<td></td>':'') + (temAH? (i>0 ? celAHMes(v, saldoFinalMes[i-1], true) : '<td></td>') : '')) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td>` : '')).join('')}
+    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':
+   (temAV ? (i>0 ? (() => {
+      // Saldo nao e parte das entradas: aqui a seta compara o proprio saldo
+      const a = Math.abs(v), b = Math.abs(saldoFinalMes[i-1]);
+      if (!b) return '<td></td>';
+      const d = (a-b)/b*100;
+      if (Math.abs(d) < 0.5) return `<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;color:var(--text3)">=</td>`;
+      return `<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:${d>0?'#15803d':'#b91c1c'}">${d>0?'▲':'▼'}${Math.abs(d).toFixed(0)}%</td>`;
+    })() : '<td></td>') : '')
+ + (temAH? (i>0 ? celAHMes(v, saldoFinalMes[i-1], true) : '<td></td>') : '')) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td>` : '')).join('')}
     ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_SA2};color:${ultimoSA>=0?'#15803d':'#b91c1c'}">${fmtNum(ultimoSA)}</td><td style="padding:10px 6px;background:${BG_SA2}"></td><td style="padding:10px 6px;background:${BG_SA2}"></td>`}
   </tr>`;
 
