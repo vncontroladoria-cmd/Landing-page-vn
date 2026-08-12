@@ -451,6 +451,102 @@ tbody tr:hover { background: var(--bg4) !important; }
 }
 #lanc-alerta-saldo.piscando { animation: piscaAlerta 1.1s ease-in-out infinite; }
 
+
+/* ============================================================
+   RESPONSIVIDADE DOS RELATÓRIOS E DASHBOARD
+   Os grids das paginas foram escritos inline (style="grid-template-columns:...").
+   CSS externo nao vence style inline — por isso usamos [style*=...] + !important,
+   que alcanca justamente esses casos sem precisar editar 69 blocos na mao.
+   ============================================================ */
+
+/* Toda tabela larga rola no proprio card em vez de estourar a tela */
+.card { overflow-x: auto; }
+table.table { min-width: 520px; }
+
+@media (max-width: 1200px) {
+  /* 4 colunas -> 2 */
+  [style*="grid-template-columns:repeat(4,1fr)"],
+  [style*="grid-template-columns: repeat(4, 1fr)"],
+  [style*="grid-template-columns:repeat(5,1fr)"],
+  [style*="grid-template-columns: repeat(5, 1fr)"],
+  [style*="grid-template-columns:repeat(6,1fr)"],
+  [style*="grid-template-columns: repeat(6, 1fr)"],
+  [style*="grid-template-columns:repeat(7,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* 3 colunas (inclusive as com proporcao, tipo 1fr 1fr 1.2fr) -> 1 */
+  [style*="grid-template-columns:1fr 1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr 1fr"],
+  [style*="grid-template-columns:1fr 1fr 1.2fr"],
+  [style*="grid-template-columns: 1fr 1fr 1.2fr"],
+  [style*="grid-template-columns:repeat(3,1fr)"],
+  [style*="grid-template-columns: repeat(3, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* 2 colunas -> 1 */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"],
+  [style*="grid-template-columns:repeat(2,1fr)"],
+  [style*="grid-template-columns: repeat(2, 1fr)"],
+  [style*="grid-template-columns:2fr 1fr"],
+  [style*="grid-template-columns:1fr 2fr"],
+  [style*="grid-template-columns:1.5fr 1fr"],
+  [style*="grid-template-columns:3fr 2fr"],
+  [style*="grid-template-columns: 3fr 2fr"],
+  [style*="grid-template-columns:70% 1fr"],
+  [style*="grid-template-columns:200px 1fr"],
+  [style*="grid-template-columns:1.6fr 0.4fr"],
+  [style*="grid-template-columns:0.8fr 2fr"],
+  [style*="grid-template-columns:0.5fr 1fr 1fr"],
+  [style*="grid-template-columns:0.8fr 2fr 0.4fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Graficos: altura fixa em px estoura no celular */
+  [style*="height:320px"], [style*="height: 320px"],
+  [style*="height:380px"], [style*="height: 380px"] { height: 220px !important; }
+  [style*="height:220px"], [style*="height: 220px"] { height: 180px !important; }
+
+  /* Barra de filtros empilha em vez de espremer */
+  .pg-header, .pg-header-actions, .filter-group {
+    flex-wrap: wrap !important;
+  }
+  .pg-header-actions { width: 100% !important; }
+  .filter-select, .filter-group select, .filter-group input {
+    max-width: 100% !important;
+  }
+
+  /* Tabelas: fonte e padding menores pra caber mais coluna */
+  table.table { min-width: 420px; font-size: 10px !important; }
+  table.table th, table.table td { padding: 5px 6px !important; }
+
+  [style*="grid-template-columns:repeat(5,1fr)"],
+  [style*="grid-template-columns:repeat(6,1fr)"],
+  [style*="grid-template-columns:repeat(7,1fr)"],
+  [style*="grid-template-columns:repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Barra de selecao em massa: empilha os campos */
+  #lanc-selecao-bar, #cc-selecao-bar { flex-wrap: wrap !important; gap: 6px !important; }
+
+  /* Modais ocupam a tela toda */
+  .modal { max-width: 100% !important; margin: 4px !important; padding: 1rem !important; }
+}
+
+@media (max-width: 480px) {
+  table.table { min-width: 360px; }
+  .content { padding: 8px !important; }
+  /* Cards de metrica: 1 por linha quando o texto e longo */
+  .hero-cards, .fin-cards { gap: 5px !important; }
+}
+
 /* BADGES */
 .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em; }
 .badge-green { background: var(--green-light); color: var(--green); }
