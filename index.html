@@ -567,8 +567,9 @@ table.table { min-width: 520px; }
 }
 /* A lista rola DENTRO do card, não estica a página */
 .srv-box > div[id] { overflow-y: auto !important; flex: 1 1 auto !important; min-height: 0 !important; }
-/* O canvas do gráfico não pode empurrar o card */
-.srv-box canvas { max-height: 100% !important; }
+/* Wrapper do gráfico ocupa o resto do card, sem zoom inline atrapalhando */
+.srv-box > div:not([id]) { flex: 1 1 auto !important; min-height: 0 !important; zoom: 1 !important; height: auto !important; }
+.srv-box canvas { max-height: 100% !important; max-width: 100% !important; }
 
 @media (max-width: 768px) {
   .srv-box { height: 360px !important; min-height: 360px !important; max-height: 360px !important; }
@@ -15204,7 +15205,8 @@ function renderSrvCharts(catRanking, profRanking) {
 
   // Gráfico categorias (barras verticais)
   const ctxCat = document.getElementById('srv-chart-cat')?.getContext('2d');
-  ajustarZoomGrafico(document.getElementById('srv-chart-cat'), null);  // null = usa a altura real do card
+  // NAO chamar ajustarZoomGrafico aqui: ele aplica zoom/height no container
+  // e o card encolhe, deixando de acompanhar o Ranking ao lado.
   if (ctxCat) {
     if (_srvChartCat) _srvChartCat.destroy();
     const totalSrvCat = catRanking.reduce((s,[,v])=>s+v.total,0);
