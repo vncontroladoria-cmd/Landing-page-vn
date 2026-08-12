@@ -16404,13 +16404,19 @@ async function loadDFC() {
   }
 
   // Celulas vazias, pra linhas que nao tem projecao (Saldo Inicial etc)
-  function celulasVazias(m, realizado, estilo) {
+  // Linhas de resumo (Saldo Inicial, Resultado Operacional...).
+  // `anterior` habilita a seta de variacao; sem ele a celula fica vazia.
+  function celulasVazias(m, realizado, estilo, anterior, ehEntrada) {
     const st = estilo || CEL;
     const celReal = `<td style="${st};color:${cor(realizado)}">${fmtNum(realizado)}</td>`;
-    const vazioAV = (temAV ? `<td style="${AVCEL}"></td>` : '') + (temAH ? `<td style="${AHCEL}"></td>` : '');
+    // AV nao faz sentido em saldo (nao e parte das entradas), so AH
+    const analises = (temAV ? `<td style="${AVCEL}"></td>` : '')
+                   + (temAH ? (anterior === undefined
+                        ? `<td style="${AHCEL}"></td>`
+                        : celAHMes(realizado, anterior, ehEntrada !== false)) : '');
     if (modo === 'projetado') return `<td style="${st}"></td>`;
-    if (modo === 'realizado') return celReal + vazioAV;
-    return celReal + vazioAV + `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td><td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td>`;
+    if (modo === 'realizado') return celReal + analises;
+    return celReal + analises + `<td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td><td class="${clsProj(m)}" style="${dispProj(m)}${st};background:#ede9fe"></td>`;
   }
 
   // SALDO INICIAL — e abertura, nao movimento do mes.
@@ -16571,7 +16577,7 @@ async function loadDFC() {
   // Saldo Inicial
   html += `<tr style="background:#f0fdf4">
     <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:10;font-size:11px">Saldo Inicial</td>
-    ${saldoInicialMes.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px`)).join('')}
+    ${saldoInicialMes.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px`, i>0 ? saldoInicialMes[i-1] : null, true)).join('')}
     ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>${mostraTotais?'<td></td>':''}`}
   </tr>`;
 
@@ -16587,7 +16593,7 @@ async function loadDFC() {
       const totalRO = resultadoOp.reduce((s,v)=>s+v,0);
       html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
         <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
-        ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`)).join('')}
+        ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`, i>0 ? resultadoOp[i-1] : null, true)).join('')}
         ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(totalRO/mCols.length)}</td>` + celAV(totalRO)}
       </tr>`;
     }
@@ -16623,7 +16629,7 @@ async function loadDFC() {
     const totalRO2 = resultadoOp.reduce((s,v)=>s+v,0);
     html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
       <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
-      ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`)).join('')}
+      ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`, i>0 ? resultadoOp[i-1] : null, true)).join('')}
       ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>${mostraTotais?'<td></td>':''}`}
     </tr>`;
   }
@@ -16678,7 +16684,7 @@ async function loadDFC() {
   const ultimoSA = saldoFinalMes[saldoFinalMes.length-1];
   html += `<tr style="background:${BG_SA};border-top:2px solid var(--accent)">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_SA};z-index:10;font-size:11px;color:#14532d">Saldo Acumulado</td>
-    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'': (temAV?'<td></td>':'') + (temAH?'<td></td>':'')) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td>` : '')).join('')}
+    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'': (temAV?'<td></td>':'') + (temAH? (i>0 ? celAHMes(v, saldoFinalMes[i-1], true) : '<td></td>') : '')) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td>` : '')).join('')}
     ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_SA2};color:${ultimoSA>=0?'#15803d':'#b91c1c'}">${fmtNum(ultimoSA)}</td><td style="padding:10px 6px;background:${BG_SA2}"></td><td style="padding:10px 6px;background:${BG_SA2}"></td>`}
   </tr>`;
 
