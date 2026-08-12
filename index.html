@@ -6063,12 +6063,12 @@ function ajustarZoomGrafico(canvas, alturaPx) {
   const box = canvas.parentElement;
   const zb = parseFloat(getComputedStyle(document.body).zoom) || 1;
   if (box && zb !== 1) {
-    // Se o container tem altura propria (flex, %, etc), respeita a altura REAL
-    // dele em vez de forcar um valor fixo — senao o card nao acompanha o vizinho.
-    const alturaReal = box.offsetHeight;
-    const base = (alturaPx == null && alturaReal) ? alturaReal : (alturaPx || alturaReal || 300);
     box.style.zoom = String(1 / zb);
-    box.style.height = (base * zb) + 'px';
+    // Só define altura quando ela foi pedida explicitamente. Se o container
+    // já tem altura própria (flex dentro de card com height fixo), mexer aqui
+    // gravava style inline e o card crescia 1.3x a cada redesenho do gráfico.
+    if (alturaPx != null) box.style.height = (alturaPx * zb) + 'px';
+    else box.style.height = '';
   }
   canvas.style.width = '100%';
   canvas.style.height = '100%';
