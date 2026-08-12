@@ -4140,21 +4140,23 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             </div>
           </div>
 
-          <!-- LINHA 1: Ranking (top10 fixo + rolagem) + Donut mesmo tamanho -->
-          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:start">
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
+          <!-- LINHA 1: Ranking + Distribuição SEMPRE com a mesma altura.
+               align-items:stretch (padrao do grid) + flex nos filhos faz os dois
+               cards acompanharem o mais alto, independente do conteudo. -->
+          <div style="display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px;align-items:stretch">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;flex-shrink:0">
                 🏆 Ranking de Serviços
               </div>
-              <div id="srv-ranking" style="max-height:380px;overflow-y:auto">
+              <div id="srv-ranking" style="flex:1;min-height:0;overflow-y:auto">
                 <div class="empty">Importe o relatório para ver os dados</div>
               </div>
             </div>
-            <div class="card" style="padding:0;overflow:hidden">
-              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px">
+            <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+              <div style="padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-weight:600;font-size:13px;flex-shrink:0">
                 📂 Distribuição por Categoria
               </div>
-              <div style="padding:12px;height:380px">
+              <div style="padding:12px;flex:1;min-height:0;position:relative">
                 <canvas id="srv-chart-cat"></canvas>
               </div>
               <!-- mantém por-cat e chart-prof ocultos mas funcionais -->
@@ -6013,8 +6015,12 @@ function ajustarZoomGrafico(canvas, alturaPx) {
   const box = canvas.parentElement;
   const zb = parseFloat(getComputedStyle(document.body).zoom) || 1;
   if (box && zb !== 1) {
+    // Se o container tem altura propria (flex, %, etc), respeita a altura REAL
+    // dele em vez de forcar um valor fixo — senao o card nao acompanha o vizinho.
+    const alturaReal = box.offsetHeight;
+    const base = (alturaPx == null && alturaReal) ? alturaReal : (alturaPx || alturaReal || 300);
     box.style.zoom = String(1 / zb);
-    box.style.height = (alturaPx * zb) + 'px';
+    box.style.height = (base * zb) + 'px';
   }
   canvas.style.width = '100%';
   canvas.style.height = '100%';
@@ -15075,7 +15081,7 @@ function renderSrvCharts(catRanking, profRanking) {
 
   // Gráfico categorias (barras verticais)
   const ctxCat = document.getElementById('srv-chart-cat')?.getContext('2d');
-  ajustarZoomGrafico(document.getElementById('srv-chart-cat'), 380);
+  ajustarZoomGrafico(document.getElementById('srv-chart-cat'), null);  // null = usa a altura real do card
   if (ctxCat) {
     if (_srvChartCat) _srvChartCat.destroy();
     const totalSrvCat = catRanking.reduce((s,[,v])=>s+v.total,0);
