@@ -2401,7 +2401,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
     <div class="form-group" style="margin-top:8px">
       <label>🔗 Link de apoio <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional — site que ajuda a fazer a tarefa)</span></label>
-      <input type="url" id="tarefa-link" placeholder="https://..." style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
+      <input type="text" id="tarefa-link" placeholder="cole o link aqui (ex: nfe.prefeitura.sp.gov.br/...)" style="width:100%;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:'Outfit',sans-serif">
     </div>
 
     <!-- CHECKLIST DENTRO DO CARD -->
@@ -25126,7 +25126,11 @@ async function salvarTarefa() {
     dia_mes: recorrencia === 'mensal' ? parseInt(document.getElementById('tarefa-dia-mes').value) : null,
     responsavel_id: respId,
     prioridade: document.getElementById('tarefa-prioridade')?.value || 'media',
-    link_url: document.getElementById('tarefa-link')?.value.trim() || null,
+    // urlApoio completa o https:// quando falta — colar "site.com/x" funciona
+    link_url: (() => {
+      const v = (document.getElementById('tarefa-link')?.value || '').trim();
+      return v ? urlApoio(v) : null;
+    })(),
   };
 
   let error;
