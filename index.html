@@ -19397,7 +19397,7 @@ function renderConciliacao() {
             style="width:100%;font-size:12px;${temSugestao?'border-color:var(--green)':''}">
           <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
           <input type="hidden" id="conc-cat-dre-${idx}" value="${catDre}">
-          <div id="conc-cat-dd-${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:150px;overflow-y:auto;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,0.12)"></div>
+          <div id="conc-cat-dd-${idx}" style="display:none;position:fixed;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:260px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.22)"></div>
         </div>
 
         <!-- DATA DE PAGAMENTO -->
@@ -19737,6 +19737,16 @@ function selecionarCatInline(lancId, nome, dfc, dre) {
   if (dd) dd.style.display = 'none';
 }
 
+// Com position:fixed o dropdown nao acompanha a rolagem — entao fechamos.
+if (!window._concScrollHook) {
+  window._concScrollHook = true;
+  window.addEventListener('scroll', () => {
+    document.querySelectorAll('[id^="conc-cat-dd-"]').forEach(d => {
+      if (d.style.display === 'block') d.style.display = 'none';
+    });
+  }, true);
+}
+
 async function buscaCatConc(texto, idx) {
   await garantirCategorias();
   const dd = document.getElementById(`conc-cat-dd-${idx}`);
@@ -19750,8 +19760,31 @@ async function buscaCatConc(texto, idx) {
   });
   const resultados = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
   if (!resultados.length || !texto) { dd.style.display = 'none'; return; }
+
+  // position:fixed pra escapar de qualquer pai com overflow:hidden — com
+  // absolute a lista era cortada pelo card e so aparecia a primeira opcao.
+  // Como fixed usa coordenadas da JANELA, calculamos a posicao do input,
+  // compensando o `zoom: 1.3` do body.
+  const inp = document.getElementById(`conc-cat-${idx}`) || dd.previousElementSibling;
+  if (inp) {
+    const r = inp.getBoundingClientRect();
+    const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+    const espacoAbaixo = (window.innerHeight - r.bottom) / z;
+    dd.style.position = 'fixed';
+    dd.style.left  = (r.left / z) + 'px';
+    dd.style.width = (r.width / z) + 'px';
+    dd.style.zIndex = '9999';
+    // Se nao couber embaixo, abre pra cima
+    if (espacoAbaixo < 170) {
+      dd.style.top = '';
+      dd.style.bottom = ((window.innerHeight - r.top) / z + 2) + 'px';
+    } else {
+      dd.style.bottom = '';
+      dd.style.top = (r.bottom / z + 2) + 'px';
+    }
+  }
   dd.style.display = 'block';
-  dd.innerHTML = resultados.slice(0,10).map(c => {
+  dd.innerHTML = resultados.slice(0,15).map(c => {
     const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
     return `<div
       style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
@@ -23542,6 +23575,29 @@ async function buscaCatImportCC(texto, idx) {
   });
   const resultados = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
   if (!resultados.length || !texto) { dd.style.display = 'none'; return; }
+
+  // position:fixed pra escapar de qualquer pai com overflow:hidden — com
+  // absolute a lista era cortada pelo card e so aparecia a primeira opcao.
+  // Como fixed usa coordenadas da JANELA, calculamos a posicao do input,
+  // compensando o `zoom: 1.3` do body.
+  const inp = document.getElementById(`conc-cat-${idx}`) || dd.previousElementSibling;
+  if (inp) {
+    const r = inp.getBoundingClientRect();
+    const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+    const espacoAbaixo = (window.innerHeight - r.bottom) / z;
+    dd.style.position = 'fixed';
+    dd.style.left  = (r.left / z) + 'px';
+    dd.style.width = (r.width / z) + 'px';
+    dd.style.zIndex = '9999';
+    // Se nao couber embaixo, abre pra cima
+    if (espacoAbaixo < 170) {
+      dd.style.top = '';
+      dd.style.bottom = ((window.innerHeight - r.top) / z + 2) + 'px';
+    } else {
+      dd.style.bottom = '';
+      dd.style.top = (r.bottom / z + 2) + 'px';
+    }
+  }
   dd.style.display = 'block';
   dd.innerHTML = resultados.slice(0,10).map(c => {
     const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
