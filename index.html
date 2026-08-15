@@ -10182,7 +10182,7 @@ async function loadLancamentos(forcarBancoFilter) {
   conferirSaldoDFC();
 
   // Botão Sem Categoria
-  const semCat = lancs.filter(l => !l.categoria && !isLancContabil(l));
+  const semCat = lancs.filter(lancMalClassificado);
   const btnSemCat = document.getElementById('btn-sem-cat');
   const nSemCat = document.getElementById('lanc-hero-semcat-n');
   if (nSemCat) nSemCat.textContent = semCat.length;
@@ -16227,6 +16227,19 @@ async function confirmarSyncPrevia() {
   if (typeof onFim === 'function') onFim();
 }
 
+// Um lancamento esta "mal classificado" quando:
+//  - nao tem categoria; OU
+//  - tem categoria mas o codigo DFC nao e um codigo valido (ex: gravou o NOME
+//    da categoria no lugar de "1.2"), o que o faz sumir do relatorio.
+// Entre Contas e Saldo Inicial ficam de fora: nao entram no DFC de proposito.
+function lancMalClassificado(l) {
+  if (typeof isLancContabil === 'function' && isLancContabil(l)) return false;
+  if (!String(l.categoria || '').trim()) return true;
+  const cod = String(l.categoria_dfc || '').trim();
+  if (!cod) return true;
+  return !/^[0-9]+\.[0-9]+$/.test(cod);
+}
+
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
 function toggleDropdownMesesDFC(ev) {
   if (ev) ev.stopPropagation();
@@ -19865,7 +19878,7 @@ function filtrarPorBanco(bancoId) {
 }
 
 function filtrarSemCategoria() {
-  const semCat = (_lancamentos||[]).filter(l => !l.categoria && !isLancContabil(l));
+  const semCat = (_lancamentos||[]).filter(lancMalClassificado);
   const btn = document.getElementById('btn-sem-cat');
 
   // Toggle: se já está filtrando, volta ao normal
@@ -19892,7 +19905,7 @@ function filtrarSemCategoria() {
   }
   _filtroSemCatAtivo = true;
 
-  showToast(`Mostrando ${semCat.length} lançamento${semCat.length > 1 ? 's' : ''} sem categoria`, 'info');
+  showToast(`${semCat.length} lançamento(s) sem categoria ou com código DFC inválido`, 'info');
 }
 
 // Reaplica o filtro "sem categoria" depois que a tabela e redesenhada,
@@ -19900,7 +19913,7 @@ function filtrarSemCategoria() {
 let _filtroSemCatAtivo = false;
 function reaplicarFiltroSemCat() {
   if (!_filtroSemCatAtivo) return;
-  const semCat = (_lancamentos||[]).filter(l => !l.categoria && !isLancContabil(l));
+  const semCat = (_lancamentos||[]).filter(lancMalClassificado);
   const btn = document.getElementById('btn-sem-cat');
 
   if (!semCat.length) {
@@ -23051,7 +23064,7 @@ function filtrarSemCategoriaCC() {
   }
   _filtroSemCatAtivoCC = true;
 
-  showToast(`Mostrando ${semCat.length} lançamento${semCat.length > 1 ? 's' : ''} sem categoria`, 'info');
+  showToast(`${semCat.length} lançamento(s) sem categoria ou com código DFC inválido`, 'info');
 }
 
 // Reaplica o filtro "sem categoria" depois que a tabela e redesenhada,
