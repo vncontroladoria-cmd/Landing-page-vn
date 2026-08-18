@@ -19406,6 +19406,7 @@ function renderConciliacao() {
             value="${catNome}"
             oninput="buscaCatConc(this.value,${idx})"
             onfocus="buscaCatConc(this.value,${idx})"
+            onfocus="buscaCatConc(this.value, ${idx})"
             onblur="setTimeout(()=>{const d=document.getElementById('conc-cat-dd-${idx}');if(d)d.style.display='none'},200)"
             style="width:100%;font-size:12px;${temSugestao?'border-color:var(--green)':''}">
           <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
@@ -19761,18 +19762,31 @@ if (!window._concScrollHook) {
 }
 
 async function buscaCatConc(texto, idx) {
-  await garantirCategorias();
   const dd = document.getElementById(`conc-cat-dd-${idx}`);
   if (!dd) return;
-  const termo = texto.toLowerCase().trim();
+
+  // garantirCategorias pode falhar (empresa nao carregada ainda). Sem try/catch
+  // o erro derrubava a funcao e a lista NUNCA abria.
+  try { await garantirCategorias(); } catch (e) { console.warn('categorias:', e); }
+  const lista = (typeof _categorias !== 'undefined' && Array.isArray(_categorias)) ? _categorias : [];
+  if (!lista.length) {
+    dd.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--text2)">Plano de Contas não carregado</div>';
+    dd.style.display = 'block';
+    return;
+  }
+
+  const termo = (texto || '').toLowerCase().trim();
   const map = {};
-  _categorias.forEach(c => {
+  lista.forEach(c => {
+    if (!c?.nome) return;
     if (!map[c.nome]) map[c.nome] = { nome: c.nome, dfc: null, dre: null };
-    if (c.demonstrativo === 'DFC') map[c.nome].dfc = c.codigo;
-    if (c.demonstrativo === 'DRE') map[c.nome].dre = c.codigo;
+    // 'AMBOS' vale para os dois — sem isso, categoria AMBOS ficava sem código
+    if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') map[c.nome].dfc = c.codigo;
+    if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') map[c.nome].dre = c.codigo;
   });
+
   const resultados = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
-  if (!resultados.length || !texto) { dd.style.display = 'none'; return; }
+  if (!resultados.length) { dd.style.display = 'none'; return; }
 
   // position:fixed pra escapar de qualquer pai com overflow:hidden — com
   // absolute a lista era cortada pelo card e so aparecia a primeira opcao.
