@@ -581,9 +581,20 @@ div.card.srv-box {
 }
 
 
-/* Dropdown de categoria na conciliação: os cards da lista não podem cortá-lo */
+/* ═══════════════════════════════════════════════════════════════
+   DROPDOWN DE CATEGORIA DA CONCILIAÇÃO — NÃO REMOVER
+   Sem overflow:visible os cards cortam a lista e só a 1ª opção aparece.
+   O !important é necessário porque `.card { overflow-x:auto }` aparece
+   depois no arquivo e venceria por ordem de declaração.
+   ═══════════════════════════════════════════════════════════════ */
 #conc-lista, #conc-lista > div, #conc-lista .card { overflow: visible !important; }
-[id^="conc-cat-dd-"] { box-shadow: 0 8px 24px rgba(0,0,0,.22); }
+[id^="conc-cat-dd-"] {
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  z-index: 9999 !important;
+  position: absolute !important;   /* fixed quebra por causa do zoom do body */
+}
+/* O campo precisa de um pai posicionado pra âncora funcionar */
+[id^="conc-cat-"]:not([id*="-dd-"]) { position: relative; }
 
 /* BADGES */
 .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em; }
@@ -19756,9 +19767,31 @@ function selecionarCatInline(lancId, nome, dfc, dre) {
   if (dd) dd.style.display = 'none';
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+//  DROPDOWN DE CATEGORIA DA CONCILIAÇÃO — NÃO ALTERAR SEM LER
+//
+//  Esta função já quebrou 3 vezes. Os motivos, para não repetir:
+//
+//  1) `await` sem try/catch derruba a função inteira e a lista NUNCA abre.
+//     Qualquer chamada assíncrona aqui precisa estar protegida.
+//
+//  2) O dropdown fica DENTRO do elemento com `body { zoom: 1.3 }`.
+//     Usar position:fixed com getBoundingClientRect dividido pelo zoom joga
+//     a lista para fora da tela. Use position:absolute + offsetTop/offsetLeft,
+//     que já estão no sistema de coordenadas do pai.
+//
+//  3) O mapa de categorias precisa tratar demonstrativo 'AMBOS', senão essas
+//     categorias aparecem sem código DFC/DRE.
+//
+//  4) O pai precisa de position:relative e os containers acima de
+//     overflow:visible (ver CSS "#conc-lista"), senão a lista é cortada.
+//
+//  Ao final da função há uma auto-verificação que avisa no console se algo
+//  desses voltar a quebrar.
+// ═══════════════════════════════════════════════════════════════════════
 async function buscaCatConc(texto, idx) {
   const dd = document.getElementById(`conc-cat-dd-${idx}`);
-  if (!dd) return;
+  if (!dd) { console.warn('[conc] dropdown não encontrado para idx', idx); return; }
 
   // garantirCategorias pode falhar (empresa nao carregada ainda). Sem try/catch
   // o erro derrubava a funcao e a lista NUNCA abria.
@@ -19810,6 +19843,21 @@ async function buscaCatConc(texto, idx) {
       <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:11px">${refs}</span>
     </div>`;
   }).join('');
+
+  // AUTO-VERIFICAÇÃO: confere se a lista abriu no lugar certo.
+  // Se algum dia voltar a quebrar, o aviso aparece no console em vez de
+  // simplesmente "não funcionar" em silêncio.
+  setTimeout(() => {
+    if (dd.style.display !== 'block') return;
+    const rDD = dd.getBoundingClientRect();
+    const rIn = inp ? inp.getBoundingClientRect() : null;
+    if (!rIn) return;
+    const distancia = rDD.top - rIn.bottom;
+    if (rDD.height === 0 || rDD.width === 0)
+      console.warn('[conc] dropdown sem tamanho — algum pai está com overflow:hidden?');
+    else if (distancia < -20 || distancia > 60)
+      console.warn(`[conc] dropdown fora de posição (${Math.round(distancia)}px do campo) — ver comentário da função buscaCatConc`);
+  }, 30);
 }
 
 function selecionarCatConc(nome, dfc, dre, idx) {
@@ -23620,6 +23668,21 @@ async function buscaCatImportCC(texto, idx) {
       <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:11px">${refs}</span>
     </div>`;
   }).join('');
+
+  // AUTO-VERIFICAÇÃO: confere se a lista abriu no lugar certo.
+  // Se algum dia voltar a quebrar, o aviso aparece no console em vez de
+  // simplesmente "não funcionar" em silêncio.
+  setTimeout(() => {
+    if (dd.style.display !== 'block') return;
+    const rDD = dd.getBoundingClientRect();
+    const rIn = inp ? inp.getBoundingClientRect() : null;
+    if (!rIn) return;
+    const distancia = rDD.top - rIn.bottom;
+    if (rDD.height === 0 || rDD.width === 0)
+      console.warn('[conc] dropdown sem tamanho — algum pai está com overflow:hidden?');
+    else if (distancia < -20 || distancia > 60)
+      console.warn(`[conc] dropdown fora de posição (${Math.round(distancia)}px do campo) — ver comentário da função buscaCatConc`);
+  }, 30);
 }
 
 function selecionarCatImportCC(nome, dfc, dre, idx) {
