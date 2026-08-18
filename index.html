@@ -6067,6 +6067,19 @@ function limparClassificacao(payload) {
     payload.categoria = '';
     payload.categoria_dfc = '';
     payload.categoria_dre = '';
+    return payload;
+  }
+
+  // Garante os codigos a partir do Plano de Contas. Sem isso, gravar por um
+  // caminho que nao preenche os campos ocultos criava lancamento com categoria
+  // mas sem codigo — e ele sumia do DFC/DRE sem aviso.
+  if (typeof buscarCodigosCategoria === 'function') {
+    const c = buscarCodigosCategoria(payload.categoria);
+    if (c.nome) {
+      payload.categoria = c.nome;
+      if (!/^[0-9]+\.[0-9]+$/.test(String(payload.categoria_dfc || ''))) payload.categoria_dfc = c.dfc || '';
+      if (!/^[0-9]+\.[0-9]+$/.test(String(payload.categoria_dre || ''))) payload.categoria_dre = c.dre || '';
+    }
   }
   return payload;
 }
@@ -16250,10 +16263,28 @@ async function confirmarSyncPrevia() {
 // Entre Contas e Saldo Inicial ficam de fora: nao entram no DFC de proposito.
 function lancMalClassificado(l) {
   if (typeof isLancContabil === 'function' && isLancContabil(l)) return false;
-  if (!String(l.categoria || '').trim()) return true;
-  const cod = String(l.categoria_dfc || '').trim();
-  if (!cod) return true;
-  return !/^[0-9]+\.[0-9]+$/.test(cod);
+  // Só conta como problema quando NÃO HÁ categoria. Código DFC ausente ou
+  // errado é responsabilidade do sistema (ver limparClassificacao e
+  // buscarCodigosCategoria) e não deve virar alerta pro usuário.
+  return !String(l.categoria || '').trim();
+}
+
+// Busca os códigos DFC/DRE de uma categoria pelo NOME, direto no Plano de
+// Contas. Ignora acento e maiúscula, e devolve a grafia oficial.
+// Usar sempre isto em vez de depender de campos ocultos preenchidos por clique.
+function buscarCodigosCategoria(nome) {
+  const vazio = { nome: '', dfc: '', dre: '' };
+  const t = normStr(nome);
+  if (!t) return vazio;
+  const lista = (typeof _categorias !== 'undefined' && Array.isArray(_categorias)) ? _categorias : [];
+  const achadas = lista.filter(c => normStr(c.nome) === t);
+  if (!achadas.length) return vazio;
+  const r = { nome: achadas[0].nome, dfc: '', dre: '' };
+  achadas.forEach(c => {
+    if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') r.dfc = c.codigo;
+    if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') r.dre = c.codigo;
+  });
+  return r;
 }
 
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
@@ -19505,9 +19536,21 @@ async function conciliarLinha(idx) {
   // Lê direto do campo visível — se a pessoa apagou a categoria sugerida, tem que ficar vazio mesmo,
   // sem voltar pro valor antigo (r._catNome é só o palpite inicial, não pode reviver depois de apagado)
   const catInputEl = document.getElementById(`conc-cat-${idx}`);
-  const catNome = catInputEl ? catInputEl.value : (r._catNome || '');
-  const catDfc = document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
-  const catDre = document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
+  const catDigitada = catInputEl ? catInputEl.value : (r._catNome || '');
+
+  // Os campos ocultos só são preenchidos quando a pessoa CLICA numa opção da
+  // lista. Se ela digitou o nome e saiu do campo, ficavam vazios e o
+  // lançamento nascia sem código DFC/DRE — aparecendo como "sem categoria".
+  // Por isso buscamos sempre no Plano de Contas a partir do nome.
+  const _cat = buscarCodigosCategoria(catDigitada);
+  const catNome = _cat.nome;   // grafia oficial do plano
+  const catDfc  = _cat.dfc || document.getElementById(`conc-cat-dfc-${idx}`)?.value || '';
+  const catDre  = _cat.dre || document.getElementById(`conc-cat-dre-${idx}`)?.value || '';
+
+  if (catDigitada.trim() && !catNome) {
+    showToast(`"${catDigitada}" não existe no Plano de Contas`, 'error');
+    return;
+  }
   const desc = document.getElementById(`conc-desc-${idx}`)?.value || '';
   const dataCampo = document.getElementById(`conc-data-pgto-${idx}`)?.value || r._dataPagamento || r.data;
   const tipo = (r.entrada > 0 && !r.saida) ? 'ENTRADA' : (r.saida > 0 && !r.entrada) ? 'SAIDA' : r.entrada > 0 ? 'ENTRADA' : 'SAIDA';
@@ -19957,7 +20000,7 @@ function filtrarSemCategoria() {
   }
   _filtroSemCatAtivo = true;
 
-  showToast(`${semCat.length} lançamento(s) sem categoria ou com código DFC inválido`, 'info');
+  showToast(`Mostrando ${semCat.length} lançamento(s) sem categoria`, 'info');
 }
 
 // Reaplica o filtro "sem categoria" depois que a tabela e redesenhada,
@@ -23116,7 +23159,7 @@ function filtrarSemCategoriaCC() {
   }
   _filtroSemCatAtivoCC = true;
 
-  showToast(`${semCat.length} lançamento(s) sem categoria ou com código DFC inválido`, 'info');
+  showToast(`Mostrando ${semCat.length} lançamento(s) sem categoria`, 'info');
 }
 
 // Reaplica o filtro "sem categoria" depois que a tabela e redesenhada,
