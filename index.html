@@ -596,6 +596,14 @@ div.card.srv-box {
 /* O campo precisa de um pai posicionado pra âncora funcionar */
 [id^="conc-cat-"]:not([id*="-dd-"]) { position: relative; }
 
+
+/* Caixa marcado como "arrumar" pisca até alguém resolver */
+@keyframes pdvPisca {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+.pdv-pisca { animation: pdvPisca 1.4s ease-in-out infinite; }
+
 /* BADGES */
 .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em; }
 .badge-green { background: var(--green-light); color: var(--green); }
@@ -3618,6 +3626,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
           </div>
 
           <!-- CARDS RESUMO -->
+          <div id="pdv-alerta-conferencia" style="display:none;align-items:center;gap:10px;padding:10px 14px;background:#fef2f2;border:2px solid #dc2626;border-radius:10px;margin-bottom:12px;font-size:13px;font-weight:600;color:#b91c1c" class="pdv-pisca"></div>
           <div id="pdv-cards-resumo" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem"></div>
 
           <!-- TABELA CAIXAS -->
@@ -7861,6 +7870,7 @@ async function loadPDV() {
     <th style="padding:10px 12px;text-align:left;font-weight:600">RESPONSÁVEL</th>
     ${formas.map(f => `<th style="padding:10px 12px;text-align:right;font-weight:600;font-size:11px;white-space:nowrap">${f.toUpperCase()}</th>`).join('')}
     <th style="padding:10px 12px;text-align:right;font-weight:600;color:var(--green)">TOTAL</th>
+    <th class="no-sort" style="padding:10px 12px;text-align:center;font-weight:600;white-space:nowrap">CONFERÊNCIA</th>
     <th class="no-sort" style="padding:10px 12px;text-align:center;font-weight:600">AÇÕES</th>
   </tr>`;
   aplicarSort(thead.closest('table'));
@@ -7870,12 +7880,82 @@ async function loadPDV() {
   _pdvItensCarregados  = todosItens;
   _pdvFormas = formas;
   renderPDVLinhas(caixas, todosItens, formas);
+  atualizarAlertaConferenciaPDV();
 }
 
 let _pdvCaixasCarregados = [];
 let _pdvItensCarregados  = [];
 let _pdvFormas = [];
 const _pdvSelecionados = new Set();
+
+// ─── CONFERÊNCIA DE CAIXA ────────────────────────────────
+// Três estados: pendente (padrão), ok (conferido) e ajustar (precisa correção).
+// O "ajustar" fica destacado até alguém resolver, igual ao alerta do DFC.
+function celulaConferencia(c) {
+  const st = c.conferencia || 'pendente';
+  const quem = c.conferido_por ? `\nPor ${c.conferido_por}` : '';
+  const quando = c.conferido_em ? ` em ${new Date(c.conferido_em).toLocaleString('pt-BR')}` : '';
+  const obs = c.conferencia_obs ? `\nObs: ${c.conferencia_obs}` : '';
+
+  if (st === 'ok') {
+    return `<td style="padding:10px 12px;text-align:center;white-space:nowrap">
+      <span title="Conferido${quem}${quando}" style="display:inline-flex;align-items:center;gap:4px;background:var(--green-dim);color:var(--green);border:1px solid var(--green);border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700">✅ Conferido</span>
+      <button onclick="marcarConferencia('${c.id}','pendente')" title="Desfazer" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--text3);margin-left:4px">↩</button>
+    </td>`;
+  }
+  if (st === 'ajustar') {
+    return `<td style="padding:10px 12px;text-align:center;white-space:nowrap;background:#fef2f2">
+      <span title="Precisa de ajuste${quem}${quando}${obs}" style="display:inline-flex;align-items:center;gap:4px;background:#fee2e2;color:#b91c1c;border:1.5px solid #dc2626;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700" class="pdv-pisca">⚠️ Arrumar</span>
+      <button onclick="marcarConferencia('${c.id}','ok')" title="Marcar como resolvido" style="background:none;border:none;cursor:pointer;font-size:12px;margin-left:4px">✅</button>
+    </td>`;
+  }
+  return `<td style="padding:10px 12px;text-align:center;white-space:nowrap">
+    <button onclick="marcarConferencia('${c.id}','ok')" title="Conferido, está tudo certo" style="background:var(--green-dim);border:1px solid var(--green);color:var(--green);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:700">✓ OK</button>
+    <button onclick="marcarConferencia('${c.id}','ajustar')" title="Tem erro, precisa arrumar" style="background:#fef2f2;border:1px solid #dc2626;color:#b91c1c;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:700;margin-left:3px">⚠ Arrumar</button>
+  </td>`;
+}
+
+async function marcarConferencia(id, estado) {
+  let obs = null;
+  if (estado === 'ajustar') {
+    obs = prompt('O que precisa ser arrumado neste caixa?');
+    if (obs === null) return;   // cancelou
+  }
+
+  const payload = {
+    conferencia: estado,
+    conferido_por: (estado === 'pendente') ? null : (_vnUser?.nome || _vnUser?.email || 'sistema'),
+    conferido_em:  (estado === 'pendente') ? null : new Date().toISOString(),
+  };
+  if (estado === 'ajustar') payload.conferencia_obs = obs || null;
+  if (estado === 'ok')      payload.conferencia_obs = null;
+
+  const { error } = await sb.from('pdv_caixas').update(payload).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  const msg = estado === 'ok' ? '✅ Caixa conferido'
+            : estado === 'ajustar' ? '⚠️ Marcado para arrumar'
+            : 'Conferência desfeita';
+  showToast(msg, estado === 'ajustar' ? 'error' : 'success');
+
+  // Atualiza em memória e redesenha, sem recarregar tudo
+  const cx = (_pdvCaixasCarregados||[]).find(x => x.id === id);
+  if (cx) Object.assign(cx, payload);
+  renderPDVLinhas(_pdvCaixasCarregados, _pdvItensCarregados, _pdvFormas);
+  atualizarAlertaConferenciaPDV();
+}
+
+// Faixa de aviso no topo enquanto houver caixa marcado como "arrumar"
+function atualizarAlertaConferenciaPDV() {
+  const box = document.getElementById('pdv-alerta-conferencia');
+  if (!box) return;
+  const pend = (_pdvCaixasCarregados||[]).filter(c => c.conferencia === 'ajustar');
+  if (!pend.length) { box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  box.innerHTML = `<span style="font-size:16px">⚠️</span>
+    <span><strong>${pend.length} caixa(s) precisam de ajuste:</strong>
+    ${pend.map(c => fmtDate(c.data_caixa)).join(', ')}</span>`;
+}
 
 function renderPDVLinhas(caixas, todosItens, formas) {
   const tbody = document.getElementById('pdv-tbody');
@@ -7897,6 +7977,7 @@ function renderPDVLinhas(caixas, todosItens, formas) {
       <td style="padding:10px 12px;font-size:13px">${c.responsavel||'—'}</td>
       ${colsForma}
       <td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(totalDia)}</td>
+      ${celulaConferencia(c)}
       <td style="padding:10px 12px;text-align:center">
         <div style="display:flex;gap:4px;justify-content:center">
           <button class="btn btn-sm" title="Editar" onclick="editarCaixa('${c.id}')">✏️</button>
