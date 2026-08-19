@@ -1662,6 +1662,21 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 <!-- Modal: Dados e Links de Acesso da Empresa -->
 
 <!-- Prévia do Sincronizar categorias -->
+
+<!-- O que precisa ser arrumado no caixa -->
+<div id="modal-ajuste-caixa" class="modal-overlay">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">⚠️ O que precisa ser arrumado?</div>
+    <input type="hidden" id="ajuste-caixa-id">
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px" id="ajuste-caixa-data"></div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Marque as formas de pagamento com valor errado.</div>
+    <div id="ajuste-lista" style="display:grid;gap:6px;max-height:46vh;overflow-y:auto"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-ajuste-caixa')">✕ Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAjusteCaixa()">⚠️ Marcar para arrumar</button>
+    </div>
+  </div>
+</div>
 <div id="modal-sync-previa" class="modal-overlay">
   <div class="modal" style="max-width:820px">
     <div class="modal-title">🔄 Revisar alterações antes de aplicar</div>
@@ -6145,6 +6160,8 @@ async function comLoader(txt, ...fns) {
   }
 }
 
+var _pdvFiltroAjuste = false;   // filtro de caixas a ajustar no PDV
+
 // Meses selecionados no DFC (vazio = todos). `let` nao e icado, entao
 // precisa ser declarado antes de qualquer funcao que o use.
 var _dfcMesesSel = [];
@@ -7915,12 +7932,34 @@ function celulaConferencia(c) {
   </td>`;
 }
 
-async function marcarConferencia(id, estado) {
-  let obs = null;
-  if (estado === 'ajustar') {
-    obs = prompt('O que precisa ser arrumado neste caixa?');
-    if (obs === null) return;   // cancelou
-  }
+// Abre o seletor de quais formas de pagamento estao erradas neste caixa
+function abrirSeletorAjuste(id) {
+  const cx = (_pdvCaixasCarregados||[]).find(x => x.id === id);
+  if (!cx) return;
+  const jaMarcadas = (cx.conferencia_obs || '').split('|').filter(Boolean);
+  const formas = _pdvFormas || [];
+
+  document.getElementById('ajuste-caixa-id').value = id;
+  document.getElementById('ajuste-caixa-data').textContent = fmtDate(cx.data_caixa) + ' · ' + (cx.responsavel || '—');
+  document.getElementById('ajuste-lista').innerHTML = formas.map(f => `
+    <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px">
+      <input type="checkbox" class="ajuste-chk" value="${f.replace(/"/g,'&quot;')}" ${jaMarcadas.includes(f)?'checked':''}>
+      ${f}
+    </label>`).join('');
+  document.getElementById('modal-ajuste-caixa').classList.add('open');
+}
+
+async function salvarAjusteCaixa() {
+  const id = document.getElementById('ajuste-caixa-id').value;
+  const marcadas = [...document.querySelectorAll('.ajuste-chk:checked')].map(c => c.value);
+  if (!marcadas.length) { showToast('Selecione o que está errado', 'error'); return; }
+  closeModal('modal-ajuste-caixa');
+  await marcarConferencia(id, 'ajustar', marcadas.join('|'));
+}
+
+async function marcarConferencia(id, estado, obsLista) {
+  let obs = obsLista || null;
+  if (estado === 'ajustar' && !obsLista) { abrirSeletorAjuste(id); return; }
 
   const payload = {
     conferencia: estado,
@@ -7941,7 +7980,10 @@ async function marcarConferencia(id, estado) {
   // Atualiza em memória e redesenha, sem recarregar tudo
   const cx = (_pdvCaixasCarregados||[]).find(x => x.id === id);
   if (cx) Object.assign(cx, payload);
-  renderPDVLinhas(_pdvCaixasCarregados, _pdvItensCarregados, _pdvFormas);
+  const _lista = _pdvFiltroAjuste
+    ? (_pdvCaixasCarregados||[]).filter(x => x.conferencia === 'ajustar')
+    : _pdvCaixasCarregados;
+  renderPDVLinhas(_lista, _pdvItensCarregados, _pdvFormas);
   atualizarAlertaConferenciaPDV();
 }
 
@@ -7950,11 +7992,30 @@ function atualizarAlertaConferenciaPDV() {
   const box = document.getElementById('pdv-alerta-conferencia');
   if (!box) return;
   const pend = (_pdvCaixasCarregados||[]).filter(c => c.conferencia === 'ajustar');
-  if (!pend.length) { box.style.display = 'none'; return; }
+  if (!pend.length) {
+    box.style.display = 'none';
+    _pdvFiltroAjuste = false;
+    return;
+  }
   box.style.display = 'flex';
+  box.style.cursor = 'pointer';
+  box.onclick = togglePDVFiltroAjuste;
+  const oQue = [...new Set(pend.flatMap(c => (c.conferencia_obs||'').split('|').filter(Boolean)))];
   box.innerHTML = `<span style="font-size:16px">⚠️</span>
-    <span><strong>${pend.length} caixa(s) precisam de ajuste:</strong>
-    ${pend.map(c => fmtDate(c.data_caixa)).join(', ')}</span>`;
+    <span style="flex:1"><strong>${pend.length} caixa(s) precisam de ajuste</strong>
+      ${oQue.length ? `· ${oQue.join(', ')}` : ''}</span>
+    <span style="font-size:11px;font-weight:700;text-decoration:underline;white-space:nowrap">
+      ${_pdvFiltroAjuste ? 'ver todos' : 'ver só estes'}</span>`;
+}
+
+// Mostra só os caixas que precisam de ajuste, pra resolver em fila
+function togglePDVFiltroAjuste() {
+  _pdvFiltroAjuste = !_pdvFiltroAjuste;
+  const lista = _pdvFiltroAjuste
+    ? (_pdvCaixasCarregados||[]).filter(c => c.conferencia === 'ajustar')
+    : _pdvCaixasCarregados;
+  renderPDVLinhas(lista, _pdvItensCarregados, _pdvFormas);
+  atualizarAlertaConferenciaPDV();
 }
 
 function renderPDVLinhas(caixas, todosItens, formas) {
@@ -7967,7 +8028,12 @@ function renderPDVLinhas(caixas, todosItens, formas) {
     const totalDia = itensC.filter(i => formasFat.includes(normForma(i.forma_pagamento))).reduce((s,i) => s + Number(i.valor||0), 0);
     const colsForma = formas.map(f => {
       const v = itensC.filter(i => normForma(i.forma_pagamento) === f).reduce((s,i)=>s+Number(i.valor||0),0);
-      return `<td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${v > 0 ? fmtBRL(v) : '<span style="color:var(--text3)">—</span>'}</td>`;
+      // Forma marcada como errada na conferencia: destaca em vermelho
+      const _err = (c.conferencia === 'ajustar') && (c.conferencia_obs || '').split('|').includes(f);
+      const _st = _err
+        ? "padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;background:#fee2e2;border:2px solid #dc2626;color:#b91c1c;font-weight:700"
+        : "padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px";
+      return `<td style="${_st}" ${_err?'title="Precisa ser corrigido"':''}>${v > 0 ? fmtBRL(v) : '<span style="color:var(--text3)">—</span>'}</td>`;
     }).join('');
     return `<tr id="pdv-row-${c.id}" style="border-bottom:1px solid var(--border)">
       <td style="padding:10px 12px;text-align:center">
