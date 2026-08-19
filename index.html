@@ -10452,12 +10452,12 @@ async function loadLancamentos(forcarBancoFilter) {
       </td>
       <td style="padding:6px 8px;min-width:90px">
         <span class="cell-view" style="font-size:10px">
-          ${(l.categoria && l.categoria_dfc) ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '<span style="color:var(--text3)">—</span>'}
+          ${badgeDemo(l, 'DFC')}
         </span>
       </td>
       <td style="padding:6px 8px;min-width:90px">
         <span class="cell-view" style="font-size:10px">
-          ${(l.categoria && l.categoria_dre) ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '<span style="color:var(--text3)">—</span>'}
+          ${badgeDemo(l, 'DRE')}
         </span>
       </td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
@@ -16432,6 +16432,31 @@ function buscarCodigosCategoria(nome) {
     if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') r.dre = c.codigo;
   });
   return r;
+}
+
+// Nome da categoria a partir do código DFC/DRE. Serve pra conferir se o
+// código gravado corresponde mesmo à categoria da linha — se divergir,
+// mostramos o nome do código em vermelho.
+function nomeDoCodigo(codigo, demo) {
+  const c = String(codigo || '').trim();
+  if (!c) return '';
+  const lista = (typeof _categorias !== 'undefined' && Array.isArray(_categorias)) ? _categorias : [];
+  const achada = lista.find(x => String(x.codigo).trim() === c &&
+    (x.demonstrativo === demo || x.demonstrativo === 'AMBOS'));
+  return achada ? achada.nome : '';
+}
+
+// Monta o badge com código + nome. Fica vermelho quando o nome do código
+// não bate com a categoria do lançamento (classificação errada).
+function badgeDemo(l, demo) {
+  const cod = demo === 'DFC' ? l.categoria_dfc : l.categoria_dre;
+  if (!l.categoria || !cod) return '<span style="color:var(--text3)">—</span>';
+  const nome = nomeDoCodigo(cod, demo);
+  const bate = !nome || normStr(nome) === normStr(l.categoria);
+  const cls  = demo === 'DFC' ? 'badge-blue' : 'badge-green';
+  const est  = bate ? '' : 'background:#fee2e2;color:#b91c1c;border-color:#dc2626';
+  const tit  = bate ? (nome || cod) : `Divergente: o código ${cod} é "${nome}", mas a categoria é "${l.categoria}"`;
+  return `<span class="badge ${cls}" style="font-size:10px;white-space:nowrap;${est}" title="${String(tit).replace(/"/g,'&quot;')}">${demo}: ${cod}${nome ? ' · ' + nome : ''}${bate ? '' : ' ⚠️'}</span>`;
 }
 
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
@@ -23124,8 +23149,8 @@ async function loadCartaoLancamentos() {
           <div id="cclcat-dd-${l.id}" style="display:none;position:absolute;top:100%;left:0;width:220px;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:500;box-shadow:0 4px 16px rgba(0,0,0,0.15)"></div>
         </div>
       </td>
-      <td style="font-size:10px"><span class="cell-view">${(l.categoria && l.categoria_dfc) ? `<span class="badge badge-blue" style="font-size:10px">DFC: ${l.categoria_dfc}</span>` : '—'}</span></td>
-      <td style="font-size:10px"><span class="cell-view">${(l.categoria && l.categoria_dre) ? `<span class="badge badge-green" style="font-size:10px">DRE: ${l.categoria_dre}</span>` : '—'}</span></td>
+      <td style="font-size:10px"><span class="cell-view">${badgeDemo(l, 'DFC')}</span></td>
+      <td style="font-size:10px"><span class="cell-view">${badgeDemo(l, 'DRE')}</span></td>
       <td>
         <span class="cell-view">${l.cartoes?.nome || '—'}</span>
         <select class="cell-edit" style="display:none;font-size:11px">
