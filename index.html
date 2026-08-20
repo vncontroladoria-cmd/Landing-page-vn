@@ -18284,10 +18284,15 @@ async function salvarConta() {
       total_parcelas: m.total,
       chave_pix: pix || null,
       palavra_chave: palavraChave || (numeroNF ? 'NF '+numeroNF : null) || null,
-      arquivo_url: arquivoUrl || null,
       observacao: (obs || '') + (m.numero_doc ? ' | Boleto: '+m.numero_doc : '') + (numeroNF ? ' | NF: '+numeroNF : '') || null,
-      status: 'pendente',
     };
+
+    // arquivo_url e status SÓ entram no payload quando fazem sentido.
+    // Antes: `arquivo_url: arquivoUrl || null` apagava o boleto ja anexado
+    // sempre que a conta era editada sem subir arquivo novo. E o
+    // `status:'pendente'` fixo revertia contas ja pagas.
+    if (arquivoUrl) payload.arquivo_url = arquivoUrl;   // só se enviou arquivo agora
+    if (!editId)    payload.status = 'pendente';        // só na criação
     // Colunas de auditoria (adiciona só se existirem no banco)
     try { payload.criado_por = _vnUser?.id || null; } catch(e){}
     try { payload.criado_por_nome = _vnUser?.nome || _vnUser?.email || null; } catch(e){}
