@@ -6125,6 +6125,9 @@ function limparClassificacao(payload) {
       if (!/^[0-9]+\.[0-9]+$/.test(String(payload.categoria_dre || ''))) payload.categoria_dre = c.dre || '';
     }
   }
+
+  // Regra "Mês anterior" do Plano de Contas
+  if (typeof aplicarCompetenciaCategoria === 'function') aplicarCompetenciaCategoria(payload);
   return payload;
 }
 
@@ -16532,6 +16535,27 @@ async function copiarCodOperador(qual) {
   } catch (e) { showToast('Não consegui copiar: ' + txt, 'error'); }
 }
 
+// Ajusta a competência conforme o Plano de Contas.
+// Categoria marcada como "Mês anterior" (competencia_tipo='anterior' na linha
+// DFC) faz o lançamento pertencer ao mês ANTERIOR ao do pagamento.
+// Usado em todos os caminhos de gravação, não só no botão Sincronizar.
+function aplicarCompetenciaCategoria(payload, dataPagamento) {
+  if (!payload || !payload.categoria) return payload;
+  const lista = (typeof _categorias !== 'undefined' && Array.isArray(_categorias)) ? _categorias : [];
+  const cat = lista.find(c => normStr(c.nome) === normStr(payload.categoria)
+                           && ['DFC','AMBOS'].includes(c.demonstrativo));
+  if (!cat || cat.competencia_tipo !== 'anterior') return payload;
+
+  const dt = String(dataPagamento || payload.data_lancamento || '').substring(0,10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) return payload;
+  const ano = parseInt(dt.substring(0,4));
+  const mes = parseInt(dt.substring(5,7));
+  const m = mes === 1 ? 12 : mes - 1;
+  const a = mes === 1 ? ano - 1 : ano;
+  payload.mes = `${a}-${String(m).padStart(2,'0')}`;
+  return payload;
+}
+
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
 function toggleDropdownMesesDFC(ev) {
   if (ev) ev.stopPropagation();
@@ -19723,22 +19747,22 @@ function renderConciliacao() {
           ${qtdRep > 1 ? `<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:10px">⚠ ${qtdRep}x repetido</span>` : ''}
         </div>
 
-        <!-- CATEGORIA COM BUSCA -->
-        <div style="min-width:220px;position:relative">
+        <!-- CATEGORIA COM BUSCA
+             flex:0 0 240px trava a largura: sem isso o card de sugestão
+             (que é mais largo) empurrava o campo e cada linha do extrato
+             ficava com o input em posição diferente. -->
+        <div style="flex:0 0 240px;width:240px;position:relative;display:flex;flex-direction:column;gap:4px">
           ${temSugestao ? `
-          <div id="sug-${idx}" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;background:#f0fdf4;border:1px solid var(--green);border-radius:6px;padding:5px 10px;cursor:pointer" onclick="aprovarSugestao(${idx})">
-            <span style="font-size:14px">💡</span>
-            <span style="font-size:11px;color:var(--green);font-weight:600">${catNome}</span>
-            <span style="font-size:10px;color:var(--text2)">via ${match?.nome || ''}</span>
-            <span style="margin-left:auto;font-size:10px;background:var(--green);color:#fff;padding:2px 6px;border-radius:10px">Aprovar</span>
+          <div id="sug-${idx}" style="display:flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid var(--green);border-radius:6px;padding:5px 8px;cursor:pointer;max-width:100%;box-sizing:border-box;overflow:hidden" onclick="aprovarSugestao(${idx})" title="Clique para aprovar: ${catNome}">
+            <span style="font-size:14px;flex-shrink:0">💡</span>
+            <span style="font-size:11px;color:var(--green);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${catNome}</span>
+            <span style="margin-left:auto;font-size:10px;background:var(--green);color:#fff;padding:2px 6px;border-radius:10px;flex-shrink:0">Aprovar</span>
           </div>` : ''}
           <input type="text" id="conc-cat-${idx}" placeholder="Buscar categoria..."
             value="${catNome}"
             oninput="buscaCatConc(this.value,${idx})"
-            onfocus="buscaCatConc(this.value,${idx})"
-            onfocus="buscaCatConc(this.value, ${idx})"
             onblur="setTimeout(()=>{const d=document.getElementById('conc-cat-dd-${idx}');if(d)d.style.display='none'},200)"
-            style="width:100%;font-size:12px;${temSugestao?'border-color:var(--green)':''}">
+            style="width:100%;font-size:12px;padding:6px 10px;border:1.5px solid ${temSugestao?'var(--green)':'var(--border)'};border-radius:7px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif;box-sizing:border-box">
           <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
           <input type="hidden" id="conc-cat-dre-${idx}" value="${catDre}">
           <div id="conc-cat-dd-${idx}" style="display:none;position:absolute;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:260px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.22)"></div>
@@ -19893,7 +19917,8 @@ async function conciliarLinha(idx) {
   const { count: total } = await qE('lancamentos').select('*', {count:'exact',head:true});
   const codigo = `${ano}${m.padStart(2,'0')}${String((total||0)+1).padStart(4,'0')}`;
 
-  const { error } = await sb.from('lancamentos').insert(addEmpresaId({
+  // Monta o payload separado pra poder aplicar a regra de competência
+  const _payloadConc = {
     codigo,
     data_lancamento: r.data,
     data_competencia: dataCompetencia,
@@ -19916,7 +19941,15 @@ async function conciliarLinha(idx) {
     origem_arquivo: _concFile?.name || '',
     criado_por: usuario,
     criado_em: agora,
-  }));
+  };
+
+  // Regra "Mês anterior" do Plano de Contas — sem isso a conciliação
+  // gravava sempre no mês do pagamento, ignorando a marcação da categoria.
+  if (typeof aplicarCompetenciaCategoria === 'function' && !dataCompetencia) {
+    aplicarCompetenciaCategoria(_payloadConc, r.data);
+  }
+
+  const { error } = await sb.from('lancamentos').insert(addEmpresaId(_payloadConc));
 
   if (error) { showToast('Erro: '+error.message,'error'); return; }
 
@@ -20155,7 +20188,10 @@ async function buscaCatConc(texto, idx) {
     if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') map[c.nome].dre = c.codigo;
   });
 
-  const resultados = Object.values(map).filter(c => !termo || incStr(c.nome, termo));
+  // Só mostra a lista depois de digitar algo — abrir no clique atrapalhava
+  // a leitura da linha e cobria o campo.
+  if (!termo) { dd.style.display = 'none'; return; }
+  const resultados = Object.values(map).filter(c => incStr(c.nome, termo));
   if (!resultados.length) { dd.style.display = 'none'; return; }
 
   // position:fixed pra escapar de qualquer pai com overflow:hidden — com
@@ -20185,19 +20221,12 @@ async function buscaCatConc(texto, idx) {
     // Sempre usamos `top` (nunca `bottom`): com zoom no body, o `bottom` é
     // medido a partir da borda da janela numa escala diferente e a lista
     // ficava ~186px longe do campo.
+    // SEMPRE abre para baixo, logo abaixo do campo. Se o espaço for pequeno,
+    // a lista encolhe em vez de subir — abrir pra cima cobria o campo.
     dd.style.bottom = '';
-    const espaco = window.innerHeight - r.bottom;
-    if (espaco < 200) {
-      // mede a altura real antes de posicionar
-      dd.style.visibility = 'hidden';
-      dd.style.top = '0px';
-      dd.style.display = 'block';
-      const alt = Math.min(dd.scrollHeight, 260);
-      dd.style.top = Math.max(4, (r.top / z) - alt - 2) + 'px';
-      dd.style.visibility = '';
-    } else {
-      dd.style.top = ((r.bottom / z) + 2) + 'px';
-    }
+    dd.style.top = ((r.bottom / z) + 2) + 'px';
+    const espaco = (window.innerHeight - r.bottom) / z;
+    dd.style.maxHeight = Math.max(120, Math.min(260, espaco - 12)) + 'px';
   }
   dd.style.display = 'block';
   dd.innerHTML = resultados.slice(0,15).map(c => {
@@ -24048,19 +24077,12 @@ async function buscaCatImportCC(texto, idx) {
     // Sempre usamos `top` (nunca `bottom`): com zoom no body, o `bottom` é
     // medido a partir da borda da janela numa escala diferente e a lista
     // ficava ~186px longe do campo.
+    // SEMPRE abre para baixo, logo abaixo do campo. Se o espaço for pequeno,
+    // a lista encolhe em vez de subir — abrir pra cima cobria o campo.
     dd.style.bottom = '';
-    const espaco = window.innerHeight - r.bottom;
-    if (espaco < 200) {
-      // mede a altura real antes de posicionar
-      dd.style.visibility = 'hidden';
-      dd.style.top = '0px';
-      dd.style.display = 'block';
-      const alt = Math.min(dd.scrollHeight, 260);
-      dd.style.top = Math.max(4, (r.top / z) - alt - 2) + 'px';
-      dd.style.visibility = '';
-    } else {
-      dd.style.top = ((r.bottom / z) + 2) + 'px';
-    }
+    dd.style.top = ((r.bottom / z) + 2) + 'px';
+    const espaco = (window.innerHeight - r.bottom) / z;
+    dd.style.maxHeight = Math.max(120, Math.min(260, espaco - 12)) + 'px';
   }
   dd.style.display = 'block';
   dd.innerHTML = resultados.slice(0,10).map(c => {
