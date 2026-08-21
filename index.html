@@ -5725,12 +5725,21 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
 <!-- MODAL VISUALIZAR DOCUMENTO -->
 <div class="modal-overlay" id="modal-doc">
-  <div class="modal" style="max-width:800px;max-height:90vh">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <div style="font-size:15px;font-weight:600" id="modal-doc-title">Documento</div>
-      <button onclick="closeModal('modal-doc')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2)">×</button>
+  <!-- Documento em tela cheia: boleto pequeno impede ler o código de barras -->
+  <div class="modal modal-doc-full" style="max-width:96vw;width:96vw;height:94vh;max-height:94vh;display:flex;flex-direction:column;padding:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-shrink:0;gap:10px">
+      <div style="font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="modal-doc-title">Documento</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <button class="btn btn-sm" onclick="zoomDocumento(-0.2)" title="Diminuir">➖</button>
+        <span id="modal-doc-zoom" style="font-size:12px;font-weight:700;min-width:44px;text-align:center">100%</span>
+        <button class="btn btn-sm" onclick="zoomDocumento(0.2)" title="Aumentar">➕</button>
+        <button class="btn btn-sm" onclick="zoomDocumento(0)" title="Tamanho original">↺</button>
+        <a id="modal-doc-abrir" href="#" target="_blank" class="btn btn-sm" style="text-decoration:none">↗ Nova aba</a>
+        <a id="modal-doc-baixar" href="#" download class="btn btn-sm" style="text-decoration:none">⬇ Baixar</a>
+        <button onclick="closeModal('modal-doc')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text2);line-height:1">×</button>
+      </div>
     </div>
-    <div id="modal-doc-content" style="text-align:center;max-height:70vh;overflow:auto"></div>
+    <div id="modal-doc-content" style="flex:1;min-height:0;overflow:auto;text-align:center;background:var(--bg3);border-radius:8px"></div>
   </div>
 </div>
 
@@ -18666,16 +18675,49 @@ async function editarConta(id, tipo) {
   document.getElementById('modal-conta').classList.add('open');
 }
 
+var _docZoom = 1;
+
 function verDocumento(url, nome) {
   document.getElementById('modal-doc-title').textContent = nome || 'Documento';
-  const ext = url.split('.').pop().toLowerCase();
+  const ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
   const content = document.getElementById('modal-doc-content');
+
+  const abrir = document.getElementById('modal-doc-abrir');
+  const baixar = document.getElementById('modal-doc-baixar');
+  if (abrir)  abrir.href  = url;
+  if (baixar) baixar.href = url;
+
+  _docZoom = 1;
+  const z = document.getElementById('modal-doc-zoom');
+  if (z) z.textContent = '100%';
+
   if (ext === 'pdf') {
-    content.innerHTML = `<iframe src="${url}" style="width:100%;height:65vh;border:none;border-radius:8px"></iframe>`;
+    // #view=FitH abre o PDF já ajustado à largura — o código de barras
+    // fica legível sem precisar dar zoom.
+    content.innerHTML = `<iframe id="modal-doc-frame" src="${url}#view=FitH&toolbar=1"
+      style="width:100%;height:100%;border:none;border-radius:8px;background:#fff"></iframe>`;
   } else {
-    content.innerHTML = `<img src="${url}" style="max-width:100%;max-height:65vh;border-radius:8px">`;
+    content.innerHTML = `<img id="modal-doc-img" src="${url}"
+      style="max-width:100%;border-radius:8px;transform-origin:top center;transition:transform .15s">`;
   }
   document.getElementById('modal-doc').classList.add('open');
+}
+
+// Zoom da imagem. delta 0 = volta ao tamanho original.
+function zoomDocumento(delta) {
+  const img = document.getElementById('modal-doc-img');
+  const frame = document.getElementById('modal-doc-frame');
+  if (frame) {
+    // Em PDF o zoom é do próprio leitor; aqui só abrimos em nova aba
+    if (delta !== 0) window.open(frame.src.split('#')[0], '_blank');
+    return;
+  }
+  if (!img) return;
+  _docZoom = delta === 0 ? 1 : Math.min(4, Math.max(0.4, _docZoom + delta));
+  img.style.transform = `scale(${_docZoom})`;
+  img.style.maxWidth = _docZoom > 1 ? 'none' : '100%';
+  const z = document.getElementById('modal-doc-zoom');
+  if (z) z.textContent = Math.round(_docZoom * 100) + '%';
 }
 
 async function atualizarStatusConta(id, tipo, novoStatus, selectEl) {
