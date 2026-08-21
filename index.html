@@ -13676,9 +13676,10 @@ async function editarFornecedorForm(id) {
 
 // ─── FORNECEDORES ─────────────────────────────────────
 function filtrarFornecedores(termo) {
-  const t = normStr(termo);
+  const palavras = normStr(termo).split(' ').filter(Boolean);
   document.querySelectorAll('#forn-tbody tr').forEach(row => {
-    row.style.display = !t || normStr(textoDaLinha(row)).includes(t) ? '' : 'none';
+    const texto = normStr(textoDaLinha(row));
+    row.style.display = (!palavras.length || palavras.every(p => texto.includes(p))) ? '' : 'none';
   });
 }
 
@@ -20422,33 +20423,66 @@ function reaplicarFiltroSemCat() {
 // Como esses selects listam o plano de contas inteiro, qualquer busca por nome
 // de categoria batia em TODAS as linhas. Por isso montamos o texto celula a
 // celula, ignorando as options e usando so o valor selecionado.
+// Junta TODO o texto pesquisável de uma linha da tabela.
+// Percorre a árvore inteira (não só os <td> do primeiro nível), porque o
+// conteúdo costuma estar aninhado em <div>/<span> — era por isso que a busca
+// não encontrava parte do que está na tela.
+// Ignora as <option> dos selects: elas listam o plano de contas inteiro e
+// fariam qualquer termo bater com todas as linhas.
 function textoDaLinha(row) {
-  let txt = '';
-  row.querySelectorAll('td').forEach(td => {
-    td.childNodes.forEach(function coleta(no) {
-      if (no.nodeType === 3) { txt += ' ' + no.nodeValue; return; }      // texto puro
-      if (no.nodeType !== 1) return;
-      const tag = no.tagName;
-      if (tag === 'SELECT') {
-        const op = no.selectedOptions?.[0];
-        txt += ' ' + (op ? op.textContent : (no.value || ''));
-        return;                                                          // nao desce nas options
-      }
-      if (tag === 'INPUT')  { txt += ' ' + (no.value || ''); return; }
-      if (tag === 'OPTION') return;
-      no.childNodes.forEach(coleta);
-    });
-  });
-  return txt;
+  const partes = [];
+
+  (function coleta(no) {
+    if (!no) return;
+
+    // Texto puro
+    if (no.nodeType === 3) {
+      const v = (no.nodeValue || '').trim();
+      if (v) partes.push(v);
+      return;
+    }
+    if (no.nodeType !== 1) return;
+
+    const tag = no.tagName;
+
+    if (tag === 'OPTION') return;                    // nunca
+
+    if (tag === 'SELECT') {                          // só a opção escolhida
+      const op = no.selectedOptions && no.selectedOptions[0];
+      if (op) partes.push(op.textContent || '');
+      else if (no.value) partes.push(no.value);
+      return;
+    }
+
+    if (tag === 'INPUT' || tag === 'TEXTAREA') {     // valor digitado
+      if (no.value) partes.push(no.value);
+      if (no.placeholder && !no.value) { /* placeholder não conta */ }
+      return;
+    }
+
+    // Atributos úteis: title costuma ter o texto completo quando a célula corta
+    if (no.getAttribute) {
+      const t = no.getAttribute('title');
+      if (t) partes.push(t);
+    }
+
+    for (let i = 0; i < no.childNodes.length; i++) coleta(no.childNodes[i]);
+  })(row);
+
+  return partes.join(' ');
 }
 
 function filtrarLancamentos(termo) {
+  // Busca por PALAVRAS, em qualquer ordem: "pix ana" acha
+  // "PIX RECEBIDO ANA CLAUDIA". normStr ignora acento e maiúscula.
   const t = normStr(termo);
+  const palavras = t.split(' ').filter(Boolean);
   const tbody = document.getElementById('lanc-tbody');
   if (!tbody) { console.warn('filtrarLancamentos: #lanc-tbody não encontrado'); return; }
   const rows = tbody.querySelectorAll('tr[id]');
   rows.forEach(row => {
-    const bate = !t || normStr(textoDaLinha(row)).includes(t);
+    const texto = normStr(textoDaLinha(row));
+    const bate = !palavras.length || palavras.every(p => texto.includes(p));
     row.style.display = bate ? '' : 'none';
     row.hidden = !bate;
     // Linha que saiu da tela nao pode continuar selecionada: senao uma
@@ -23583,8 +23617,10 @@ function filtrarCartaoLanc(termo) {
   // textoDaLinha ignora as <option> dos selects de edicao inline — senao
   // toda linha bateria com qualquer nome de categoria do plano de contas
   const t = normStr(termo);
+  const palavras = t.split(' ').filter(Boolean);
   document.querySelectorAll('#cc-tbody tr').forEach(r => {
-    const bate = !t || normStr(textoDaLinha(r)).includes(t);
+    const texto = normStr(textoDaLinha(r));
+    const bate = !palavras.length || palavras.every(p => texto.includes(p));
     r.style.display = bate ? '' : 'none';
     if (!bate) {
       const cb = r.querySelector('.cc-check');
