@@ -604,6 +604,14 @@ div.card.srv-box {
 }
 .pdv-pisca { animation: pdvPisca 1.4s ease-in-out infinite; }
 
+
+/* Bolinha do chat pulsa quando há mensagem não lida */
+@keyframes chatPulso {
+  0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,.25), 0 0 0 0 rgba(239,68,68,.6); }
+  50%      { box-shadow: 0 4px 16px rgba(0,0,0,.25), 0 0 0 12px rgba(239,68,68,0); }
+}
+#btn-chat.chat-pulsando { animation: chatPulso 1.6s ease-out infinite; }
+
 /* BADGES */
 .badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em; }
 .badge-green { background: var(--green-light); color: var(--green); }
@@ -27566,6 +27574,20 @@ function atualizarBadgeMensagens(qtd) {
     if (masterCount) masterCount.textContent = qtd > 99 ? '99+' : qtd;
   }
 
+  // Bolinha do chat flutuante. O elemento existia mas nunca era atualizado —
+  // o som tocava e nada aparecia na tela.
+  const chatBadge = document.getElementById('chat-badge');
+  const btnChat   = document.getElementById('btn-chat');
+  if (chatBadge) {
+    chatBadge.style.display = qtd > 0 ? 'flex' : 'none';
+    chatBadge.textContent = qtd > 99 ? '99+' : qtd;
+  }
+  if (btnChat) {
+    // Pulsa enquanto houver mensagem não lida
+    btnChat.classList.toggle('chat-pulsando', qtd > 0);
+    btnChat.title = qtd > 0 ? `${qtd} mensagem(ns) não lida(s)` : 'Chat';
+  }
+
   // Título da aba unificado (msgs + pendências)
   atualizarTituloAba();
 }
@@ -27603,7 +27625,7 @@ function mostrarNotifMsg(remetente, texto, deUserId) {
   const div = document.createElement('div');
   div.id = 'notif-msg-toast';
   div.style.cssText = `
-    position:fixed;bottom:24px;right:24px;z-index:9999;
+    position:fixed;bottom:80px;right:24px;z-index:9999;
     background:#1e293b;border:1px solid rgba(42,157,92,.4);border-radius:12px;
     padding:14px 16px;min-width:260px;max-width:320px;
     box-shadow:0 8px 32px rgba(0,0,0,.5);
