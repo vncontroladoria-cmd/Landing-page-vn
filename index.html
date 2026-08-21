@@ -20029,6 +20029,22 @@ function selecionarCatInline(lancId, nome, dfc, dre) {
   if (dd) dd.style.display = 'none';
 }
 
+// Fecha os dropdowns da conciliação ao rolar ou clicar fora.
+// Necessário porque eles vivem no <body> com position:fixed — sem isso
+// ficariam "flutuando" fora do lugar quando a página rola.
+if (!window._concDDHook) {
+  window._concDDHook = true;
+  const fechar = () => document.querySelectorAll('[id^="conc-cat-dd-"]')
+    .forEach(d => { if (d.style.display === 'block') d.style.display = 'none'; });
+  window.addEventListener('scroll', fechar, true);
+  window.addEventListener('resize', fechar);
+  document.addEventListener('mousedown', e => {
+    if (e.target.closest('[id^="conc-cat-dd-"]')) return;   // clicou na lista
+    if (e.target.id && e.target.id.startsWith('conc-cat-')) return; // no campo
+    fechar();
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 //  DROPDOWN DE CATEGORIA DA CONCILIAÇÃO — NÃO ALTERAR SEM LER
 //
@@ -20037,10 +20053,10 @@ function selecionarCatInline(lancId, nome, dfc, dre) {
 //  1) `await` sem try/catch derruba a função inteira e a lista NUNCA abre.
 //     Qualquer chamada assíncrona aqui precisa estar protegida.
 //
-//  2) O dropdown fica DENTRO do elemento com `body { zoom: 1.3 }`.
-//     Usar position:fixed com getBoundingClientRect dividido pelo zoom joga
-//     a lista para fora da tela. Use position:absolute + offsetTop/offsetLeft,
-//     que já estão no sistema de coordenadas do pai.
+//  2) SOLUÇÃO ATUAL: o dropdown é movido para o <body> (appendChild) e usa
+//     position:fixed + zoom:1. No body não há pai que possa cortá-lo nem
+//     zoom herdado, então getBoundingClientRect é usado direto, sem dividir.
+//     NÃO volte a deixá-lo dentro da tabela: os cards cortam a lista.
 //
 //  3) O mapa de categorias precisa tratar demonstrativo 'AMBOS', senão essas
 //     categorias aparecem sem código DFC/DRE.
@@ -20084,16 +20100,28 @@ async function buscaCatConc(texto, idx) {
   // compensando o `zoom: 1.3` do body.
   const inp = document.getElementById(`conc-cat-${idx}`) || dd.previousElementSibling;
   if (inp) {
-    // O dropdown está DENTRO do elemento com zoom, então getBoundingClientRect
-    // (que já vem escalado) precisa ser convertido de volta. Dividir por z
-    // colocava a lista lá em cima; o certo é usar offsetTop/offsetLeft do
-    // próprio elemento, que já estão no mesmo sistema de coordenadas do pai.
-    dd.style.position = 'absolute';
-    dd.style.top    = (inp.offsetTop + inp.offsetHeight + 2) + 'px';
-    dd.style.left   = inp.offsetLeft + 'px';
-    dd.style.width  = inp.offsetWidth + 'px';
-    dd.style.bottom = '';
-    dd.style.zIndex = '9999';
+    // SOLUÇÃO DEFINITIVA: move o dropdown para o <body>. Assim nenhum pai
+    // com overflow:hidden consegue cortá-lo — foi o que quebrou 4 vezes.
+    // No body não há zoom herdado, então usamos coordenadas de tela puras.
+    if (dd.parentElement !== document.body) document.body.appendChild(dd);
+
+    const r = inp.getBoundingClientRect();   // já vem escalado pelo zoom
+    dd.style.position = 'fixed';
+    dd.style.zoom     = '1';                 // anula o zoom do body
+    dd.style.left     = r.left + 'px';
+    dd.style.width    = r.width + 'px';
+    dd.style.zIndex   = '99999';
+    dd.style.maxHeight = '260px';
+
+    // Abre pra cima se não couber embaixo
+    const espaco = window.innerHeight - r.bottom;
+    if (espaco < 200) {
+      dd.style.top = '';
+      dd.style.bottom = (window.innerHeight - r.top + 2) + 'px';
+    } else {
+      dd.style.bottom = '';
+      dd.style.top = (r.bottom + 2) + 'px';
+    }
   }
   dd.style.display = 'block';
   dd.innerHTML = resultados.slice(0,15).map(c => {
@@ -20106,20 +20134,28 @@ async function buscaCatConc(texto, idx) {
     </div>`;
   }).join('');
 
-  // AUTO-VERIFICAÇÃO: confere se a lista abriu no lugar certo.
-  // Se algum dia voltar a quebrar, o aviso aparece no console em vez de
-  // simplesmente "não funcionar" em silêncio.
+  // AUTO-VERIFICAÇÃO: confere se a lista abriu visível e no lugar certo.
+  // Se voltar a quebrar, o problema aparece na tela em vez de em silêncio.
   setTimeout(() => {
     if (dd.style.display !== 'block') return;
     const rDD = dd.getBoundingClientRect();
     const rIn = inp ? inp.getBoundingClientRect() : null;
     if (!rIn) return;
-    const distancia = rDD.top - rIn.bottom;
-    if (rDD.height === 0 || rDD.width === 0)
-      console.warn('[conc] dropdown sem tamanho — algum pai está com overflow:hidden?');
-    else if (distancia < -20 || distancia > 60)
-      console.warn(`[conc] dropdown fora de posição (${Math.round(distancia)}px do campo) — ver comentário da função buscaCatConc`);
-  }, 30);
+
+    const problemas = [];
+    if (rDD.height < 10 || rDD.width < 10) problemas.push('sem tamanho (cortado por overflow:hidden?)');
+    if (dd.parentElement !== document.body) problemas.push('não está no <body>');
+    const dist = Math.min(Math.abs(rDD.top - rIn.bottom), Math.abs(rDD.bottom - rIn.top));
+    if (dist > 60) problemas.push(`longe do campo (${Math.round(dist)}px)`);
+    // Está por cima de tudo?
+    const meio = document.elementFromPoint(rDD.left + rDD.width/2, rDD.top + 8);
+    if (meio && !dd.contains(meio) && meio !== dd) problemas.push('coberto por outro elemento');
+
+    if (problemas.length) {
+      console.warn('[conc] dropdown com problema:', problemas.join(' | '));
+      showToast('⚠️ A lista de categorias não abriu corretamente — avise o suporte', 'error');
+    }
+  }, 50);
 }
 
 function selecionarCatConc(nome, dfc, dre, idx) {
@@ -23909,16 +23945,28 @@ async function buscaCatImportCC(texto, idx) {
   // compensando o `zoom: 1.3` do body.
   const inp = document.getElementById(`conc-cat-${idx}`) || dd.previousElementSibling;
   if (inp) {
-    // O dropdown está DENTRO do elemento com zoom, então getBoundingClientRect
-    // (que já vem escalado) precisa ser convertido de volta. Dividir por z
-    // colocava a lista lá em cima; o certo é usar offsetTop/offsetLeft do
-    // próprio elemento, que já estão no mesmo sistema de coordenadas do pai.
-    dd.style.position = 'absolute';
-    dd.style.top    = (inp.offsetTop + inp.offsetHeight + 2) + 'px';
-    dd.style.left   = inp.offsetLeft + 'px';
-    dd.style.width  = inp.offsetWidth + 'px';
-    dd.style.bottom = '';
-    dd.style.zIndex = '9999';
+    // SOLUÇÃO DEFINITIVA: move o dropdown para o <body>. Assim nenhum pai
+    // com overflow:hidden consegue cortá-lo — foi o que quebrou 4 vezes.
+    // No body não há zoom herdado, então usamos coordenadas de tela puras.
+    if (dd.parentElement !== document.body) document.body.appendChild(dd);
+
+    const r = inp.getBoundingClientRect();   // já vem escalado pelo zoom
+    dd.style.position = 'fixed';
+    dd.style.zoom     = '1';                 // anula o zoom do body
+    dd.style.left     = r.left + 'px';
+    dd.style.width    = r.width + 'px';
+    dd.style.zIndex   = '99999';
+    dd.style.maxHeight = '260px';
+
+    // Abre pra cima se não couber embaixo
+    const espaco = window.innerHeight - r.bottom;
+    if (espaco < 200) {
+      dd.style.top = '';
+      dd.style.bottom = (window.innerHeight - r.top + 2) + 'px';
+    } else {
+      dd.style.bottom = '';
+      dd.style.top = (r.bottom + 2) + 'px';
+    }
   }
   dd.style.display = 'block';
   dd.innerHTML = resultados.slice(0,10).map(c => {
@@ -23931,20 +23979,28 @@ async function buscaCatImportCC(texto, idx) {
     </div>`;
   }).join('');
 
-  // AUTO-VERIFICAÇÃO: confere se a lista abriu no lugar certo.
-  // Se algum dia voltar a quebrar, o aviso aparece no console em vez de
-  // simplesmente "não funcionar" em silêncio.
+  // AUTO-VERIFICAÇÃO: confere se a lista abriu visível e no lugar certo.
+  // Se voltar a quebrar, o problema aparece na tela em vez de em silêncio.
   setTimeout(() => {
     if (dd.style.display !== 'block') return;
     const rDD = dd.getBoundingClientRect();
     const rIn = inp ? inp.getBoundingClientRect() : null;
     if (!rIn) return;
-    const distancia = rDD.top - rIn.bottom;
-    if (rDD.height === 0 || rDD.width === 0)
-      console.warn('[conc] dropdown sem tamanho — algum pai está com overflow:hidden?');
-    else if (distancia < -20 || distancia > 60)
-      console.warn(`[conc] dropdown fora de posição (${Math.round(distancia)}px do campo) — ver comentário da função buscaCatConc`);
-  }, 30);
+
+    const problemas = [];
+    if (rDD.height < 10 || rDD.width < 10) problemas.push('sem tamanho (cortado por overflow:hidden?)');
+    if (dd.parentElement !== document.body) problemas.push('não está no <body>');
+    const dist = Math.min(Math.abs(rDD.top - rIn.bottom), Math.abs(rDD.bottom - rIn.top));
+    if (dist > 60) problemas.push(`longe do campo (${Math.round(dist)}px)`);
+    // Está por cima de tudo?
+    const meio = document.elementFromPoint(rDD.left + rDD.width/2, rDD.top + 8);
+    if (meio && !dd.contains(meio) && meio !== dd) problemas.push('coberto por outro elemento');
+
+    if (problemas.length) {
+      console.warn('[conc] dropdown com problema:', problemas.join(' | '));
+      showToast('⚠️ A lista de categorias não abriu corretamente — avise o suporte', 'error');
+    }
+  }, 50);
 }
 
 function selecionarCatImportCC(nome, dfc, dre, idx) {
