@@ -20177,13 +20177,21 @@ async function buscaCatConc(texto, idx) {
     dd.style.zIndex   = '99999';
     dd.style.maxHeight = '260px';
 
-    // Abre pra cima se não couber embaixo
+    // Abre pra cima se não couber embaixo.
+    // Sempre usamos `top` (nunca `bottom`): com zoom no body, o `bottom` é
+    // medido a partir da borda da janela numa escala diferente e a lista
+    // ficava ~186px longe do campo.
+    dd.style.bottom = '';
     const espaco = window.innerHeight - r.bottom;
     if (espaco < 200) {
-      dd.style.top = '';
-      dd.style.bottom = (window.innerHeight - r.top + 2) + 'px';
+      // mede a altura real antes de posicionar
+      dd.style.visibility = 'hidden';
+      dd.style.top = '0px';
+      dd.style.display = 'block';
+      const alt = Math.min(dd.scrollHeight, 260);
+      dd.style.top = Math.max(4, r.top - alt - 2) + 'px';
+      dd.style.visibility = '';
     } else {
-      dd.style.bottom = '';
       dd.style.top = (r.bottom + 2) + 'px';
     }
   }
@@ -20209,8 +20217,14 @@ async function buscaCatConc(texto, idx) {
     const problemas = [];
     if (rDD.height < 10 || rDD.width < 10) problemas.push('sem tamanho (cortado por overflow:hidden?)');
     if (dd.parentElement !== document.body) problemas.push('não está no <body>');
+
+    // Distância só é problema se a lista estiver LONGE na vertical E
+    // desalinhada na horizontal. Quando abre pra cima (bottom), a folga é
+    // maior por natureza — comparar sem considerar isso gerava falso alarme.
+    // Como sempre usamos `top`, basta ver a menor folga entre os dois lados
     const dist = Math.min(Math.abs(rDD.top - rIn.bottom), Math.abs(rDD.bottom - rIn.top));
-    if (dist > 60) problemas.push(`longe do campo (${Math.round(dist)}px)`);
+    const desalinhado = Math.abs(rDD.left - rIn.left) > 40;
+    if (dist > 60 && desalinhado) problemas.push(`fora de posição (${Math.round(dist)}px)`);
     // Está por cima de tudo?
     const meio = document.elementFromPoint(rDD.left + rDD.width/2, rDD.top + 8);
     if (meio && !dd.contains(meio) && meio !== dd) problemas.push('coberto por outro elemento');
@@ -24022,13 +24036,21 @@ async function buscaCatImportCC(texto, idx) {
     dd.style.zIndex   = '99999';
     dd.style.maxHeight = '260px';
 
-    // Abre pra cima se não couber embaixo
+    // Abre pra cima se não couber embaixo.
+    // Sempre usamos `top` (nunca `bottom`): com zoom no body, o `bottom` é
+    // medido a partir da borda da janela numa escala diferente e a lista
+    // ficava ~186px longe do campo.
+    dd.style.bottom = '';
     const espaco = window.innerHeight - r.bottom;
     if (espaco < 200) {
-      dd.style.top = '';
-      dd.style.bottom = (window.innerHeight - r.top + 2) + 'px';
+      // mede a altura real antes de posicionar
+      dd.style.visibility = 'hidden';
+      dd.style.top = '0px';
+      dd.style.display = 'block';
+      const alt = Math.min(dd.scrollHeight, 260);
+      dd.style.top = Math.max(4, r.top - alt - 2) + 'px';
+      dd.style.visibility = '';
     } else {
-      dd.style.bottom = '';
       dd.style.top = (r.bottom + 2) + 'px';
     }
   }
@@ -24054,8 +24076,14 @@ async function buscaCatImportCC(texto, idx) {
     const problemas = [];
     if (rDD.height < 10 || rDD.width < 10) problemas.push('sem tamanho (cortado por overflow:hidden?)');
     if (dd.parentElement !== document.body) problemas.push('não está no <body>');
+
+    // Distância só é problema se a lista estiver LONGE na vertical E
+    // desalinhada na horizontal. Quando abre pra cima (bottom), a folga é
+    // maior por natureza — comparar sem considerar isso gerava falso alarme.
+    // Como sempre usamos `top`, basta ver a menor folga entre os dois lados
     const dist = Math.min(Math.abs(rDD.top - rIn.bottom), Math.abs(rDD.bottom - rIn.top));
-    if (dist > 60) problemas.push(`longe do campo (${Math.round(dist)}px)`);
+    const desalinhado = Math.abs(rDD.left - rIn.left) > 40;
+    if (dist > 60 && desalinhado) problemas.push(`fora de posição (${Math.round(dist)}px)`);
     // Está por cima de tudo?
     const meio = document.elementFromPoint(rDD.left + rDD.width/2, rDD.top + 8);
     if (meio && !dd.contains(meio) && meio !== dd) problemas.push('coberto por outro elemento');
