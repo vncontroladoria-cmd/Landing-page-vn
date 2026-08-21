@@ -20169,11 +20169,15 @@ async function buscaCatConc(texto, idx) {
     // No body não há zoom herdado, então usamos coordenadas de tela puras.
     if (dd.parentElement !== document.body) document.body.appendChild(dd);
 
-    const r = inp.getBoundingClientRect();   // já vem escalado pelo zoom
+    // O dropdown está DENTRO do body, que tem zoom:1.3. getBoundingClientRect
+    // devolve pixels de TELA (já escalados), mas left/top de um filho do body
+    // são interpretados na escala do body. Por isso dividimos por z.
+    // NÃO usar dd.style.zoom = 1 aqui: isso quebra o alinhamento.
+    const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+    const r = inp.getBoundingClientRect();
     dd.style.position = 'fixed';
-    dd.style.zoom     = '1';                 // anula o zoom do body
-    dd.style.left     = r.left + 'px';
-    dd.style.width    = r.width + 'px';
+    dd.style.left     = (r.left / z) + 'px';
+    dd.style.width    = (r.width / z) + 'px';
     dd.style.zIndex   = '99999';
     dd.style.maxHeight = '260px';
 
@@ -20189,10 +20193,10 @@ async function buscaCatConc(texto, idx) {
       dd.style.top = '0px';
       dd.style.display = 'block';
       const alt = Math.min(dd.scrollHeight, 260);
-      dd.style.top = Math.max(4, r.top - alt - 2) + 'px';
+      dd.style.top = Math.max(4, (r.top / z) - alt - 2) + 'px';
       dd.style.visibility = '';
     } else {
-      dd.style.top = (r.bottom + 2) + 'px';
+      dd.style.top = ((r.bottom / z) + 2) + 'px';
     }
   }
   dd.style.display = 'block';
@@ -24028,11 +24032,15 @@ async function buscaCatImportCC(texto, idx) {
     // No body não há zoom herdado, então usamos coordenadas de tela puras.
     if (dd.parentElement !== document.body) document.body.appendChild(dd);
 
-    const r = inp.getBoundingClientRect();   // já vem escalado pelo zoom
+    // O dropdown está DENTRO do body, que tem zoom:1.3. getBoundingClientRect
+    // devolve pixels de TELA (já escalados), mas left/top de um filho do body
+    // são interpretados na escala do body. Por isso dividimos por z.
+    // NÃO usar dd.style.zoom = 1 aqui: isso quebra o alinhamento.
+    const z = parseFloat(getComputedStyle(document.body).zoom) || 1;
+    const r = inp.getBoundingClientRect();
     dd.style.position = 'fixed';
-    dd.style.zoom     = '1';                 // anula o zoom do body
-    dd.style.left     = r.left + 'px';
-    dd.style.width    = r.width + 'px';
+    dd.style.left     = (r.left / z) + 'px';
+    dd.style.width    = (r.width / z) + 'px';
     dd.style.zIndex   = '99999';
     dd.style.maxHeight = '260px';
 
@@ -24048,10 +24056,10 @@ async function buscaCatImportCC(texto, idx) {
       dd.style.top = '0px';
       dd.style.display = 'block';
       const alt = Math.min(dd.scrollHeight, 260);
-      dd.style.top = Math.max(4, r.top - alt - 2) + 'px';
+      dd.style.top = Math.max(4, (r.top / z) - alt - 2) + 'px';
       dd.style.visibility = '';
     } else {
-      dd.style.top = (r.bottom + 2) + 'px';
+      dd.style.top = ((r.bottom / z) + 2) + 'px';
     }
   }
   dd.style.display = 'block';
