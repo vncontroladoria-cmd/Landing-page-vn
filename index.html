@@ -3162,6 +3162,17 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
           <!-- CARDS UMA LINHA: saldo bancos + entradas + saídas + saldo mês + saldo total -->
           <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:nowrap;overflow-x:auto;align-items:stretch">
+            <!-- Código do Operador da empresa: acesso rápido pra copiar -->
+            <div id="lanc-cod-operador" style="display:none;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;font-size:12px;width:fit-content">
+              <span style="color:var(--text2);font-weight:600">🔢 Código do Operador</span>
+              <strong id="lanc-cod-operador-valor" style="font-family:'DM Mono',monospace;font-size:14px;color:var(--accent);letter-spacing:.5px"></strong>
+              <button onclick="copiarCodOperador('valor')" title="Copiar código" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 7px;cursor:pointer;font-size:12px">📋</button>
+              <span id="lanc-cod-operador-senha-box" style="display:none;align-items:center;gap:6px;border-left:1px solid var(--border);padding-left:10px">
+                <span style="color:var(--text2);font-weight:600">Senha</span>
+                <strong id="lanc-cod-operador-senha" style="font-family:'DM Mono',monospace;font-size:14px;color:var(--text);cursor:pointer" onclick="this.dataset.ver = this.dataset.ver==='1'?'0':'1'; this.textContent = this.dataset.ver==='1' ? this.dataset.real : '••••••'" title="Clique para mostrar/ocultar">••••••</strong>
+                <button onclick="copiarCodOperador('senha')" title="Copiar senha" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 7px;cursor:pointer;font-size:12px">📋</button>
+              </span>
+            </div>
             <button id="lanc-alerta-saldo" onclick="detalharDivergenciaSaldo()" style="display:none;width:100%;margin-bottom:10px;padding:10px 14px;background:#fef2f2;border:2px solid #dc2626;border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:#dc2626;text-align:left;align-items:center;gap:8px">
             <span id="lanc-alerta-icone" style="font-size:16px">⚠️</span>
             <span id="lanc-alerta-texto">Saldo divergente</span>
@@ -10203,6 +10214,7 @@ async function initLancamentos() {
 
 async function loadLancamentos(forcarBancoFilter) {
   garantirCategorias();
+  carregarCodOperador();
   const el = document.getElementById('lanc-tbody');
   if (!el) return;
 
@@ -16466,6 +16478,58 @@ function badgeDemo(l, demo) {
   const est  = bate ? '' : 'background:#fee2e2;color:#b91c1c;border-color:#dc2626';
   const tit  = bate ? (nome || cod) : `Divergente: o código ${cod} é "${nome}", mas a categoria é "${l.categoria}"`;
   return `<span class="badge ${cls}" style="font-size:10px;white-space:nowrap;${est}" title="${String(tit).replace(/"/g,'&quot;')}">${demo}: ${cod}${nome ? ' · ' + nome : ''}${bate ? '' : ' ⚠️'}</span>`;
+}
+
+// ─── CÓDIGO DO OPERADOR NA TELA DE LANÇAMENTOS ───────────
+// Fica em empresas.dados_cadastro.cod_operador (modal "Dados da Empresa").
+// Mostrado aqui pra não precisar abrir o Master toda vez que for lançar.
+async function carregarCodOperador() {
+  const box = document.getElementById('lanc-cod-operador');
+  if (!box) return;
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!empId) { box.style.display = 'none'; return; }
+
+  try {
+    const { data } = await sb.from('empresas').select('dados_cadastro').eq('id', empId).single();
+    const cad = data?.dados_cadastro || {};
+    const cod   = (cad.cod_operador || '').trim();
+    const senha = (cad.cod_operador_senha || '').trim();
+
+    if (!cod) { box.style.display = 'none'; return; }
+
+    document.getElementById('lanc-cod-operador-valor').textContent = cod;
+    const senhaBox = document.getElementById('lanc-cod-operador-senha-box');
+    const senhaEl  = document.getElementById('lanc-cod-operador-senha');
+    if (senha) {
+      senhaEl.dataset.real = senha;
+      senhaEl.dataset.ver = '0';
+      senhaEl.textContent = '••••••';
+      senhaBox.style.display = 'inline-flex';
+    } else {
+      senhaBox.style.display = 'none';
+    }
+    box.style.display = 'inline-flex';
+  } catch (e) {
+    console.warn('cod operador:', e);
+    box.style.display = 'none';
+  }
+}
+
+async function copiarCodOperador(qual) {
+  const el = qual === 'senha'
+    ? document.getElementById('lanc-cod-operador-senha')
+    : document.getElementById('lanc-cod-operador-valor');
+  const txt = qual === 'senha' ? (el?.dataset.real || '') : (el?.textContent || '');
+  if (!txt) return;
+  try {
+    if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(txt);
+    else {
+      const ta = document.createElement('textarea');
+      ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    showToast(qual === 'senha' ? 'Senha copiada' : 'Código copiado', 'success');
+  } catch (e) { showToast('Não consegui copiar: ' + txt, 'error'); }
 }
 
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
