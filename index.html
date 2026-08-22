@@ -19491,7 +19491,8 @@ async function processarExcelMapeado() {
   closeModal('modal-importar-excel');
 
   // Garante fornecedores e categorias
-  if (!_fornecedores.length) {
+  // Recarrega sempre: cache entre empresas causava sugestão errada
+  {
     const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
     if (empId) {
       const { data } = await sb.from('fornecedores').select('*').eq('empresa_id', empId);
@@ -19682,17 +19683,66 @@ async function iniciarConciliacao() {
     return;
   }
 
-  // Garante que fornecedores e categorias estão carregados
-  if (!_fornecedores.length) {
+  // SEMPRE recarrega fornecedores e categorias da empresa ATUAL.
+  // Antes usava `if (!_fornecedores.length)`, que reaproveitava a lista da
+  // empresa anterior — a conciliação sugeria categorias de outra empresa e
+  // o campo ficava com um código inexistente no Plano de Contas local.
+  {
     const { data: forns } = await qE('fornecedores').select('*');
     _fornecedores = forns || [];
   }
-  if (!_categorias.length) {
+  {
     const { data: cats } = await qE('plano_contas').select('*').order('ordem');
     _categorias = cats || [];
   }
 
   renderConciliacao();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  AUTOTESTE DA CONCILIAÇÃO — roda ao abrir a tela.
+//  Confere os 4 pontos que já quebraram e avisa se algum falhar.
+//  Se você mexer nesta tela, rode e veja o console antes de publicar.
+// ═══════════════════════════════════════════════════════════════════
+function autoTesteConciliacao() {
+  const falhas = [];
+
+  // 1. Categorias e fornecedores são da empresa aberta?
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  if (!_categorias?.length) falhas.push('Plano de Contas vazio');
+  else if (empId && _categorias.some(c => c.empresa_id && c.empresa_id !== empId))
+    falhas.push('categorias de OUTRA empresa em memória');
+  if (empId && (_fornecedores||[]).some(f => f.empresa_id && f.empresa_id !== empId))
+    falhas.push('fornecedores de OUTRA empresa em memória');
+
+  // 2. As funções essenciais existem?
+  ['buscaCatConc','selecionarCatConc','ancorarDropdown','fornecedorBate','conciliarLinha']
+    .forEach(f => { if (typeof window[f] !== 'function') falhas.push(`função ${f} ausente`); });
+
+  // 3. Sugestões apontam para categoria que existe no plano?
+  const nomes = new Set((_categorias||[]).map(c => normStr(c.nome)));
+  const codigos = new Set((_categorias||[]).map(c => String(c.codigo)));
+  const forasDoPlano = (_fornecedores||[]).filter(f =>
+    (f.categoria_dfc && !codigos.has(String(f.categoria_dfc))) ||
+    (f.categoria_dre && !codigos.has(String(f.categoria_dre))));
+  if (forasDoPlano.length)
+    falhas.push(`${forasDoPlano.length} fornecedor(es) com código fora do Plano de Contas: ${forasDoPlano.slice(0,3).map(f=>f.nome).join(', ')}`);
+
+  // 4. Campos e dropdowns foram criados?
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('[id^="conc-cat-"]:not([id*="-dd-"]):not([id*="-dfc-"]):not([id*="-dre-"])');
+    const drops  = document.querySelectorAll('[id^="conc-cat-dd-"]');
+    if (_concRows?.length && inputs.length !== drops.length)
+      console.warn(`[conc] ${inputs.length} campos mas ${drops.length} dropdowns — algum não foi criado`);
+  }, 300);
+
+  if (falhas.length) {
+    console.warn('%c[AUTOTESTE CONCILIAÇÃO] ' + falhas.length + ' problema(s):', 'color:#dc2626;font-weight:bold');
+    falhas.forEach(f => console.warn('  • ' + f));
+    return false;
+  }
+  console.log('%c[AUTOTESTE CONCILIAÇÃO] tudo certo ✓', 'color:#059669');
+  return true;
 }
 
 function renderConciliacao() {
@@ -19734,8 +19784,17 @@ function renderConciliacao() {
     const match = _fornecedores.find(f => fornecedorBate(f, r.extrato));
     let catDfc = match?.categoria_dfc || '';
     let catDre = match?.categoria_dre || '';
-    let catNome = catDfc || catDre || '';
-    let temSugestao = !!match;
+    // O fornecedor guarda só os CÓDIGOS (ex: "3.7"). Convertemos pro NOME
+    // da categoria — antes o campo era preenchido com o número, que não
+    // existe no Plano de Contas e travava a conciliação.
+    let catNome = '';
+    if (catDfc || catDre) {
+      const _c = (_categorias || []).find(c =>
+        (String(c.codigo) === String(catDfc) && ['DFC','AMBOS'].includes(c.demonstrativo)) ||
+        (String(c.codigo) === String(catDre) && ['DRE','AMBOS'].includes(c.demonstrativo)));
+      catNome = _c?.nome || '';
+    }
+    let temSugestao = !!match && !!catNome;
 
     // 2. Só tenta pela coluna CATEGORIA do Excel se NENHUM fornecedor bateu
     //    (categoria do fornecedor sempre tem prioridade sobre o texto da planilha)
