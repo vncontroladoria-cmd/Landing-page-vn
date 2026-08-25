@@ -19672,10 +19672,39 @@ async function iniciarConciliacao() {
       const colunas = raw.length ? Object.keys(raw[0]) : [];
       const isFormatoProprio = colunas.some(c => c.trim().toUpperCase() === 'DESCRICAO') && colunas.some(c => c.trim().toUpperCase() === 'CATEGORIA');
       _concRows = isFaturaCartao ? parseFaturaItauCartaoXLSX(aoa) : (isFormatoProprio ? parseFormatoProprio(raw) : (isItau ? parseItauXLSX(ws, XLSX) : parseStoneRows(raw)));
+
+      // Qual leitor foi usado — ajuda a diagnosticar extrato não reconhecido
+      console.log('[conc] leitor:', isFaturaCartao ? 'fatura cartão'
+        : isFormatoProprio ? 'formato próprio' : isItau ? 'Itaú' : 'padrão (Stone/genérico)',
+        '| colunas:', colunas.join(', '));
     }
   } catch(e) {
     container.innerHTML = `<div class="empty">Erro ao ler arquivo: ${e.message}</div>`;
     return;
+  }
+
+  // VALIDAÇÃO DAS LINHAS LIDAS. Extrato de banco não reconhecido pelo leitor
+  // gera linhas sem data ou sem valor — e aí a conciliação não funciona.
+  // Melhor avisar de forma clara do que deixar a tela meio quebrada.
+  const invalidas = (_concRows||[]).filter(r =>
+    !r || !r.data || !/^\d{4}-\d{2}-\d{2}$/.test(String(r.data)) ||
+    (!Number(r.entrada) && !Number(r.saida))
+  );
+  if (_concRows.length && invalidas.length === _concRows.length) {
+    container.innerHTML = `<div class="empty" style="padding:2rem;text-align:left;line-height:1.7">
+      <div style="font-size:15px;font-weight:700;color:var(--red);margin-bottom:8px">⚠️ Extrato não reconhecido</div>
+      O arquivo foi lido, mas nenhuma linha tem data e valor válidos.<br>
+      Colunas encontradas: <code>${(Object.keys(_concRows[0]||{})).join(', ') || '—'}</code><br><br>
+      <strong>O que fazer:</strong><br>
+      • Baixe o extrato em <strong>OFX</strong> — é o formato mais confiável e funciona em qualquer banco;<br>
+      • Ou exporte em Excel com as colunas <code>Data</code>, <code>Descrição</code> e <code>Valor</code>.
+    </div>`;
+    console.warn('[conc] nenhuma linha válida. Amostra:', _concRows.slice(0,3));
+    return;
+  }
+  if (invalidas.length) {
+    console.warn(`[conc] ${invalidas.length} de ${_concRows.length} linhas inválidas foram descartadas`, invalidas.slice(0,3));
+    _concRows = _concRows.filter(r => !invalidas.includes(r));
   }
 
   if (!_concRows.length) {
