@@ -3335,6 +3335,11 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                     <div style="font-size:10px;color:var(--text2)" id="cp-chart-sub">valores a vencer no mês</div>
                   </div>
                 </div>
+                <select id="cp-chart-filtro" onchange="loadContasPagar()" style="margin-left:auto;padding:4px 8px;font-size:11px;font-weight:600;border:1.5px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif">
+                  <option value="apagar" selected>A pagar</option>
+                  <option value="pagos">Pagos</option>
+                  <option value="todos">Todos</option>
+                </select>
               </div>
               <div class="section-card-body" style="padding:12px;height:200px;position:relative">
                 <canvas id="cp-chart-dias"></canvas>
@@ -11410,8 +11415,20 @@ async function loadContasPagar() {
   _s('cp-hero-var-sub',  _pct(_totVar));
 
   // ── Gráfico: vencimentos por dia ──────────────────────
+  // Filtro próprio do gráfico: a pagar (padrão), pagos ou todos.
+  const _fGraf = document.getElementById('cp-chart-filtro')?.value || 'apagar';
+  const _ehPago = c => ['pago','recebido'].includes(normS(c.status));
+  const contasGrafico = _fGraf === 'pagos'  ? contas.filter(_ehPago)
+                      : _fGraf === 'todos'  ? contas
+                      : contas.filter(c => !_ehPago(c));
+
+  const _sub = document.getElementById('cp-chart-sub');
+  if (_sub) _sub.textContent = _fGraf === 'pagos' ? 'valores já pagos no mês'
+                            : _fGraf === 'todos' ? 'todos os vencimentos do mês'
+                            : 'valores a vencer no mês';
+
   const diasMap = {};
-  contas.filter(c => c.status !== 'pago').forEach(c => {
+  contasGrafico.forEach(c => {
     const dia = parseInt((c.data_vencimento||'').substring(8,10));
     if (dia) diasMap[dia] = (diasMap[dia]||0) + Number(c.valor||0);
   });
@@ -11435,8 +11452,9 @@ async function loadContasPagar() {
   }
 
   // ── Donut: por categoria ───────────────────────────────
+  // Usa o mesmo filtro do gráfico de vencimentos, pra leitura ficar coerente
   const catMap = {};
-  contas.forEach(c => {
+  contasGrafico.forEach(c => {
     const cat = c.categoria || 'Outros';
     catMap[cat] = (catMap[cat]||0) + Number(c.valor||0);
   });
@@ -13823,6 +13841,9 @@ async function saveFornecedor() {
     palavra_chave: document.getElementById('forn-palavra-chave')?.value || '',
     categoria_dfc: document.getElementById('forn-cat-dfc')?.value || '',
     categoria_dre: document.getElementById('forn-cat-dre')?.value || '',
+    // Guarda também o NOME: o código muda quando o Plano de Contas é
+    // reorganizado, o nome não. É por ele que a conciliação casa primeiro.
+    categoria_nome: (document.getElementById('forn-cat-dfc-busca')?.value || document.getElementById('forn-cat-dre-busca')?.value || '').trim() || null,
   };
   if (codigo) payload.codigo = codigo;
 
@@ -19817,11 +19838,29 @@ function renderConciliacao() {
     // da categoria — antes o campo era preenchido com o número, que não
     // existe no Plano de Contas e travava a conciliação.
     let catNome = '';
-    if (catDfc || catDre) {
-      const _c = (_categorias || []).find(c =>
-        (String(c.codigo) === String(catDfc) && ['DFC','AMBOS'].includes(c.demonstrativo)) ||
-        (String(c.codigo) === String(catDre) && ['DRE','AMBOS'].includes(c.demonstrativo)));
-      catNome = _c?.nome || '';
+    if (match) {
+      // 1º tenta pelo NOME salvo no fornecedor (estável, não muda quando
+      // o Plano de Contas é reorganizado)
+      if (match.categoria_nome) {
+        const _cn = (_categorias || []).find(c => normStr(c.nome) === normStr(match.categoria_nome));
+        if (_cn) catNome = _cn.nome;
+      }
+      // 2º tenta pelo CÓDIGO — pode estar desatualizado se o código mudou
+      if (!catNome && (catDfc || catDre)) {
+        const _c = (_categorias || []).find(c =>
+          (String(c.codigo) === String(catDfc) && ['DFC','AMBOS'].includes(c.demonstrativo)) ||
+          (String(c.codigo) === String(catDre) && ['DRE','AMBOS'].includes(c.demonstrativo)));
+        catNome = _c?.nome || '';
+      }
+      // Achou o nome: recalcula os códigos a partir do plano ATUAL
+      if (catNome && typeof buscarCodigosCategoria === 'function') {
+        const _cods = buscarCodigosCategoria(catNome);
+        catDfc = _cods.dfc || catDfc;
+        catDre = _cods.dre || catDre;
+      }
+      if (!catNome && (catDfc || catDre)) {
+        console.warn(`[conc] fornecedor "${match.nome}" aponta para código inexistente (DFC:${catDfc} DRE:${catDre}) — recadastre a categoria dele`);
+      }
     }
     let temSugestao = !!match && !!catNome;
 
@@ -20170,8 +20209,25 @@ async function concluirTodos() {
       <div style="font-size:48px;margin-bottom:12px">✅</div>
       <div style="font-size:16px;font-weight:700;margin-bottom:8px">${salvos} lançamentos conciliados com sucesso!</div>
       <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:8px">Valor total importado: ${fmtBRL(Math.abs(totalImportado))}</div>
-      <div style="font-size:13px">Importe um novo extrato para continuar.</div>
+      <div style="font-size:13px">Levando você para os Lançamentos...</div>
     </div>`;
+
+  // Vai direto pros Lançamentos: é lá que a pessoa vai conferir e classificar
+  // o que acabou de importar. O atraso dá tempo de ler o resumo acima.
+  if (salvos > 0) {
+    setTimeout(() => {
+      const nav = document.querySelector('[data-page="lancamentos"]');
+      if (typeof showPage === 'function') showPage('lancamentos', nav);
+      // Se algo ficou sem categoria, já abre filtrado nesses
+      setTimeout(() => {
+        const semCat = (_lancamentos||[]).filter(lancMalClassificado);
+        if (semCat.length && typeof filtrarSemCategoria === 'function') {
+          filtrarSemCategoria();
+          showToast(`${semCat.length} lançamento(s) sem categoria — classifique aqui`, 'info');
+        }
+      }, 1200);
+    }, 1500);
+  }
 }
 
 // Auditoria — mostra de onde veio o lançamento
