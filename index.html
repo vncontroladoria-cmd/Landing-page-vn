@@ -4179,6 +4179,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <button class="btn" style="background:#7c3aed22;color:#7c3aed;border-color:#7c3aed55" onclick="abrirImportarFaturaCC()">💳 Importar Fatura</button>
             </div>
           </div>
+          <div id="conc-aviso-fornecedores" style="display:none;padding:10px 14px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:10px;margin-bottom:12px;font-size:13px;color:#92400e"></div>
           <div id="conc-container"><div class="empty">Clique em "Importar extrato" para começar</div></div>
         </div>
 
@@ -19582,7 +19583,29 @@ async function processarExcelMapeado() {
     return;
   }
 
+  // Carrega fornecedores e categorias ANTES de renderizar. Sem isto o
+  // reconhecimento automático não acontece: a lista chega vazia e nenhuma
+  // sugestão é gerada. Este caminho (import por mapeamento de colunas)
+  // não fazia essa carga — o outro caminho fazia, daí funcionar às vezes.
+  await carregarDadosConciliacao();
+
   renderConciliacao();
+}
+
+// Recarrega SEMPRE da empresa atual (cache entre empresas dava sugestão errada)
+async function carregarDadosConciliacao() {
+  try {
+    const [{ data: forns }, { data: cats }] = await Promise.all([
+      qE('fornecedores').select('*'),
+      qE('plano_contas').select('*').order('ordem'),
+    ]);
+    _fornecedores = forns || [];
+    _categorias   = cats  || [];
+    console.log(`[conc] ${_fornecedores.length} fornecedor(es) e ${_categorias.length} categoria(s) carregados`);
+  } catch (e) {
+    console.error('[conc] falha ao carregar fornecedores/categorias:', e);
+    showToast('Não consegui carregar os fornecedores — o reconhecimento automático não vai funcionar', 'error');
+  }
 }
 
 function parseDateExcel(val) {
@@ -19797,6 +19820,24 @@ function autoTesteConciliacao() {
 
 function renderConciliacao() {
   const container = document.getElementById('conc-container');
+
+  // Sem fornecedores não existe reconhecimento automático. Avisa na tela
+  // em vez de deixar todas as linhas em branco sem explicação.
+  const _avisoEl = document.getElementById('conc-aviso-fornecedores');
+  if (_avisoEl) {
+    if (!(_fornecedores || []).length) {
+      _avisoEl.style.display = 'block';
+      _avisoEl.innerHTML = '⚠️ <strong>Nenhum fornecedor cadastrado nesta empresa</strong> — sem eles o sistema não consegue sugerir categorias sozinho. Cadastre em Configurações → Fornecedores.';
+    } else {
+      const semCat = _fornecedores.filter(f => !f.categoria_nome && !f.categoria_dfc && !f.categoria_dre).length;
+      if (semCat === _fornecedores.length) {
+        _avisoEl.style.display = 'block';
+        _avisoEl.innerHTML = `⚠️ <strong>Os ${_fornecedores.length} fornecedores estão sem categoria vinculada</strong> — o reconhecimento encontra o fornecedor mas não sabe qual categoria usar.`;
+      } else {
+        _avisoEl.style.display = 'none';
+      }
+    }
+  }
   if (!container) return;
 
   // Pega mês/ano da primeira linha ou do filtro
@@ -19831,7 +19872,7 @@ function renderConciliacao() {
 
   _concRows.forEach((r, idx) => {
     // 1. Tenta reconhecer por fornecedor
-    const match = _fornecedores.find(f => fornecedorBate(f, r.extrato));
+    const match = (_fornecedores || []).find(f => fornecedorBate(f, r.extrato));
     let catDfc = match?.categoria_dfc || '';
     let catDre = match?.categoria_dre || '';
     // O fornecedor guarda só os CÓDIGOS (ex: "3.7"). Convertemos pro NOME
