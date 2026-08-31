@@ -7872,7 +7872,12 @@ async function loadPDV() {
 
   // Colunas = TODAS as categorias cadastradas (fixas), não só as que têm dados
   const normForma = f => (f||'Outros').replace(/\s+(MASTER CARD|VISA|ELO|AMEX|HIPERCARD|HIPER)\b.*/i,'').trim();
-  const formas = _pdvCategorias.filter(c => c.tipo !== 'SAIDA' && !eqStr(c.nome, 'responsavel')).map(c => c.nome);
+  // Só categorias CADASTRADAS e marcadas como visíveis. `visivel` pode não
+  // existir em bases antigas — nesse caso trata como true.
+  const formas = _pdvCategorias
+    .filter(c => c.tipo !== 'SAIDA' && !eqStr(c.nome, 'responsavel') && c.visivel !== false)
+    .map(c => c.nome);
+  const formasPermitidas = new Set(formas.map(f => normStr(f)));
 
   // Cards resumo
   const cardsDiv = document.getElementById('pdv-cards-resumo');
@@ -7882,9 +7887,10 @@ async function loadPDV() {
       const f = normForma(i.forma_pagamento);
       grupos[f] = (grupos[f]||0) + Number(i.valor||0);
     });
-    // Usa TODAS as formas de pagamento realmente encontradas nos dados — não uma lista fixa,
-    // que corria o risco de deixar categorias de fora (ex: Dinheiro) e o total ficar menor que o real
-    const formasTotal = Object.keys(grupos);
+    // Só as formas CADASTRADAS e visíveis. Antes usava tudo que aparecia nos
+    // dados, e formas antigas (Serviços, Caixinha, Taxa da Maquininha)
+    // apareciam como card mesmo sem estar no cadastro — inflando o total.
+    const formasTotal = Object.keys(grupos).filter(f => formasPermitidas.has(normStr(f)));
     const totalGeral = Object.entries(grupos)
       .filter(([f]) => formasTotal.includes(f))
       .reduce((s,[,v]) => s+v, 0);
@@ -10059,15 +10065,20 @@ function renderCategoriasPDV() {
     const vinculoBadge = plano
       ? `<span style="font-size:10px;background:rgba(5,150,105,0.1);color:var(--accent);border:1px solid rgba(5,150,105,0.2);border-radius:10px;padding:2px 8px;white-space:nowrap">🔗 ${plano}</span>`
       : `<span style="font-size:10px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);border-radius:10px;padding:2px 8px;white-space:nowrap">Sem vínculo</span>`;
+    const oculta = c.visivel === false;
     return `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);flex-wrap:wrap;${oculta?'opacity:.45':''}">
       <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
         <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);min-width:20px">${c.ordem||'—'}</span>
-        <span style="font-size:13px;font-weight:600">${c.nome}</span>
+        <span style="font-size:13px;font-weight:600;${oculta?'text-decoration:line-through':''}">${c.nome}</span>
         <span style="font-size:10px;color:var(--text3)">${c.tipo}</span>
         ${vinculoBadge}
+        ${oculta?'<span style="font-size:10px;background:var(--bg4);color:var(--text2);border-radius:10px;padding:2px 8px">oculta</span>':''}
       </div>
       <div style="display:flex;gap:5px;align-items:center">
+        <button onclick="alternarVisibilidadeCatPDV('${c.id}', ${oculta})"
+          title="${oculta?'Mostrar no PDV':'Ocultar do PDV (não apaga os lançamentos)'}"
+          style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px">${oculta?'🙈':'👁️'}</button>
         <button onclick="editarCategoriaPDV('${c.id}','${c.nome.replace(/'/g,"\\'")}','${c.tipo}',${c.ordem||0},'${plano.replace(/'/g,"\\'")}')"
           style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
         <button onclick="excluirCategoriaPDV('${c.id}')"
@@ -10075,6 +10086,20 @@ function renderCategoriasPDV() {
       </div>
     </div>`;
   }).join('');
+}
+
+// Oculta/mostra a categoria no PDV sem apagar nada. Útil para formas de
+// pagamento que não se usa mais mas cujos lançamentos antigos ficam no histórico.
+async function alternarVisibilidadeCatPDV(id, estaOculta) {
+  const { error } = await sb.from('pdv_categorias')
+    .update({ visivel: estaOculta })   // se está oculta, volta a aparecer
+    .eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  const c = (_pdvCategorias||[]).find(x => x.id === id);
+  if (c) c.visivel = estaOculta;
+  showToast(estaOculta ? 'Categoria visível no PDV' : 'Categoria ocultada do PDV', 'success');
+  renderCategoriasPDV();
+  if (typeof initPDV === 'function') initPDV();
 }
 
 async function salvarCategoriaPDV() {
