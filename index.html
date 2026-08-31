@@ -3791,18 +3791,34 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
                 </select>
                 <button class="btn btn-primary" onclick="salvarCategoriaPDV()">+ Adicionar</button>
               </div>
-              <!-- Vínculo com Plano de Contas -->
-              <div style="position:relative;margin-bottom:0.75rem">
-                <input type="text" id="nova-cat-pdv-plano-busca" placeholder="🔗 Vincular com categoria do Plano de Contas (DRE/DFC)..."
-                  autocomplete="off"
-                  oninput="buscarCatPlanoPDV(this.value)"
-                  onfocus="buscarCatPlanoPDVAbrir(this)"
-                  onblur="setTimeout(()=>{const d=document.getElementById('nova-cat-pdv-plano-dd');if(d)d.style.display='none'},200)"
-                  style="width:100%;padding:8px 12px;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px">
-                <input type="hidden" id="nova-cat-pdv-plano">
-                <div id="nova-cat-pdv-plano-dd" style="display:none;position:fixed;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);min-width:300px"></div>
+              <!-- Vínculo com Plano de Contas: um campo pra DFC e outro pra DRE.
+                   Antes era um só, e quando as categorias tinham nomes diferentes
+                   em cada demonstrativo só dava pra vincular um deles. -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0.5rem">
+                <div style="position:relative">
+                  <label style="font-size:10px;font-weight:700;color:#2563eb;display:block;margin-bottom:3px">🔗 CATEGORIA NO DFC</label>
+                  <input type="text" id="nova-cat-pdv-plano-busca" placeholder="Buscar no DFC..."
+                    autocomplete="off"
+                    oninput="buscarCatPlanoPDV(this.value,'DFC')"
+                    onfocus="buscarCatPlanoPDVAbrir(this,'DFC')"
+                    onblur="setTimeout(()=>{const d=document.getElementById('nova-cat-pdv-plano-dd');if(d)d.style.display='none'},200)"
+                    style="width:100%;padding:8px 12px;border:1.5px solid #2563eb;border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px;box-sizing:border-box">
+                  <input type="hidden" id="nova-cat-pdv-plano">
+                  <div id="nova-cat-pdv-plano-dd" style="display:none;position:fixed;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);min-width:300px"></div>
+                </div>
+                <div style="position:relative">
+                  <label style="font-size:10px;font-weight:700;color:var(--green);display:block;margin-bottom:3px">🔗 CATEGORIA NA DRE</label>
+                  <input type="text" id="nova-cat-pdv-plano-dre-busca" placeholder="Buscar na DRE..."
+                    autocomplete="off"
+                    oninput="buscarCatPlanoPDV(this.value,'DRE')"
+                    onfocus="buscarCatPlanoPDVAbrir(this,'DRE')"
+                    onblur="setTimeout(()=>{const d=document.getElementById('nova-cat-pdv-plano-dre-dd');if(d)d.style.display='none'},200)"
+                    style="width:100%;padding:8px 12px;border:1.5px solid var(--green);border-radius:8px;background:var(--bg3);color:var(--text);font-size:12px;box-sizing:border-box">
+                  <input type="hidden" id="nova-cat-pdv-plano-dre">
+                  <div id="nova-cat-pdv-plano-dre-dd" style="display:none;position:fixed;background:var(--bg2);border:1.5px solid var(--green);border-radius:8px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);min-width:300px"></div>
+                </div>
               </div>
-              <div style="font-size:11px;color:var(--text3);margin-bottom:0.75rem">Vincule cada categoria do PDV com uma categoria do Plano de Contas. Ex: "Cartão Crédito" → "Receitas de Serviços". Os valores aparecerão automaticamente no DRE e DFC na categoria correspondente.</div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:0.75rem">Vincule a categoria do PDV com o Plano de Contas. Se o nome for o mesmo nos dois demonstrativos, preencha só o DFC — a DRE é preenchida automaticamente.</div>
               <div id="pdv-categorias-lista" style="max-height:320px;overflow-y:auto"></div>
             </div>
           </div>
@@ -10012,8 +10028,10 @@ async function abrirModalPdvCategorias() {
   document.getElementById('modal-pdv-categorias').classList.add('open');
 }
 
-function buscarCatPlanoPDVAbrir(inputEl) {
-  let dd = document.getElementById('nova-cat-pdv-plano-dd');
+function buscarCatPlanoPDVAbrir(inputEl, demo) {
+  demo = demo || 'DFC';
+  const alvo = (demo === 'DRE') ? 'nova-cat-pdv-plano-dre-dd' : 'nova-cat-pdv-plano-dd';
+  let dd = document.getElementById(alvo);
   if (!dd || !inputEl) return;
 
   // Move o dropdown para o body para escapar do zoom do modal
@@ -10028,30 +10046,50 @@ function buscarCatPlanoPDVAbrir(inputEl) {
   dd.style.width = Math.max(rect.width, 300) + 'px';
   dd.style.zIndex = '99999';
 
-  buscarCatPlanoPDV(inputEl.value);
+  buscarCatPlanoPDV(inputEl.value, demo);
 }
 
-function buscarCatPlanoPDV(texto) {
-  const dd = document.getElementById('nova-cat-pdv-plano-dd');
+function buscarCatPlanoPDV(texto, demo) {
+  demo = demo || 'DFC';
+  const alvo = (demo === 'DRE') ? 'nova-cat-pdv-plano-dre' : 'nova-cat-pdv-plano';
+  const dd = document.getElementById(alvo + '-dd');
   if (!dd) return;
   const termo = (texto||'').toLowerCase().trim();
-  const cats = (_categorias||[]).filter(c => !termo || incStr(c.nome, termo));
+
+  // Mostra só as categorias DAQUELE demonstrativo (AMBOS entra nos dois)
+  const cats = (_categorias||[])
+    .filter(c => c.demonstrativo === demo || c.demonstrativo === 'AMBOS')
+    .filter(c => !termo || incStr(c.nome, termo));
+
   if (!cats.length) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = cats.map(c =>
-    `<div onmousedown="selecionarCatPlanoPDV('${c.nome.replace(/'/g,"\\'")}')"
+    `<div onmousedown="selecionarCatPlanoPDV('${c.nome.replace(/'/g,"\\'")}','${demo}')"
       style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
       onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
       <strong>${c.nome}</strong>
-      <span style="font-size:10px;color:var(--text3);margin-left:6px">${c.demonstrativo||''} · ${c.grupo||''}</span>
+      <span style="font-size:10px;color:var(--text3);margin-left:6px">${c.codigo||''} · ${c.grupo||''}</span>
     </div>`
   ).join('');
 }
 
-function selecionarCatPlanoPDV(nome) {
-  document.getElementById('nova-cat-pdv-plano-busca').value = nome;
-  document.getElementById('nova-cat-pdv-plano').value = nome;
-  document.getElementById('nova-cat-pdv-plano-dd').style.display = 'none';
+function selecionarCatPlanoPDV(nome, demo) {
+  const alvo = (demo === 'DRE') ? 'nova-cat-pdv-plano-dre' : 'nova-cat-pdv-plano';
+  document.getElementById(alvo + '-busca').value = nome;
+  document.getElementById(alvo).value = nome;
+  document.getElementById(alvo + '-dd').style.display = 'none';
+
+  // Se escolheu no DFC e a DRE está vazia, tenta preencher com o mesmo nome:
+  // na maioria dos casos a categoria existe nos dois com a mesma grafia.
+  if (demo !== 'DRE') {
+    const dreEl = document.getElementById('nova-cat-pdv-plano-dre');
+    const dreBusca = document.getElementById('nova-cat-pdv-plano-dre-busca');
+    if (dreEl && !dreEl.value) {
+      const igual = (_categorias||[]).find(c => normStr(c.nome) === normStr(nome)
+        && ['DRE','AMBOS'].includes(c.demonstrativo));
+      if (igual) { dreEl.value = igual.nome; if (dreBusca) dreBusca.value = igual.nome; }
+    }
+  }
 }
 
 function renderCategoriasPDV() {
@@ -10079,7 +10117,7 @@ function renderCategoriasPDV() {
         <button onclick="alternarVisibilidadeCatPDV('${c.id}', ${oculta})"
           title="${oculta?'Mostrar no PDV':'Ocultar do PDV (não apaga os lançamentos)'}"
           style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px">${oculta?'🙈':'👁️'}</button>
-        <button onclick="editarCategoriaPDV('${c.id}','${c.nome.replace(/'/g,"\\'")}','${c.tipo}',${c.ordem||0},'${plano.replace(/'/g,"\\'")}')"
+        <button onclick="editarCategoriaPDV('${c.id}','${c.nome.replace(/'/g,"\\'")}','${c.tipo}',${c.ordem||0},'${plano.replace(/'/g,"\\'")}','${planoDre.replace(/'/g,"\\'")}')"
           style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--accent)">✏️</button>
         <button onclick="excluirCategoriaPDV('${c.id}')"
           style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
@@ -10114,17 +10152,21 @@ async function salvarCategoriaPDV() {
   document.getElementById('nova-cat-pdv-ordem').value = '';
   document.getElementById('nova-cat-pdv-plano-busca').value = '';
   document.getElementById('nova-cat-pdv-plano').value = '';
+  const _dreB = document.getElementById('nova-cat-pdv-plano-dre-busca'); if (_dreB) _dreB.value = '';
+  const _dreH = document.getElementById('nova-cat-pdv-plano-dre');       if (_dreH) _dreH.value = '';
   await carregarCategoriasPDV();
   renderCategoriasPDV();
   showToast('Categoria salva!', 'success');
 }
 
-function editarCategoriaPDV(id, nome, tipo, ordem, categoriaPlano) {
+function editarCategoriaPDV(id, nome, tipo, ordem, categoriaPlano, categoriaPlanoDre) {
   document.getElementById('nova-cat-pdv').value = nome;
   document.getElementById('nova-cat-pdv-tipo').value = tipo;
   document.getElementById('nova-cat-pdv-ordem').value = ordem;
   document.getElementById('nova-cat-pdv-plano-busca').value = categoriaPlano||'';
   document.getElementById('nova-cat-pdv-plano').value = categoriaPlano||'';
+  document.getElementById('nova-cat-pdv-plano-dre-busca').value = categoriaPlanoDre||'';
+  document.getElementById('nova-cat-pdv-plano-dre').value = categoriaPlanoDre||'';
   const btn = document.querySelector('[onclick="salvarCategoriaPDV()"]');
   if (btn) { btn.textContent = '💾 Salvar'; btn.onclick = () => salvarEdicaoCategoriaPDV(id); }
 }
@@ -10141,6 +10183,8 @@ async function salvarEdicaoCategoriaPDV(id) {
   document.getElementById('nova-cat-pdv-ordem').value = '';
   document.getElementById('nova-cat-pdv-plano-busca').value = '';
   document.getElementById('nova-cat-pdv-plano').value = '';
+  const _dreB = document.getElementById('nova-cat-pdv-plano-dre-busca'); if (_dreB) _dreB.value = '';
+  const _dreH = document.getElementById('nova-cat-pdv-plano-dre');       if (_dreH) _dreH.value = '';
   const btn = document.querySelector('[onclick]');
   if (btn) { btn.textContent = '+ Adicionar'; btn.onclick = salvarCategoriaPDV; }
   await carregarCategoriasPDV();
