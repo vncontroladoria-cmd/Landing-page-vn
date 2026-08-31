@@ -10099,9 +10099,13 @@ function renderCategoriasPDV() {
     return;
   }
   el.innerHTML = _pdvCategorias.map(c => {
-    const plano = c.categoria_plano || '';
-    const vinculoBadge = plano
-      ? `<span style="font-size:10px;background:rgba(5,150,105,0.1);color:var(--accent);border:1px solid rgba(5,150,105,0.2);border-radius:10px;padding:2px 8px;white-space:nowrap">🔗 ${plano}</span>`
+    const plano    = c.categoria_plano || '';
+    const planoDre = c.categoria_plano_dre || '';
+    // Dois vínculos separados: DFC em azul, DRE em verde
+    const bDfc = plano    ? `<span style="font-size:10px;background:rgba(37,99,235,.1);color:#2563eb;border:1px solid rgba(37,99,235,.3);border-radius:10px;padding:2px 8px;white-space:nowrap">DFC: ${plano}</span>` : '';
+    const bDre = planoDre ? `<span style="font-size:10px;background:rgba(5,150,105,0.1);color:var(--accent);border:1px solid rgba(5,150,105,0.2);border-radius:10px;padding:2px 8px;white-space:nowrap">DRE: ${planoDre}</span>` : '';
+    const vinculoBadge = (bDfc || bDre)
+      ? bDfc + (bDfc && bDre ? ' ' : '') + bDre
       : `<span style="font-size:10px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);border-radius:10px;padding:2px 8px;white-space:nowrap">Sem vínculo</span>`;
     const oculta = c.visivel === false;
     return `
@@ -10146,7 +10150,8 @@ async function salvarCategoriaPDV() {
   const ordem = parseInt(document.getElementById('nova-cat-pdv-ordem')?.value) || 0;
   const categoriaPlano = document.getElementById('nova-cat-pdv-plano').value.trim() || null;
   if (!nome) return;
-  const { error } = await sb.from('pdv_categorias').insert(addEmpresaId({ nome, tipo, ordem, categoria_plano: categoriaPlano }));
+  const categoriaPlanoDre = document.getElementById('nova-cat-pdv-plano-dre')?.value.trim() || null;
+  const { error } = await sb.from('pdv_categorias').insert(addEmpresaId({ nome, tipo, ordem, categoria_plano: categoriaPlano, categoria_plano_dre: categoriaPlanoDre }));
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   document.getElementById('nova-cat-pdv').value = '';
   document.getElementById('nova-cat-pdv-ordem').value = '';
@@ -10177,7 +10182,8 @@ async function salvarEdicaoCategoriaPDV(id) {
   const ordem = parseInt(document.getElementById('nova-cat-pdv-ordem')?.value) || 0;
   const categoriaPlano = document.getElementById('nova-cat-pdv-plano').value.trim() || null;
   if (!nome) return;
-  const { error } = await sb.from('pdv_categorias').update({ nome, tipo, ordem, categoria_plano: categoriaPlano }).eq('id', id);
+  const categoriaPlanoDre = document.getElementById('nova-cat-pdv-plano-dre')?.value.trim() || null;
+  const { error } = await sb.from('pdv_categorias').update({ nome, tipo, ordem, categoria_plano: categoriaPlano, categoria_plano_dre: categoriaPlanoDre }).eq('id', id);
   if (error) { showToast('Erro: ' + error.message, 'error'); return; }
   document.getElementById('nova-cat-pdv').value = '';
   document.getElementById('nova-cat-pdv-ordem').value = '';
