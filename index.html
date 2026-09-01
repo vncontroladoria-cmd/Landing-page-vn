@@ -16934,47 +16934,6 @@ async function loadDFC() {
   const mostraProj = modo === 'projetado' || modo === 'ambos';
 
   // projPorCat[categoria_id]['01'] = valor projetado daquele mes
-  // ── PDV agregado por vínculo ─────────────────────────────
-  // A DRE já faz isto: traduz a forma de pagamento do PDV para a categoria
-  // vinculada no cadastro (ex: "Comandas" → "Dinheiro"). O DFC não fazia,
-  // e por isso essas linhas apareciam vazias aqui e preenchidas na DRE.
-  const pdvPorCatMesDFC = {};
-  try {
-    const { data: catsPdv } = await qE('pdv_categorias').select('nome,categoria_plano,visivel');
-    const normPdv = x => (x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-      .replace(/\s+(master\s*card|visa|elo|amex|hipercard|hiper).*/i,'').trim();
-
-    const mapaVinculo = {};
-    (catsPdv||[]).forEach(c => {
-      if (c.visivel === false) return;               // categoria oculta não entra
-      if (c.categoria_plano) mapaVinculo[normPdv(c.nome)] = c.categoria_plano;
-    });
-
-    if (Object.keys(mapaVinculo).length) {
-      const { data: caixas } = await qE('pdv_caixas').select('id,data_caixa')
-        .gte('data_caixa', `${ano}-01-01`).lte('data_caixa', `${ano}-12-31`);
-      if (caixas?.length) {
-        const mesDoCaixa = {};
-        caixas.forEach(c => { mesDoCaixa[c.id] = (c.data_caixa||'').substring(5,7); });
-        const ids = caixas.map(c => c.id);
-        let itens = [];
-        for (let i = 0; i < ids.length; i += 200) {
-          const { data: lote } = await qE('pdv_itens')
-            .select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id', ids.slice(i, i+200));
-          if (lote?.length) itens = itens.concat(lote);
-        }
-        itens.forEach(it => {
-          const mes = mesDoCaixa[it.caixa_id];
-          const cat = mapaVinculo[normPdv(it.forma_pagamento)];
-          if (!mes || !cat) return;                  // sem vínculo, não entra
-          const sinal = it.tipo === 'SAIDA' ? -1 : 1;
-          const chave = normStr(cat) + '|' + mes;
-          pdvPorCatMesDFC[chave] = (pdvPorCatMesDFC[chave]||0) + sinal * Number(it.valor||0);
-        });
-      }
-    }
-  } catch(e) { console.warn('[dfc] PDV agregado:', e); }
-
   const projPorCat = {};
   try {
     const { data: projs } = await sb.from('projecoes_dfc').select('categoria_id,mes,valor')
@@ -17090,9 +17049,7 @@ async function loadDFC() {
     .filter(g => !(porCompetencia && incStr(g.nome, 'cart')))
     .map(g => {
     const gCats = (cats||[]).filter(c => c.grupo === g.nome);
-    const totalGrupo = mCols.map(m => gCats.reduce((s,c) =>
-      s + calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m)
-        + (pdvPorCatMesDFC[normStr(c.nome) + '|' + m] || 0), 0));
+    const totalGrupo = mCols.map(m => gCats.reduce((s,c) => s + calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m), 0));
     return { ...g, gCats, totalGrupo };
   });
 
@@ -17100,12 +17057,7 @@ async function loadDFC() {
   // IMPORTANTE: usa TODOS os lancamentos do mes, nao a soma dos grupos.
   // A soma dos grupos ignora "Entre Contas" e lancamentos sem categoria, entao
   // o Saldo Acumulado divergia do Resultado Liquido dentro da propria tabela.
-  // Total do PDV vinculado naquele mês, pra somar no resultado
-  const pdvDoMes = m => Object.entries(pdvPorCatMesDFC)
-    .filter(([k]) => k.endsWith('|' + m))
-    .reduce((s,[,v]) => s + v, 0);
-
-  const movimentoMes = m => pdvDoMes(m) + (lancs||[])
+  const movimentoMes = m => (lancs||[])
     .filter(l => mesDoLanc(l) === m)
     // em competencia, o pagamento da fatura nao conta: a despesa ja entrou
     // pela compra individual do cartao
@@ -17320,11 +17272,7 @@ async function loadDFC() {
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
-      // Soma os lançamentos + o que vem do PDV pelo vínculo da categoria
-      const vals = mCols.map(m =>
-        calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m)
-        + (pdvPorCatMesDFC[normStr(c.nome) + '|' + m] || 0)
-      );
+      const vals = mCols.map(m => calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m));
       const total = vals.reduce((s,v) => s+v, 0);
       const media = mediaFechados(vals) || 0;
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
