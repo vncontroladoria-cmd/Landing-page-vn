@@ -24121,6 +24121,33 @@ async function previewFaturaCC(input) {
     const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
     if (!aoa.length) { showToast('Arquivo sem dados.', 'error'); return; }
 
+    // FATURA DO ITAÚ: o arquivo tem cabeçalho institucional nas primeiras
+    // linhas (logo, titular, resumo) e a tabela real só começa lá pela
+    // linha 26. Assumir que a linha 1 é o cabeçalho fazia a leitura falhar.
+    const _ehFaturaItau = aoa.some(r =>
+      String(r[0]||'').includes('ITAU EMPRESAS') ||
+      String(r[0]||'').includes('fatura do cartão'));
+
+    if (_ehFaturaItau) {
+      const lidos = parseFaturaItauCartaoXLSX(aoa);
+      if (lidos.length) {
+        // Já vem no formato final — pula o mapeamento de colunas
+        _ccImportRows = lidos.map(r => ({
+          data_competencia: r.data,
+          extrato: r.extrato,
+          descricao: '',
+          valor: r.saida || r.entrada || 0,
+          tipo: r.entrada ? 'ENTRADA' : 'SAIDA',
+        }));
+        document.getElementById('cc-imp-mapa').style.display = 'none';
+        await renderRevisaoImportacaoCC();
+        showToast(`✅ Fatura Itaú reconhecida: ${lidos.length} lançamento(s)`, 'success');
+        return;
+      }
+      showToast('Fatura do Itaú detectada, mas nenhum lançamento foi lido. Confira se o arquivo está completo.', 'error');
+      return;
+    }
+
     const headerRow = aoa[0];
     _ccFaturaRows = aoa.slice(1).filter(row => row.some(c => String(c||'').trim() !== ''));
     if (!_ccFaturaRows.length) { showToast('Arquivo sem dados.', 'error'); return; }
