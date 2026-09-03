@@ -19955,18 +19955,15 @@ function renderConciliacao() {
     // existe no Plano de Contas e travava a conciliação.
     let catNome = '';
     if (match) {
-      // 1º tenta pelo NOME salvo no fornecedor (estável, não muda quando
-      // o Plano de Contas é reorganizado)
-      if (match.categoria_nome) {
-        const _cn = (_categorias || []).find(c => normStr(c.nome) === normStr(match.categoria_nome));
-        if (_cn) catNome = _cn.nome;
-      }
-      // 2º tenta pelo CÓDIGO — pode estar desatualizado se o código mudou
-      if (!catNome && (catDfc || catDre)) {
-        const _c = (_categorias || []).find(c =>
-          (String(c.codigo) === String(catDfc) && ['DFC','AMBOS'].includes(c.demonstrativo)) ||
-          (String(c.codigo) === String(catDre) && ['DRE','AMBOS'].includes(c.demonstrativo)));
-        catNome = _c?.nome || '';
+      // O campo categoria_dfc do fornecedor guarda o NOME da categoria
+      // ("Maquininha"), não o código. Por isso procuramos por nome primeiro;
+      // a busca por código fica como reserva, para bases antigas.
+      const candidatos = [match.categoria_nome, catDfc, catDre].filter(Boolean);
+      for (const cand of candidatos) {
+        const porNome = (_categorias || []).find(c => normStr(c.nome) === normStr(cand));
+        if (porNome) { catNome = porNome.nome; break; }
+        const porCodigo = (_categorias || []).find(c => String(c.codigo) === String(cand));
+        if (porCodigo) { catNome = porCodigo.nome; break; }
       }
       // Achou o nome: recalcula os códigos a partir do plano ATUAL
       if (catNome && typeof buscarCodigosCategoria === 'function') {
