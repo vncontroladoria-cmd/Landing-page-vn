@@ -22821,14 +22821,10 @@ async function lerDocumentoIA(input) {
   tamEl.textContent = (file.size / 1024).toFixed(0) + ' KB';
   prev.style.display = 'flex';
 
-  // Esconder status de IA
   const statusDiv = document.getElementById('ct-ia-status');
-  if (statusDiv) statusDiv.style.display = 'none';
 
-  // Retorna sem chamar IA
-  return;
-
-  // Status (código abaixo não executa — mantido para referência)
+  // Leitura automática: extrai valor, vencimento e fornecedor do boleto/NF.
+  // Só preenche campos VAZIOS — nada que você já digitou é sobrescrito.
   const statusTxt = document.getElementById('ct-ia-status-txt');
   statusDiv.style.display = 'block';
   statusDiv.style.background = 'var(--amber-dim)';
@@ -22888,7 +22884,11 @@ async function lerDocumentoIA(input) {
     setVal('ct-pix', dados.chave_pix);
 
     // Valor e vencimento
-    if (dados.valor_total) setVal('ct-valor', dados.valor_total);
+    // O campo é type="number": precisa de ponto decimal, não vírgula
+    if (dados.valor_total) {
+      const v = Number(dados.valor_total);
+      if (!isNaN(v) && v > 0) setVal('ct-valor', v.toFixed(2));
+    }
     if (dados.vencimento) setVal('ct-vencimento', dados.vencimento);
 
     // Parcelas
