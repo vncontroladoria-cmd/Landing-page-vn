@@ -20534,13 +20534,17 @@ async function buscaCatConc(texto, idx) {
     const dist = Math.min(Math.abs(rDD.top - rIn.bottom), Math.abs(rDD.bottom - rIn.top));
     const desalinhado = Math.abs(rDD.left - rIn.left) > 40;
     if (dist > 60 && desalinhado) problemas.push(`fora de posição (${Math.round(dist)}px)`);
-    // Está por cima de tudo?
-    const meio = document.elementFromPoint(rDD.left + rDD.width/2, rDD.top + 8);
-    if (meio && !dd.contains(meio) && meio !== dd) problemas.push('coberto por outro elemento');
+    // NÃO usar elementFromPoint aqui: ele trabalha em coordenadas de TELA,
+    // e o dropdown usa `absolute` + scroll com o zoom do body. A comparação
+    // dava "coberto por outro elemento" mesmo quando a lista estava visível.
+    // Se um dia for necessário checar sobreposição, compare z-index.
 
     if (problemas.length) {
       console.warn('[conc] dropdown com problema:', problemas.join(' | '));
-      showToast('⚠️ A lista de categorias não abriu corretamente — avise o suporte', 'error');
+      // Só incomoda o usuário quando a lista está de fato inutilizável
+      if (problemas.some(p => p.includes('sem tamanho'))) {
+        showToast('⚠️ A lista de categorias não abriu corretamente — avise o suporte', 'error');
+      }
     }
   }, 50);
 }
@@ -24131,17 +24135,54 @@ async function previewFaturaCC(input) {
     if (_ehFaturaItau) {
       const lidos = parseFaturaItauCartaoXLSX(aoa);
       if (lidos.length) {
-        // Já vem no formato final — pula o mapeamento de colunas
-        _ccImportRows = lidos.map(r => ({
-          data_competencia: r.data,
-          extrato: r.extrato,
-          descricao: '',
-          valor: r.saida || r.entrada || 0,
-          tipo: r.entrada ? 'ENTRADA' : 'SAIDA',
-        }));
+        // Carrega fornecedores/categorias pra sugerir categoria sozinho —
+        // sem isso a fatura entrava toda sem classificação.
+        await garantirCategorias();
+        try {
+          const { data: forns } = await qE('fornecedores').select('*');
+          _fornecedores = forns || [];
+        } catch (e) { console.warn('[cc] fornecedores:', e); }
+
+        const cartaoId = document.getElementById('cc-imp-cartao')?.value || null;
+        const dataPag  = document.getElementById('cc-imp-pagamento')?.value || null;
+
+        let reconhecidos = 0;
+        _ccImportRows = lidos.map(r => {
+          // Reconhecimento automático pelo fornecedor, igual à conciliação
+          let categoria = '', catDfc = '', catDre = '';
+          const match = (_fornecedores || []).find(f => fornecedorBate(f, r.extrato));
+          if (match) {
+            const nome = match.categoria_nome
+              || (_categorias || []).find(c =>
+                   String(c.codigo) === String(match.categoria_dfc) ||
+                   String(c.codigo) === String(match.categoria_dre))?.nome
+              || '';
+            if (nome) {
+              const cods = buscarCodigosCategoria(nome);
+              categoria = cods.nome || nome;
+              catDfc = cods.dfc || '';
+              catDre = cods.dre || '';
+              reconhecidos++;
+            }
+          }
+          return {
+            empresa_id: _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id'),
+            cartao_id: cartaoId,
+            data_lancamento: dataPag,
+            data_competencia: r.data,
+            mes: (r.data || '').substring(0,7),
+            extrato: r.extrato,
+            descricao: '',
+            valor: r.saida || r.entrada || 0,
+            tipo: r.entrada ? 'ENTRADA' : 'SAIDA',
+            categoria, categoria_dfc: catDfc, categoria_dre: catDre,
+            status: 'pendente', origem: 'importacao',
+          };
+        });
+        console.log(`[cc] ${reconhecidos} de ${lidos.length} lançamento(s) reconhecidos por fornecedor`);
         document.getElementById('cc-imp-mapa').style.display = 'none';
         await renderRevisaoImportacaoCC();
-        showToast(`✅ Fatura Itaú reconhecida: ${lidos.length} lançamento(s)`, 'success');
+        showToast(`✅ ${lidos.length} lançamento(s) · ${reconhecidos} categorizado(s) automaticamente`, 'success');
         return;
       }
       showToast('Fatura do Itaú detectada, mas nenhum lançamento foi lido. Confira se o arquivo está completo.', 'error');
@@ -24459,13 +24500,17 @@ async function buscaCatImportCC(texto, idx) {
     const dist = Math.min(Math.abs(rDD.top - rIn.bottom), Math.abs(rDD.bottom - rIn.top));
     const desalinhado = Math.abs(rDD.left - rIn.left) > 40;
     if (dist > 60 && desalinhado) problemas.push(`fora de posição (${Math.round(dist)}px)`);
-    // Está por cima de tudo?
-    const meio = document.elementFromPoint(rDD.left + rDD.width/2, rDD.top + 8);
-    if (meio && !dd.contains(meio) && meio !== dd) problemas.push('coberto por outro elemento');
+    // NÃO usar elementFromPoint aqui: ele trabalha em coordenadas de TELA,
+    // e o dropdown usa `absolute` + scroll com o zoom do body. A comparação
+    // dava "coberto por outro elemento" mesmo quando a lista estava visível.
+    // Se um dia for necessário checar sobreposição, compare z-index.
 
     if (problemas.length) {
       console.warn('[conc] dropdown com problema:', problemas.join(' | '));
-      showToast('⚠️ A lista de categorias não abriu corretamente — avise o suporte', 'error');
+      // Só incomoda o usuário quando a lista está de fato inutilizável
+      if (problemas.some(p => p.includes('sem tamanho'))) {
+        showToast('⚠️ A lista de categorias não abriu corretamente — avise o suporte', 'error');
+      }
     }
   }, 50);
 }
