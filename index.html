@@ -11490,6 +11490,9 @@ async function loadContasPagar() {
   _s('cp-hero-fixa-sub', _pct(_totFixa));
   _s('cp-hero-var-sub',  _pct(_totVar));
 
+  // Guarda as contas em memória: a soma dos selecionados usa isto
+  window._cpContasCarregadas = contas;
+
   // ── Gráfico: vencimentos por dia ──────────────────────
   // Filtro próprio do gráfico: a pagar (padrão), pagos ou todos.
   const _fGraf = document.getElementById('cp-chart-filtro')?.value || 'apagar';
@@ -11636,9 +11639,14 @@ async function loadContasPagar() {
       }).join('');
 
       detEl.innerHTML = `
-        <div style="display:flex;justify-content:flex-end;padding:8px 10px" id="cp-acoes-lote">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;flex-wrap:wrap" id="cp-acoes-lote">
+          <div id="cp-resumo-sel" style="display:none;align-items:center;gap:14px;font-size:12px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:6px 12px">
+            <span style="font-weight:700;color:#92400e"><span id="cp-sel-qtd">0</span> selecionada(s)</span>
+            <span style="color:#92400e">Total: <strong id="cp-sel-total" style="font-family:'DM Mono',monospace;font-size:13px">R$ 0,00</strong></span>
+            <span id="cp-sel-detalhe" style="color:var(--text2);font-size:11px"></span>
+          </div>
           <button class="btn btn-sm" id="cp-btn-excluir-sel" onclick="excluirSelecionadosCP()" disabled
-            style="padding:5px 10px;font-size:11px;color:var(--red);border-color:var(--red);opacity:.5">
+            style="padding:5px 10px;font-size:11px;color:var(--red);border-color:var(--red);opacity:.5;margin-left:auto">
             🗑️ Excluir selecionados (0)
           </button>
         </div>
@@ -18850,12 +18858,38 @@ function selecionarTodosCP(marcar) {
 }
 
 function atualizarBotaoExcluirSelecionadosCP() {
-  const n = document.querySelectorAll('.cp-check:checked').length;
+  const marcados = [...document.querySelectorAll('.cp-check:checked')];
+  const n = marcados.length;
   const btn = document.getElementById('cp-btn-excluir-sel');
-  if (!btn) return;
-  btn.textContent = `🗑️ Excluir selecionados (${n})`;
-  btn.disabled = n === 0;
-  btn.style.opacity = n === 0 ? '.5' : '1';
+  if (btn) {
+    btn.textContent = `🗑️ Excluir selecionados (${n})`;
+    btn.disabled = n === 0;
+    btn.style.opacity = n === 0 ? '.5' : '1';
+  }
+
+  // Soma das contas marcadas, separando o que já foi pago do que falta pagar
+  const resumo = document.getElementById('cp-resumo-sel');
+  if (!resumo) return;
+  if (!n) { resumo.style.display = 'none'; return; }
+
+  const ids = new Set(marcados.map(cb => cb.value));
+  const contas = (_cpContasCarregadas || []).filter(c => ids.has(String(c.id)));
+  const ehPago = c => ['pago','recebido'].includes(normS(c.status));
+  const soma = arr => arr.reduce((s,c) => s + Number(c.valor||0), 0);
+
+  const total = soma(contas);
+  const pago  = soma(contas.filter(ehPago));
+  const aPagar = total - pago;
+
+  document.getElementById('cp-sel-qtd').textContent = n;
+  document.getElementById('cp-sel-total').textContent = fmtBRL(total);
+  const det = document.getElementById('cp-sel-detalhe');
+  if (det) {
+    det.innerHTML = (pago > 0 && aPagar > 0)
+      ? `pago: <strong style="color:var(--green)">${fmtBRL(pago)}</strong> · a pagar: <strong style="color:var(--red)">${fmtBRL(aPagar)}</strong>`
+      : '';
+  }
+  resumo.style.display = 'inline-flex';
 }
 
 async function excluirSelecionadosCP() {
