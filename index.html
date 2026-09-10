@@ -22113,16 +22113,42 @@ async function loadEmpresas() {
           <td style="padding:8px 10px;font-weight:600">${u.nome||'—'}</td>
           <td style="padding:8px 10px;color:var(--text2)">${u.email}</td>
           <td style="padding:8px 10px"><span class="badge ${perfilCor[u.perfil]||'badge-gray'}">${u.perfil}</span></td>
-          <td style="padding:8px 10px;color:var(--text2);font-size:11px">${u.perfil==='admin'?'Todas':(u.empresa_ids||[]).length+' empresa(s)'}</td>
+          <td style="padding:8px 10px;color:var(--text2);font-size:11px">${(() => {
+            if (u.perfil === 'admin') return 'Todas';
+            // Só empresas ATIVAS: as desativadas não são mais acessíveis,
+            // então contá-las dava um número que não corresponde ao acesso real.
+            const vinculadas = u.empresa_ids || [];
+            const ativas = vinculadas.filter(id =>
+              (_todasEmpresas||[]).find(e => e.id === id)?.ativo !== false).length;
+            const inativas = vinculadas.length - ativas;
+            return `${ativas} empresa(s)` + (inativas ? `<span style="color:var(--text3)" title="${inativas} empresa(s) desativada(s)"> +${inativas} inativa(s)</span>` : '');
+          })()}</td>
           <td style="padding:8px 10px"><span class="badge ${u.ativo?'badge-green':'badge-gray'}">${u.ativo?'Ativo':'Inativo'}</span></td>
           <td style="padding:8px 10px">
             <button class="btn btn-sm" onclick="editarUsuario('${u.id}')" style="font-size:11px">✏️</button>
             <button class="btn btn-sm" onclick="alternarUsuarioAtivo('${u.id}',${!u.ativo})" style="font-size:11px">${u.ativo?'Desativar':'Ativar'}</button>
+            ${u.perfil === 'admin' ? '' : `<button class="btn btn-sm" onclick="excluirUsuario('${u.id}','${(u.nome||u.email||'').replace(/'/g,"\\'")}')"
+              style="font-size:11px;color:var(--red);border-color:var(--red)">🗑️</button>`}
           </td>
         </tr>`).join('')}</tbody>
       </table>`;
     }
   }
+}
+
+// Exclui o usuário de vez. Admin não pode ser excluído por aqui —
+// para não travar o acesso ao sistema por engano.
+async function excluirUsuario(id, nome) {
+  if (id === _vnUser?.id) { showToast('Você não pode excluir o próprio usuário', 'error'); return; }
+
+  if (!confirm(`Excluir "${nome}" definitivamente?\n\nO histórico de lançamentos e tarefas dele é mantido.\nSe for só afastamento temporário, use Desativar.`)) return;
+  if (prompt('Digite EXCLUIR para confirmar:') !== 'EXCLUIR') { showToast('Cancelado', ''); return; }
+
+  try { await sb.from('usuario_empresas').delete().eq('usuario_id', id); } catch(e) {}
+  const { error } = await sb.from('vn_usuarios').delete().eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+  showToast('Usuário excluído', 'success');
+  loadEmpresas();
 }
 
 async function excluirEmpresa(id, nome) {
