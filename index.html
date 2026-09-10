@@ -13515,14 +13515,13 @@ function parseFaturaCartaoTexto(texto) {
   // CORTE: "Compras parceladas - próximas faturas" são parcelas que ainda vão
   // vencer — NÃO fazem parte desta fatura. O corte antigo era só no "Total dos
   // lançamentos atuais", que vem DEPOIS delas, e elas entravam indevidamente.
+  // O ÚNICO corte seguro é "Compras parceladas - próximas faturas": ali
+  // começam as parcelas que ainda vão vencer. Cortar em "Limites de crédito"
+  // ou "Simulação" removia a última página, que também tem lançamentos —
+  // faltavam ~R$ 757 no total lido.
   const fimIdx = (() => {
-    const cortes = [
-      /Compras parceladas\s*-\s*pr[óo]ximas faturas/i,
-      /Total para pr[óo]ximas faturas/i,
-      /Limites de cr[ée]dito/i,
-      /Total dos lan[çc]amentos atuais/i,
-    ].map(r => texto.search(r)).filter(i => i > inicioIdx);
-    return cortes.length ? Math.min(...cortes) : -1;
+    const i = texto.search(/Compras parceladas\s*-\s*pr[óo]ximas faturas/i);
+    return i > inicioIdx ? i : -1;
   })();
   const trecho = inicioIdx >= 0 ? texto.substring(inicioIdx, fimIdx > inicioIdx ? fimIdx : texto.length) : texto;
 
@@ -24562,6 +24561,49 @@ async function previewFaturaCC(input) {
 }
 
 // ── Importar Fatura em PDF — usa IA pra extrair os lançamentos ──
+// Autocomplete de categoria na revisão da fatura em PDF
+async function buscaCatFaturaPdf(texto, idx) {
+  const dd = document.getElementById(`ccpdf-dd-${idx}`);
+  const inp = document.getElementById(`ccpdf-cat-${idx}`);
+  if (!dd || !inp) return;
+  await garantirCategorias();
+  const termo = normStr(texto);
+  if (!termo) { dd.style.display = 'none'; return; }
+
+  const map = {};
+  (_categorias||[]).forEach(c => {
+    if (!c?.nome) return;
+    if (!map[c.nome]) map[c.nome] = { nome:c.nome, dfc:null, dre:null };
+    if (['DFC','AMBOS'].includes(c.demonstrativo)) map[c.nome].dfc = c.codigo;
+    if (['DRE','AMBOS'].includes(c.demonstrativo)) map[c.nome].dre = c.codigo;
+  });
+  const res = Object.values(map).filter(c => incStr(c.nome, termo));
+  if (!res.length) { dd.style.display = 'none'; return; }
+
+  ancorarDropdown(dd, inp, 220);
+  dd.style.display = 'block';
+  dd.innerHTML = res.slice(0,12).map(c => {
+    const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
+    return `<div onmousedown="selecionarCatFaturaPdf(${idx},'${c.nome.replace(/'/g,"\\'")}','${c.dfc||''}','${c.dre||''}')"
+      style="padding:7px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:10px">${refs}</span>
+    </div>`;
+  }).join('');
+}
+
+function selecionarCatFaturaPdf(idx, nome, dfc, dre) {
+  const inp = document.getElementById(`ccpdf-cat-${idx}`);
+  if (inp) { inp.value = nome; inp.style.borderColor = 'var(--green)'; }
+  if (_ccFaturaRows[idx]) {
+    _ccFaturaRows[idx]._categoria = nome;
+    _ccFaturaRows[idx]._dfc = dfc;
+    _ccFaturaRows[idx]._dre = dre;
+  }
+  const dd = document.getElementById(`ccpdf-dd-${idx}`);
+  if (dd) dd.style.display = 'none';
+}
+
 async function previewFaturaCCPdf(file) {
   const mapaEl = document.getElementById('cc-imp-mapa');
   const previewEl = document.getElementById('cc-imp-preview');
@@ -24581,13 +24623,50 @@ async function previewFaturaCCPdf(file) {
     _ccFaturaRows = lancs.map(l => ({ _data: l.data, _extrato: l.extrato, _valor: l.valor }));
 
     labelEl.textContent = `✅ ${_ccFaturaRows.length} lançamento(s) encontrado(s) — confira antes de importar:`;
-    const totalPdf = _ccFaturaRows.reduce((s,r)=>s+Math.abs(r._valor),0);
-    const listaHtml = `<div id="cc-imp-lista-pdf" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+    // Soma COM SINAL: estorno abate. Math.abs fazia -0,01 virar +0,01.
+    const totalPdf = _ccFaturaRows.reduce((s,r)=>s+Number(r._valor||0),0);
+    // Sugere a categoria pelo fornecedor cadastrado, igual à conciliação
+    await garantirCategorias();
+    try {
+      const { data: forns } = await qE('fornecedores').select('*');
+      _fornecedores = forns || [];
+    } catch(e) { console.warn('[cc] fornecedores:', e); }
+
+    let reconhecidos = 0;
+    _ccFaturaRows.forEach(r => {
+      const m = (_fornecedores||[]).find(f => fornecedorBate(f, r._extrato));
+      if (!m) return;
+      const nome = m.categoria_nome || m.categoria_dfc || m.categoria_dre || '';
+      const c = buscarCodigosCategoria(nome);
+      if (c.nome) { r._categoria = c.nome; r._dfc = c.dfc; r._dre = c.dre; reconhecidos++; }
+    });
+
+    const listaHtml = `<div id="cc-imp-lista-pdf" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
       <table style="width:100%;font-size:12px;border-collapse:collapse">
-        <thead><tr style="background:var(--bg3)"><th style="padding:6px 8px;text-align:left">Data</th><th style="padding:6px 8px;text-align:left">Estabelecimento</th><th style="padding:6px 8px;text-align:right">Valor</th></tr></thead>
-        <tbody>${_ccFaturaRows.map(r => `<tr><td style="padding:5px 8px">${r._data.split('-').reverse().join('/')}</td><td style="padding:5px 8px">${r._extrato}</td><td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(r._valor)}</td></tr>`).join('')}</tbody>
+        <thead><tr style="background:var(--bg3)">
+          <th style="padding:6px 8px;text-align:left">Data</th>
+          <th style="padding:6px 8px;text-align:left">Estabelecimento</th>
+          <th style="padding:6px 8px;text-align:left;min-width:170px">Categoria</th>
+          <th style="padding:6px 8px;text-align:right">Valor</th>
+        </tr></thead>
+        <tbody>${_ccFaturaRows.map((r,i) => `<tr>
+          <td style="padding:5px 8px;white-space:nowrap">${r._data.split('-').reverse().join('/')}</td>
+          <td style="padding:5px 8px">${r._extrato}</td>
+          <td style="padding:5px 8px;position:relative">
+            <input type="text" id="ccpdf-cat-${i}" value="${(r._categoria||'').replace(/"/g,'&quot;')}"
+              placeholder="Digite a categoria..." autocomplete="off"
+              oninput="buscaCatFaturaPdf(this.value, ${i})"
+              onblur="setTimeout(()=>{const d=document.getElementById('ccpdf-dd-${i}');if(d)d.style.display='none'},200)"
+              style="width:100%;padding:4px 7px;font-size:11px;border:1.5px solid ${r._categoria?'var(--green)':'var(--border)'};border-radius:6px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif;box-sizing:border-box">
+            <div id="ccpdf-dd-${i}" style="display:none;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.22)"></div>
+          </td>
+          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;color:${r._valor<0?'var(--green)':'var(--text)'}">${fmtBRL(r._valor)}</td>
+        </tr>`).join('')}</tbody>
       </table>
-      <div style="padding:6px 8px;font-weight:700;text-align:right;border-top:1px solid var(--border)">Total: ${fmtBRL(totalPdf)}</div>
+      <div style="padding:8px;font-weight:700;text-align:right;border-top:1px solid var(--border);background:var(--bg3)">
+        ${reconhecidos} de ${_ccFaturaRows.length} categorizados automaticamente ·
+        Total: <span style="font-family:'DM Mono',monospace">${fmtBRL(totalPdf)}</span>
+      </div>
     </div>`;
     previewEl.insertAdjacentHTML('beforeend', listaHtml);
   } catch (e) {
@@ -24619,7 +24698,14 @@ async function processarFaturaCC() {
       // r._data é a data da compra na fatura → vira Competência (DRE).
       // A data de pagamento informada pela pessoa vira a data "oficial" do lançamento → alimenta o DFC.
       const bruto = Number(r._valor)||0;
-      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: r._data, mes, extrato: r._extrato||'', valor: Math.abs(bruto), tipo: bruto < 0 ? 'ENTRADA' : 'SAIDA', categoria: '', status: 'pendente', origem: 'importacao' };
+      // Usa a categoria escolhida/sugerida na revisão — antes gravava vazio
+      // e todos os lançamentos entravam sem classificação.
+      const catNome = (document.getElementById(`ccpdf-cat-${_ccFaturaRows.indexOf(r)}`)?.value || r._categoria || '').trim();
+      const cods = catNome ? buscarCodigosCategoria(catNome) : { nome:'', dfc:'', dre:'' };
+      return { empresa_id: empId, cartao_id: cartaoId, data_lancamento: dataPagamento, data_competencia: r._data, mes,
+        extrato: r._extrato||'', valor: Math.abs(bruto), tipo: bruto < 0 ? 'ENTRADA' : 'SAIDA',
+        categoria: cods.nome || '', categoria_dfc: cods.dfc || '', categoria_dre: cods.dre || '',
+        status: 'pendente', origem: 'importacao' };
     }).filter(Boolean);
   } else {
     const parseD = v => {
