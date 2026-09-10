@@ -1885,10 +1885,16 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
             <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Minhas Tarefas</div>
             <div style="font-size:13px;color:rgba(255,255,255,.4)" id="op-data-hoje">—</div>
           </div>
-          <button onclick="abrirModalTarefa()" 
-            style="background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:13px;padding:10px 18px;cursor:pointer;font-weight:700;font-family:'Outfit',sans-serif">
-            + Nova Tarefa
-          </button>
+          <div style="display:flex;gap:8px">
+            <button onclick="abrirModalTarefa(null,'tarefa')"
+              style="background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:13px;padding:10px 18px;cursor:pointer;font-weight:700;font-family:'Outfit',sans-serif">
+              📝 Nova Tarefa
+            </button>
+            <button onclick="abrirModalTarefa(null,'lembrete')"
+              style="background:#d97706;border:none;border-radius:8px;color:#fff;font-size:13px;padding:10px 18px;cursor:pointer;font-weight:700;font-family:'Outfit',sans-serif">
+              🔔 Novo Lembrete
+            </button>
+          </div>
         </div>
 
         <!-- Filtro global por empresa: afeta todas as abas -->
@@ -25913,7 +25919,7 @@ async function excluirItemChecklist(itemId) {
   carregarChecklistTarefa(tarefaId);
 }
 
-async function abrirModalTarefa(tarefaId) {
+async function abrirModalTarefa(tarefaId, tipoInicial) {
   // Buscar empresas se não carregadas ainda
   if (!_todasEmpresas?.length) {
     const uid = _vnUser?.id;
@@ -25948,7 +25954,8 @@ async function abrirModalTarefa(tarefaId) {
   if (tarefaId) {
     const { data } = await sb.from('tarefas_operador').select('*').eq('id', tarefaId).single();
     if (data) {
-      document.getElementById('tarefa-modal-titulo').textContent = 'Editar Tarefa';
+      document.getElementById('tarefa-modal-titulo').textContent =
+        (data.tipo === 'lembrete') ? '🔔 Editar Lembrete' : '📝 Editar Tarefa';
       document.getElementById('tarefa-id').value = data.id;
       document.getElementById('tarefa-titulo').value = data.titulo || '';
       document.getElementById('tarefa-descricao').value = data.descricao || '';
@@ -25986,11 +25993,15 @@ async function abrirModalTarefa(tarefaId) {
       }
     }
   } else {
-    document.getElementById('tarefa-modal-titulo').textContent = 'Nova Tarefa';
+    // O tipo vem do botão clicado (Nova Tarefa / Novo Lembrete), então
+    // o campo some do modal — não faz sentido escolher duas vezes.
+    const _tipo = tipoInicial === 'lembrete' ? 'lembrete' : 'tarefa';
+    document.getElementById('tarefa-modal-titulo').textContent =
+      _tipo === 'lembrete' ? '🔔 Novo Lembrete' : '📝 Nova Tarefa';
     document.getElementById('tarefa-id').value = '';
     document.getElementById('tarefa-titulo').value = '';
     document.getElementById('tarefa-descricao').value = '';
-    document.getElementById('tarefa-tipo').value = 'tarefa';
+    document.getElementById('tarefa-tipo').value = _tipo;
     document.getElementById('tarefa-recorrencia').value = 'unica';
     document.getElementById('tarefa-data').value = hojeISO();
     document.querySelectorAll('.dia-sem-check').forEach(cb => cb.checked = false);
@@ -26003,6 +26014,12 @@ async function abrirModalTarefa(tarefaId) {
     document.getElementById('tarefa-emp-todas').checked = true;
     document.getElementById('tarefa-modo-multi').value = 'separado';
   }
+
+  // Campo "Tipo" fica oculto: já foi decidido pelo botão. Na edição ele
+  // reaparece, pra permitir corrigir um item cadastrado errado.
+  const _wrapTipo = document.getElementById('tarefa-tipo')?.closest('div');
+  if (_wrapTipo) _wrapTipo.style.display = tarefaId ? '' : 'none';
+  if (typeof toggleTipoTarefa === 'function') toggleTipoTarefa();
 
   onChangeEmpresaCheck();
   toggleTipoTarefa();
