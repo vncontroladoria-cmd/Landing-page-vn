@@ -7850,6 +7850,9 @@ async function excluirSelecionadosPDV() {
 Essa ação não pode ser desfeita.`)) return;
   for (const id of ids) {
     await sb.from('pdv_itens').delete().eq('caixa_id', id);
+    // Apaga também o lançamento gerado por este caixa. Sem isto ele ficava
+    // órfão em Lançamentos, inflando o saldo do Caixa no DFC.
+    await sb.from('lancamentos').delete().eq('pdv_caixa_id', id);
     await sb.from('pdv_caixas').delete().eq('id', id);
     document.getElementById('pdv-row-' + id)?.remove();
   }
@@ -8352,6 +8355,8 @@ async function sincronizarComandaParaLancamento(caixaId, data_caixa, itens) {
 async function excluirCaixa(id) {
   if (!confirm('Excluir este caixa?')) return;
   await sb.from('pdv_itens').delete().eq('caixa_id', id);
+  // O lançamento de "Comandas PDV" gerado por este caixa vai junto
+  await sb.from('lancamentos').delete().eq('pdv_caixa_id', id);
   await sb.from('pdv_caixas').delete().eq('id', id);
   showToast('Caixa excluído', 'success');
   loadPDV();
