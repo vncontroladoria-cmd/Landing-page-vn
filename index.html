@@ -24341,11 +24341,44 @@ async function abrirImportarFaturaCC() {
   document.getElementById('modal-importar-cc').classList.add('open');
 }
 
+// Abre o seletor de arquivo já filtrado pelo formato escolhido.
+// Assim o sistema sabe qual leitor usar, e a pessoa não erra o tipo.
+function escolherArquivoFatura(formato) {
+  const inp = document.getElementById('cc-imp-arquivo');
+  if (!inp) return;
+  inp.accept = formato === 'pdf'   ? '.pdf'
+             : formato === 'excel' ? '.xlsx,.xls'
+             : '.csv,.txt';
+  inp.dataset.formato = formato;   // usado pelo previewFaturaCC
+  inp.value = '';                  // permite reescolher o mesmo arquivo
+  inp.click();
+}
+
 async function previewFaturaCC(input) {
   const file = input.files[0];
   if (!file) return;
 
+  // Mostra o arquivo escolhido
+  const nomeEl = document.getElementById('cc-imp-arquivo-nome');
+  if (nomeEl) {
+    const icone = { pdf:'📄', excel:'📊', csv:'📋' }[input.dataset.formato] || '📎';
+    nomeEl.innerHTML = `${icone} ${file.name} <button type="button" onclick="document.getElementById('cc-imp-arquivo').value='';this.parentElement.style.display='none';document.getElementById('cc-imp-preview').style.display='none'" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px">✕</button>`;
+    nomeEl.style.display = 'flex';
+  }
+
   const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const formato = input.dataset.formato || '';
+
+  // Avisa se o arquivo não bate com o botão clicado
+  if (formato === 'pdf' && ext !== 'pdf') {
+    showToast('Você escolheu PDF mas o arquivo é .' + ext, 'error'); return;
+  }
+  if (formato === 'excel' && !['xlsx','xls'].includes(ext)) {
+    showToast('Você escolheu Excel mas o arquivo é .' + ext, 'error'); return;
+  }
+  if (formato === 'csv' && !['csv','txt'].includes(ext)) {
+    showToast('Você escolheu CSV mas o arquivo é .' + ext, 'error'); return;
+  }
 
   if (ext === 'pdf') {
     await previewFaturaCCPdf(file);
@@ -29574,8 +29607,31 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
         <input type="date" id="cc-imp-pagamento">
       </div>
       <div class="form-group">
-        <label>Arquivo da fatura (Excel, CSV ou PDF)</label>
-        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv,.pdf" onchange="previewFaturaCC(this)">
+        <label>Qual o formato da fatura?</label>
+        <!-- Botões por formato: cada um abre o seletor já filtrado e diz ao
+             sistema qual leitor usar, em vez de adivinhar pela extensão. -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+          <button type="button" onclick="escolherArquivoFatura('pdf')"
+            style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg3);cursor:pointer;font-family:'Outfit',sans-serif">
+            <span style="font-size:22px">📄</span>
+            <span style="font-size:12px;font-weight:700;color:var(--text)">PDF</span>
+            <span style="font-size:9px;color:var(--text3)">fatura do banco</span>
+          </button>
+          <button type="button" onclick="escolherArquivoFatura('excel')"
+            style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg3);cursor:pointer;font-family:'Outfit',sans-serif">
+            <span style="font-size:22px">📊</span>
+            <span style="font-size:12px;font-weight:700;color:var(--text)">Excel</span>
+            <span style="font-size:9px;color:var(--text3)">.xlsx / .xls</span>
+          </button>
+          <button type="button" onclick="escolherArquivoFatura('csv')"
+            style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:1.5px solid var(--border);border-radius:10px;background:var(--bg3);cursor:pointer;font-family:'Outfit',sans-serif">
+            <span style="font-size:22px">📋</span>
+            <span style="font-size:12px;font-weight:700;color:var(--text)">CSV</span>
+            <span style="font-size:9px;color:var(--text3)">texto separado</span>
+          </button>
+        </div>
+        <div id="cc-imp-arquivo-nome" style="display:none;align-items:center;gap:8px;padding:8px 12px;background:var(--green-dim);border:1px solid var(--green);border-radius:8px;font-size:12px;color:var(--green);font-weight:600"></div>
+        <input type="file" id="cc-imp-arquivo" accept=".xlsx,.xls,.csv,.pdf" onchange="previewFaturaCC(this)" style="display:none">
       </div>
       <div id="cc-imp-preview" style="display:none">
         <div style="font-size:12px;color:var(--text2);margin-bottom:8px" id="cc-imp-preview-label">Colunas detectadas — confirme o mapeamento:</div>
