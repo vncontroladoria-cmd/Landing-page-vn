@@ -13450,22 +13450,56 @@ async function extrairTextoPDF(file) {
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   let texto = '';
+
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
-    // Agrupa por linha (mesma coordenada Y aproximada)
-    let linhaAtual = '', yAtual = null;
-    content.items.forEach(item => {
-      const y = Math.round(item.transform[5]);
-      if (yAtual === null || Math.abs(y - yAtual) > 3) {
-        if (linhaAtual) texto += linhaAtual + '\n';
-        linhaAtual = item.str;
-        yAtual = y;
-      } else {
-        linhaAtual += ' ' + item.str;
+    const largura = page.getViewport({ scale: 1 }).width;
+
+    // FATURA DE CARTÃO TEM 2 COLUNAS. Agrupar só por Y junta a linha da
+    // esquerda com a da direita e a leitura falha.
+    // O corte NÃO pode ser no meio da página: o valor da coluna esquerda
+    // fica logo antes do meio. Detectamos onde começa a 2ª coluna
+    // procurando o maior "vão" horizontal entre os itens.
+    const itens = content.items
+      .filter(it => it.str && it.str.trim())
+      .map(it => ({ x: it.transform[4], y: Math.round(it.transform[5]), s: it.str }));
+
+    // Onde as datas (dd/mm) começam? Cada coluna tem as suas.
+    const xsData = itens.filter(i => /^\d{2}\/\d{2}$/.test(i.s.trim())).map(i => i.x).sort((a,b)=>a-b);
+    let corte = largura / 2;
+    if (xsData.length >= 2) {
+      // maior salto entre posições de data = início da 2ª coluna
+      let maiorVao = 0;
+      for (let k = 1; k < xsData.length; k++) {
+        const vao = xsData[k] - xsData[k-1];
+        if (vao > maiorVao && vao > largura * 0.15) { maiorVao = vao; corte = xsData[k] - 10; }
       }
-    });
-    if (linhaAtual) texto += linhaAtual + '\n';
+    }
+
+    const esq = [], dir = [];
+    itens.forEach(it => (it.x < corte ? esq : dir).push(it));
+
+    const montarColuna = (itens) => {
+      if (!itens.length) return '';
+      // De cima pra baixo; dentro da linha, da esquerda pra direita
+      itens.sort((a,b) => (b.y - a.y) || (a.x - b.x));
+      let out = '', linha = '', yAtual = null;
+      itens.forEach(i => {
+        if (yAtual === null || Math.abs(i.y - yAtual) > 3) {
+          if (linha.trim()) out += linha.trim() + '\n';
+          linha = i.s;
+          yAtual = i.y;
+        } else {
+          linha += ' ' + i.s;
+        }
+      });
+      if (linha.trim()) out += linha.trim() + '\n';
+      return out;
+    };
+
+    // Coluna da esquerda inteira, depois a da direita
+    texto += montarColuna(esq) + montarColuna(dir);
   }
   return texto;
 }
@@ -18197,18 +18231,19 @@ function abrirModalConta(tipo) {
 // ════════════════════════════════════════════════════════
 
 // Extrai texto de um PDF usando pdf.js
-async function extrairTextoPDF(file) {
+// Leitura simples pra BOLETO/NF: só a 1ª página, texto corrido.
+// NÃO usar em fatura de cartão — ela tem 2 colunas e várias páginas;
+// para isso existe extrairTextoPDF(), que preserva a estrutura.
+async function extrairTextoPDFSimples(file) {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const arr = new Uint8Array(e.target.result);
         const pdf = await pdfjsLib.getDocument({data: arr}).promise;
-        // Lê só a primeira página — tem todas as infos necessárias (mais rápido)
         const pg = await pdf.getPage(1);
         const tc = await pg.getTextContent();
-        const texto = tc.items.map(t => t.str).join(' ');
-        resolve(texto);
+        resolve(tc.items.map(t => t.str).join(' '));
       } catch(err) { resolve(''); }
     };
     reader.readAsArrayBuffer(file);
@@ -18310,7 +18345,8 @@ async function lerDocumentoConta(files) {
   const boletos = [];
 
   for (const file of files) {
-    const texto = await extrairTextoPDF(file);
+    // Boleto/NF: texto corrido da 1ª página basta
+    const texto = await extrairTextoPDFSimples(file);
     const dados = parsePDFConta(texto);
 
     if (dados.tipo === 'nfe') {
