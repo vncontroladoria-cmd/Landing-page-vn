@@ -6528,9 +6528,10 @@ async function showApp(paginaInicial = 'dashboard') {
   const tag = document.getElementById('topbar-empresa-tag');
   if (tag) tag.style.cursor = 'pointer';
 
-  // Mostra menu Empresas só para admin
+  // Empresas & Usuários é do painel MASTER, não do menu de dentro da empresa.
+  // Lá o admin tem a visão de todas; aqui dentro só confundia.
   const navEmp = document.querySelector('[data-page="empresas"]');
-  if (navEmp) navEmp.style.display = _vnUser?.perfil === 'admin' ? '' : 'none';
+  if (navEmp) navEmp.style.display = 'none';
 }
 
 // Atualiza nome da empresa no topo
@@ -6639,6 +6640,7 @@ async function trocarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
   mostrarLoadingEmpresa();
+  if (!podeAcessarEmpresa(emp)) return;   // empresa desativada
   _empresaAtual = emp;
   if (emp?.id) { sessionStorage.setItem('vn_empresa_id', emp.id); localStorage.setItem('vn_empresa_id', emp.id); }
   // Limpa cache de categorias para recarregar da nova empresa
@@ -6680,7 +6682,8 @@ function abrirSeletorEmpresas() {
   if (!el) return;
   const lista = document.getElementById('seletor-empresa-lista');
   if (lista) {
-    lista.innerHTML = _todasEmpresas.map(e => {
+    // empresasVisiveis(): esconde as desativadas de quem não é admin
+    lista.innerHTML = empresasVisiveis().map(e => {
       const ativa = _empresaAtual?.id === e.id;
       const cor = e.cor_primaria || 'var(--accent)';
       const abasEmp = (_permissoes[e.id]?.abas || []);
@@ -16714,6 +16717,16 @@ function ancorarDropdown(dd, inp, larguraMin) {
   dd.style.overflowY = 'auto';
 }
 
+// Empresa desativada não pode ser aberta por operador nem leitor.
+// Só o admin entra, pra conseguir reativar ou consultar o histórico.
+function podeAcessarEmpresa(emp) {
+  if (!emp) return false;
+  if (emp.ativo !== false) return true;
+  if (_vnUser?.perfil === 'admin') return true;
+  showToast(`⛔ "${emp.nome}" está desativada — procure o administrador`, 'error');
+  return false;
+}
+
 // ─── SELEÇÃO MÚLTIPLA DE MESES NO DFC ────────────────────
 function toggleDropdownMesesDFC(ev) {
   if (ev) ev.stopPropagation();
@@ -22165,17 +22178,15 @@ Digite o nome da empresa para confirmar:`)) return;
 }
 
 async function alternarEmpresaAtiva(id, ativo) {
-  // Ativa/desativa empresa
-  await sb.from('empresas').update({ativo}).eq('id', id);
-  // Ativa/desativa também os usuários vinculados (exceto admin)
-  const { data: usrs } = await sb.from('vn_usuarios')
-    .select('id, empresa_ids, perfil')
-    .neq('perfil', 'admin');
-  for (const u of (usrs||[])) {
-    if ((u.empresa_ids||[]).includes(id)) {
-      await sb.from('vn_usuarios').update({ativo}).eq('id', u.id);
-    }
-  }
+  const { error } = await sb.from('empresas').update({ ativo }).eq('id', id);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  // NÃO mexemos no usuário: ele pode atender outras empresas e seria
+  // desativado por inteiro. O bloqueio é feito na empresa — quem tenta
+  // abri-la é barrado em podeAcessarEmpresa().
+  // Atualiza a lista em memória pra refletir na hora.
+  const emp = (_todasEmpresas||[]).find(e => e.id === id);
+  if (emp) emp.ativo = ativo;
   showToast(ativo ? '✅ Empresa ativada!' : '⛔ Empresa desativada!', 'success');
   loadEmpresas();
   // Atualiza lista do admin também
@@ -25137,6 +25148,13 @@ async function showPainelOperador() {
 // Filtro global de empresa em "Minhas Tarefas" — afeta todas as abas
 window._filtroEmpresaTarefas = '';
 
+// Empresas desativadas não aparecem para operador/leitor
+function empresasVisiveis() {
+  const todas = _todasEmpresas || [];
+  if (_vnUser?.perfil === 'admin') return todas;
+  return todas.filter(e => e.ativo !== false);
+}
+
 function popularFiltroEmpresaGlobal() {
   const sel = document.getElementById('filtro-empresa-global');
   if (!sel || sel.dataset.populado) return;
@@ -25217,6 +25235,7 @@ async function loadEmpresasOperador() {
 async function operadorAcessarEmpresa(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
   if (!emp) return;
+  if (!podeAcessarEmpresa(emp)) return;   // empresa desativada
   mostrarLoadingEmpresa();
   _empresaAtual = emp;
   sessionStorage.setItem('vn_empresa_id', emp.id);
