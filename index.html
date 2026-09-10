@@ -23994,24 +23994,90 @@ async function abrirModalCartao() {
   document.getElementById('modal-cartao').classList.add('open');
 }
 
+// ─── FATURA DO CARTÃO: FECHAMENTO x VENCIMENTO ───────────
+// São datas diferentes. Ex: fecha dia 2, vence dia 11.
+//   compra 01/09 → fatura fecha 02/09 → paga 11/09  (competência 09/2026)
+//   compra 03/09 → já passou o fechamento → cai na fatura de outubro
+// Devolve a competência (AAAA-MM) e a data de pagamento da compra.
+function faturaDaCompra(dataCompra, fechamentoDia, vencimentoDia) {
+  const d = String(dataCompra || '').substring(0,10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !fechamentoDia) return { competencia: d.substring(0,7), vencimento: null };
+
+  let ano = parseInt(d.substring(0,4));
+  let mes = parseInt(d.substring(5,7));
+  const dia = parseInt(d.substring(8,10));
+
+  // Comprou DEPOIS do fechamento? Vai para a fatura do mês seguinte.
+  if (dia > fechamentoDia) {
+    mes += 1;
+    if (mes > 12) { mes = 1; ano += 1; }
+  }
+
+  const competencia = `${ano}-${String(mes).padStart(2,'0')}`;
+  let vencimento = null;
+  if (vencimentoDia) {
+    // Se o vencimento cai antes do fechamento no calendário, ele é do mês seguinte
+    let vAno = ano, vMes = mes;
+    if (vencimentoDia < fechamentoDia) {
+      vMes += 1;
+      if (vMes > 12) { vMes = 1; vAno += 1; }
+    }
+    // Ajusta dia inválido (ex: 31 em fevereiro)
+    const ultimoDia = new Date(vAno, vMes, 0).getDate();
+    const diaOk = Math.min(vencimentoDia, ultimoDia);
+    vencimento = `${vAno}-${String(vMes).padStart(2,'0')}-${String(diaOk).padStart(2,'0')}`;
+  }
+  return { competencia, vencimento };
+}
+
 async function renderListaCartoes() {
   const el = document.getElementById('cc-lista-cartoes');
   if (!el) return;
   const { data } = await qE('cartoes').select('*').order('nome');
   if (!data?.length) { el.innerHTML = '<div style="color:var(--text2);font-size:12px">Nenhum cartão cadastrado</div>'; return; }
+
+  // Quanto está em aberto em cada cartão = tudo que ainda não foi pago.
+  // Isso é o que consome o limite.
+  const { data: lancs } = await qE('cartao_lancamentos').select('cartao_id,valor,tipo,status');
+  const emAberto = {};
+  (lancs||[]).forEach(l => {
+    if (normStr(l.status) === 'pago') return;          // fatura já quitada não ocupa limite
+    const sinal = l.tipo === 'ENTRADA' ? -1 : 1;       // estorno devolve limite
+    emAberto[l.cartao_id] = (emAberto[l.cartao_id]||0) + sinal * Number(l.valor||0);
+  });
+
   el.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px">CARTÕES CADASTRADOS</div>' +
-    data.map(c => `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg3);border-radius:8px;margin-bottom:6px">
-        <div>
-          <div style="font-weight:700;font-size:13px">${c.nome}</div>
-          <div style="font-size:11px;color:var(--text2)">${c.bandeira||''} · Limite: R$ ${Number(c.limite||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} · Vence dia ${c.vencimento_dia||'—'}</div>
+    data.map(c => {
+      const limite = Number(c.limite||0);
+      const usado  = Math.max(0, emAberto[c.id] || 0);
+      const disp   = limite - usado;
+      const pct    = limite > 0 ? Math.min(100, usado/limite*100) : 0;
+      const corBar = pct >= 90 ? 'var(--red)' : pct >= 70 ? '#d97706' : 'var(--green)';
+      return `
+      <div style="padding:10px;background:var(--bg3);border-radius:8px;margin-bottom:6px">
+       <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px">${c.nome} <span style="font-size:10px;color:var(--text3);font-weight:400">${c.bandeira||''}</span></div>
+          <div style="font-size:11px;color:var(--text2)">Fecha dia ${c.fechamento_dia||'—'} · Vence dia ${c.vencimento_dia||'—'}</div>
+          ${limite > 0 ? `
+          <div style="margin-top:6px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+              <span style="color:var(--text2)">Usado: <strong style="font-family:'DM Mono',monospace;color:${corBar}">${fmtBRL(usado)}</strong></span>
+              <span style="color:var(--text2)">Disponível: <strong style="font-family:'DM Mono',monospace;color:${disp<0?'var(--red)':'var(--green)'}">${fmtBRL(disp)}</strong></span>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:${corBar};transition:width .3s"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:3px">Limite total: ${fmtBRL(limite)} · ${pct.toFixed(0)}% comprometido</div>
+          </div>` : '<div style="font-size:11px;color:var(--text3);margin-top:4px">Sem limite cadastrado</div>'}
         </div>
         <div style="display:flex;gap:6px">
           <button onclick="editarCartao('${c.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--accent)">✏️</button>
           <button onclick="excluirCartao('${c.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--red)">🗑️</button>
         </div>
-      </div>`
-    ).join('');
+       </div>
+      </div>`;
+    }).join('');
 }
 
 async function salvarCartao() {
@@ -24022,6 +24088,7 @@ async function salvarCartao() {
     bandeira: document.getElementById('cc-bandeira')?.value || null,
     limite: parseFloat(document.getElementById('cc-limite')?.value) || 0,
     vencimento_dia: parseInt(document.getElementById('cc-vencimento')?.value) || null,
+    fechamento_dia: parseInt(document.getElementById('cc-fechamento')?.value) || null,
     banco_id: document.getElementById('cc-banco-id')?.value || null,
     ativo: true,
   };
@@ -24044,6 +24111,8 @@ async function editarCartao(id) {
   document.getElementById('cc-bandeira').value = data.bandeira || '';
   document.getElementById('cc-limite').value = data.limite || '';
   document.getElementById('cc-vencimento').value = data.vencimento_dia || '';
+  const _fech = document.getElementById('cc-fechamento');
+  if (_fech) _fech.value = data.fechamento_dia || '';
   document.getElementById('cc-banco-id').value = data.banco_id || '';
   document.getElementById('modal-cartao-title').textContent = 'Editar Cartão';
 }
@@ -29177,7 +29246,10 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
             <option>American Express</option><option>Hipercard</option><option>Outro</option>
           </select>
         </div>
-        <div class="form-group"><label>Dia vencimento fatura</label><input type="number" id="cc-vencimento" placeholder="15" min="1" max="31"></div>
+        <div class="form-group"><label>Dia de FECHAMENTO</label><input type="number" id="cc-fechamento" placeholder="2" min="1" max="31">
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">Compras após esse dia entram na fatura seguinte</div></div>
+        <div class="form-group"><label>Dia de VENCIMENTO</label><input type="number" id="cc-vencimento" placeholder="11" min="1" max="31">
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">Dia em que a fatura é paga</div></div>
       </div>
       <div class="form-group"><label>Limite (R$)</label><input type="number" id="cc-limite" placeholder="0,00" step="0.01"></div>
       <div class="form-group"><label>Banco vinculado</label>
