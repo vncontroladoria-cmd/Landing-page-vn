@@ -2381,7 +2381,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
         <div style="border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);padding:8px 12px;max-height:140px;overflow-y:auto">
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;padding:4px 0;cursor:pointer;border-bottom:1px solid var(--border);margin-bottom:4px">
             <input type="checkbox" id="tarefa-emp-todas" onchange="toggleEmpresaTodas()" style="cursor:pointer">
-            Todas as empresas (Geral)
+            Todas as empresas
           </label>
           <div id="tarefa-emp-checkboxes" style="display:flex;flex-direction:column;gap:4px"></div>
         </div>
@@ -25302,7 +25302,9 @@ async function loadTarefasOperador() {
         if (emp) empresas.push({ id: emp.id, nome: emp.nome });
       });
     } else {
-      empresas.push({ id: 'geral', nome: '🌐 Geral' });
+      // Sem empresa definida = vale para TODAS. Antes ia para um grupo
+      // "Geral" separado, que ninguém abria — agora aparece em cada empresa.
+      (_todasEmpresas||[]).forEach(e => empresas.push({ id: e.id, nome: e.nome }));
     }
     empresas.forEach(emp => {
       if (!grupos[emp.id]) grupos[emp.id] = { nome: emp.nome, tarefas: [] };
@@ -25314,7 +25316,7 @@ async function loadTarefasOperador() {
   (_todasEmpresas||[]).forEach(e => {
     if (!grupos[e.id]) grupos[e.id] = { nome: e.nome, tarefas: [] };
   });
-  if (!grupos['geral']) grupos['geral'] = { nome: '🌐 Geral', tarefas: [] };
+  // Não existe mais caixinha "Geral": tarefa geral aparece em cada empresa
 
   // Buscar tempos de todas as tarefas de hoje
   limparCronometrosAtivos();
@@ -25328,11 +25330,7 @@ async function loadTarefasOperador() {
     const pendentes = total - concluidas;
     const tudo_concluido = total > 0 && pendentes === 0;
     return { empId, nome: grupo.nome, tarefas: grupo.tarefas, total, concluidas, pendentes, tudo_concluido, concluidasHoje, temposMap, hojeStr };
-  }).sort((a,b) => {
-    if (a.empId==='geral') return 1;
-    if (b.empId==='geral') return -1;
-    return a.nome.localeCompare(b.nome);
-  });
+  }).sort((a,b) => a.nome.localeCompare(b.nome));
 
   renderCardsHoje();
   (window._pendingTimers||[]).forEach(p => iniciarCronometroVisual(p.elId, p.inicio, p.tempoBase));
