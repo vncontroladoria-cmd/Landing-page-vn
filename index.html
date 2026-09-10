@@ -21713,8 +21713,15 @@ async function masterLoadUsuarios() {
   const { data: usrs } = await sb.from('vn_usuarios').select('*').order('nome');
   // Carrega contagem de empresas por usuário da nova tabela
   const { data: ueAll } = await sb.from('usuario_empresas').select('usuario_id,empresa_id').eq('ativo', true);
-  const contEmp = {};
-  (ueAll||[]).forEach(r => { contEmp[r.usuario_id] = (contEmp[r.usuario_id]||0)+1; });
+  // Conta só empresas ATIVAS: as desativadas não são acessíveis, então
+  // contá-las mostrava um número maior que o acesso real.
+  const { data: empsAtivas } = await sb.from('empresas').select('id,ativo');
+  const idsAtivas = new Set((empsAtivas||[]).filter(e => e.ativo !== false).map(e => e.id));
+  const contEmp = {}, contInativas = {};
+  (ueAll||[]).forEach(r => {
+    if (idsAtivas.has(r.empresa_id)) contEmp[r.usuario_id] = (contEmp[r.usuario_id]||0)+1;
+    else contInativas[r.usuario_id] = (contInativas[r.usuario_id]||0)+1;
+  });
 
   const TH = 'font-size:11px;font-weight:700;text-transform:uppercase;padding:10px 14px;color:rgba(255,255,255,.4);text-align:left;border-bottom:1px solid rgba(255,255,255,.06)';
   const el = document.getElementById('master-usr-table');
@@ -21745,7 +21752,7 @@ async function masterLoadUsuarios() {
               ? '<span style="font-size:11px;color:#a78bfa;font-weight:600">Acesso total</span>'
               : `<button onclick="abrirModalPermissoes('${u.id}','${(u.nome||u.email).replace(/'/g,"\\'")}','${u.perfil}')"
                   style="padding:4px 10px;background:rgba(59,130,246,.15);border:none;border-radius:6px;color:#60a5fa;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
-                  🏢 ${contEmp[u.id]||0} empresa(s)
+                  🏢 ${contEmp[u.id]||0} empresa(s)${contInativas[u.id] ? `<span style="color:rgba(255,255,255,.3)" title="${contInativas[u.id]} desativada(s)"> +${contInativas[u.id]}</span>` : ''}
                 </button>`
             }
           </td>
@@ -25184,7 +25191,7 @@ function empresasVisiveis() {
 function popularFiltroEmpresaGlobal() {
   const sel = document.getElementById('filtro-empresa-global');
   if (!sel || sel.dataset.populado) return;
-  const opcoes = (_todasEmpresas||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  const opcoes = empresasVisiveis().map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
   sel.innerHTML = '<option value="">Todas as empresas</option>' + opcoes;
   sel.dataset.populado = '1';
 }
@@ -25231,13 +25238,18 @@ function ajustarAlturaMensagensOperador() {
 
 async function loadEmpresasOperador() {
   const container = document.getElementById('op-lista-empresas');
-  if (!_todasEmpresas?.length) {
+  // Empresa desativada não aparece pro operador — ele não consegue entrar
+  // nela mesmo, então listar só gera confusão.
+  const _visiveis = (typeof empresasVisiveis === 'function')
+    ? empresasVisiveis()
+    : (_todasEmpresas||[]).filter(e => e.ativo !== false);
+  if (!_visiveis.length) {
     container.innerHTML = `<div style="background:#1e293b;border-radius:12px;padding:24px;border:1px solid rgba(255,255,255,.06);text-align:center;color:rgba(255,255,255,.4);font-size:13px">
       Nenhuma empresa vinculada ao seu usuário ainda. Peça ao administrador para te dar acesso.
     </div>`;
     return;
   }
-  container.innerHTML = _todasEmpresas.map(e => `
+  container.innerHTML = _visiveis.map(e => `
     <div style="display:flex;align-items:center;gap:14px;padding:16px;background:#1e293b;border-radius:12px;border:1px solid rgba(255,255,255,.06)">
       <div style="width:42px;height:42px;border-radius:10px;background:#2a9d5c;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden">
         ${e.logo_url ? `<img src="${e.logo_url}" style="width:100%;height:100%;object-fit:cover">` : e.nome[0].toUpperCase()}
@@ -25347,9 +25359,10 @@ async function loadTarefasOperador() {
         if (emp) empresas.push({ id: emp.id, nome: emp.nome });
       });
     } else {
-      // Sem empresa definida = vale para TODAS. Antes ia para um grupo
-      // "Geral" separado, que ninguém abria — agora aparece em cada empresa.
-      (_todasEmpresas||[]).forEach(e => empresas.push({ id: e.id, nome: e.nome }));
+      // Sem empresa definida = vale para TODAS as ATIVAS. Antes ia para um
+      // grupo "Geral" separado, que ninguém abria.
+      (typeof empresasVisiveis === 'function' ? empresasVisiveis() : (_todasEmpresas||[]))
+        .forEach(e => empresas.push({ id: e.id, nome: e.nome }));
     }
     empresas.forEach(emp => {
       if (!grupos[emp.id]) grupos[emp.id] = { nome: emp.nome, tarefas: [] };
@@ -25358,7 +25371,8 @@ async function loadTarefasOperador() {
   });
 
   // Garantir que todas as empresas do operador tenham uma caixinha (mesmo sem tarefas)
-  (_todasEmpresas||[]).forEach(e => {
+  // Só empresas ativas ganham caixinha de tarefas
+  (typeof empresasVisiveis === 'function' ? empresasVisiveis() : (_todasEmpresas||[])).forEach(e => {
     if (!grupos[e.id]) grupos[e.id] = { nome: e.nome, tarefas: [] };
   });
   // Não existe mais caixinha "Geral": tarefa geral aparece em cada empresa
