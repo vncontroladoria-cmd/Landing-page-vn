@@ -13449,58 +13449,63 @@ async function extrairTextoPDF(file) {
   const pdfjsLib = await loadPDFJS();
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  let texto = '';
 
+  // 1ª passada: lê todas as páginas e guarda os itens com suas coordenadas
+  const paginas = [];
+  let largura = 0;
   for (let p = 1; p <= pdf.numPages; p++) {
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
-    const largura = page.getViewport({ scale: 1 }).width;
-
-    // FATURA DE CARTÃO TEM 2 COLUNAS. Agrupar só por Y junta a linha da
-    // esquerda com a da direita e a leitura falha.
-    // O corte NÃO pode ser no meio da página: o valor da coluna esquerda
-    // fica logo antes do meio. Detectamos onde começa a 2ª coluna
-    // procurando o maior "vão" horizontal entre os itens.
-    const itens = content.items
+    largura = Math.max(largura, page.getViewport({ scale: 1 }).width);
+    paginas.push(content.items
       .filter(it => it.str && it.str.trim())
-      .map(it => ({ x: it.transform[4], y: Math.round(it.transform[5]), s: it.str }));
+      .map(it => ({ x: it.transform[4], y: Math.round(it.transform[5]), s: it.str })));
+  }
 
-    // Onde as datas (dd/mm) começam? Cada coluna tem as suas.
-    const xsData = itens.filter(i => /^\d{2}\/\d{2}$/.test(i.s.trim())).map(i => i.x).sort((a,b)=>a-b);
-    let corte = largura / 2;
-    if (xsData.length >= 2) {
-      // maior salto entre posições de data = início da 2ª coluna
-      let maiorVao = 0;
-      for (let k = 1; k < xsData.length; k++) {
-        const vao = xsData[k] - xsData[k-1];
-        if (vao > maiorVao && vao > largura * 0.15) { maiorVao = vao; corte = xsData[k] - 10; }
-      }
+  // FATURA DE CARTÃO TEM 2 COLUNAS. O corte é calculado UMA VEZ, olhando o
+  // documento inteiro — não por página. Antes era por página, e a última
+  // (que só tem a coluna esquerda) caía no meio, separando o valor da
+  // descrição: 8 lançamentos sumiam do total.
+  const todasDatas = paginas.flat()
+    .filter(i => /^\d{2}\/\d{2}$/.test(i.s.trim()))
+    .map(i => i.x).sort((a,b) => a-b);
+
+  let corte = null;
+  if (todasDatas.length >= 2) {
+    let maiorVao = 0;
+    for (let k = 1; k < todasDatas.length; k++) {
+      const vao = todasDatas[k] - todasDatas[k-1];
+      if (vao > maiorVao && vao > largura * 0.2) { maiorVao = vao; corte = todasDatas[k] - 10; }
     }
+  }
 
+  const montarColuna = (itens) => {
+    if (!itens.length) return '';
+    itens.sort((a,b) => (b.y - a.y) || (a.x - b.x));   // de cima pra baixo
+    let out = '', linha = '', yAtual = null;
+    itens.forEach(i => {
+      if (yAtual === null || Math.abs(i.y - yAtual) > 3) {
+        if (linha.trim()) out += linha.trim() + '\n';
+        linha = i.s;
+        yAtual = i.y;
+      } else {
+        linha += ' ' + i.s;
+      }
+    });
+    if (linha.trim()) out += linha.trim() + '\n';
+    return out;
+  };
+
+  let texto = '';
+  paginas.forEach(itens => {
+    if (corte === null) {           // documento de coluna única
+      texto += montarColuna(itens);
+      return;
+    }
     const esq = [], dir = [];
     itens.forEach(it => (it.x < corte ? esq : dir).push(it));
-
-    const montarColuna = (itens) => {
-      if (!itens.length) return '';
-      // De cima pra baixo; dentro da linha, da esquerda pra direita
-      itens.sort((a,b) => (b.y - a.y) || (a.x - b.x));
-      let out = '', linha = '', yAtual = null;
-      itens.forEach(i => {
-        if (yAtual === null || Math.abs(i.y - yAtual) > 3) {
-          if (linha.trim()) out += linha.trim() + '\n';
-          linha = i.s;
-          yAtual = i.y;
-        } else {
-          linha += ' ' + i.s;
-        }
-      });
-      if (linha.trim()) out += linha.trim() + '\n';
-      return out;
-    };
-
-    // Coluna da esquerda inteira, depois a da direita
     texto += montarColuna(esq) + montarColuna(dir);
-  }
+  });
   return texto;
 }
 
@@ -24366,7 +24371,7 @@ async function abrirImportarFaturaCC() {
   document.getElementById('cc-imp-mapa').style.display = 'block';
   document.getElementById('cc-imp-lista-pdf')?.remove();
   document.getElementById('cc-imp-revisao').style.display = 'none';
-  document.getElementById('cc-imp-modal-box').style.maxWidth = '500px';
+  document.getElementById('cc-imp-modal-box').style.maxWidth = '560px';
   const btn = document.getElementById('cc-imp-btn-acao');
   btn.textContent = '📥 Analisar arquivo';
   btn.setAttribute('onclick', 'processarFaturaCC()');
@@ -24622,6 +24627,9 @@ async function previewFaturaCCPdf(file) {
     // Converte pro mesmo formato de linhas que o fluxo de Excel usa (data ISO, extrato, valor)
     _ccFaturaRows = lancs.map(l => ({ _data: l.data, _extrato: l.extrato, _valor: l.valor }));
 
+    // Lista com categoria precisa de espaço: alarga o modal
+    const box = document.getElementById('cc-imp-modal-box');
+    if (box) { box.style.maxWidth = '980px'; box.style.width = '96vw'; }
     labelEl.textContent = `✅ ${_ccFaturaRows.length} lançamento(s) encontrado(s) — confira antes de importar:`;
     // Soma COM SINAL: estorno abate. Math.abs fazia -0,01 virar +0,01.
     const totalPdf = _ccFaturaRows.reduce((s,r)=>s+Number(r._valor||0),0);
@@ -24641,7 +24649,7 @@ async function previewFaturaCCPdf(file) {
       if (c.nome) { r._categoria = c.nome; r._dfc = c.dfc; r._dre = c.dre; reconhecidos++; }
     });
 
-    const listaHtml = `<div id="cc-imp-lista-pdf" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+    const listaHtml = `<div id="cc-imp-lista-pdf" style="max-height:56vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
       <table style="width:100%;font-size:12px;border-collapse:collapse">
         <thead><tr style="background:var(--bg3)">
           <th style="padding:6px 8px;text-align:left">Data</th>
@@ -24791,7 +24799,7 @@ async function renderRevisaoImportacaoCC() {
   document.getElementById('cc-imp-mapa-wrapper')?.remove();
   document.getElementById('cc-imp-preview').style.display = 'none';
   document.getElementById('cc-imp-revisao').style.display = 'block';
-  document.getElementById('cc-imp-modal-box').style.maxWidth = '760px';
+  document.getElementById('cc-imp-modal-box').style.maxWidth = '980px';
 
   const lista = document.getElementById('cc-imp-revisao-lista');
   const total = _ccImportRows.reduce((s,r) => s + (r.tipo==='ENTRADA' ? -r.valor : r.valor), 0);
@@ -24950,7 +24958,7 @@ async function confirmarImportacaoCC() {
   showToast(`✅ ${rows.length} lançamentos importados! Total: ${fmtBRL(totalCC)}`,'success');
   closeModal('modal-importar-cc');
   _ccImportRows = [];
-  document.getElementById('cc-imp-modal-box').style.maxWidth = '500px';
+  document.getElementById('cc-imp-modal-box').style.maxWidth = '560px';
   document.getElementById('cc-imp-revisao').style.display = 'none';
   const btn = document.getElementById('cc-imp-btn-acao');
   btn.textContent = '📥 Analisar arquivo';
