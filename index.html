@@ -13478,21 +13478,46 @@ function parseFaturaCartaoTexto(texto) {
   const ano = anoMatch ? anoMatch[1] : String(new Date().getFullYear());
 
   const inicioIdx = texto.search(/Lan[çc]amentos:\s*compras e saques/i);
-  const fimIdx = texto.search(/Total dos lan[çc]amentos atuais/i);
+  // CORTE: "Compras parceladas - próximas faturas" são parcelas que ainda vão
+  // vencer — NÃO fazem parte desta fatura. O corte antigo era só no "Total dos
+  // lançamentos atuais", que vem DEPOIS delas, e elas entravam indevidamente.
+  const fimIdx = (() => {
+    const cortes = [
+      /Compras parceladas\s*-\s*pr[óo]ximas faturas/i,
+      /Total para pr[óo]ximas faturas/i,
+      /Limites de cr[ée]dito/i,
+      /Total dos lan[çc]amentos atuais/i,
+    ].map(r => texto.search(r)).filter(i => i > inicioIdx);
+    return cortes.length ? Math.min(...cortes) : -1;
+  })();
   const trecho = inicioIdx >= 0 ? texto.substring(inicioIdx, fimIdx > inicioIdx ? fimIdx : texto.length) : texto;
 
   const linhas = trecho.split('\n');
-  const regex = /^(\d{1,2})\/(\d{1,2})\s+(.+?)\s+(-?\d{1,3}(?:\.\d{3})*,\d{2})$/;
+  // O "-" pode vir separado do número ("ECONOMART - 0,01" = estorno de 1 centavo)
+  const regex = /^(\d{1,2})\/(\d{1,2})\s+(.+?)\s+(-\s*)?(\d{1,3}(?:\.\d{3})*,\d{2})$/;
   const out = [];
+  const mesVenc = (texto.match(/Vencimento:\s*\d{2}\/(\d{2})\/\d{4}/)||[])[1];
   linhas.forEach(l => {
     const m = l.trim().match(regex);
     if (!m) return;
-    const [, dia, mes, desc, valorStr] = m;
-    // Ignora cabeçalhos/linhas que não são estabelecimento real
-    if (/^(DATA|ESTABELECIMENTO|VALOR)/i.test(desc)) return;
-    const valor = parseFloat(valorStr.replace(/\./g,'').replace(',','.'));
-    const data = `${ano}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
-    out.push({ data, extrato: desc.trim(), valor });
+    const [, dia, mes, descRaw, sinal, valorStr] = m;
+    let desc = descRaw.trim();
+    // "ECONOMART -" → o traço é do valor, não do nome
+    if (desc.endsWith('-')) desc = desc.slice(0, -1).trim();
+    if (!desc || /^(DATA|ESTABELECIMENTO|VALOR)/i.test(desc)) return;
+    // Linhas de total não são lançamento
+    if (/^(Lan[çc]amentos no cart|Total|Pr[óo]xima fatura|Demais faturas)/i.test(desc)) return;
+
+    let valor = parseFloat(valorStr.replace(/\./g,'').replace(',','.'));
+    if (sinal) valor = -valor;                    // estorno
+    if (!valor) return;
+
+    // Compra de mês bem posterior ao vencimento = ano anterior (parcela antiga)
+    let anoUsar = parseInt(ano);
+    if (mesVenc && parseInt(mes) > parseInt(mesVenc) + 1) anoUsar -= 1;
+
+    const data = `${anoUsar}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+    out.push({ data, extrato: desc, valor });
   });
   return out;
 }
@@ -24078,6 +24103,74 @@ async function renderListaCartoes() {
        </div>
       </div>`;
     }).join('');
+}
+
+// ─── LEITOR DE FATURA EM PDF (Itaú Empresas) ─────────────
+// A fatura tem 2 colunas de lançamentos e várias seções. Só interessa
+// "Lançamentos: compras e saques" — "Compras parceladas - próximas faturas"
+// são parcelas que ainda vão vencer e NÃO entram nesta fatura.
+function parseFaturaPDFTexto(texto) {
+  const linhas = String(texto || '').split(/\r?\n/);
+  const out = [];
+  // dd/mm  DESCRIÇÃO  1.234,56   (aceita valor negativo com espaço: "- 0,01")
+  const re = /^(\d{2})\/(\d{2})\s+(.+?)\s+(-?\s?[\d.]*\d,\d{2})$/;
+
+  // Ano de referência: vem do "Vencimento: 11/06/2026" ou da emissão
+  let anoRef = new Date().getFullYear();
+  const mAno = texto.match(/Vencimento:\s*\d{2}\/\d{2}\/(\d{4})/i)
+            || texto.match(/Emissão:\s*\d{2}\/\d{2}\/(\d{4})/i);
+  if (mAno) anoRef = parseInt(mAno[1]);
+  const mVenc = texto.match(/Vencimento:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  const mesVenc = mVenc ? parseInt(mVenc[2]) : null;
+
+  let pararAqui = false;
+  for (const raw of linhas) {
+    const l = raw.trim();
+    // A partir daqui são parcelas futuras / totais: não entram
+    if (/Compras parceladas|Total para próximas faturas|Limites de crédito|Simulação/i.test(l)) pararAqui = true;
+    if (pararAqui) continue;
+    if (/^(Lançamentos no cartão|Total dos lançamentos|Total desta fatura)/i.test(l)) continue;
+
+    const m = l.match(re);
+    if (!m) continue;
+
+    const dia = parseInt(m[1]), mes = parseInt(m[2]);
+    if (dia < 1 || dia > 31 || mes < 1 || mes > 12) continue;
+
+    const desc = m[3].trim();
+    if (!desc || desc.length < 2) continue;
+
+    const valor = parseFloat(m[4].replace(/\s/g,'').replace(/\./g,'').replace(',','.'));
+    if (!valor) continue;
+
+    // Compra de dezembro numa fatura de janeiro pertence ao ano anterior
+    let ano = anoRef;
+    if (mesVenc && mes > mesVenc + 1) ano = anoRef - 1;
+
+    out.push({
+      data: `${ano}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`,
+      extrato: desc,
+      entrada: valor < 0 ? Math.abs(valor) : 0,   // negativo = estorno
+      saida:   valor > 0 ? valor : 0,
+    });
+  }
+  return out;
+}
+
+// Dados de cabeçalho da fatura: total, vencimento e limite
+function parseFaturaPDFResumo(texto) {
+  const num = t => t ? parseFloat(t.replace(/\./g,'').replace(',','.')) : null;
+  const mTotal  = texto.match(/Total desta fatura\s*([\d.]+,\d{2})/i)
+               || texto.match(/O total da sua fatura é:?\s*R\$\s*([\d.]+,\d{2})/i);
+  const mVenc   = texto.match(/Vencimento:\s*(\d{2}\/\d{2}\/\d{4})/i);
+  const mLimite = texto.match(/Limite total de crédito:?\s*R?\$?\s*([\d.]+,\d{2})/i);
+  const mFech   = texto.match(/próximo?\s*[Ff]echamento:?\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  return {
+    total: num(mTotal?.[1]),
+    vencimento: mVenc?.[1] || null,
+    limite: num(mLimite?.[1]),
+    fechamentoDia: mFech ? parseInt(mFech[1]) : null,
+  };
 }
 
 async function salvarCartao() {
