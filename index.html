@@ -22635,10 +22635,10 @@ async function abrirModalPermissoes(userId, nomeUser, perfil) {
           <div style="font-weight:700;color:#fff;font-size:13px">${emp.nome}</div>
           <div style="font-size:11px;color:rgba(255,255,255,.4)">${temAcesso ? (abasLiberadas.length ? abasLiberadas.length + ' aba(s) liberada(s)' : 'Todas as abas') : 'Sem acesso'}</div>
         </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2.5" id="arrow-${emp.id}" style="transition:.2s;${temAcesso?'transform:rotate(180deg)':''}"><polyline points="6 9 12 15 18 9"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2.5" id="arrow-${emp.id}" style="transition:.2s"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <!-- Abas da empresa (expandível) -->
-      <div id="abas-emp-${emp.id}" style="display:${temAcesso?'block':'none'};padding:0 16px 14px 16px;border-top:1px solid rgba(255,255,255,.06)">
+      <div id="abas-emp-${emp.id}" style="display:none;padding:0 16px 14px 16px;border-top:1px solid rgba(255,255,255,.06)">
         <div style="font-size:11px;color:rgba(255,255,255,.4);margin:10px 0 8px;font-weight:600;text-transform:uppercase">Abas liberadas (deixe tudo marcado para acesso completo)</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
           <button onclick="marcarTodasAbas('${emp.id}',true)" style="padding:3px 10px;background:rgba(42,157,92,.15);border:none;border-radius:5px;color:#4ade80;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif">✓ Todas</button>
@@ -29008,8 +29008,10 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
 
 <!-- MODAL PERMISSÕES USUÁRIO -->
 <div id="modal-permissoes" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:28px;width:680px;max-width:96vw;max-height:90vh;overflow-y:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+  <!-- Cabeçalho e botões fixos; só a lista de empresas rola.
+       Antes o modal inteiro rolava e os botões ficavam inalcançáveis. -->
+  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:20px 24px;width:680px;max-width:96vw;height:88vh;max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-shrink:0">
       <div>
         <div style="font-size:17px;font-weight:800;color:#fff" id="modal-perm-nome">Permissões</div>
         <div style="font-size:12px;color:rgba(255,255,255,.4)">Defina quais empresas e abas este usuário pode acessar</div>
@@ -29017,12 +29019,12 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
       <button onclick="fecharModalPermissoes()" style="background:rgba(255,255,255,.08);border:none;border-radius:8px;color:rgba(255,255,255,.6);font-size:18px;width:32px;height:32px;cursor:pointer">✕</button>
     </div>
 
-    <!-- Lista de empresas com checkboxes e abas -->
-    <div id="modal-perm-corpo" style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+    <!-- Lista de empresas: única parte que rola -->
+    <div id="modal-perm-corpo" style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;overflow-y:auto;padding-right:4px;margin-bottom:14px">
       <!-- preenchido via JS -->
     </div>
 
-    <div style="display:flex;gap:10px">
+    <div style="display:flex;gap:10px;flex-shrink:0">
       <button onclick="salvarPermissoes()" style="flex:1;background:#2a9d5c;border:none;border-radius:8px;color:#fff;font-size:14px;padding:11px;cursor:pointer;font-weight:700;font-family:'Outfit',sans-serif">
         💾 Salvar Permissões
       </button>
