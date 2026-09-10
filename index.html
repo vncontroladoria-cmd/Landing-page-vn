@@ -29010,7 +29010,9 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
 <div id="modal-permissoes" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center">
   <!-- Cabeçalho e botões fixos; só a lista de empresas rola.
        Antes o modal inteiro rolava e os botões ficavam inalcançáveis. -->
-  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:20px 24px;width:680px;max-width:96vw;height:88vh;max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
+  <!-- Sem altura fixa: o modal cresce só até onde precisa. Com 3 empresas
+       ele fica pequeno; com muitas, para em 85vh e a lista rola. -->
+  <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.1);padding:20px 24px;width:560px;max-width:94vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-shrink:0">
       <div>
         <div style="font-size:17px;font-weight:800;color:#fff" id="modal-perm-nome">Permissões</div>
@@ -29020,7 +29022,7 @@ async function masterAtualizarPlano(select, nomeEmp, plano) {
     </div>
 
     <!-- Lista de empresas: única parte que rola -->
-    <div id="modal-perm-corpo" style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;overflow-y:auto;padding-right:4px;margin-bottom:14px">
+    <div id="modal-perm-corpo" style="display:flex;flex-direction:column;gap:8px;flex:0 1 auto;min-height:0;overflow-y:auto;padding-right:4px;margin-bottom:14px">
       <!-- preenchido via JS -->
     </div>
 
