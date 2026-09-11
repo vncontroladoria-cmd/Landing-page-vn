@@ -1685,6 +1685,48 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
     </div>
   </div>
 </div>
+
+<!-- Sangria: tira dinheiro do caixa e manda pro banco -->
+<div id="modal-sangria" class="modal-overlay">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">💸 Sangria do Caixa</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">
+      Registra a saída do dinheiro em espécie. Gera dois lançamentos:
+      saída do Caixa e entrada no banco escolhido.
+    </div>
+
+    <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text2)">Saldo em espécie hoje</div>
+      <div id="sangria-saldo" style="font-size:20px;font-weight:800;font-family:'DM Mono',monospace;color:var(--green)">—</div>
+    </div>
+
+    <div class="form-group">
+      <label>Data</label>
+      <input type="date" id="sangria-data">
+    </div>
+    <div class="form-group">
+      <label>Valor retirado</label>
+      <input type="number" id="sangria-valor" step="0.01" placeholder="0,00">
+      <div style="margin-top:5px">
+        <button type="button" class="btn btn-sm" onclick="sangriaValorTotal()" style="font-size:11px">Retirar tudo</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Para onde foi o dinheiro?</label>
+      <select id="sangria-destino"><option value="">— selecione —</option></select>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px">Banco onde o dinheiro foi depositado</div>
+    </div>
+    <div class="form-group">
+      <label>Observação (opcional)</label>
+      <input type="text" id="sangria-obs" placeholder="ex: depósito semanal">
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-sangria')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarSangria()">💸 Registrar sangria</button>
+    </div>
+  </div>
+</div>
 <div id="modal-sync-previa" class="modal-overlay">
   <div class="modal" style="max-width:820px">
     <div class="modal-title">🔄 Revisar alterações antes de aplicar</div>
@@ -3675,6 +3717,7 @@ thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
               <button class="btn" onclick="abrirModalImportarPDV()">📥 Importar Texto</button>
               <input type="file" id="pdv-excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="importarExcelPDV(this)">
               <button class="btn" onclick="document.getElementById('pdv-excel-input').click()">📊 Importar Excel</button>
+              <button class="btn" onclick="abrirModalSangria()" title="Registrar saída de dinheiro do caixa">💸 Sangria</button>
               <button class="btn btn-primary" onclick="abrirModalNovoCaixa()">+ Novo Caixa</button>
             </div>
           </div>
@@ -8135,6 +8178,88 @@ function renderPDVLinhas(caixas, todosItens, formas) {
   }).join('');
 }
 
+// ─── SANGRIA DO CAIXA ────────────────────────────────────
+// Tira dinheiro em espécie do caixa e joga no banco. Gera DOIS lançamentos
+// como "Entre contas" — sem isso o caixa só acumula e nunca fecha.
+async function abrirModalSangria() {
+  document.getElementById('sangria-data').value = new Date().toISOString().substring(0,10);
+  document.getElementById('sangria-valor').value = '';
+  document.getElementById('sangria-obs').value = '';
+
+  const saldo = await saldoDoCaixa();
+  const el = document.getElementById('sangria-saldo');
+  if (el) { el.textContent = fmtBRL(saldo); el.style.color = saldo > 0 ? 'var(--green)' : 'var(--text3)'; }
+  window._sangriaSaldo = saldo;
+
+  // Bancos de destino — todos menos o próprio Caixa
+  const sel = document.getElementById('sangria-destino');
+  try {
+    const { data } = await qE('bancos_cadastrados').select('id,nome').order('nome');
+    sel.innerHTML = '<option value="">— selecione —</option>' +
+      (data||[]).filter(b => !normStr(b.nome).startsWith('caixa'))
+        .map(b => `<option value="${b.id}">${b.nome}</option>`).join('');
+  } catch(e) { console.warn('[sangria] bancos:', e); }
+
+  document.getElementById('modal-sangria').classList.add('open');
+}
+
+// Quanto existe em espécie: tudo que entrou menos o que saiu do banco Caixa
+async function saldoDoCaixa() {
+  try {
+    const { data } = await qE('lancamentos').select('entrada,saida,banco_nome');
+    return (data||[])
+      .filter(l => normStr(l.banco_nome).startsWith('caixa'))
+      .reduce((s,l) => s + Number(l.entrada||0) - Number(l.saida||0), 0);
+  } catch(e) { return 0; }
+}
+
+function sangriaValorTotal() {
+  const v = window._sangriaSaldo || 0;
+  if (v > 0) document.getElementById('sangria-valor').value = v.toFixed(2);
+}
+
+async function salvarSangria() {
+  const data    = document.getElementById('sangria-data').value;
+  const valor   = parseFloat(document.getElementById('sangria-valor').value) || 0;
+  const destino = document.getElementById('sangria-destino').value;
+  const obs     = document.getElementById('sangria-obs').value.trim();
+
+  if (!data)      { showToast('Informe a data', 'error'); return; }
+  if (valor <= 0) { showToast('Informe o valor retirado', 'error'); return; }
+  if (!destino)   { showToast('Escolha para onde foi o dinheiro', 'error'); return; }
+
+  const saldo = window._sangriaSaldo || 0;
+  if (valor > saldo + 0.01 &&
+      !confirm(`O valor (${fmtBRL(valor)}) é maior que o saldo em espécie (${fmtBRL(saldo)}).\n\nContinuar mesmo assim?`)) return;
+
+  const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+  const caixa = await garantirBancoCaixa();
+  const selDest = document.getElementById('sangria-destino');
+  const nomeDest = selDest.selectedOptions[0]?.text || '';
+  const mes = data.substring(0,7);
+  const desc = obs || 'Sangria do caixa';
+  const agora = new Date().toISOString();
+
+  // Os dois lados. "Entre contas" não entra como receita nem despesa.
+  const linhas = [
+    { empresa_id: empId, data_lancamento: data, mes, extrato: `Sangria → ${nomeDest}`,
+      descricao: desc, saida: valor, valor, tipo: 'SAIDA',
+      categoria: 'Entre contas saida', banco_id: caixa?.id || null, banco_nome: caixa?.nome || 'Caixa',
+      status: 'pago', origem: 'sangria', criado_em: agora },
+    { empresa_id: empId, data_lancamento: data, mes, extrato: 'Sangria do caixa',
+      descricao: desc, entrada: valor, valor, tipo: 'ENTRADA',
+      categoria: 'Entre contas entrada', banco_id: destino, banco_nome: nomeDest,
+      status: 'pago', origem: 'sangria', criado_em: agora },
+  ];
+
+  const { error } = await sb.from('lancamentos').insert(linhas);
+  if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+  showToast(`💸 Sangria de ${fmtBRL(valor)} registrada — Caixa → ${nomeDest}`, 'success');
+  closeModal('modal-sangria');
+  if (typeof loadPDV === 'function') loadPDV();
+}
+
 function abrirModalNovoCaixa() {
   _pdvCaixaId = null;
   document.getElementById('modal-pdv-titulo').textContent = 'Novo Caixa';
@@ -10437,9 +10562,11 @@ async function loadLancamentos(forcarBancoFilter) {
   };
   const saldoBanco = (b) => {
     const nomeB = normalizarBanco(b.nome);
-    const lancsB = todos.filter(l =>
-      (l.banco_id === b.id || normalizarBanco(l.banco_nome) === nomeB) &&
-      (!ultimaDataFiltroGlobal || l.data_lancamento <= ultimaDataFiltroGlobal)
+    // Usa `lancs` (já filtrado por ano/mês) em vez de `todos`: o card passa a
+    // mostrar o MOVIMENTO DO PERÍODO selecionado, batendo com a tabela abaixo.
+    // Antes somava tudo desde o início e o número não correspondia ao filtro.
+    const lancsB = lancs.filter(l =>
+      l.banco_id === b.id || normalizarBanco(l.banco_nome) === nomeB
     );
     return lancsB.reduce((s,l) => s + vlLanc(l), 0);
   };
