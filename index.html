@@ -21886,11 +21886,17 @@ async function masterLoadEmpresas() {
                 style="padding:4px 10px;background:rgba(59,130,246,.2);border:none;border-radius:6px;color:#60a5fa;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 📋 Dados
               </button>
-              ${e.dados_cadastro?.drive_url ? `<a href="${urlApoio(e.dados_cadastro.drive_url)}" target="_blank" rel="noopener"
-                title="Abrir pasta de documentos no Drive"
-                style="padding:4px 10px;background:rgba(251,191,36,.15);border:none;border-radius:6px;color:#fbbf24;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;text-decoration:none;display:inline-block">
-                📁 Pasta
-              </a>` : ''}
+              ${e.dados_cadastro?.drive_url
+                ? `<a href="${urlApoio(e.dados_cadastro.drive_url)}" target="_blank" rel="noopener"
+                     title="Abrir pasta de documentos no Drive"
+                     style="padding:4px 10px;background:rgba(251,191,36,.15);border:none;border-radius:6px;color:#fbbf24;font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;text-decoration:none;display:inline-block">
+                     📁 Pasta
+                   </a>`
+                : `<button onclick="definirPastaDrive('${e.id}','${(e.nome||'').replace(/'/g,"\\'")}')"
+                     title="Cadastrar o link da pasta desta empresa"
+                     style="padding:4px 10px;background:rgba(255,255,255,.04);border:1px dashed rgba(251,191,36,.4);border-radius:6px;color:rgba(251,191,36,.7);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
+                     📁 + Pasta
+                   </button>`}
               <button onclick="editarEmpresa('${e.id}')"
                 style="padding:4px 10px;background:rgba(255,255,255,.08);border:none;border-radius:6px;color:rgba(255,255,255,.7);font-size:11px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600">
                 ✏️ Editar
@@ -25727,11 +25733,17 @@ async function loadEmpresasOperador() {
         style="padding:8px 14px;background:rgba(59,130,246,.2);border:none;border-radius:8px;color:#60a5fa;font-size:12px;cursor:pointer;font-weight:700">
         📋 Dados
       </button>
-      ${e.dados_cadastro?.drive_url ? `<a href="${urlApoio(e.dados_cadastro.drive_url)}" target="_blank" rel="noopener"
-        title="Abrir pasta de documentos no Drive"
-        style="padding:8px 14px;background:rgba(251,191,36,.15);border:none;border-radius:8px;color:#fbbf24;font-size:12px;cursor:pointer;font-weight:700;text-decoration:none;display:inline-block">
-        📁 Pasta
-      </a>` : ''}
+      ${e.dados_cadastro?.drive_url
+        ? `<a href="${urlApoio(e.dados_cadastro.drive_url)}" target="_blank" rel="noopener"
+             title="Abrir pasta de documentos no Drive"
+             style="padding:8px 14px;background:rgba(251,191,36,.15);border:none;border-radius:8px;color:#fbbf24;font-size:12px;cursor:pointer;font-weight:700;text-decoration:none;display:inline-block">
+             📁 Pasta
+           </a>`
+        : `<button onclick="definirPastaDrive('${e.id}','${(e.nome||'').replace(/'/g,"\\'")}')"
+             title="Cadastrar o link da pasta desta empresa"
+             style="padding:8px 14px;background:rgba(255,255,255,.06);border:1px dashed rgba(251,191,36,.4);border-radius:8px;color:rgba(251,191,36,.7);font-size:12px;cursor:pointer;font-weight:700">
+             📁 + Pasta
+           </button>`}
       <button onclick="operadorAcessarEmpresa('${e.id}')"
         style="padding:8px 18px;background:rgba(42,157,92,.2);border:none;border-radius:8px;color:#4ade80;font-size:12px;cursor:pointer;font-weight:700">
         Acessar →
@@ -28793,6 +28805,34 @@ const _dcCampos = ['razao-social','cnpj','telefone','endereco','sistema','sistem
   'gmail','gmail-senha','cod-operador','cod-operador-senha','cartao','cartao-senha',
   'maquininha','maquininha-login','maquininha-senha','nf-login','nf-senha',
   'drive-url'];   // pasta de documentos no Google Drive
+
+// Cadastra o link da pasta do Drive direto na lista, sem abrir o modal Dados.
+async function definirPastaDrive(empresaId, nomeEmpresa) {
+  const url = prompt(`Cole o link da pasta do Google Drive de "${nomeEmpresa}":`);
+  if (url === null) return;                       // cancelou
+  const limpo = url.trim();
+  if (!limpo) return;
+
+  try {
+    // Preserva o resto do cadastro — dados_cadastro é um objeto só
+    const { data } = await sb.from('empresas').select('dados_cadastro').eq('id', empresaId).single();
+    const cad = data?.dados_cadastro || {};
+    cad.drive_url = limpo;
+
+    const { error } = await sb.from('empresas').update({ dados_cadastro: cad }).eq('id', empresaId);
+    if (error) { showToast('Erro: ' + error.message, 'error'); return; }
+
+    // Atualiza em memória pra o botão aparecer na hora
+    const emp = (_todasEmpresas||[]).find(x => x.id === empresaId);
+    if (emp) emp.dados_cadastro = cad;
+
+    showToast('📁 Pasta cadastrada', 'success');
+    if (typeof loadEmpresasOperador === 'function') loadEmpresasOperador();
+    if (typeof loadEmpresas === 'function') loadEmpresas();
+  } catch (e) {
+    showToast('Erro ao salvar: ' + e.message, 'error');
+  }
+}
 
 async function abrirModalDados(empresaId) {
   const emp = _todasEmpresas.find(e => e.id === empresaId);
