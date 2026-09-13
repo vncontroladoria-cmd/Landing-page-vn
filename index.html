@@ -7533,6 +7533,88 @@ function showPage(id, el) {
 
 
 
+
+// ══════════════════════════════════════════════════════════════
+// PADRONIZACAO DE TEXTO — "Cada Palavra Com Inicial Maiuscula"
+// Roda ao sair do campo (blur), nao importa como a pessoa digitou.
+// NAO mexe em: busca/filtro, senha, e-mail, CPF/CNPJ, codigos, valores.
+// ══════════════════════════════════════════════════════════════
+const TXT_SIGLAS = new Set([
+  'PIX','IOF','DFC','DRE','CPF','CNPJ','PDV','RH','CLT','MEI','ME','TED','DOC',
+  'INSS','FGTS','IPTU','IPVA','ISS','ICMS','IRPJ','CSLL','PIS','COFINS','DAS',
+  'CPV','CMV','SAC','TI','ID','CEP','UF','SP','RJ','MG','RS','PR','SC','BA',
+  'LTDA','SA','EPP','EIRELI','QR','CDB','DCAE','VN','XP','BB','ADM','NF','NFE',
+  'NFSE','DARF','GPS','FGTS','SPC','SERASA','OK',
+  // unidades de medida (produtos de salao)
+  'ML','L','G','KG','MG','UN','UND','PC','CX','KIT','UV','LED','SPF'
+]);
+// Palavras que ficam minusculas quando estao no meio da frase
+const TXT_MINUSC = new Set([
+  'de','da','do','das','dos','e','em','no','na','nos','nas','a','o','as','os',
+  'com','por','para','ao','aos','à','às','um','uma','ou','the','of'
+]);
+
+function padronizarTexto(txt) {
+  if (txt == null) return txt;
+  const s = String(txt).trim();
+  if (!s) return s;
+  // Nao mexe em texto que nao tem letra (codigos, numeros, datas)
+  if (!/[a-zA-ZÀ-ÿ]/.test(s)) return s;
+
+  return s.split(/(\s+)/).map((palavra, i) => {
+    if (/^\s+$/.test(palavra)) return palavra;               // preserva o espaco
+    const limpa = palavra.replace(/[^\wÀ-ÿ]/g, '');
+    if (!limpa) return palavra;
+
+    // Sigla conhecida -> mantem toda maiuscula
+    if (TXT_SIGLAS.has(limpa.toUpperCase())) {
+      return palavra.replace(limpa, limpa.toUpperCase());
+    }
+    // Tem numero junto (ex: 08/26, T02, 250ML) -> nao mexe
+    if (/\d/.test(palavra)) return palavra;
+    // Escrita toda em maiuscula e SEM vogal (XYZ, LTD, SRV) -> e sigla, mantem
+    if (limpa === limpa.toUpperCase() && limpa.length <= 4 && !/[AEIOUÀ-ÿ]/i.test(limpa)) {
+      return palavra;
+    }
+
+    const min = palavra.toLowerCase();
+    const primeiraPalavra = (i === 0);
+    if (!primeiraPalavra && TXT_MINUSC.has(min.replace(/[^\wÀ-ÿ]/g, ''))) return min;
+
+    // Primeira letra (pulando pontuacao inicial) vira maiuscula
+    return min.replace(/[a-zÀ-ÿ]/, c => c.toUpperCase());
+  }).join('');
+}
+
+// Aplica automaticamente em todo campo de texto do sistema.
+// Delegacao de evento: funciona ate em campo criado depois, sem editar um por um.
+(function ativarPadronizacaoTexto() {
+  const IGNORAR = /busca|search|filtro|senha|password|email|mail|cpf|cnpj|codigo|cod_|chave|pix_|url|link|obs_raw|token/i;
+
+  document.addEventListener('focusout', (ev) => {
+    const el = ev.target;
+    if (!el || !el.tagName) return;
+    const tag = el.tagName.toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea') return;
+    if (tag === 'input') {
+      const t = (el.type || 'text').toLowerCase();
+      if (t !== 'text' && t !== 'search') return;
+    }
+    if (el.dataset.semPadrao !== undefined) return;                 // escape manual
+    if (IGNORAR.test(el.id || '') || IGNORAR.test(el.name || '')) return;
+    if (IGNORAR.test(el.placeholder || '')) return;
+    if (!el.value || !el.value.trim()) return;
+
+    const novo = padronizarTexto(el.value);
+    if (novo !== el.value) {
+      el.value = novo;
+      // avisa quem estiver escutando (frameworks/validacoes internas)
+      el.dispatchEvent(new Event('input',  { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, true);
+})();
+
 // ─── IMPORTAÇÃO DE RELATÓRIOS ─────────────────────────────
 
 let _impTipos = [];           // tipos carregados do supabase
