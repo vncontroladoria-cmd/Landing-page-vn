@@ -18,32 +18,60 @@
   D.borderColor = '#eef0f2';
   D.maintainAspectRatio = false;
 
-  /* NITIDEZ — o body tem zoom:1.3, entao o canvas era desenhado no
-     tamanho normal e esticado 30% depois, ficando borrado. Aqui o
-     bitmap ja e gerado maior, na proporcao certa. */
-  function fatorNitidez() {
+  /* NITIDEZ ─────────────────────────────────────────────────
+     Este script roda no <head>, quando document.body AINDA NAO
+     EXISTE. Por isso a leitura do zoom falhava e caia em 1.
+     Agora o fator e calculado de forma preguicosa: so na hora em
+     que cada grafico e criado, quando o body ja esta na pagina. */
+  var _fator = null;
+  function fatorNitidez(recalcular) {
+    if (_fator !== null && !recalcular) return _fator;
     var z = 1;
     try {
-      var cs = getComputedStyle(document.body).zoom;
-      if (cs && cs !== 'normal') {
-        z = cs.indexOf('%') > -1 ? parseFloat(cs) / 100 : parseFloat(cs);
+      if (document.body) {
+        var cs = getComputedStyle(document.body).zoom;
+        if (cs && cs !== 'normal') {
+          z = cs.indexOf('%') > -1 ? parseFloat(cs) / 100 : parseFloat(cs);
+        }
+      } else {
+        return null;               // body ainda nao existe: nao fixa nada
       }
     } catch (e) {}
     if (!z || !isFinite(z) || z <= 0) z = 1;
     var dpr = window.devicePixelRatio || 1;
-    return Math.min(dpr * z, 4);   // teto 4x para nao pesar
+    // piso 2x: texto em canvas nao tem suavizacao de subpixel como o
+    // HTML, entao precisa de mais resolucao para parecer igual de nitido
+    _fator = Math.max(Math.min(dpr * z, 4), 2);
+    return _fator;
   }
-  D.devicePixelRatio = fatorNitidez();
 
-  /* se a pessoa mudar o zoom do navegador, recalcula */
-  window.addEventListener('resize', function () {
-    var f = fatorNitidez();
-    if (f === D.devicePixelRatio) return;
-    D.devicePixelRatio = f;
-    Object.values(Chart.instances || {}).forEach(function (c) {
-      try { c.resize(); } catch (e) {}
-    });
+  Chart.register({
+    id: 'vnNitidez',
+    beforeInit: function (chart) {
+      var f = fatorNitidez();
+      if (f) chart.options.devicePixelRatio = f;
+    }
   });
+
+  function reaplicarNitidez() {
+    var f = fatorNitidez(true);
+    if (!f) return;
+    D.devicePixelRatio = f;
+    var insts = Chart.instances || {};
+    Object.keys(insts).forEach(function (k) {
+      try {
+        insts[k].options.devicePixelRatio = f;
+        insts[k].resize();
+      } catch (e) {}
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', reaplicarNitidez);
+  } else {
+    reaplicarNitidez();
+  }
+  window.addEventListener('resize', reaplicarNitidez);
 
   D.plugins.legend.labels.usePointStyle = true;
   D.plugins.legend.labels.pointStyle = 'circle';
