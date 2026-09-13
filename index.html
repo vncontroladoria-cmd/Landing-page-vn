@@ -6,6 +6,55 @@
 <title>VN — Controladoria Financeira</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+/* ══ SKIN VN 2.0 — padroes visuais dos graficos ══
+   Só aparencia. Qualquer grafico que passe options proprias continua mandando. */
+(function(){
+  if (typeof Chart === 'undefined') return;
+  const D = Chart.defaults;
+  D.font.family = "'Outfit', sans-serif";
+  D.font.size = 11;
+  D.color = '#6b7280';
+  D.borderColor = '#eef0f2';
+  D.maintainAspectRatio = false;
+
+  D.plugins.legend.labels.usePointStyle = true;
+  D.plugins.legend.labels.pointStyle = 'circle';
+  D.plugins.legend.labels.boxWidth = 7;
+  D.plugins.legend.labels.boxHeight = 7;
+  D.plugins.legend.labels.padding = 14;
+
+  D.plugins.tooltip.backgroundColor = '#111113';
+  D.plugins.tooltip.cornerRadius = 12;
+  D.plugins.tooltip.padding = 12;
+  D.plugins.tooltip.boxPadding = 6;
+  D.plugins.tooltip.usePointStyle = true;
+  D.plugins.tooltip.titleFont = { size: 11, weight: '600' };
+  D.plugins.tooltip.bodyFont = { size: 12 };
+
+  D.elements.bar.borderRadius = 8;
+  D.elements.bar.borderSkipped = 'bottom';
+  D.elements.line.tension = 0.4;
+  D.elements.line.borderWidth = 2.5;
+  D.elements.point.radius = 0;
+  D.elements.point.hoverRadius = 5;
+  D.elements.point.hoverBorderWidth = 2.5;
+  D.elements.arc.borderWidth = 0;
+
+  if (D.datasets && D.datasets.bar) {
+    D.datasets.bar.maxBarThickness = 30;
+    D.datasets.bar.categoryPercentage = 0.7;
+    D.datasets.bar.barPercentage = 0.82;
+  }
+  if (D.scale) {
+    D.scale.grid.color = '#f1f3f5';
+    D.scale.grid.drawTicks = false;
+    D.scale.border = D.scale.border || {};
+    D.scale.border.display = false;
+    D.scale.ticks.padding = 8;
+  }
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
@@ -1121,86 +1170,166 @@ thead th:not(.no-sort):hover{color:var(--accent);}
 thead th.sort-asc::after{content:' ↑';color:var(--accent);font-size:10px;}
 thead th.sort-desc::after{content:' ↓';color:var(--accent);font-size:10px;}
 
+
 /* ══════════════════════════════════════════════════════════════
-   SKIN VN 2.0 — INICIO   (apague ate "SKIN VN 2.0 — FIM" p/ reverter)
-   Mudanca 100% VISUAL. Nenhuma funcao, id ou classe do JS alterada.
+   SKIN VN 2.0 — INICIO
+   Mudanca 100% VISUAL (cores, formas, espacos, animacoes).
+   Nenhuma funcao, id, classe ou logica do JS foi alterada.
+   Para reverter: apague daqui ate "SKIN VN 2.0 — FIM".
    ══════════════════════════════════════════════════════════════ */
+
+/* ─── 1. TOKENS ─────────────────────────────────────────── */
 :root{
   --g900:#0f3d24;--g800:#14532d;--g700:#15803d;--g600:#22a45d;
   --g500:#34c97a;--g400:#6ee7a8;--g300:#a7f3c9;--g200:#dcfce7;--g100:#f0fdf4;
   --green:#22a45d;--green-dim:#22a45d14;--green-light:#f0fdf4;--accent:#22a45d;
-  --bg:#f6f7f9;--bg2:#fff;--bg3:#fafbfc;--bg4:#f1f3f5;--zebra:#fafbfc;
-  --border:#e8eaed;--border2:#d7dbe0;
+  --bg:#f5f6f8;--bg2:#fff;--bg3:#fafbfc;--bg4:#f1f3f5;--zebra:#fafbfc;
+  --border:#e9ebee;--border2:#d8dce1;
   --text:#111318;--text2:#6b7280;--text3:#9ca3af;
   --sidebar-bg:#fff;--radius:12px;
-  --shadow:0 1px 2px rgba(17,19,24,.05);
+  --shadow:0 1px 2px rgba(17,19,24,.04);
   --shadow-md:0 6px 20px rgba(17,19,24,.07);
-  --shadow-lg:0 16px 48px rgba(17,19,24,.12);
+  --shadow-lg:0 20px 56px rgba(17,19,24,.13);
+  --ease:cubic-bezier(.16,1,.3,1);
 }
-body{ background:var(--bg); letter-spacing:-.005em; }
+body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antialiased; }
 
-/* LOGIN */
-#login-screen{ background:linear-gradient(140deg,#f0fdf4 0%,#eef2f5 60%,#e9f7ef 100%); }
-.login-card{ border-radius:28px; box-shadow:0 24px 70px rgba(17,19,24,.10); border:none; }
+/* ─── 2. LOGIN ──────────────────────────────────────────── */
+#login-screen{ background:linear-gradient(140deg,#f0fdf4 0%,#eef2f5 55%,#e6f6ee 100%); }
+.login-card{ border-radius:28px; border:none; box-shadow:0 24px 70px rgba(17,19,24,.10); }
 .login-logo-icon{ border-radius:14px; background:var(--g600); }
-.btn-login{ border-radius:999px; padding:13px; }
-.btn-login:hover{ background:var(--g700); box-shadow:0 8px 22px rgba(34,164,93,.34); }
+.btn-login{ border-radius:999px; padding:13px; transition:all .25s var(--ease); }
+.btn-login:hover{ background:var(--g700); box-shadow:0 10px 26px rgba(34,164,93,.34); transform:translateY(-2px); }
+.btn-login:active{ transform:translateY(0); }
 
-/* SIDEBAR CLARA */
-.sidebar{ background:#fff; border-right:1px solid var(--border); box-shadow:10px 0 40px rgba(17,19,24,.07); padding:6px; }
-.sidebar-logo{ border-bottom:1px solid var(--border); }
+/* ─── 3. SIDEBAR CLARA ──────────────────────────────────── */
+.sidebar{ background:#fff; border-right:1px solid var(--border);
+  box-shadow:12px 0 44px rgba(17,19,24,.07); padding:0 6px 6px; }
+.sidebar-logo{ border-bottom:1px solid var(--border); padding-left:12px; }
 .logo-mark{ color:var(--text); } .logo-mark span{ color:var(--g600); }
-.sidebar-section{ color:var(--text3); }
-.nav-item{ color:#4b5563; border-radius:999px; font-weight:500; }
+.sidebar-section{ color:var(--text3); font-size:9.5px; }
+.nav-item{ color:#4b5563; border-radius:12px; font-weight:500;
+  transition:background .18s var(--ease), color .18s var(--ease); }
 .nav-item:hover{ background:var(--g100); color:var(--g800); }
-.nav-item.active{ background:var(--g600); color:#fff; font-weight:600; box-shadow:0 4px 12px rgba(34,164,93,.30); }
+.nav-item.active{ background:var(--g600); color:#fff; font-weight:600;
+  box-shadow:0 6px 16px rgba(34,164,93,.28); }
 .nav-item.active::before{ background:transparent; }
-.nav-item.active svg{ stroke:#fff; }
-.submenu-item{ color:#6b7280; border-radius:999px; }
+.nav-item.active svg{ stroke:#fff !important; }
+.nav-item.active .nav-label{ color:#fff !important; }
+.nav-item.nav-sub{ font-size:12px; }
+.submenu-item{ color:#6b7280; border-radius:12px; }
 .submenu-item:hover{ color:var(--g800); background:var(--g100); }
 .submenu-item.active{ color:var(--g700); font-weight:600; background:var(--g100); }
+.nav-group-header:hover{ color:var(--g700) !important; }
 .sidebar-footer{ border-top:1px solid var(--border); color:var(--text2); }
-.user-avatar{ background:var(--g200); color:var(--g800); }
-.btn-logout{ border:1px solid var(--border2); color:var(--text2); border-radius:999px; }
+.user-avatar{ background:var(--g200); color:var(--g800); font-weight:700; }
+.btn-logout{ border:1px solid var(--border2); color:var(--text2); border-radius:999px;
+  transition:all .2s var(--ease); }
 .btn-logout:hover{ border-color:#e83838; color:#e83838; background:#fff5f5; }
 
-/* TOPBAR */
-.topbar{ background:#fff; box-shadow:none; border-bottom:1px solid var(--border); }
-.empresa-tag{ background:var(--g100); color:var(--g700); border:1px solid var(--g200); border-radius:999px; }
+/* ─── 4. TOPBAR ─────────────────────────────────────────── */
+.topbar{ background:rgba(255,255,255,.88); backdrop-filter:blur(14px);
+  box-shadow:none; border-bottom:1px solid var(--border); }
+.empresa-tag{ background:var(--g100); color:var(--g700);
+  border:1px solid var(--g200); border-radius:999px; }
 
-/* CARDS */
-.metric-card,.card,.section-card,.fcard,.hcard{ border-radius:18px; }
-.metric-card,.card,.section-card,.fcard{ box-shadow:var(--shadow); border:1px solid var(--border); }
+/* ─── 5. HERO CARDS → limpos e premium ──────────────────── */
+.hcard{
+  background:#fff !important; color:var(--text) !important;
+  border:1px solid var(--border); border-radius:18px;
+  padding:16px 18px; box-shadow:var(--shadow);
+  transition:transform .3s var(--ease), box-shadow .3s var(--ease);
+}
+.hcard:hover{ transform:translateY(-3px); box-shadow:var(--shadow-md); }
+.hcard-label{ color:var(--text2); opacity:1; font-size:9.5px; letter-spacing:.07em; }
+.hcard-value{ font-size:25px; font-weight:700; letter-spacing:-.02em; color:var(--c,var(--text)); }
+.hcard-value.sm{ font-size:18px; }
+.hcard-sub{ color:var(--text3); opacity:1; font-size:10.5px; margin-top:6px; }
+.hcard-icon{
+  position:absolute; top:14px; right:14px; bottom:auto; left:auto;
+  width:34px; height:34px; border-radius:11px;
+  background:var(--cbg,var(--bg4)); color:var(--c,var(--text2));
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; opacity:1;
+}
+.hcard.green {--c:#22a45d;--cbg:#f0fdf4}
+.hcard.blue  {--c:#2563eb;--cbg:#eff6ff}
+.hcard.purple{--c:#22a45d;--cbg:#f0fdf4}
+.hcard.amber {--c:#d97706;--cbg:#fffbeb}
+.hcard.teal  {--c:#0891b2;--cbg:#ecfeff}
+.hcard.red   {--c:#dc2626;--cbg:#fef2f2}
+.hcard.pink  {--c:#db2777;--cbg:#fdf2f8}
+.hcard.indigo{--c:#15803d;--cbg:#f0fdf4}
+.hcard.gray  {--c:#56565e;--cbg:#f5f5f7}
+.hcard.dark  {--c:#111113;--cbg:#f5f5f7}
+/* barra de acento na esquerda */
+.hcard::before{ content:''; position:absolute; left:0; top:14px; bottom:14px;
+  width:3px; border-radius:0 3px 3px 0; background:var(--c,var(--border2)); }
+
+/* ─── 6. CARDS / SECOES ─────────────────────────────────── */
+.metric-card,.card,.section-card,.fcard,.fin-card{
+  border-radius:18px; border:1px solid var(--border); box-shadow:var(--shadow);
+  transition:box-shadow .3s var(--ease);
+}
+.metric-card:hover,.card:hover,.section-card:hover{ box-shadow:var(--shadow-md); }
 .metric-card::before{ display:none; }
 .section-card-header{ border-bottom:1px solid var(--border); }
+.section-card-title{ font-weight:600; letter-spacing:-.01em; }
 .fcard.success{ border-color:var(--g200); background:var(--g100); }
+.pg-header-title{ font-size:21px; font-weight:700; letter-spacing:-.03em; }
 
-/* BOTOES */
-.btn,button.btn{ border-radius:999px; font-weight:600; }
-.btn-primary,.btn.primary,.btn-green{ background:var(--g600); border-color:var(--g600); color:#fff; }
-.btn-primary:hover,.btn.primary:hover,.btn-green:hover{ background:var(--g700); border-color:var(--g700); box-shadow:0 6px 18px rgba(34,164,93,.30); }
+/* ─── 7. BOTOES INTERATIVOS ─────────────────────────────── */
+.btn{
+  border-radius:999px; font-weight:600; border-width:1px;
+  transition:transform .22s var(--ease), box-shadow .22s var(--ease),
+             background .18s, border-color .18s;
+}
+.btn:hover{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(17,19,24,.10); }
+.btn:active{ transform:translateY(0) scale(.98); box-shadow:none; }
+.btn-primary{ background:var(--g600); border-color:var(--g600); color:#fff; }
+.btn-primary:hover{ background:var(--g700); border-color:var(--g700);
+  box-shadow:0 8px 22px rgba(34,164,93,.32); }
+.btn-sm{ border-radius:999px; }
 
-/* CAMPOS */
-.form-input,.filter-select,.filter-input,select,input[type=text],input[type=date],input[type=number]{ border-radius:10px; }
-.form-input:focus,.filter-select:focus,.filter-input:focus{ border-color:var(--g500); box-shadow:0 0 0 3px rgba(34,164,93,.14); outline:none; }
+/* ─── 8. CAMPOS ─────────────────────────────────────────── */
+.form-input,.filter-select,.filter-input,.form-group input,
+.form-group select,.form-group textarea{
+  border-radius:11px; border-width:1px; transition:border-color .18s, box-shadow .18s;
+}
+.form-input:focus,.filter-select:focus,.filter-input:focus,
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+  border-color:var(--g500); box-shadow:0 0 0 3px rgba(34,164,93,.15); outline:none;
+}
+.import-zone{ border-radius:18px; border-width:1.5px; transition:all .25s var(--ease); }
+.import-zone:hover{ background:var(--g100); border-color:var(--g500); transform:translateY(-2px); }
 
-/* TABELAS */
-.content table{ border-radius:14px; overflow:hidden; }
-.content thead th{ background:var(--bg3); color:var(--text2); font-weight:600; text-transform:uppercase; font-size:10.5px; letter-spacing:.05em; border-bottom:1px solid var(--border); }
+/* ─── 9. TABELAS ────────────────────────────────────────── */
+.content thead th{
+  background:var(--bg3); color:var(--text2); font-weight:600;
+  text-transform:uppercase; font-size:10px; letter-spacing:.06em;
+  border-bottom:1px solid var(--border);
+}
+.content tbody tr{ transition:background .14s; }
 .content tbody tr:hover{ background:var(--g100); }
+.table-wrap{ border-radius:14px; }
 
-/* BADGES */
-.badge{ border-radius:999px; }
+/* ─── 10. BADGES ────────────────────────────────────────── */
+.badge{ border-radius:999px; font-weight:600; }
 .badge-green{ background:var(--g200); color:var(--g800); }
 
-/* MODAIS */
-.modal,.modal-box,.modal-content{ border-radius:22px; }
+/* ─── 11. MODAIS ────────────────────────────────────────── */
+.modal,.modal-box,.modal-content,.modal-card{
+  border-radius:24px; box-shadow:var(--shadow-lg); border:none;
+}
+.modal-header{ border-bottom:1px solid var(--border); }
+.modal-footer{ border-top:1px solid var(--border); }
 
-/* SCROLLBAR */
-::-webkit-scrollbar{ width:9px;height:9px; }
-::-webkit-scrollbar-thumb{ background:#d3d7dc;border-radius:999px; }
-::-webkit-scrollbar-thumb:hover{ background:#b8bdc4; }
+/* ─── 12. SCROLLBAR ─────────────────────────────────────── */
+::-webkit-scrollbar{ width:9px; height:9px; }
+::-webkit-scrollbar-thumb{ background:#d5d9de; border-radius:999px; }
+::-webkit-scrollbar-thumb:hover{ background:#b9bec5; }
 ::-webkit-scrollbar-track{ background:transparent; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -2735,7 +2864,7 @@ body{ background:var(--bg); letter-spacing:-.005em; }
       </div>
 
       <!-- RELATÓRIOS grupo colapsável -->
-      <div class="nav-group-header" onclick="toggleNavGroup('nav-relatorios')" style="display:flex;align-items:center;padding:6px 0.875rem;cursor:pointer;color:rgba(255,255,255,0.4);font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;user-select:none;gap:6px;margin-top:4px">
+      <div class="nav-group-header" onclick="toggleNavGroup('nav-relatorios')" style="display:flex;align-items:center;padding:6px 0.875rem;cursor:pointer;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;user-select:none;gap:6px;margin-top:4px">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
         <span style="flex:1">Relatórios</span>
         
@@ -2774,7 +2903,7 @@ body{ background:var(--bg); letter-spacing:-.005em; }
       </div>
 
       <!-- CONFIGURAÇÕES grupo colapsável -->
-      <div class="nav-group-header" onclick="toggleNavGroup('nav-config')" style="display:flex;align-items:center;padding:6px 0.875rem;cursor:pointer;color:rgba(255,255,255,0.4);font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;user-select:none;gap:6px;margin-top:4px">
+      <div class="nav-group-header" onclick="toggleNavGroup('nav-config')" style="display:flex;align-items:center;padding:6px 0.875rem;cursor:pointer;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;user-select:none;gap:6px;margin-top:4px">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
         <span style="flex:1">Configurações</span>
         
@@ -2804,16 +2933,16 @@ body{ background:var(--bg); letter-spacing:-.005em; }
 
       <!-- DESTACADOS (fora dos grupos) -->
       <div style="padding:6px 0.375rem;margin-top:4px;display:flex;flex-direction:column;gap:4px">
-        <div class="nav-item" data-page="metricas" onclick="showPage('metricas',this)" style="background:linear-gradient(90deg,rgba(21,128,61,0.15),transparent);border:1px solid rgba(21,128,61,0.2)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#6ee7a8" stroke-width="1.5"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-          <span class="nav-label" style="color:#6ee7a8;font-weight:600;text-transform:uppercase">Métricas</span>
+        <div class="nav-item" data-page="metricas" onclick="showPage('metricas',this)" style="background:#f0fdf4;border:1px solid #a7f3c9">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="1.8"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+          <span class="nav-label" style="color:#15803d;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Métricas</span>
         </div>
-        <div class="nav-item" data-page="conciliacao" onclick="showPage('conciliacao',this)" style="background:linear-gradient(90deg,rgba(21,128,61,0.15),transparent);border:1px solid rgba(21,128,61,0.2)">
-          <span class="nav-icon" style="color:#6ee7a8">⇄</span><span class="nav-label" style="color:#6ee7a8;font-weight:600;text-transform:uppercase">Conciliação</span>
+        <div class="nav-item" data-page="conciliacao" onclick="showPage('conciliacao',this)" style="background:#f0fdf4;border:1px solid #a7f3c9">
+          <span class="nav-icon" style="color:#15803d">⇄</span><span class="nav-label" style="color:#15803d;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Conciliação</span>
         </div>
-        <div class="nav-item" data-page="importacao" onclick="showPage('importacao',this)" style="background:linear-gradient(90deg,rgba(21,128,61,0.15),transparent);border:1px solid rgba(21,128,61,0.2)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#6ee7a8" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span class="nav-label" style="color:#6ee7a8;font-weight:600;text-transform:uppercase">Importação</span>
+        <div class="nav-item" data-page="importacao" onclick="showPage('importacao',this)" style="background:#f0fdf4;border:1px solid #a7f3c9">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="nav-label" style="color:#15803d;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Importação</span>
         </div>
         <div class="nav-item" data-page="lixeira" onclick="showPage('lixeira',this)">
           <span class="nav-icon">🗑️</span><span class="nav-label">Lixeira</span>
@@ -2824,8 +2953,8 @@ body{ background:var(--bg); letter-spacing:-.005em; }
         <div class="user-badge">
           <div class="user-avatar" id="user-initials">?</div>
           <div class="user-info">
-            <div style="font-size:12px;color:#fff" id="user-name">Usuário</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.4)" id="user-role">Admin</div>
+            <div style="font-size:12px;color:#111318;font-weight:600" id="user-name">Usuário</div>
+            <div style="font-size:10px;color:#9ca3af" id="user-role">Admin</div>
           </div>
         </div>
         <button class="btn-logout" onclick="doLogout()">Sair</button>
