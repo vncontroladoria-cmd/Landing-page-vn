@@ -2393,6 +2393,26 @@ progress::-webkit-progress-value,.progress-bar,.bar-fill{ background:var(--g600)
 /* nada pode empurrar a pagina para os lados */
 .content,.page{ max-width:100%; overflow-x:clip; }
 
+
+/* ─── 33. FAIXA FIXA DOS LANÇAMENTOS ───
+   .lanc-sticky gruda no topo ao rolar e precisa de fundo opaco para
+   tampar a tabela que passa por baixo. Com fundo branco ela virava
+   um retangulo visivel sobre o cinza da pagina. Agora usa a mesma
+   cor de fundo, entao some — mas continua tampando. */
+.lanc-sticky{
+  background:var(--bg) !important;
+  padding-bottom:12px;
+}
+/* ao grudar, um veu e uma sombra suave marcam a separacao */
+.lanc-sticky::after{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:14px;
+  pointer-events:none;
+  background:linear-gradient(180deg, var(--bg) 0%, rgba(236,239,242,0) 100%);
+}
+
+/* mesma correcao para qualquer outra faixa fixa do sistema */
+.sticky-top,.filtros-sticky,.tabela-sticky{ background:var(--bg) !important; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
