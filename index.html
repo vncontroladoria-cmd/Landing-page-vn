@@ -1893,63 +1893,70 @@ canvas{ max-width:100%; }
 
 
 /* ══════════════════════════════════════════════════════════
-   25. CARDS COLORIDOS EM TODO O SISTEMA
-   ORDEM IMPORTA: a cor padrao vem PRIMEIRO, as variantes depois.
-   (Antes o padrao estava no fim e engolia todas as variantes —
-   por isso os 5 cards de apoio sairam todos verdes.)
+   25. CARDS COLORIDOS — MALHA MULTICOLORIDA
+   Cada card mistura 3 matizes vizinhos (como os cartoes da
+   referencia, que vao de roxo a rosa a azul no mesmo card),
+   em vez de um tom so em degrade.
+   ORDEM: padrao primeiro, variantes depois.
    ══════════════════════════════════════════════════════════ */
 
-/* ─── 25.1 cor padrao (so vale se o card nao tiver variante) ─── */
+/* ─── 25.1 padrao ─── */
 .hcard,.fcard,.metric-card,.mini,.kpi-hero{
-  --g1:#4ab884; --g2:#6bcb9c; --g3:#96debb; --gl:rgba(34,164,93,.30);
+  --h1:#4fc9a6; --h2:#5ec593; --h3:#9dd97e; --gl:rgba(34,164,93,.30);
 }
 
-/* ─── 25.2 variantes ─── */
+/* ─── 25.2 variantes: 3 matizes por card ─── */
+/* verde: turquesa → verde → lima */
 .hcard.green,.metric-card.c-green,.mini-green,.fcard.success,.kpi-hero.kpi-green{
-  --g1:#3fb074; --g2:#5ec593; --g3:#8fdcb5; --gl:rgba(34,164,93,.32);
+  --h1:#41c7ab; --h2:#55c58f; --h3:#a3d977; --gl:rgba(34,164,93,.32);
 }
+/* azul: violeta → azul → turquesa */
 .hcard.blue,.metric-card.c-blue,.mini-blue,.kpi-hero.kpi-blue{
-  --g1:#4f7fdd; --g2:#7099e8; --g3:#a2bdf2; --gl:rgba(59,130,246,.30);
+  --h1:#8a8fe8; --h2:#5f96e6; --h3:#57c4dd; --gl:rgba(59,130,246,.30);
 }
+/* ciano: azul → ciano → menta */
 .hcard.teal,.metric-card.c-teal,.mini-teal,.kpi-hero.kpi-mint{
-  --g1:#3ba3bd; --g2:#5bbad1; --g3:#92d6e3; --gl:rgba(8,145,178,.30);
+  --h1:#5aa6e2; --h2:#46c2d4; --h3:#6fdcbd; --gl:rgba(8,145,178,.30);
 }
+/* ambar: coral → ambar → amarelo */
 .hcard.amber,.metric-card.c-amber,.mini-amber,.kpi-hero.kpi-lime{
-  --g1:#d6a04e; --g2:#e3b672; --g3:#f0d2a4; --gl:rgba(217,119,6,.28);
+  --h1:#e59a7d; --h2:#e0b165; --h3:#ecd684; --gl:rgba(217,119,6,.28);
 }
+/* vermelho: rosa → vermelho → laranja */
 .hcard.red,.metric-card.c-red,.mini-red{
-  --g1:#d4726e; --g2:#e08e8a; --g3:#eeb5b2; --gl:rgba(220,38,38,.28);
+  --h1:#d9718f; --h2:#d9726d; --h3:#e29a6a; --gl:rgba(220,38,38,.28);
 }
+/* verde escuro: petroleo → verde mata → oliva */
 .hcard.purple,.hcard.indigo,.metric-card.c-purple,.mini-forest{
-  --g1:#2f7d55; --g2:#4a9c72; --g3:#80c4a0; --gl:rgba(21,128,61,.32);
+  --h1:#2f8b83; --h2:#358059; --h3:#6f9f4a; --gl:rgba(21,128,61,.32);
 }
+/* rosa: violeta → rosa → pessego */
 .hcard.pink,.mini-pink{
-  --g1:#cc75a1; --g2:#dc93b6; --g3:#ebbbd2; --gl:rgba(219,39,119,.26);
+  --h1:#b285d6; --h2:#d489b5; --h3:#eab09d; --gl:rgba(219,39,119,.26);
 }
+/* grafite: azul ardosia → grafite → bege frio */
 .hcard.dark,.hcard.gray,.mini-ink{
-  --g1:#565660; --g2:#6f6f79; --g3:#9b9ba3; --gl:rgba(17,19,24,.32);
+  --h1:#5c6b80; --h2:#6b6b76; --h3:#8c8378; --gl:rgba(17,19,24,.32);
 }
 
-/* ─── 25.3 o desenho do card ─── */
+/* ─── 25.3 desenho do card ─── */
 .hcard,.fcard,.metric-card,.mini,.kpi-hero{
   position:relative; overflow:hidden;
   border:none !important;
   color:#fff !important;
   background-color:transparent !important;
   background-image:
-    radial-gradient(125% 125% at 0% 0%,   var(--g3) 0%, transparent 60%),
-    radial-gradient(125% 125% at 100% 100%, var(--g1) 0%, transparent 58%),
-    linear-gradient(135deg, var(--g1) 0%, var(--g2) 52%, var(--g3) 100%) !important;
+    radial-gradient(115% 115% at   0%   0%, var(--h1) 0%, transparent 56%),
+    radial-gradient(115% 115% at 100%   0%, var(--h3) 0%, transparent 54%),
+    radial-gradient(130% 130% at  50% 140%, var(--h2) 0%, transparent 62%),
+    linear-gradient(120deg, var(--h1) 0%, var(--h2) 50%, var(--h3) 100%) !important;
   box-shadow:0 8px 24px -12px var(--gl);
   transition:transform .3s var(--ease), box-shadow .3s var(--ease);
 }
 .hcard:hover,.fcard:hover,.metric-card:hover,.mini:hover,.kpi-hero:hover{
-  transform:translateY(-4px);
+  transform:translateY(-4px); border:none !important;
   box-shadow:0 18px 40px -16px var(--gl);
-  border:none !important;
 }
-
-/* brilho de vidro, atras do conteudo */
 .hcard::before,.fcard::before,.metric-card::before,.mini::before,.kpi-hero::before{
   content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
   background:linear-gradient(135deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 48%);
@@ -1958,18 +1965,14 @@ canvas{ max-width:100%; }
 .hcard > *,.fcard > *,.metric-card > *,.mini > *,.kpi-hero > *{ position:relative; z-index:1; }
 .hcard::after,.metric-card::after,.kpi-hero::after{ display:none; }
 
-/* textos */
 .hcard-label,.fcard-label,.metric-label,.mini-label,.kpi-hero .kpi-label,
 .hcard-sub,.fcard-sub,.metric-sub,.mini-sub,.kpi-hero .kpi-sub{
-  color:rgba(255,255,255,.86) !important;
+  color:rgba(255,255,255,.88) !important;
 }
 .hcard-value,.fcard-value,.metric-val,.mini-value,.kpi-hero .kpi-value,
 .fcard-value.blue,.fcard-value.green,.metric-val.green,.metric-delta.up{
-  color:#fff !important;
-  text-shadow:0 1px 2px rgba(0,0,0,.10);
+  color:#fff !important; text-shadow:0 1px 2px rgba(0,0,0,.12);
 }
-
-/* chip do icone */
 .hcard-icon,.fcard-icon,.mini-ico,.kpi-hero .kpi-icon{
   background:rgba(255,255,255,.24) !important;
   border:1px solid rgba(255,255,255,.34) !important;
@@ -1977,7 +1980,6 @@ canvas{ max-width:100%; }
 }
 .hcard-icon svg,.mini-ico svg,.fcard-icon svg,.kpi-hero .kpi-icon svg{ stroke:#fff !important; }
 
-/* o icone do .hcard era marca d'agua cortada: vira chip no canto */
 .hcard{ padding:18px 20px; border-radius:20px; }
 .hcard-icon{
   position:absolute; top:16px; right:16px; bottom:auto; left:auto;
@@ -1985,6 +1987,25 @@ canvas{ max-width:100%; }
   display:flex; align-items:center; justify-content:center;
 }
 .hcard-label{ padding-right:44px; }
+
+/* ─── 25.4 EXCECOES: nao sao cards de indicador ───
+   Os chips de banco (CAIXA, ITAU, PAGBANK...) usam .metric-card mas
+   sao botoes de filtro, com a cor do valor escrita na tag. Coloridos
+   ficariam ilegiveis. Voltam a ser brancos. */
+#lanc-saldo-bancos .metric-card{
+  background-image:none !important;
+  background-color:#fff !important;
+  color:var(--text) !important;
+  border:1px solid var(--border) !important;
+  border-radius:14px;
+  box-shadow:0 1px 2px rgba(17,19,24,.04);
+  text-shadow:none;
+}
+#lanc-saldo-bancos .metric-card::before{ display:none; }
+#lanc-saldo-bancos .metric-card:hover{
+  border-color:var(--g300) !important; background-color:var(--g100) !important;
+  transform:translateY(-2px); box-shadow:0 6px 16px -8px rgba(17,19,24,.18);
+}
 
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
