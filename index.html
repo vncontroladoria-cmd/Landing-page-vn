@@ -2513,6 +2513,95 @@ progress::-webkit-progress-value,.progress-bar,.bar-fill{ background:var(--g600)
   #painel-operador > div > div:last-child{ padding-top:64px !important; }
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   35. MENU PRINCIPAL — TRILHO QUE EXPANDE NO HOVER
+   Antes ficava escondido fora da tela e so aparecia pelo
+   hamburguer. Agora e um trilho fixo de 70px que abre para
+   244px ao passar o mouse, por cima do conteudo.
+   No celular continua sendo gaveta, aberta pelo hamburguer.
+   ══════════════════════════════════════════════════════════ */
+@media (min-width:901px){
+  .sidebar{
+    transform:none !important;
+    width:70px;
+    /* overflow-y precisa continuar auto: o menu tem muitos itens e
+       sem isso os de baixo ficariam inacessiveis em tela curta */
+    overflow-y:auto; overflow-x:hidden;
+    box-shadow:none;
+    border-right:1px solid var(--border);
+    transition:width .26s cubic-bezier(.16,1,.3,1), box-shadow .26s;
+  }
+  .sidebar:hover{
+    width:244px;
+    box-shadow:14px 0 46px rgba(17,19,24,.14);
+  }
+  /* o conteudo desloca so a largura do trilho e nao se mexe mais */
+  .main{ margin-left:70px; width:calc(100% - 70px); }
+
+  /* rotulos, secoes e setas somem quando recolhida */
+  .sidebar .nav-label,
+  .sidebar .sidebar-section,
+  .sidebar .nav-group-header,
+  .sidebar .submenu,
+  .sidebar .sidebar-footer .user-info,
+  .sidebar .logo-mark{
+    opacity:0; transform:translateX(-6px);
+    transition:opacity .16s, transform .22s cubic-bezier(.16,1,.3,1);
+    pointer-events:none;
+  }
+  .sidebar:hover .nav-label,
+  .sidebar:hover .sidebar-section,
+  .sidebar:hover .nav-group-header,
+  .sidebar:hover .sidebar-footer .user-info,
+  .sidebar:hover .logo-mark{
+    opacity:1; transform:none; pointer-events:auto;
+  }
+  .sidebar:hover .submenu{ opacity:1; transform:none; pointer-events:auto; }
+  /* recolhida: submenu aberto nao pode ocupar altura */
+  .sidebar:not(:hover) .submenu.open{ display:none; }
+  .sidebar:not(:hover) .sidebar-section{ height:10px; padding:6px 0 0; }
+
+  /* itens centralizados no trilho */
+  .sidebar .nav-item{
+    gap:14px; padding:10px 14px; margin:2px 8px;
+    justify-content:flex-start; white-space:nowrap;
+  }
+  .sidebar .nav-item svg,.sidebar .nav-icon{
+    width:20px; height:20px; flex-shrink:0;
+  }
+  .sidebar:not(:hover) .nav-item{ padding-left:15px; }
+
+  /* logo: so o simbolo quando recolhida */
+  .sidebar-logo{ padding:14px 12px; min-height:62px; gap:12px; }
+  .sidebar:not(:hover) .sidebar-logo{ justify-content:flex-start; }
+
+  /* rodape */
+  .sidebar:not(:hover) .btn-logout{ padding:9px 0; justify-content:center; }
+  .sidebar:not(:hover) .btn-logout .nav-label{ display:none; }
+  .sidebar:not(:hover) .user-avatar{ margin:0 auto; }
+
+  /* hamburguer e veu nao fazem mais sentido no desktop */
+  .topbar > button.tb-icon[title="Menu"]{ display:none; }
+  .sidebar-overlay{ display:none !important; }
+}
+
+/* ─ celular: gaveta, como ja era ─ */
+@media (max-width:900px){
+  .sidebar{ width:244px; }
+  .main{ margin-left:0; width:100%; }
+}
+
+
+/* barra de rolagem do menu: fina e discreta */
+@media (min-width:901px){
+  .sidebar::-webkit-scrollbar{ width:6px; }
+  .sidebar::-webkit-scrollbar-thumb{ background:#dfe4e9; border-radius:999px; }
+  .sidebar:not(:hover)::-webkit-scrollbar-thumb{ background:transparent; }
+  /* o veu do celular nunca aparece no desktop */
+  .sidebar.open{ width:244px; }
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -8248,6 +8337,8 @@ function toggleSidebar() {
   const sidebar = document.getElementById('main-sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   if (!sidebar) return;
+  // No desktop a barra abre sozinha no hover: o botao nao tem funcao.
+  if (window.matchMedia('(min-width:901px)').matches) return;
   sidebar.classList.toggle('open');
   const isOpen = sidebar.classList.contains('open');
   if (overlay) overlay.classList.toggle('show', isOpen);
