@@ -1893,63 +1893,43 @@ canvas{ max-width:100%; }
 
 
 /* ══════════════════════════════════════════════════════════
-   25. CARDS COLORIDOS — MALHA MULTICOLORIDA
-   Cada card mistura 3 matizes vizinhos (como os cartoes da
-   referencia, que vao de roxo a rosa a azul no mesmo card),
-   em vez de um tom so em degrade.
-   ORDEM: padrao primeiro, variantes depois.
+   25. CARDS COLORIDOS — UMA COR POR CARD
+   Cada card tem UM tom (claro -> medio). Cards vizinhos recebem
+   cores diferentes automaticamente pela posicao, entao qualquer
+   fileira do sistema sai colorida sem eu editar card por card.
+   ORDEM: ciclo por posicao primeiro, variantes explicitas depois.
    ══════════════════════════════════════════════════════════ */
 
-/* ─── 25.1 padrao ─── */
-.hcard,.fcard,.metric-card,.mini,.kpi-hero{
-  --h1:#4fc9a6; --h2:#5ec593; --h3:#9dd97e; --gl:rgba(34,164,93,.30);
-}
+/* ─── 25.1 as 8 cores do ciclo ─── */
+.hcard,.fcard,.metric-card,.mini,.kpi-hero{ --a:#55c58f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
 
-/* ─── 25.2 variantes: 3 matizes por card ─── */
-/* verde: turquesa → verde → lima */
-.hcard.green,.metric-card.c-green,.mini-green,.fcard.success,.kpi-hero.kpi-green{
-  --h1:#41c7ab; --h2:#55c58f; --h3:#a3d977; --gl:rgba(34,164,93,.32);
-}
-/* azul: violeta → azul → turquesa */
-.hcard.blue,.metric-card.c-blue,.mini-blue,.kpi-hero.kpi-blue{
-  --h1:#8a8fe8; --h2:#5f96e6; --h3:#57c4dd; --gl:rgba(59,130,246,.30);
-}
-/* ciano: azul → ciano → menta */
-.hcard.teal,.metric-card.c-teal,.mini-teal,.kpi-hero.kpi-mint{
-  --h1:#5aa6e2; --h2:#46c2d4; --h3:#6fdcbd; --gl:rgba(8,145,178,.30);
-}
-/* ambar: coral → ambar → amarelo */
-.hcard.amber,.metric-card.c-amber,.mini-amber,.kpi-hero.kpi-lime{
-  --h1:#e59a7d; --h2:#e0b165; --h3:#ecd684; --gl:rgba(217,119,6,.28);
-}
-/* vermelho: rosa → vermelho → laranja */
-.hcard.red,.metric-card.c-red,.mini-red{
-  --h1:#d9718f; --h2:#d9726d; --h3:#e29a6a; --gl:rgba(220,38,38,.28);
-}
-/* verde escuro: petroleo → verde mata → oliva */
-.hcard.purple,.hcard.indigo,.metric-card.c-purple,.mini-forest{
-  --h1:#2f8b83; --h2:#358059; --h3:#6f9f4a; --gl:rgba(21,128,61,.32);
-}
-/* rosa: violeta → rosa → pessego */
-.hcard.pink,.mini-pink{
-  --h1:#b285d6; --h2:#d489b5; --h3:#eab09d; --gl:rgba(219,39,119,.26);
-}
-/* grafite: azul ardosia → grafite → bege frio */
-.hcard.dark,.hcard.gray,.mini-ink{
-  --h1:#5c6b80; --h2:#6b6b76; --h3:#8c8378; --gl:rgba(17,19,24,.32);
-}
+.hcard:nth-child(8n+1),.fcard:nth-child(8n+1),.metric-card:nth-child(8n+1),.mini:nth-child(8n+1),.kpi-hero:nth-child(8n+1){ --a:#55c58f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
+.hcard:nth-child(8n+2),.fcard:nth-child(8n+2),.metric-card:nth-child(8n+2),.mini:nth-child(8n+2),.kpi-hero:nth-child(8n+2){ --a:#7099e8; --b:#4f7fdd; --gl:rgba(59,130,246,.30); }
+.hcard:nth-child(8n+3),.fcard:nth-child(8n+3),.metric-card:nth-child(8n+3),.mini:nth-child(8n+3),.kpi-hero:nth-child(8n+3){ --a:#5bbad1; --b:#3ba3bd; --gl:rgba(8,145,178,.30); }
+.hcard:nth-child(8n+4),.fcard:nth-child(8n+4),.metric-card:nth-child(8n+4),.mini:nth-child(8n+4),.kpi-hero:nth-child(8n+4){ --a:#e3b672; --b:#d6a04e; --gl:rgba(217,119,6,.28); }
+.hcard:nth-child(8n+5),.fcard:nth-child(8n+5),.metric-card:nth-child(8n+5),.mini:nth-child(8n+5),.kpi-hero:nth-child(8n+5){ --a:#a78bd6; --b:#8b6bc4; --gl:rgba(124,58,237,.28); }
+.hcard:nth-child(8n+6),.fcard:nth-child(8n+6),.metric-card:nth-child(8n+6),.mini:nth-child(8n+6),.kpi-hero:nth-child(8n+6){ --a:#dc93b6; --b:#cc75a1; --gl:rgba(219,39,119,.26); }
+.hcard:nth-child(8n+7),.fcard:nth-child(8n+7),.metric-card:nth-child(8n+7),.mini:nth-child(8n+7),.kpi-hero:nth-child(8n+7){ --a:#e08e8a; --b:#d4726e; --gl:rgba(220,38,38,.28); }
+.hcard:nth-child(8n+8),.fcard:nth-child(8n+8),.metric-card:nth-child(8n+8),.mini:nth-child(8n+8),.kpi-hero:nth-child(8n+8){ --a:#6ec9b4; --b:#4aae98; --gl:rgba(20,140,120,.28); }
+
+/* ─── 25.2 variantes explicitas mandam mais que o ciclo ─── */
+.hcard.green ,.metric-card.c-green ,.mini-green ,.fcard.success,.kpi-hero.kpi-green{ --a:#55c58f; --b:#3fb074; --gl:rgba(34,164,93,.32); }
+.hcard.blue  ,.metric-card.c-blue  ,.mini-blue  ,.kpi-hero.kpi-blue { --a:#7099e8; --b:#4f7fdd; --gl:rgba(59,130,246,.30); }
+.hcard.teal  ,.metric-card.c-teal  ,.mini-teal  ,.kpi-hero.kpi-mint { --a:#5bbad1; --b:#3ba3bd; --gl:rgba(8,145,178,.30); }
+.hcard.amber ,.metric-card.c-amber ,.mini-amber ,.kpi-hero.kpi-lime { --a:#e3b672; --b:#d6a04e; --gl:rgba(217,119,6,.28); }
+.hcard.red   ,.metric-card.c-red   ,.mini-red   { --a:#e08e8a; --b:#d4726e; --gl:rgba(220,38,38,.28); }
+.hcard.purple,.hcard.indigo,.metric-card.c-purple,.mini-forest{ --a:#a78bd6; --b:#8b6bc4; --gl:rgba(124,58,237,.28); }
+.hcard.pink  ,.mini-pink   { --a:#dc93b6; --b:#cc75a1; --gl:rgba(219,39,119,.26); }
+.hcard.dark  ,.hcard.gray  ,.mini-ink{ --a:#6f6f79; --b:#565660; --gl:rgba(17,19,24,.32); }
 
 /* ─── 25.3 desenho do card ─── */
 .hcard,.fcard,.metric-card,.mini,.kpi-hero{
   position:relative; overflow:hidden;
-  border:none !important;
-  color:#fff !important;
+  border:none !important; color:#fff !important;
   background-color:transparent !important;
   background-image:
-    radial-gradient(115% 115% at   0%   0%, var(--h1) 0%, transparent 56%),
-    radial-gradient(115% 115% at 100%   0%, var(--h3) 0%, transparent 54%),
-    radial-gradient(130% 130% at  50% 140%, var(--h2) 0%, transparent 62%),
-    linear-gradient(120deg, var(--h1) 0%, var(--h2) 50%, var(--h3) 100%) !important;
+    radial-gradient(130% 130% at 100% 0%, var(--a) 0%, transparent 62%),
+    linear-gradient(135deg, var(--a) 0%, var(--b) 100%) !important;
   box-shadow:0 8px 24px -12px var(--gl);
   transition:transform .3s var(--ease), box-shadow .3s var(--ease);
 }
@@ -1959,16 +1939,14 @@ canvas{ max-width:100%; }
 }
 .hcard::before,.fcard::before,.metric-card::before,.mini::before,.kpi-hero::before{
   content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background:linear-gradient(135deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 48%);
+  background:linear-gradient(135deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,0) 50%);
   display:block; width:auto; height:auto; border-radius:0; transform:none;
 }
 .hcard > *,.fcard > *,.metric-card > *,.mini > *,.kpi-hero > *{ position:relative; z-index:1; }
 .hcard::after,.metric-card::after,.kpi-hero::after{ display:none; }
 
 .hcard-label,.fcard-label,.metric-label,.mini-label,.kpi-hero .kpi-label,
-.hcard-sub,.fcard-sub,.metric-sub,.mini-sub,.kpi-hero .kpi-sub{
-  color:rgba(255,255,255,.88) !important;
-}
+.hcard-sub,.fcard-sub,.metric-sub,.mini-sub,.kpi-hero .kpi-sub{ color:rgba(255,255,255,.88) !important; }
 .hcard-value,.fcard-value,.metric-val,.mini-value,.kpi-hero .kpi-value,
 .fcard-value.blue,.fcard-value.green,.metric-val.green,.metric-delta.up{
   color:#fff !important; text-shadow:0 1px 2px rgba(0,0,0,.12);
@@ -1988,18 +1966,11 @@ canvas{ max-width:100%; }
 }
 .hcard-label{ padding-right:44px; }
 
-/* ─── 25.4 EXCECOES: nao sao cards de indicador ───
-   Os chips de banco (CAIXA, ITAU, PAGBANK...) usam .metric-card mas
-   sao botoes de filtro, com a cor do valor escrita na tag. Coloridos
-   ficariam ilegiveis. Voltam a ser brancos. */
+/* ─── 25.4 excecao: chips de banco sao botao de filtro ─── */
 #lanc-saldo-bancos .metric-card{
-  background-image:none !important;
-  background-color:#fff !important;
-  color:var(--text) !important;
-  border:1px solid var(--border) !important;
-  border-radius:14px;
-  box-shadow:0 1px 2px rgba(17,19,24,.04);
-  text-shadow:none;
+  background-image:none !important; background-color:#fff !important;
+  color:var(--text) !important; border:1px solid var(--border) !important;
+  border-radius:14px; box-shadow:0 1px 2px rgba(17,19,24,.04); text-shadow:none;
 }
 #lanc-saldo-bancos .metric-card::before{ display:none; }
 #lanc-saldo-bancos .metric-card:hover{
