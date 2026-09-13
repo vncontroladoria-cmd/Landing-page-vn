@@ -1891,6 +1891,128 @@ canvas{ max-width:100%; }
   --gl:rgba(180,83,9,.50);
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   25. CARDS COLORIDOS EM TODO O SISTEMA
+   Mesmo tratamento do dashboard aplicado a .hcard, .fcard,
+   .metric-card e .mini — que sao TODOS os cards de numero.
+   Cards-container (.card, .section-card) continuam brancos.
+   ══════════════════════════════════════════════════════════ */
+
+.hcard, .fcard, .metric-card, .mini{
+  position:relative; overflow:hidden;
+  border:none !important;
+  color:#fff !important;
+  background-color:transparent !important;
+  background-image:var(--gradiente) !important;
+  box-shadow:0 10px 30px -12px var(--gl);
+  transition:transform .3s var(--ease), box-shadow .3s var(--ease);
+}
+.hcard:hover,.fcard:hover,.metric-card:hover,.mini:hover{
+  transform:translateY(-4px);
+  box-shadow:0 20px 44px -16px var(--gl);
+  border:none !important;
+}
+
+/* brilho de vidro por cima, sem tapar o conteudo */
+.hcard::before,.fcard::before,.metric-card::before,.mini::before{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:linear-gradient(135deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 46%);
+  display:block; width:auto; height:auto; border-radius:0; transform:none;
+}
+.hcard > *,.fcard > *,.metric-card > *,.mini > *{ position:relative; z-index:1; }
+.hcard::after,.metric-card::after{ display:none; }
+
+/* textos ficam brancos */
+.hcard-label,.fcard-label,.metric-label,.mini-label,
+.hcard-sub,.fcard-sub,.metric-sub,.mini-sub{ color:rgba(255,255,255,.80) !important; }
+.hcard-value,.fcard-value,.metric-val,.mini-value{ color:#fff !important; }
+.fcard-value.blue,.fcard-value.green,.metric-val.green,.metric-delta.up{ color:#fff !important; }
+
+/* chip do icone: vidro translucido */
+.hcard-icon,.fcard-icon,.mini-ico,.fcard-icon-row .fcard-icon{
+  background:rgba(255,255,255,.20) !important;
+  border:1px solid rgba(255,255,255,.30) !important;
+  box-shadow:none !important; backdrop-filter:none;
+  color:#fff !important;
+}
+.hcard-icon svg,.mini-ico svg,.fcard-icon svg{ stroke:#fff !important; }
+
+/* o icone do .hcard era marca d'agua gigante: vira chip no canto */
+.hcard{ padding:18px 20px; border-radius:20px; }
+.hcard-icon{
+  position:absolute; top:16px; right:16px; bottom:auto; left:auto;
+  width:34px; height:34px; border-radius:11px; font-size:16px; opacity:1;
+  display:flex; align-items:center; justify-content:center;
+}
+.hcard-label{ padding-right:44px; }
+
+/* ─────────── PALETAS (--gradiente + --gl) ─────────── */
+.hcard.green,  .metric-card.c-green, .mini-green, .fcard.success{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #34c97a 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #15803d 0%, transparent 58%),
+    linear-gradient(135deg,#1a8f52 0%,#22a45d 55%,#34c97a 100%);
+  --gl:rgba(21,128,61,.55);
+}
+.hcard.blue,   .metric-card.c-blue{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #60a5fa 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #1d4ed8 0%, transparent 58%),
+    linear-gradient(135deg,#1d4ed8 0%,#2563eb 55%,#60a5fa 100%);
+  --gl:rgba(37,99,235,.50);
+}
+.hcard.teal,   .metric-card.c-teal, .mini-teal{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #38bdf8 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #0e7490 0%, transparent 58%),
+    linear-gradient(135deg,#0e7490 0%,#0891b2 55%,#38bdf8 100%);
+  --gl:rgba(14,116,144,.50);
+}
+.hcard.amber,  .metric-card.c-amber, .mini-amber{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #fbbf24 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #b45309 0%, transparent 58%),
+    linear-gradient(135deg,#b45309 0%,#d97706 55%,#fbbf24 100%);
+  --gl:rgba(180,83,9,.50);
+}
+.hcard.red,    .metric-card.c-red, .mini-red{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #f87171 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #991b1b 0%, transparent 58%),
+    linear-gradient(135deg,#991b1b 0%,#dc2626 55%,#f87171 100%);
+  --gl:rgba(185,28,28,.50);
+}
+.hcard.purple, .hcard.indigo, .metric-card.c-purple{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #6ee7a8 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #0f3d24 0%, transparent 58%),
+    linear-gradient(135deg,#0f3d24 0%,#15803d 55%,#6ee7a8 100%);
+  --gl:rgba(15,61,36,.55);
+}
+.hcard.pink{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #f9a8d4 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #9d174d 0%, transparent 58%),
+    linear-gradient(135deg,#9d174d 0%,#db2777 55%,#f9a8d4 100%);
+  --gl:rgba(157,23,77,.48);
+}
+.hcard.dark, .hcard.gray, .mini-ink{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #56565e 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #111113 0%, transparent 58%),
+    linear-gradient(135deg,#111113 0%,#343438 55%,#56565e 100%);
+  --gl:rgba(17,19,24,.50);
+}
+/* card sem variante: verde da marca, para nada ficar transparente */
+.hcard,.fcard,.metric-card,.mini{
+  --gradiente:
+    radial-gradient(120% 120% at 0% 0%, #34c97a 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #15803d 0%, transparent 58%),
+    linear-gradient(135deg,#1a8f52 0%,#22a45d 55%,#34c97a 100%);
+  --gl:rgba(21,128,61,.50);
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
