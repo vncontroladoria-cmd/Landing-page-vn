@@ -1330,6 +1330,63 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
 ::-webkit-scrollbar-thumb:hover{ background:#b9bec5; }
 ::-webkit-scrollbar-track{ background:transparent; }
 
+
+/* ─── 13. KPI CARDS (dashboard) — limpos, estilo premium ─── */
+.kpi-grid{ display:grid; gap:14px; margin-bottom:14px; }
+.kpi{
+  background:#fff; border:1px solid var(--border); border-radius:20px;
+  padding:18px 20px; position:relative; overflow:hidden; color:var(--text);
+  transition:transform .32s var(--ease), box-shadow .32s var(--ease), border-color .32s;
+  box-shadow:var(--shadow);
+}
+.kpi:hover{ transform:translateY(-4px); box-shadow:0 14px 34px rgba(17,19,24,.10); border-color:var(--c); }
+.kpi-label{
+  font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--text2); margin-bottom:10px; padding-right:44px;
+}
+.kpi-value{
+  font-size:26px; font-weight:700; line-height:1.05; letter-spacing:-.03em;
+  color:var(--text); font-family:'Outfit',sans-serif;
+}
+.kpi-sub{ font-size:11px; color:var(--text3); margin-top:8px; }
+.kpi-icon{
+  position:absolute; top:16px; right:16px; bottom:auto; left:auto;
+  width:38px; height:38px; border-radius:13px; font-size:17px; opacity:1;
+  background:var(--cbg); display:flex; align-items:center; justify-content:center;
+  transition:transform .32s var(--ease);
+}
+.kpi:hover .kpi-icon{ transform:scale(1.08) rotate(-4deg); }
+/* filete de acento no rodape */
+.kpi::after{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:3px;
+  background:var(--c); transform:scaleX(0); transform-origin:left;
+  transition:transform .4s var(--ease);
+}
+.kpi:hover::after{ transform:scaleX(1); }
+.kpi-green{--c:#22a45d;--cbg:#f0fdf4}
+.kpi-mint {--c:#15803d;--cbg:#f0fdf4}
+.kpi-lime {--c:#34c97a;--cbg:#f0fdf4}
+.kpi-blue {--c:#2563eb;--cbg:#eff6ff}
+.kpi-amber{--c:#d97706;--cbg:#fffbeb}
+.kpi-teal {--c:#0891b2;--cbg:#ecfeff}
+.kpi-value{ color:var(--c); }
+
+/* cards financeiros brancos com barra lateral */
+.fincard{
+  padding:16px 18px !important; border-radius:18px;
+  border-left:3px solid var(--c) !important;
+  transition:transform .3s var(--ease), box-shadow .3s var(--ease);
+}
+.fincard:hover{ transform:translateY(-3px); box-shadow:var(--shadow-md); }
+.fincard-green{--c:#22a45d} .fincard-blue{--c:#2563eb} .fincard-teal{--c:#0891b2}
+
+/* ─── 14. RESPIRO GERAL ─────────────────────────────────── */
+.content{ padding:22px 24px 40px; }
+.hero-cards,.hcards,.fin-cards{ gap:14px !important; margin-bottom:14px !important; }
+.section-card{ margin-bottom:14px; }
+.section-card-body{ padding:18px !important; }
+.pg-header{ margin-bottom:1.5rem; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -3082,55 +3139,55 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
           </div>
 
           <!-- LINHA 1: 6 CARDS COLORIDOS PRINCIPAIS -->
-          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:10px">
+          <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
             <!-- Faturamento -->
-            <div style="background:linear-gradient(135deg,#15803d,#34c97a);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">FATURAMENTO</div>
-              <div style="font-size:17px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-fat">—</div>
-              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-fat-d">faturamento de serviços</div>
-              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">💰</div>
+            <div class="kpi kpi-green">
+              <div class="kpi-label">FATURAMENTO</div>
+              <div class="kpi-value" id="m-fat">—</div>
+              <div class="kpi-sub" id="m-fat-d">faturamento de serviços</div>
+              <div class="kpi-icon">💰</div>
             </div>
             <!-- Clientes -->
-            <div style="background:linear-gradient(135deg,#2563eb,#60a5fa);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">CLIENTES</div>
-              <div style="font-size:26px;font-weight:800;line-height:1.1" id="m-cli">—</div>
-              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-cli-d">clientes únicos</div>
-              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">👥</div>
+            <div class="kpi kpi-blue">
+              <div class="kpi-label">CLIENTES</div>
+              <div class="kpi-value" id="m-cli">—</div>
+              <div class="kpi-sub" id="m-cli-d">clientes únicos</div>
+              <div class="kpi-icon">👥</div>
             </div>
             <!-- Serviços -->
-            <div style="background:linear-gradient(135deg,#22a45d,#6ee7a8);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">SERVIÇOS</div>
-              <div style="font-size:26px;font-weight:800;line-height:1.1" id="m-srv">—</div>
-              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-srv-d">atendimentos</div>
-              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">✂️</div>
+            <div class="kpi kpi-mint">
+              <div class="kpi-label">SERVIÇOS</div>
+              <div class="kpi-value" id="m-srv">—</div>
+              <div class="kpi-sub" id="m-srv-d">atendimentos</div>
+              <div class="kpi-icon">✂️</div>
             </div>
             <!-- Produtos -->
-            <div style="background:linear-gradient(135deg,#d97706,#fbbf24);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">PRODUTOS</div>
-              <div style="font-size:26px;font-weight:800;line-height:1.1" id="m-prod">—</div>
-              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-prod-d">unidades vendidas</div>
-              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">📦</div>
+            <div class="kpi kpi-amber">
+              <div class="kpi-label">PRODUTOS</div>
+              <div class="kpi-value" id="m-prod">—</div>
+              <div class="kpi-sub" id="m-prod-d">unidades vendidas</div>
+              <div class="kpi-icon">📦</div>
             </div>
             <!-- Ticket Médio -->
-            <div style="background:linear-gradient(135deg,#0891b2,#38bdf8);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">TICKET MÉDIO</div>
-              <div style="font-size:17px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-ticket">—</div>
-              <div style="font-size:10px;opacity:.75;margin-top:4px">por atendimento</div>
-              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">🎯</div>
+            <div class="kpi kpi-teal">
+              <div class="kpi-label">TICKET MÉDIO</div>
+              <div class="kpi-value" id="m-ticket">—</div>
+              <div class="kpi-sub">por atendimento</div>
+              <div class="kpi-icon">🎯</div>
             </div>
             <!-- Média de Faturamento/dia -->
-            <div style="background:linear-gradient(135deg,#15803d,#6ee7a8);border-radius:12px;padding:14px 16px;color:#fff;position:relative;overflow:hidden">
-              <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.8;letter-spacing:.5px;margin-bottom:6px">MÉDIA DE FATURAMENTO</div>
-              <div style="font-size:17px;font-weight:800;font-family:'DM Mono',monospace;line-height:1.1" id="m-media-fat">—</div>
-              <div style="font-size:10px;opacity:.75;margin-top:4px" id="m-media-fat-d">por dia trabalhado</div>
-              <div style="position:absolute;right:-10px;bottom:-10px;font-size:48px;opacity:.12">📅</div>
+            <div class="kpi kpi-lime">
+              <div class="kpi-label">MÉDIA DE FATURAMENTO</div>
+              <div class="kpi-value" id="m-media-fat">—</div>
+              <div class="kpi-sub" id="m-media-fat-d">por dia trabalhado</div>
+              <div class="kpi-icon">📅</div>
             </div>
           </div>
 
           <!-- LINHA 2: 3 CARDS FINANCEIROS BRANCOS -->
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
             <!-- A Vencer -->
-            <div class="card" style="padding:12px 14px;border-left:3px solid #22a45d">
+            <div class="card fincard fincard-green">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
                 <span style="font-size:16px">📅</span>
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">A Vencer</span>
@@ -3139,7 +3196,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-avencer-d">contas a pagar</div>
             </div>
             <!-- Total a Pagar -->
-            <div class="card" style="padding:12px 14px;border-left:3px solid #2563eb">
+            <div class="card fincard fincard-blue">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
                 <span style="font-size:16px">💳</span>
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Total a Pagar</span>
@@ -3148,7 +3205,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-total-pagar-d">sem pendências</div>
             </div>
             <!-- Saldo em Caixa -->
-            <div class="card" style="padding:12px 14px;border-left:3px solid #0891b2">
+            <div class="card fincard fincard-teal">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
                 <span style="font-size:16px">🏦</span>
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Saldo em Caixa</span>
