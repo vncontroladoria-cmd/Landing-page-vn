@@ -55,28 +55,33 @@
       chart.data.datasets.forEach(ds => {
         const t = ds.type || tipo;
         if (t === 'bar') {
-          ds.borderRadius   = 10;
-          ds.borderSkipped  = 'bottom';
-          ds.borderWidth    = 0;
+          /* So o TOPO arredondado. Com um numero unico o Chart.js
+             arredondava os 4 cantos e a barra virava capsula. */
+          ds.borderRadius  = { topLeft:8, topRight:8, bottomLeft:0, bottomRight:0 };
+          ds.borderSkipped = false;
+          ds.borderWidth   = 0;
           if (ds.maxBarThickness == null) ds.maxBarThickness = 34;
+          if (ds.minBarLength == null) ds.minBarLength = 3;
         }
         if (t === 'line') {
-          ds.tension     = 0.45;
+          ds.tension     = 0.4;
           ds.borderWidth = ds.borderWidth ?? 2.5;
-          ds.borderCapStyle = 'round';
+          ds.borderCapStyle  = 'round';
           ds.borderJoinStyle = 'round';
-          if (ds.pointRadius == null) ds.pointRadius = 0;
+          /* bolinha em cada ponto polui a linha: some por padrao,
+             aparece so quando o mouse passa */
+          ds.pointRadius = 0;
           ds.pointHoverRadius = 5;
           ds.pointHoverBorderWidth = 3;
           ds.pointHoverBorderColor = '#fff';
         }
         if (t === 'doughnut' || t === 'pie') {
-          /* Anel grosso, pontas arredondadas e folga entre fatias —
-             e isso que da o visual limpo da referencia. */
-          ds.borderRadius = 12;
-          ds.spacing      = 4;
+          /* Raio 12 + folga 4 quebrava as fatias pequenas em pastilhas
+             soltas. Valores menores mantem o anel continuo. */
+          ds.borderRadius = 5;
+          ds.spacing      = 1;
           ds.borderWidth  = 0;
-          ds.hoverOffset  = 6;
+          ds.hoverOffset  = 5;
         }
       });
       /* anel mais fino/aberto, como na referencia */
@@ -90,11 +95,20 @@
   });
 
   if (D.scale) {
-    D.scale.grid.color = '#f1f3f5';
+    D.scale.grid.color = '#eef1f3';
     D.scale.grid.drawTicks = false;
     D.scale.border = D.scale.border || {};
     D.scale.border.display = false;
     D.scale.ticks.padding = 8;
+  }
+  /* grade vertical some: so as horizontais ajudam a ler valor */
+  if (D.scales && D.scales.category) {
+    D.scales.category.grid = D.scales.category.grid || {};
+    D.scales.category.grid.display = false;
+  }
+  if (D.scales && D.scales.linear) {
+    D.scales.linear.grid = D.scales.linear.grid || {};
+    D.scales.linear.grid.color = '#eef1f3';
   }
 })();
 </script>
@@ -2111,6 +2125,29 @@ body{
 /* cabecalho de tabela levemente tingido, para separar do corpo */
 .content thead th{ background:#fafbfc; }
 
+
+/* ─── 27. CAIXINHAS DE RESUMO (stat-box) ───
+   Eram blocos cinza chapados. Viram caixa branca com contorno,
+   combinando com o resto do sistema. */
+.stat-box{
+  background:#fff; border:1px solid var(--border); border-radius:14px;
+  padding:13px 15px;
+  box-shadow:0 1px 2px rgba(17,19,24,.04);
+  transition:transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s;
+}
+.stat-box:hover{
+  transform:translateY(-2px); border-color:var(--border2);
+  box-shadow:0 8px 20px -12px rgba(17,19,24,.2);
+}
+.stat-box > :first-child{
+  font-size:10px !important; color:var(--text3) !important;
+  letter-spacing:.07em; margin-bottom:5px;
+}
+.stat-box > :last-child{
+  font-size:16px !important; letter-spacing:-.025em;
+  font-variant-numeric:tabular-nums;
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -4037,19 +4074,19 @@ body{
             <div style="padding:14px">
               <!-- Cards resumo -->
               <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
-                <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div class="stat-box">
                   <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Saldo Inicial</div>
                   <div style="font-size:14px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--accent)" id="proj-saldo-ini">—</div>
                 </div>
-                <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div class="stat-box">
                   <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Receita Projetada</div>
                   <div style="font-size:14px;font-weight:800;font-family:'Outfit',sans-serif;color:#1a8f52" id="proj-receita">—</div>
                 </div>
-                <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div class="stat-box">
                   <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Contas a Pagar</div>
                   <div style="font-size:14px;font-weight:800;font-family:'Outfit',sans-serif;color:#dc2626" id="proj-contas">—</div>
                 </div>
-                <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
+                <div class="stat-box">
                   <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Saldo Final Projetado</div>
                   <div style="font-size:14px;font-weight:800;font-family:'Outfit',sans-serif" id="proj-saldo-fin">—</div>
                 </div>
