@@ -1912,169 +1912,125 @@ canvas{ max-width:100%; }
    ORDEM: ciclo por posicao primeiro, variantes explicitas depois.
    ══════════════════════════════════════════════════════════ */
 
-/* ─── 25.1 as 8 cores do ciclo ─── */
-.hcard,.fcard,.metric-card,.mini,.kpi-hero{ --a:#55c58f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
+/* ─── 25.1 PALETA: prata · grafite · branco · verde ───
+   Quatro familias so. O efeito "espelhado" vem de 6 paradas de
+   luz alternando claro/escuro no mesmo degrade, imitando reflexo
+   em metal escovado. --txt acompanha o tom: branco nos escuros,
+   grafite nos prateados. */
+.hcard,.fcard,.metric-card,.mini,.kpi-hero{ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
 
-.hcard:nth-child(8n+1),.fcard:nth-child(8n+1),.metric-card:nth-child(8n+1),.mini:nth-child(8n+1),.kpi-hero:nth-child(8n+1){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hcard:nth-child(8n+2),.fcard:nth-child(8n+2),.metric-card:nth-child(8n+2),.mini:nth-child(8n+2),.kpi-hero:nth-child(8n+2){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hcard:nth-child(8n+3),.fcard:nth-child(8n+3),.metric-card:nth-child(8n+3),.mini:nth-child(8n+3),.kpi-hero:nth-child(8n+3){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hcard:nth-child(8n+4),.fcard:nth-child(8n+4),.metric-card:nth-child(8n+4),.mini:nth-child(8n+4),.kpi-hero:nth-child(8n+4){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hcard:nth-child(8n+5),.fcard:nth-child(8n+5),.metric-card:nth-child(8n+5),.mini:nth-child(8n+5),.kpi-hero:nth-child(8n+5){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hcard:nth-child(8n+6),.fcard:nth-child(8n+6),.metric-card:nth-child(8n+6),.mini:nth-child(8n+6),.kpi-hero:nth-child(8n+6){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hcard:nth-child(8n+7),.fcard:nth-child(8n+7),.metric-card:nth-child(8n+7),.mini:nth-child(8n+7),.kpi-hero:nth-child(8n+7){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hcard:nth-child(8n+8),.fcard:nth-child(8n+8),.metric-card:nth-child(8n+8),.mini:nth-child(8n+8),.kpi-hero:nth-child(8n+8){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
+.hcard:nth-child(6n+1),.fcard:nth-child(6n+1),.metric-card:nth-child(6n+1),.mini:nth-child(6n+1),.kpi-hero:nth-child(6n+1){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hcard:nth-child(6n+2),.fcard:nth-child(6n+2),.metric-card:nth-child(6n+2),.mini:nth-child(6n+2),.kpi-hero:nth-child(6n+2){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hcard:nth-child(6n+3),.fcard:nth-child(6n+3),.metric-card:nth-child(6n+3),.mini:nth-child(6n+3),.kpi-hero:nth-child(6n+3){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hcard:nth-child(6n+4),.fcard:nth-child(6n+4),.metric-card:nth-child(6n+4),.mini:nth-child(6n+4),.kpi-hero:nth-child(6n+4){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hcard:nth-child(6n+5),.fcard:nth-child(6n+5),.metric-card:nth-child(6n+5),.mini:nth-child(6n+5),.kpi-hero:nth-child(6n+5){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hcard:nth-child(6n+6),.fcard:nth-child(6n+6),.metric-card:nth-child(6n+6),.mini:nth-child(6n+6),.kpi-hero:nth-child(6n+6){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
 
-/* ─── 25.2 variantes ───
-   Antes as variantes fixas (.hcard.green, .hcard.red ...) venciam o
-   ciclo, e por isso Lancamentos/DRE/DFC repetiam verde-vermelho-verde.
-   Agora so a cor semantica de SAIDA/negativo continua fixa; todo o
-   resto segue a sequencia de posicao. */
-/* Nenhuma cor fica travada: todo card segue a sequencia por posicao.
-   (Antes .red ficava preso em vermelho e batia com o vermelho que a
-   sequencia ja dava no card seguinte — saiam dois vermelhos juntos.) */
-
-
-/* ─── 25.5 DESLOCAMENTO POR FILEIRA ───
-   nth-child reinicia a cada grade, entao a 2a fileira comecava no
-   verde de novo — verde em cima, verde embaixo. Cada grade seguinte
-   entra deslocada 4 cores. */
-.kpi-grid ~ .kpi-grid .hcard:nth-child(8n+1),.kpi-grid ~ .kpi-grid .fcard:nth-child(8n+1),.kpi-grid ~ .kpi-grid .metric-card:nth-child(8n+1),.kpi-grid ~ .kpi-grid .mini:nth-child(8n+1),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.kpi-grid ~ .kpi-grid .hcard:nth-child(8n+2),.kpi-grid ~ .kpi-grid .fcard:nth-child(8n+2),.kpi-grid ~ .kpi-grid .metric-card:nth-child(8n+2),.kpi-grid ~ .kpi-grid .mini:nth-child(8n+2),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.kpi-grid ~ .kpi-grid .hcard:nth-child(8n+3),.kpi-grid ~ .kpi-grid .fcard:nth-child(8n+3),.kpi-grid ~ .kpi-grid .metric-card:nth-child(8n+3),.kpi-grid ~ .kpi-grid .mini:nth-child(8n+3),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.kpi-grid ~ .kpi-grid .hcard:nth-child(8n+4),.kpi-grid ~ .kpi-grid .fcard:nth-child(8n+4),.kpi-grid ~ .kpi-grid .metric-card:nth-child(8n+4),.kpi-grid ~ .kpi-grid .mini:nth-child(8n+4),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.kpi-grid ~ .kpi-grid .hcard:nth-child(8n+5),.kpi-grid ~ .kpi-grid .fcard:nth-child(8n+5),.kpi-grid ~ .kpi-grid .metric-card:nth-child(8n+5),.kpi-grid ~ .kpi-grid .mini:nth-child(8n+5),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.kpi-grid ~ .kpi-grid .hcard:nth-child(8n+6),.kpi-grid ~ .kpi-grid .fcard:nth-child(8n+6),.kpi-grid ~ .kpi-grid .metric-card:nth-child(8n+6),.kpi-grid ~ .kpi-grid .mini:nth-child(8n+6),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.kpi-grid ~ .kpi-grid .hcard:nth-child(8n+7),.kpi-grid ~ .kpi-grid .fcard:nth-child(8n+7),.kpi-grid ~ .kpi-grid .metric-card:nth-child(8n+7),.kpi-grid ~ .kpi-grid .mini:nth-child(8n+7),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.kpi-grid ~ .kpi-grid .hcard:nth-child(8n+8),.kpi-grid ~ .kpi-grid .fcard:nth-child(8n+8),.kpi-grid ~ .kpi-grid .metric-card:nth-child(8n+8),.kpi-grid ~ .kpi-grid .mini:nth-child(8n+8),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.kpi-grid ~ .hero-cards .hcard:nth-child(8n+1),.kpi-grid ~ .hero-cards .fcard:nth-child(8n+1),.kpi-grid ~ .hero-cards .metric-card:nth-child(8n+1),.kpi-grid ~ .hero-cards .mini:nth-child(8n+1),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.kpi-grid ~ .hero-cards .hcard:nth-child(8n+2),.kpi-grid ~ .hero-cards .fcard:nth-child(8n+2),.kpi-grid ~ .hero-cards .metric-card:nth-child(8n+2),.kpi-grid ~ .hero-cards .mini:nth-child(8n+2),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.kpi-grid ~ .hero-cards .hcard:nth-child(8n+3),.kpi-grid ~ .hero-cards .fcard:nth-child(8n+3),.kpi-grid ~ .hero-cards .metric-card:nth-child(8n+3),.kpi-grid ~ .hero-cards .mini:nth-child(8n+3),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.kpi-grid ~ .hero-cards .hcard:nth-child(8n+4),.kpi-grid ~ .hero-cards .fcard:nth-child(8n+4),.kpi-grid ~ .hero-cards .metric-card:nth-child(8n+4),.kpi-grid ~ .hero-cards .mini:nth-child(8n+4),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.kpi-grid ~ .hero-cards .hcard:nth-child(8n+5),.kpi-grid ~ .hero-cards .fcard:nth-child(8n+5),.kpi-grid ~ .hero-cards .metric-card:nth-child(8n+5),.kpi-grid ~ .hero-cards .mini:nth-child(8n+5),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.kpi-grid ~ .hero-cards .hcard:nth-child(8n+6),.kpi-grid ~ .hero-cards .fcard:nth-child(8n+6),.kpi-grid ~ .hero-cards .metric-card:nth-child(8n+6),.kpi-grid ~ .hero-cards .mini:nth-child(8n+6),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.kpi-grid ~ .hero-cards .hcard:nth-child(8n+7),.kpi-grid ~ .hero-cards .fcard:nth-child(8n+7),.kpi-grid ~ .hero-cards .metric-card:nth-child(8n+7),.kpi-grid ~ .hero-cards .mini:nth-child(8n+7),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.kpi-grid ~ .hero-cards .hcard:nth-child(8n+8),.kpi-grid ~ .hero-cards .fcard:nth-child(8n+8),.kpi-grid ~ .hero-cards .metric-card:nth-child(8n+8),.kpi-grid ~ .hero-cards .mini:nth-child(8n+8),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.kpi-grid ~ .fin-cards .hcard:nth-child(8n+1),.kpi-grid ~ .fin-cards .fcard:nth-child(8n+1),.kpi-grid ~ .fin-cards .metric-card:nth-child(8n+1),.kpi-grid ~ .fin-cards .mini:nth-child(8n+1),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.kpi-grid ~ .fin-cards .hcard:nth-child(8n+2),.kpi-grid ~ .fin-cards .fcard:nth-child(8n+2),.kpi-grid ~ .fin-cards .metric-card:nth-child(8n+2),.kpi-grid ~ .fin-cards .mini:nth-child(8n+2),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.kpi-grid ~ .fin-cards .hcard:nth-child(8n+3),.kpi-grid ~ .fin-cards .fcard:nth-child(8n+3),.kpi-grid ~ .fin-cards .metric-card:nth-child(8n+3),.kpi-grid ~ .fin-cards .mini:nth-child(8n+3),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.kpi-grid ~ .fin-cards .hcard:nth-child(8n+4),.kpi-grid ~ .fin-cards .fcard:nth-child(8n+4),.kpi-grid ~ .fin-cards .metric-card:nth-child(8n+4),.kpi-grid ~ .fin-cards .mini:nth-child(8n+4),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.kpi-grid ~ .fin-cards .hcard:nth-child(8n+5),.kpi-grid ~ .fin-cards .fcard:nth-child(8n+5),.kpi-grid ~ .fin-cards .metric-card:nth-child(8n+5),.kpi-grid ~ .fin-cards .mini:nth-child(8n+5),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.kpi-grid ~ .fin-cards .hcard:nth-child(8n+6),.kpi-grid ~ .fin-cards .fcard:nth-child(8n+6),.kpi-grid ~ .fin-cards .metric-card:nth-child(8n+6),.kpi-grid ~ .fin-cards .mini:nth-child(8n+6),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.kpi-grid ~ .fin-cards .hcard:nth-child(8n+7),.kpi-grid ~ .fin-cards .fcard:nth-child(8n+7),.kpi-grid ~ .fin-cards .metric-card:nth-child(8n+7),.kpi-grid ~ .fin-cards .mini:nth-child(8n+7),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.kpi-grid ~ .fin-cards .hcard:nth-child(8n+8),.kpi-grid ~ .fin-cards .fcard:nth-child(8n+8),.kpi-grid ~ .fin-cards .metric-card:nth-child(8n+8),.kpi-grid ~ .fin-cards .mini:nth-child(8n+8),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.kpi-grid ~ .hcards .hcard:nth-child(8n+1),.kpi-grid ~ .hcards .fcard:nth-child(8n+1),.kpi-grid ~ .hcards .metric-card:nth-child(8n+1),.kpi-grid ~ .hcards .mini:nth-child(8n+1),.kpi-grid ~ .hcards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.kpi-grid ~ .hcards .hcard:nth-child(8n+2),.kpi-grid ~ .hcards .fcard:nth-child(8n+2),.kpi-grid ~ .hcards .metric-card:nth-child(8n+2),.kpi-grid ~ .hcards .mini:nth-child(8n+2),.kpi-grid ~ .hcards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.kpi-grid ~ .hcards .hcard:nth-child(8n+3),.kpi-grid ~ .hcards .fcard:nth-child(8n+3),.kpi-grid ~ .hcards .metric-card:nth-child(8n+3),.kpi-grid ~ .hcards .mini:nth-child(8n+3),.kpi-grid ~ .hcards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.kpi-grid ~ .hcards .hcard:nth-child(8n+4),.kpi-grid ~ .hcards .fcard:nth-child(8n+4),.kpi-grid ~ .hcards .metric-card:nth-child(8n+4),.kpi-grid ~ .hcards .mini:nth-child(8n+4),.kpi-grid ~ .hcards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.kpi-grid ~ .hcards .hcard:nth-child(8n+5),.kpi-grid ~ .hcards .fcard:nth-child(8n+5),.kpi-grid ~ .hcards .metric-card:nth-child(8n+5),.kpi-grid ~ .hcards .mini:nth-child(8n+5),.kpi-grid ~ .hcards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.kpi-grid ~ .hcards .hcard:nth-child(8n+6),.kpi-grid ~ .hcards .fcard:nth-child(8n+6),.kpi-grid ~ .hcards .metric-card:nth-child(8n+6),.kpi-grid ~ .hcards .mini:nth-child(8n+6),.kpi-grid ~ .hcards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.kpi-grid ~ .hcards .hcard:nth-child(8n+7),.kpi-grid ~ .hcards .fcard:nth-child(8n+7),.kpi-grid ~ .hcards .metric-card:nth-child(8n+7),.kpi-grid ~ .hcards .mini:nth-child(8n+7),.kpi-grid ~ .hcards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.kpi-grid ~ .hcards .hcard:nth-child(8n+8),.kpi-grid ~ .hcards .fcard:nth-child(8n+8),.kpi-grid ~ .hcards .metric-card:nth-child(8n+8),.kpi-grid ~ .hcards .mini:nth-child(8n+8),.kpi-grid ~ .hcards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hero-cards ~ .kpi-grid .hcard:nth-child(8n+1),.hero-cards ~ .kpi-grid .fcard:nth-child(8n+1),.hero-cards ~ .kpi-grid .metric-card:nth-child(8n+1),.hero-cards ~ .kpi-grid .mini:nth-child(8n+1),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hero-cards ~ .kpi-grid .hcard:nth-child(8n+2),.hero-cards ~ .kpi-grid .fcard:nth-child(8n+2),.hero-cards ~ .kpi-grid .metric-card:nth-child(8n+2),.hero-cards ~ .kpi-grid .mini:nth-child(8n+2),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hero-cards ~ .kpi-grid .hcard:nth-child(8n+3),.hero-cards ~ .kpi-grid .fcard:nth-child(8n+3),.hero-cards ~ .kpi-grid .metric-card:nth-child(8n+3),.hero-cards ~ .kpi-grid .mini:nth-child(8n+3),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hero-cards ~ .kpi-grid .hcard:nth-child(8n+4),.hero-cards ~ .kpi-grid .fcard:nth-child(8n+4),.hero-cards ~ .kpi-grid .metric-card:nth-child(8n+4),.hero-cards ~ .kpi-grid .mini:nth-child(8n+4),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.hero-cards ~ .kpi-grid .hcard:nth-child(8n+5),.hero-cards ~ .kpi-grid .fcard:nth-child(8n+5),.hero-cards ~ .kpi-grid .metric-card:nth-child(8n+5),.hero-cards ~ .kpi-grid .mini:nth-child(8n+5),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hero-cards ~ .kpi-grid .hcard:nth-child(8n+6),.hero-cards ~ .kpi-grid .fcard:nth-child(8n+6),.hero-cards ~ .kpi-grid .metric-card:nth-child(8n+6),.hero-cards ~ .kpi-grid .mini:nth-child(8n+6),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hero-cards ~ .kpi-grid .hcard:nth-child(8n+7),.hero-cards ~ .kpi-grid .fcard:nth-child(8n+7),.hero-cards ~ .kpi-grid .metric-card:nth-child(8n+7),.hero-cards ~ .kpi-grid .mini:nth-child(8n+7),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hero-cards ~ .kpi-grid .hcard:nth-child(8n+8),.hero-cards ~ .kpi-grid .fcard:nth-child(8n+8),.hero-cards ~ .kpi-grid .metric-card:nth-child(8n+8),.hero-cards ~ .kpi-grid .mini:nth-child(8n+8),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hero-cards ~ .hero-cards .hcard:nth-child(8n+1),.hero-cards ~ .hero-cards .fcard:nth-child(8n+1),.hero-cards ~ .hero-cards .metric-card:nth-child(8n+1),.hero-cards ~ .hero-cards .mini:nth-child(8n+1),.hero-cards ~ .hero-cards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hero-cards ~ .hero-cards .hcard:nth-child(8n+2),.hero-cards ~ .hero-cards .fcard:nth-child(8n+2),.hero-cards ~ .hero-cards .metric-card:nth-child(8n+2),.hero-cards ~ .hero-cards .mini:nth-child(8n+2),.hero-cards ~ .hero-cards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hero-cards ~ .hero-cards .hcard:nth-child(8n+3),.hero-cards ~ .hero-cards .fcard:nth-child(8n+3),.hero-cards ~ .hero-cards .metric-card:nth-child(8n+3),.hero-cards ~ .hero-cards .mini:nth-child(8n+3),.hero-cards ~ .hero-cards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hero-cards ~ .hero-cards .hcard:nth-child(8n+4),.hero-cards ~ .hero-cards .fcard:nth-child(8n+4),.hero-cards ~ .hero-cards .metric-card:nth-child(8n+4),.hero-cards ~ .hero-cards .mini:nth-child(8n+4),.hero-cards ~ .hero-cards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.hero-cards ~ .hero-cards .hcard:nth-child(8n+5),.hero-cards ~ .hero-cards .fcard:nth-child(8n+5),.hero-cards ~ .hero-cards .metric-card:nth-child(8n+5),.hero-cards ~ .hero-cards .mini:nth-child(8n+5),.hero-cards ~ .hero-cards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hero-cards ~ .hero-cards .hcard:nth-child(8n+6),.hero-cards ~ .hero-cards .fcard:nth-child(8n+6),.hero-cards ~ .hero-cards .metric-card:nth-child(8n+6),.hero-cards ~ .hero-cards .mini:nth-child(8n+6),.hero-cards ~ .hero-cards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hero-cards ~ .hero-cards .hcard:nth-child(8n+7),.hero-cards ~ .hero-cards .fcard:nth-child(8n+7),.hero-cards ~ .hero-cards .metric-card:nth-child(8n+7),.hero-cards ~ .hero-cards .mini:nth-child(8n+7),.hero-cards ~ .hero-cards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hero-cards ~ .hero-cards .hcard:nth-child(8n+8),.hero-cards ~ .hero-cards .fcard:nth-child(8n+8),.hero-cards ~ .hero-cards .metric-card:nth-child(8n+8),.hero-cards ~ .hero-cards .mini:nth-child(8n+8),.hero-cards ~ .hero-cards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hero-cards ~ .fin-cards .hcard:nth-child(8n+1),.hero-cards ~ .fin-cards .fcard:nth-child(8n+1),.hero-cards ~ .fin-cards .metric-card:nth-child(8n+1),.hero-cards ~ .fin-cards .mini:nth-child(8n+1),.hero-cards ~ .fin-cards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hero-cards ~ .fin-cards .hcard:nth-child(8n+2),.hero-cards ~ .fin-cards .fcard:nth-child(8n+2),.hero-cards ~ .fin-cards .metric-card:nth-child(8n+2),.hero-cards ~ .fin-cards .mini:nth-child(8n+2),.hero-cards ~ .fin-cards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hero-cards ~ .fin-cards .hcard:nth-child(8n+3),.hero-cards ~ .fin-cards .fcard:nth-child(8n+3),.hero-cards ~ .fin-cards .metric-card:nth-child(8n+3),.hero-cards ~ .fin-cards .mini:nth-child(8n+3),.hero-cards ~ .fin-cards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hero-cards ~ .fin-cards .hcard:nth-child(8n+4),.hero-cards ~ .fin-cards .fcard:nth-child(8n+4),.hero-cards ~ .fin-cards .metric-card:nth-child(8n+4),.hero-cards ~ .fin-cards .mini:nth-child(8n+4),.hero-cards ~ .fin-cards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.hero-cards ~ .fin-cards .hcard:nth-child(8n+5),.hero-cards ~ .fin-cards .fcard:nth-child(8n+5),.hero-cards ~ .fin-cards .metric-card:nth-child(8n+5),.hero-cards ~ .fin-cards .mini:nth-child(8n+5),.hero-cards ~ .fin-cards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hero-cards ~ .fin-cards .hcard:nth-child(8n+6),.hero-cards ~ .fin-cards .fcard:nth-child(8n+6),.hero-cards ~ .fin-cards .metric-card:nth-child(8n+6),.hero-cards ~ .fin-cards .mini:nth-child(8n+6),.hero-cards ~ .fin-cards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hero-cards ~ .fin-cards .hcard:nth-child(8n+7),.hero-cards ~ .fin-cards .fcard:nth-child(8n+7),.hero-cards ~ .fin-cards .metric-card:nth-child(8n+7),.hero-cards ~ .fin-cards .mini:nth-child(8n+7),.hero-cards ~ .fin-cards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hero-cards ~ .fin-cards .hcard:nth-child(8n+8),.hero-cards ~ .fin-cards .fcard:nth-child(8n+8),.hero-cards ~ .fin-cards .metric-card:nth-child(8n+8),.hero-cards ~ .fin-cards .mini:nth-child(8n+8),.hero-cards ~ .fin-cards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hero-cards ~ .hcards .hcard:nth-child(8n+1),.hero-cards ~ .hcards .fcard:nth-child(8n+1),.hero-cards ~ .hcards .metric-card:nth-child(8n+1),.hero-cards ~ .hcards .mini:nth-child(8n+1),.hero-cards ~ .hcards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hero-cards ~ .hcards .hcard:nth-child(8n+2),.hero-cards ~ .hcards .fcard:nth-child(8n+2),.hero-cards ~ .hcards .metric-card:nth-child(8n+2),.hero-cards ~ .hcards .mini:nth-child(8n+2),.hero-cards ~ .hcards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hero-cards ~ .hcards .hcard:nth-child(8n+3),.hero-cards ~ .hcards .fcard:nth-child(8n+3),.hero-cards ~ .hcards .metric-card:nth-child(8n+3),.hero-cards ~ .hcards .mini:nth-child(8n+3),.hero-cards ~ .hcards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hero-cards ~ .hcards .hcard:nth-child(8n+4),.hero-cards ~ .hcards .fcard:nth-child(8n+4),.hero-cards ~ .hcards .metric-card:nth-child(8n+4),.hero-cards ~ .hcards .mini:nth-child(8n+4),.hero-cards ~ .hcards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.hero-cards ~ .hcards .hcard:nth-child(8n+5),.hero-cards ~ .hcards .fcard:nth-child(8n+5),.hero-cards ~ .hcards .metric-card:nth-child(8n+5),.hero-cards ~ .hcards .mini:nth-child(8n+5),.hero-cards ~ .hcards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hero-cards ~ .hcards .hcard:nth-child(8n+6),.hero-cards ~ .hcards .fcard:nth-child(8n+6),.hero-cards ~ .hcards .metric-card:nth-child(8n+6),.hero-cards ~ .hcards .mini:nth-child(8n+6),.hero-cards ~ .hcards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hero-cards ~ .hcards .hcard:nth-child(8n+7),.hero-cards ~ .hcards .fcard:nth-child(8n+7),.hero-cards ~ .hcards .metric-card:nth-child(8n+7),.hero-cards ~ .hcards .mini:nth-child(8n+7),.hero-cards ~ .hcards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hero-cards ~ .hcards .hcard:nth-child(8n+8),.hero-cards ~ .hcards .fcard:nth-child(8n+8),.hero-cards ~ .hcards .metric-card:nth-child(8n+8),.hero-cards ~ .hcards .mini:nth-child(8n+8),.hero-cards ~ .hcards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.fin-cards ~ .kpi-grid .hcard:nth-child(8n+1),.fin-cards ~ .kpi-grid .fcard:nth-child(8n+1),.fin-cards ~ .kpi-grid .metric-card:nth-child(8n+1),.fin-cards ~ .kpi-grid .mini:nth-child(8n+1),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.fin-cards ~ .kpi-grid .hcard:nth-child(8n+2),.fin-cards ~ .kpi-grid .fcard:nth-child(8n+2),.fin-cards ~ .kpi-grid .metric-card:nth-child(8n+2),.fin-cards ~ .kpi-grid .mini:nth-child(8n+2),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.fin-cards ~ .kpi-grid .hcard:nth-child(8n+3),.fin-cards ~ .kpi-grid .fcard:nth-child(8n+3),.fin-cards ~ .kpi-grid .metric-card:nth-child(8n+3),.fin-cards ~ .kpi-grid .mini:nth-child(8n+3),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.fin-cards ~ .kpi-grid .hcard:nth-child(8n+4),.fin-cards ~ .kpi-grid .fcard:nth-child(8n+4),.fin-cards ~ .kpi-grid .metric-card:nth-child(8n+4),.fin-cards ~ .kpi-grid .mini:nth-child(8n+4),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.fin-cards ~ .kpi-grid .hcard:nth-child(8n+5),.fin-cards ~ .kpi-grid .fcard:nth-child(8n+5),.fin-cards ~ .kpi-grid .metric-card:nth-child(8n+5),.fin-cards ~ .kpi-grid .mini:nth-child(8n+5),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.fin-cards ~ .kpi-grid .hcard:nth-child(8n+6),.fin-cards ~ .kpi-grid .fcard:nth-child(8n+6),.fin-cards ~ .kpi-grid .metric-card:nth-child(8n+6),.fin-cards ~ .kpi-grid .mini:nth-child(8n+6),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.fin-cards ~ .kpi-grid .hcard:nth-child(8n+7),.fin-cards ~ .kpi-grid .fcard:nth-child(8n+7),.fin-cards ~ .kpi-grid .metric-card:nth-child(8n+7),.fin-cards ~ .kpi-grid .mini:nth-child(8n+7),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.fin-cards ~ .kpi-grid .hcard:nth-child(8n+8),.fin-cards ~ .kpi-grid .fcard:nth-child(8n+8),.fin-cards ~ .kpi-grid .metric-card:nth-child(8n+8),.fin-cards ~ .kpi-grid .mini:nth-child(8n+8),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.fin-cards ~ .hero-cards .hcard:nth-child(8n+1),.fin-cards ~ .hero-cards .fcard:nth-child(8n+1),.fin-cards ~ .hero-cards .metric-card:nth-child(8n+1),.fin-cards ~ .hero-cards .mini:nth-child(8n+1),.fin-cards ~ .hero-cards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.fin-cards ~ .hero-cards .hcard:nth-child(8n+2),.fin-cards ~ .hero-cards .fcard:nth-child(8n+2),.fin-cards ~ .hero-cards .metric-card:nth-child(8n+2),.fin-cards ~ .hero-cards .mini:nth-child(8n+2),.fin-cards ~ .hero-cards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.fin-cards ~ .hero-cards .hcard:nth-child(8n+3),.fin-cards ~ .hero-cards .fcard:nth-child(8n+3),.fin-cards ~ .hero-cards .metric-card:nth-child(8n+3),.fin-cards ~ .hero-cards .mini:nth-child(8n+3),.fin-cards ~ .hero-cards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.fin-cards ~ .hero-cards .hcard:nth-child(8n+4),.fin-cards ~ .hero-cards .fcard:nth-child(8n+4),.fin-cards ~ .hero-cards .metric-card:nth-child(8n+4),.fin-cards ~ .hero-cards .mini:nth-child(8n+4),.fin-cards ~ .hero-cards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.fin-cards ~ .hero-cards .hcard:nth-child(8n+5),.fin-cards ~ .hero-cards .fcard:nth-child(8n+5),.fin-cards ~ .hero-cards .metric-card:nth-child(8n+5),.fin-cards ~ .hero-cards .mini:nth-child(8n+5),.fin-cards ~ .hero-cards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.fin-cards ~ .hero-cards .hcard:nth-child(8n+6),.fin-cards ~ .hero-cards .fcard:nth-child(8n+6),.fin-cards ~ .hero-cards .metric-card:nth-child(8n+6),.fin-cards ~ .hero-cards .mini:nth-child(8n+6),.fin-cards ~ .hero-cards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.fin-cards ~ .hero-cards .hcard:nth-child(8n+7),.fin-cards ~ .hero-cards .fcard:nth-child(8n+7),.fin-cards ~ .hero-cards .metric-card:nth-child(8n+7),.fin-cards ~ .hero-cards .mini:nth-child(8n+7),.fin-cards ~ .hero-cards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.fin-cards ~ .hero-cards .hcard:nth-child(8n+8),.fin-cards ~ .hero-cards .fcard:nth-child(8n+8),.fin-cards ~ .hero-cards .metric-card:nth-child(8n+8),.fin-cards ~ .hero-cards .mini:nth-child(8n+8),.fin-cards ~ .hero-cards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.fin-cards ~ .fin-cards .hcard:nth-child(8n+1),.fin-cards ~ .fin-cards .fcard:nth-child(8n+1),.fin-cards ~ .fin-cards .metric-card:nth-child(8n+1),.fin-cards ~ .fin-cards .mini:nth-child(8n+1),.fin-cards ~ .fin-cards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.fin-cards ~ .fin-cards .hcard:nth-child(8n+2),.fin-cards ~ .fin-cards .fcard:nth-child(8n+2),.fin-cards ~ .fin-cards .metric-card:nth-child(8n+2),.fin-cards ~ .fin-cards .mini:nth-child(8n+2),.fin-cards ~ .fin-cards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.fin-cards ~ .fin-cards .hcard:nth-child(8n+3),.fin-cards ~ .fin-cards .fcard:nth-child(8n+3),.fin-cards ~ .fin-cards .metric-card:nth-child(8n+3),.fin-cards ~ .fin-cards .mini:nth-child(8n+3),.fin-cards ~ .fin-cards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.fin-cards ~ .fin-cards .hcard:nth-child(8n+4),.fin-cards ~ .fin-cards .fcard:nth-child(8n+4),.fin-cards ~ .fin-cards .metric-card:nth-child(8n+4),.fin-cards ~ .fin-cards .mini:nth-child(8n+4),.fin-cards ~ .fin-cards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.fin-cards ~ .fin-cards .hcard:nth-child(8n+5),.fin-cards ~ .fin-cards .fcard:nth-child(8n+5),.fin-cards ~ .fin-cards .metric-card:nth-child(8n+5),.fin-cards ~ .fin-cards .mini:nth-child(8n+5),.fin-cards ~ .fin-cards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.fin-cards ~ .fin-cards .hcard:nth-child(8n+6),.fin-cards ~ .fin-cards .fcard:nth-child(8n+6),.fin-cards ~ .fin-cards .metric-card:nth-child(8n+6),.fin-cards ~ .fin-cards .mini:nth-child(8n+6),.fin-cards ~ .fin-cards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.fin-cards ~ .fin-cards .hcard:nth-child(8n+7),.fin-cards ~ .fin-cards .fcard:nth-child(8n+7),.fin-cards ~ .fin-cards .metric-card:nth-child(8n+7),.fin-cards ~ .fin-cards .mini:nth-child(8n+7),.fin-cards ~ .fin-cards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.fin-cards ~ .fin-cards .hcard:nth-child(8n+8),.fin-cards ~ .fin-cards .fcard:nth-child(8n+8),.fin-cards ~ .fin-cards .metric-card:nth-child(8n+8),.fin-cards ~ .fin-cards .mini:nth-child(8n+8),.fin-cards ~ .fin-cards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.fin-cards ~ .hcards .hcard:nth-child(8n+1),.fin-cards ~ .hcards .fcard:nth-child(8n+1),.fin-cards ~ .hcards .metric-card:nth-child(8n+1),.fin-cards ~ .hcards .mini:nth-child(8n+1),.fin-cards ~ .hcards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.fin-cards ~ .hcards .hcard:nth-child(8n+2),.fin-cards ~ .hcards .fcard:nth-child(8n+2),.fin-cards ~ .hcards .metric-card:nth-child(8n+2),.fin-cards ~ .hcards .mini:nth-child(8n+2),.fin-cards ~ .hcards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.fin-cards ~ .hcards .hcard:nth-child(8n+3),.fin-cards ~ .hcards .fcard:nth-child(8n+3),.fin-cards ~ .hcards .metric-card:nth-child(8n+3),.fin-cards ~ .hcards .mini:nth-child(8n+3),.fin-cards ~ .hcards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.fin-cards ~ .hcards .hcard:nth-child(8n+4),.fin-cards ~ .hcards .fcard:nth-child(8n+4),.fin-cards ~ .hcards .metric-card:nth-child(8n+4),.fin-cards ~ .hcards .mini:nth-child(8n+4),.fin-cards ~ .hcards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.fin-cards ~ .hcards .hcard:nth-child(8n+5),.fin-cards ~ .hcards .fcard:nth-child(8n+5),.fin-cards ~ .hcards .metric-card:nth-child(8n+5),.fin-cards ~ .hcards .mini:nth-child(8n+5),.fin-cards ~ .hcards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.fin-cards ~ .hcards .hcard:nth-child(8n+6),.fin-cards ~ .hcards .fcard:nth-child(8n+6),.fin-cards ~ .hcards .metric-card:nth-child(8n+6),.fin-cards ~ .hcards .mini:nth-child(8n+6),.fin-cards ~ .hcards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.fin-cards ~ .hcards .hcard:nth-child(8n+7),.fin-cards ~ .hcards .fcard:nth-child(8n+7),.fin-cards ~ .hcards .metric-card:nth-child(8n+7),.fin-cards ~ .hcards .mini:nth-child(8n+7),.fin-cards ~ .hcards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.fin-cards ~ .hcards .hcard:nth-child(8n+8),.fin-cards ~ .hcards .fcard:nth-child(8n+8),.fin-cards ~ .hcards .metric-card:nth-child(8n+8),.fin-cards ~ .hcards .mini:nth-child(8n+8),.fin-cards ~ .hcards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hcards ~ .kpi-grid .hcard:nth-child(8n+1),.hcards ~ .kpi-grid .fcard:nth-child(8n+1),.hcards ~ .kpi-grid .metric-card:nth-child(8n+1),.hcards ~ .kpi-grid .mini:nth-child(8n+1),.hcards ~ .kpi-grid .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hcards ~ .kpi-grid .hcard:nth-child(8n+2),.hcards ~ .kpi-grid .fcard:nth-child(8n+2),.hcards ~ .kpi-grid .metric-card:nth-child(8n+2),.hcards ~ .kpi-grid .mini:nth-child(8n+2),.hcards ~ .kpi-grid .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hcards ~ .kpi-grid .hcard:nth-child(8n+3),.hcards ~ .kpi-grid .fcard:nth-child(8n+3),.hcards ~ .kpi-grid .metric-card:nth-child(8n+3),.hcards ~ .kpi-grid .mini:nth-child(8n+3),.hcards ~ .kpi-grid .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hcards ~ .kpi-grid .hcard:nth-child(8n+4),.hcards ~ .kpi-grid .fcard:nth-child(8n+4),.hcards ~ .kpi-grid .metric-card:nth-child(8n+4),.hcards ~ .kpi-grid .mini:nth-child(8n+4),.hcards ~ .kpi-grid .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.hcards ~ .kpi-grid .hcard:nth-child(8n+5),.hcards ~ .kpi-grid .fcard:nth-child(8n+5),.hcards ~ .kpi-grid .metric-card:nth-child(8n+5),.hcards ~ .kpi-grid .mini:nth-child(8n+5),.hcards ~ .kpi-grid .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hcards ~ .kpi-grid .hcard:nth-child(8n+6),.hcards ~ .kpi-grid .fcard:nth-child(8n+6),.hcards ~ .kpi-grid .metric-card:nth-child(8n+6),.hcards ~ .kpi-grid .mini:nth-child(8n+6),.hcards ~ .kpi-grid .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hcards ~ .kpi-grid .hcard:nth-child(8n+7),.hcards ~ .kpi-grid .fcard:nth-child(8n+7),.hcards ~ .kpi-grid .metric-card:nth-child(8n+7),.hcards ~ .kpi-grid .mini:nth-child(8n+7),.hcards ~ .kpi-grid .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hcards ~ .kpi-grid .hcard:nth-child(8n+8),.hcards ~ .kpi-grid .fcard:nth-child(8n+8),.hcards ~ .kpi-grid .metric-card:nth-child(8n+8),.hcards ~ .kpi-grid .mini:nth-child(8n+8),.hcards ~ .kpi-grid .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hcards ~ .hero-cards .hcard:nth-child(8n+1),.hcards ~ .hero-cards .fcard:nth-child(8n+1),.hcards ~ .hero-cards .metric-card:nth-child(8n+1),.hcards ~ .hero-cards .mini:nth-child(8n+1),.hcards ~ .hero-cards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hcards ~ .hero-cards .hcard:nth-child(8n+2),.hcards ~ .hero-cards .fcard:nth-child(8n+2),.hcards ~ .hero-cards .metric-card:nth-child(8n+2),.hcards ~ .hero-cards .mini:nth-child(8n+2),.hcards ~ .hero-cards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hcards ~ .hero-cards .hcard:nth-child(8n+3),.hcards ~ .hero-cards .fcard:nth-child(8n+3),.hcards ~ .hero-cards .metric-card:nth-child(8n+3),.hcards ~ .hero-cards .mini:nth-child(8n+3),.hcards ~ .hero-cards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hcards ~ .hero-cards .hcard:nth-child(8n+4),.hcards ~ .hero-cards .fcard:nth-child(8n+4),.hcards ~ .hero-cards .metric-card:nth-child(8n+4),.hcards ~ .hero-cards .mini:nth-child(8n+4),.hcards ~ .hero-cards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.hcards ~ .hero-cards .hcard:nth-child(8n+5),.hcards ~ .hero-cards .fcard:nth-child(8n+5),.hcards ~ .hero-cards .metric-card:nth-child(8n+5),.hcards ~ .hero-cards .mini:nth-child(8n+5),.hcards ~ .hero-cards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hcards ~ .hero-cards .hcard:nth-child(8n+6),.hcards ~ .hero-cards .fcard:nth-child(8n+6),.hcards ~ .hero-cards .metric-card:nth-child(8n+6),.hcards ~ .hero-cards .mini:nth-child(8n+6),.hcards ~ .hero-cards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hcards ~ .hero-cards .hcard:nth-child(8n+7),.hcards ~ .hero-cards .fcard:nth-child(8n+7),.hcards ~ .hero-cards .metric-card:nth-child(8n+7),.hcards ~ .hero-cards .mini:nth-child(8n+7),.hcards ~ .hero-cards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hcards ~ .hero-cards .hcard:nth-child(8n+8),.hcards ~ .hero-cards .fcard:nth-child(8n+8),.hcards ~ .hero-cards .metric-card:nth-child(8n+8),.hcards ~ .hero-cards .mini:nth-child(8n+8),.hcards ~ .hero-cards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hcards ~ .fin-cards .hcard:nth-child(8n+1),.hcards ~ .fin-cards .fcard:nth-child(8n+1),.hcards ~ .fin-cards .metric-card:nth-child(8n+1),.hcards ~ .fin-cards .mini:nth-child(8n+1),.hcards ~ .fin-cards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hcards ~ .fin-cards .hcard:nth-child(8n+2),.hcards ~ .fin-cards .fcard:nth-child(8n+2),.hcards ~ .fin-cards .metric-card:nth-child(8n+2),.hcards ~ .fin-cards .mini:nth-child(8n+2),.hcards ~ .fin-cards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hcards ~ .fin-cards .hcard:nth-child(8n+3),.hcards ~ .fin-cards .fcard:nth-child(8n+3),.hcards ~ .fin-cards .metric-card:nth-child(8n+3),.hcards ~ .fin-cards .mini:nth-child(8n+3),.hcards ~ .fin-cards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hcards ~ .fin-cards .hcard:nth-child(8n+4),.hcards ~ .fin-cards .fcard:nth-child(8n+4),.hcards ~ .fin-cards .metric-card:nth-child(8n+4),.hcards ~ .fin-cards .mini:nth-child(8n+4),.hcards ~ .fin-cards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.hcards ~ .fin-cards .hcard:nth-child(8n+5),.hcards ~ .fin-cards .fcard:nth-child(8n+5),.hcards ~ .fin-cards .metric-card:nth-child(8n+5),.hcards ~ .fin-cards .mini:nth-child(8n+5),.hcards ~ .fin-cards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hcards ~ .fin-cards .hcard:nth-child(8n+6),.hcards ~ .fin-cards .fcard:nth-child(8n+6),.hcards ~ .fin-cards .metric-card:nth-child(8n+6),.hcards ~ .fin-cards .mini:nth-child(8n+6),.hcards ~ .fin-cards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hcards ~ .fin-cards .hcard:nth-child(8n+7),.hcards ~ .fin-cards .fcard:nth-child(8n+7),.hcards ~ .fin-cards .metric-card:nth-child(8n+7),.hcards ~ .fin-cards .mini:nth-child(8n+7),.hcards ~ .fin-cards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hcards ~ .fin-cards .hcard:nth-child(8n+8),.hcards ~ .fin-cards .fcard:nth-child(8n+8),.hcards ~ .fin-cards .metric-card:nth-child(8n+8),.hcards ~ .fin-cards .mini:nth-child(8n+8),.hcards ~ .fin-cards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
-.hcards ~ .hcards .hcard:nth-child(8n+1),.hcards ~ .hcards .fcard:nth-child(8n+1),.hcards ~ .hcards .metric-card:nth-child(8n+1),.hcards ~ .hcards .mini:nth-child(8n+1),.hcards ~ .hcards .kpi-hero:nth-child(8n+1){ --a:#a98cd8; --b:#8a68c6; --gl:rgba(124,58,237,.28); }
-.hcards ~ .hcards .hcard:nth-child(8n+2),.hcards ~ .hcards .fcard:nth-child(8n+2),.hcards ~ .hcards .metric-card:nth-child(8n+2),.hcards ~ .hcards .mini:nth-child(8n+2),.hcards ~ .hcards .kpi-hero:nth-child(8n+2){ --a:#5bbad1; --b:#38a2bd; --gl:rgba(8,145,178,.30); }
-.hcards ~ .hcards .hcard:nth-child(8n+3),.hcards ~ .hcards .fcard:nth-child(8n+3),.hcards ~ .hcards .metric-card:nth-child(8n+3),.hcards ~ .hcards .mini:nth-child(8n+3),.hcards ~ .hcards .kpi-hero:nth-child(8n+3){ --a:#e094bb; --b:#cf76a5; --gl:rgba(219,39,119,.26); }
-.hcards ~ .hcards .hcard:nth-child(8n+4),.hcards ~ .hcards .fcard:nth-child(8n+4),.hcards ~ .hcards .metric-card:nth-child(8n+4),.hcards ~ .hcards .mini:nth-child(8n+4),.hcards ~ .hcards .kpi-hero:nth-child(8n+4){ --a:#e0a06d; --b:#cf8447; --gl:rgba(234,88,12,.28); }
-.hcards ~ .hcards .hcard:nth-child(8n+5),.hcards ~ .hcards .fcard:nth-child(8n+5),.hcards ~ .hcards .metric-card:nth-child(8n+5),.hcards ~ .hcards .mini:nth-child(8n+5),.hcards ~ .hcards .kpi-hero:nth-child(8n+5){ --a:#5ec98f; --b:#3fb074; --gl:rgba(34,164,93,.30); }
-.hcards ~ .hcards .hcard:nth-child(8n+6),.hcards ~ .hcards .fcard:nth-child(8n+6),.hcards ~ .hcards .metric-card:nth-child(8n+6),.hcards ~ .hcards .mini:nth-child(8n+6),.hcards ~ .hcards .kpi-hero:nth-child(8n+6){ --a:#e8c46a; --b:#d9a63f; --gl:rgba(217,119,6,.28); }
-.hcards ~ .hcards .hcard:nth-child(8n+7),.hcards ~ .hcards .fcard:nth-child(8n+7),.hcards ~ .hcards .metric-card:nth-child(8n+7),.hcards ~ .hcards .mini:nth-child(8n+7),.hcards ~ .hcards .kpi-hero:nth-child(8n+7){ --a:#e28b87; --b:#d16a66; --gl:rgba(220,38,38,.28); }
-.hcards ~ .hcards .hcard:nth-child(8n+8),.hcards ~ .hcards .fcard:nth-child(8n+8),.hcards ~ .hcards .metric-card:nth-child(8n+8),.hcards ~ .hcards .mini:nth-child(8n+8),.hcards ~ .hcards .kpi-hero:nth-child(8n+8){ --a:#6f9ceb; --b:#4a7cdd; --gl:rgba(59,130,246,.30); }
+/* ─── 25.2 fileiras seguintes entram deslocadas ─── */
+.kpi-grid ~ .kpi-grid .hcard:nth-child(6n+1),.kpi-grid ~ .kpi-grid .fcard:nth-child(6n+1),.kpi-grid ~ .kpi-grid .metric-card:nth-child(6n+1),.kpi-grid ~ .kpi-grid .mini:nth-child(6n+1),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.kpi-grid ~ .kpi-grid .hcard:nth-child(6n+2),.kpi-grid ~ .kpi-grid .fcard:nth-child(6n+2),.kpi-grid ~ .kpi-grid .metric-card:nth-child(6n+2),.kpi-grid ~ .kpi-grid .mini:nth-child(6n+2),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.kpi-grid ~ .kpi-grid .hcard:nth-child(6n+3),.kpi-grid ~ .kpi-grid .fcard:nth-child(6n+3),.kpi-grid ~ .kpi-grid .metric-card:nth-child(6n+3),.kpi-grid ~ .kpi-grid .mini:nth-child(6n+3),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.kpi-grid ~ .kpi-grid .hcard:nth-child(6n+4),.kpi-grid ~ .kpi-grid .fcard:nth-child(6n+4),.kpi-grid ~ .kpi-grid .metric-card:nth-child(6n+4),.kpi-grid ~ .kpi-grid .mini:nth-child(6n+4),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.kpi-grid ~ .kpi-grid .hcard:nth-child(6n+5),.kpi-grid ~ .kpi-grid .fcard:nth-child(6n+5),.kpi-grid ~ .kpi-grid .metric-card:nth-child(6n+5),.kpi-grid ~ .kpi-grid .mini:nth-child(6n+5),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.kpi-grid ~ .kpi-grid .hcard:nth-child(6n+6),.kpi-grid ~ .kpi-grid .fcard:nth-child(6n+6),.kpi-grid ~ .kpi-grid .metric-card:nth-child(6n+6),.kpi-grid ~ .kpi-grid .mini:nth-child(6n+6),.kpi-grid ~ .kpi-grid .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.kpi-grid ~ .hero-cards .hcard:nth-child(6n+1),.kpi-grid ~ .hero-cards .fcard:nth-child(6n+1),.kpi-grid ~ .hero-cards .metric-card:nth-child(6n+1),.kpi-grid ~ .hero-cards .mini:nth-child(6n+1),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.kpi-grid ~ .hero-cards .hcard:nth-child(6n+2),.kpi-grid ~ .hero-cards .fcard:nth-child(6n+2),.kpi-grid ~ .hero-cards .metric-card:nth-child(6n+2),.kpi-grid ~ .hero-cards .mini:nth-child(6n+2),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.kpi-grid ~ .hero-cards .hcard:nth-child(6n+3),.kpi-grid ~ .hero-cards .fcard:nth-child(6n+3),.kpi-grid ~ .hero-cards .metric-card:nth-child(6n+3),.kpi-grid ~ .hero-cards .mini:nth-child(6n+3),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.kpi-grid ~ .hero-cards .hcard:nth-child(6n+4),.kpi-grid ~ .hero-cards .fcard:nth-child(6n+4),.kpi-grid ~ .hero-cards .metric-card:nth-child(6n+4),.kpi-grid ~ .hero-cards .mini:nth-child(6n+4),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.kpi-grid ~ .hero-cards .hcard:nth-child(6n+5),.kpi-grid ~ .hero-cards .fcard:nth-child(6n+5),.kpi-grid ~ .hero-cards .metric-card:nth-child(6n+5),.kpi-grid ~ .hero-cards .mini:nth-child(6n+5),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.kpi-grid ~ .hero-cards .hcard:nth-child(6n+6),.kpi-grid ~ .hero-cards .fcard:nth-child(6n+6),.kpi-grid ~ .hero-cards .metric-card:nth-child(6n+6),.kpi-grid ~ .hero-cards .mini:nth-child(6n+6),.kpi-grid ~ .hero-cards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.kpi-grid ~ .fin-cards .hcard:nth-child(6n+1),.kpi-grid ~ .fin-cards .fcard:nth-child(6n+1),.kpi-grid ~ .fin-cards .metric-card:nth-child(6n+1),.kpi-grid ~ .fin-cards .mini:nth-child(6n+1),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.kpi-grid ~ .fin-cards .hcard:nth-child(6n+2),.kpi-grid ~ .fin-cards .fcard:nth-child(6n+2),.kpi-grid ~ .fin-cards .metric-card:nth-child(6n+2),.kpi-grid ~ .fin-cards .mini:nth-child(6n+2),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.kpi-grid ~ .fin-cards .hcard:nth-child(6n+3),.kpi-grid ~ .fin-cards .fcard:nth-child(6n+3),.kpi-grid ~ .fin-cards .metric-card:nth-child(6n+3),.kpi-grid ~ .fin-cards .mini:nth-child(6n+3),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.kpi-grid ~ .fin-cards .hcard:nth-child(6n+4),.kpi-grid ~ .fin-cards .fcard:nth-child(6n+4),.kpi-grid ~ .fin-cards .metric-card:nth-child(6n+4),.kpi-grid ~ .fin-cards .mini:nth-child(6n+4),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.kpi-grid ~ .fin-cards .hcard:nth-child(6n+5),.kpi-grid ~ .fin-cards .fcard:nth-child(6n+5),.kpi-grid ~ .fin-cards .metric-card:nth-child(6n+5),.kpi-grid ~ .fin-cards .mini:nth-child(6n+5),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.kpi-grid ~ .fin-cards .hcard:nth-child(6n+6),.kpi-grid ~ .fin-cards .fcard:nth-child(6n+6),.kpi-grid ~ .fin-cards .metric-card:nth-child(6n+6),.kpi-grid ~ .fin-cards .mini:nth-child(6n+6),.kpi-grid ~ .fin-cards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.kpi-grid ~ .hcards .hcard:nth-child(6n+1),.kpi-grid ~ .hcards .fcard:nth-child(6n+1),.kpi-grid ~ .hcards .metric-card:nth-child(6n+1),.kpi-grid ~ .hcards .mini:nth-child(6n+1),.kpi-grid ~ .hcards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.kpi-grid ~ .hcards .hcard:nth-child(6n+2),.kpi-grid ~ .hcards .fcard:nth-child(6n+2),.kpi-grid ~ .hcards .metric-card:nth-child(6n+2),.kpi-grid ~ .hcards .mini:nth-child(6n+2),.kpi-grid ~ .hcards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.kpi-grid ~ .hcards .hcard:nth-child(6n+3),.kpi-grid ~ .hcards .fcard:nth-child(6n+3),.kpi-grid ~ .hcards .metric-card:nth-child(6n+3),.kpi-grid ~ .hcards .mini:nth-child(6n+3),.kpi-grid ~ .hcards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.kpi-grid ~ .hcards .hcard:nth-child(6n+4),.kpi-grid ~ .hcards .fcard:nth-child(6n+4),.kpi-grid ~ .hcards .metric-card:nth-child(6n+4),.kpi-grid ~ .hcards .mini:nth-child(6n+4),.kpi-grid ~ .hcards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.kpi-grid ~ .hcards .hcard:nth-child(6n+5),.kpi-grid ~ .hcards .fcard:nth-child(6n+5),.kpi-grid ~ .hcards .metric-card:nth-child(6n+5),.kpi-grid ~ .hcards .mini:nth-child(6n+5),.kpi-grid ~ .hcards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.kpi-grid ~ .hcards .hcard:nth-child(6n+6),.kpi-grid ~ .hcards .fcard:nth-child(6n+6),.kpi-grid ~ .hcards .metric-card:nth-child(6n+6),.kpi-grid ~ .hcards .mini:nth-child(6n+6),.kpi-grid ~ .hcards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hero-cards ~ .kpi-grid .hcard:nth-child(6n+1),.hero-cards ~ .kpi-grid .fcard:nth-child(6n+1),.hero-cards ~ .kpi-grid .metric-card:nth-child(6n+1),.hero-cards ~ .kpi-grid .mini:nth-child(6n+1),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hero-cards ~ .kpi-grid .hcard:nth-child(6n+2),.hero-cards ~ .kpi-grid .fcard:nth-child(6n+2),.hero-cards ~ .kpi-grid .metric-card:nth-child(6n+2),.hero-cards ~ .kpi-grid .mini:nth-child(6n+2),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hero-cards ~ .kpi-grid .hcard:nth-child(6n+3),.hero-cards ~ .kpi-grid .fcard:nth-child(6n+3),.hero-cards ~ .kpi-grid .metric-card:nth-child(6n+3),.hero-cards ~ .kpi-grid .mini:nth-child(6n+3),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.hero-cards ~ .kpi-grid .hcard:nth-child(6n+4),.hero-cards ~ .kpi-grid .fcard:nth-child(6n+4),.hero-cards ~ .kpi-grid .metric-card:nth-child(6n+4),.hero-cards ~ .kpi-grid .mini:nth-child(6n+4),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hero-cards ~ .kpi-grid .hcard:nth-child(6n+5),.hero-cards ~ .kpi-grid .fcard:nth-child(6n+5),.hero-cards ~ .kpi-grid .metric-card:nth-child(6n+5),.hero-cards ~ .kpi-grid .mini:nth-child(6n+5),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hero-cards ~ .kpi-grid .hcard:nth-child(6n+6),.hero-cards ~ .kpi-grid .fcard:nth-child(6n+6),.hero-cards ~ .kpi-grid .metric-card:nth-child(6n+6),.hero-cards ~ .kpi-grid .mini:nth-child(6n+6),.hero-cards ~ .kpi-grid .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hero-cards ~ .hero-cards .hcard:nth-child(6n+1),.hero-cards ~ .hero-cards .fcard:nth-child(6n+1),.hero-cards ~ .hero-cards .metric-card:nth-child(6n+1),.hero-cards ~ .hero-cards .mini:nth-child(6n+1),.hero-cards ~ .hero-cards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hero-cards ~ .hero-cards .hcard:nth-child(6n+2),.hero-cards ~ .hero-cards .fcard:nth-child(6n+2),.hero-cards ~ .hero-cards .metric-card:nth-child(6n+2),.hero-cards ~ .hero-cards .mini:nth-child(6n+2),.hero-cards ~ .hero-cards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hero-cards ~ .hero-cards .hcard:nth-child(6n+3),.hero-cards ~ .hero-cards .fcard:nth-child(6n+3),.hero-cards ~ .hero-cards .metric-card:nth-child(6n+3),.hero-cards ~ .hero-cards .mini:nth-child(6n+3),.hero-cards ~ .hero-cards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.hero-cards ~ .hero-cards .hcard:nth-child(6n+4),.hero-cards ~ .hero-cards .fcard:nth-child(6n+4),.hero-cards ~ .hero-cards .metric-card:nth-child(6n+4),.hero-cards ~ .hero-cards .mini:nth-child(6n+4),.hero-cards ~ .hero-cards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hero-cards ~ .hero-cards .hcard:nth-child(6n+5),.hero-cards ~ .hero-cards .fcard:nth-child(6n+5),.hero-cards ~ .hero-cards .metric-card:nth-child(6n+5),.hero-cards ~ .hero-cards .mini:nth-child(6n+5),.hero-cards ~ .hero-cards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hero-cards ~ .hero-cards .hcard:nth-child(6n+6),.hero-cards ~ .hero-cards .fcard:nth-child(6n+6),.hero-cards ~ .hero-cards .metric-card:nth-child(6n+6),.hero-cards ~ .hero-cards .mini:nth-child(6n+6),.hero-cards ~ .hero-cards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hero-cards ~ .fin-cards .hcard:nth-child(6n+1),.hero-cards ~ .fin-cards .fcard:nth-child(6n+1),.hero-cards ~ .fin-cards .metric-card:nth-child(6n+1),.hero-cards ~ .fin-cards .mini:nth-child(6n+1),.hero-cards ~ .fin-cards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hero-cards ~ .fin-cards .hcard:nth-child(6n+2),.hero-cards ~ .fin-cards .fcard:nth-child(6n+2),.hero-cards ~ .fin-cards .metric-card:nth-child(6n+2),.hero-cards ~ .fin-cards .mini:nth-child(6n+2),.hero-cards ~ .fin-cards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hero-cards ~ .fin-cards .hcard:nth-child(6n+3),.hero-cards ~ .fin-cards .fcard:nth-child(6n+3),.hero-cards ~ .fin-cards .metric-card:nth-child(6n+3),.hero-cards ~ .fin-cards .mini:nth-child(6n+3),.hero-cards ~ .fin-cards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.hero-cards ~ .fin-cards .hcard:nth-child(6n+4),.hero-cards ~ .fin-cards .fcard:nth-child(6n+4),.hero-cards ~ .fin-cards .metric-card:nth-child(6n+4),.hero-cards ~ .fin-cards .mini:nth-child(6n+4),.hero-cards ~ .fin-cards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hero-cards ~ .fin-cards .hcard:nth-child(6n+5),.hero-cards ~ .fin-cards .fcard:nth-child(6n+5),.hero-cards ~ .fin-cards .metric-card:nth-child(6n+5),.hero-cards ~ .fin-cards .mini:nth-child(6n+5),.hero-cards ~ .fin-cards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hero-cards ~ .fin-cards .hcard:nth-child(6n+6),.hero-cards ~ .fin-cards .fcard:nth-child(6n+6),.hero-cards ~ .fin-cards .metric-card:nth-child(6n+6),.hero-cards ~ .fin-cards .mini:nth-child(6n+6),.hero-cards ~ .fin-cards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hero-cards ~ .hcards .hcard:nth-child(6n+1),.hero-cards ~ .hcards .fcard:nth-child(6n+1),.hero-cards ~ .hcards .metric-card:nth-child(6n+1),.hero-cards ~ .hcards .mini:nth-child(6n+1),.hero-cards ~ .hcards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hero-cards ~ .hcards .hcard:nth-child(6n+2),.hero-cards ~ .hcards .fcard:nth-child(6n+2),.hero-cards ~ .hcards .metric-card:nth-child(6n+2),.hero-cards ~ .hcards .mini:nth-child(6n+2),.hero-cards ~ .hcards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hero-cards ~ .hcards .hcard:nth-child(6n+3),.hero-cards ~ .hcards .fcard:nth-child(6n+3),.hero-cards ~ .hcards .metric-card:nth-child(6n+3),.hero-cards ~ .hcards .mini:nth-child(6n+3),.hero-cards ~ .hcards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.hero-cards ~ .hcards .hcard:nth-child(6n+4),.hero-cards ~ .hcards .fcard:nth-child(6n+4),.hero-cards ~ .hcards .metric-card:nth-child(6n+4),.hero-cards ~ .hcards .mini:nth-child(6n+4),.hero-cards ~ .hcards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hero-cards ~ .hcards .hcard:nth-child(6n+5),.hero-cards ~ .hcards .fcard:nth-child(6n+5),.hero-cards ~ .hcards .metric-card:nth-child(6n+5),.hero-cards ~ .hcards .mini:nth-child(6n+5),.hero-cards ~ .hcards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hero-cards ~ .hcards .hcard:nth-child(6n+6),.hero-cards ~ .hcards .fcard:nth-child(6n+6),.hero-cards ~ .hcards .metric-card:nth-child(6n+6),.hero-cards ~ .hcards .mini:nth-child(6n+6),.hero-cards ~ .hcards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.fin-cards ~ .kpi-grid .hcard:nth-child(6n+1),.fin-cards ~ .kpi-grid .fcard:nth-child(6n+1),.fin-cards ~ .kpi-grid .metric-card:nth-child(6n+1),.fin-cards ~ .kpi-grid .mini:nth-child(6n+1),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.fin-cards ~ .kpi-grid .hcard:nth-child(6n+2),.fin-cards ~ .kpi-grid .fcard:nth-child(6n+2),.fin-cards ~ .kpi-grid .metric-card:nth-child(6n+2),.fin-cards ~ .kpi-grid .mini:nth-child(6n+2),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.fin-cards ~ .kpi-grid .hcard:nth-child(6n+3),.fin-cards ~ .kpi-grid .fcard:nth-child(6n+3),.fin-cards ~ .kpi-grid .metric-card:nth-child(6n+3),.fin-cards ~ .kpi-grid .mini:nth-child(6n+3),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.fin-cards ~ .kpi-grid .hcard:nth-child(6n+4),.fin-cards ~ .kpi-grid .fcard:nth-child(6n+4),.fin-cards ~ .kpi-grid .metric-card:nth-child(6n+4),.fin-cards ~ .kpi-grid .mini:nth-child(6n+4),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.fin-cards ~ .kpi-grid .hcard:nth-child(6n+5),.fin-cards ~ .kpi-grid .fcard:nth-child(6n+5),.fin-cards ~ .kpi-grid .metric-card:nth-child(6n+5),.fin-cards ~ .kpi-grid .mini:nth-child(6n+5),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.fin-cards ~ .kpi-grid .hcard:nth-child(6n+6),.fin-cards ~ .kpi-grid .fcard:nth-child(6n+6),.fin-cards ~ .kpi-grid .metric-card:nth-child(6n+6),.fin-cards ~ .kpi-grid .mini:nth-child(6n+6),.fin-cards ~ .kpi-grid .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.fin-cards ~ .hero-cards .hcard:nth-child(6n+1),.fin-cards ~ .hero-cards .fcard:nth-child(6n+1),.fin-cards ~ .hero-cards .metric-card:nth-child(6n+1),.fin-cards ~ .hero-cards .mini:nth-child(6n+1),.fin-cards ~ .hero-cards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.fin-cards ~ .hero-cards .hcard:nth-child(6n+2),.fin-cards ~ .hero-cards .fcard:nth-child(6n+2),.fin-cards ~ .hero-cards .metric-card:nth-child(6n+2),.fin-cards ~ .hero-cards .mini:nth-child(6n+2),.fin-cards ~ .hero-cards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.fin-cards ~ .hero-cards .hcard:nth-child(6n+3),.fin-cards ~ .hero-cards .fcard:nth-child(6n+3),.fin-cards ~ .hero-cards .metric-card:nth-child(6n+3),.fin-cards ~ .hero-cards .mini:nth-child(6n+3),.fin-cards ~ .hero-cards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.fin-cards ~ .hero-cards .hcard:nth-child(6n+4),.fin-cards ~ .hero-cards .fcard:nth-child(6n+4),.fin-cards ~ .hero-cards .metric-card:nth-child(6n+4),.fin-cards ~ .hero-cards .mini:nth-child(6n+4),.fin-cards ~ .hero-cards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.fin-cards ~ .hero-cards .hcard:nth-child(6n+5),.fin-cards ~ .hero-cards .fcard:nth-child(6n+5),.fin-cards ~ .hero-cards .metric-card:nth-child(6n+5),.fin-cards ~ .hero-cards .mini:nth-child(6n+5),.fin-cards ~ .hero-cards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.fin-cards ~ .hero-cards .hcard:nth-child(6n+6),.fin-cards ~ .hero-cards .fcard:nth-child(6n+6),.fin-cards ~ .hero-cards .metric-card:nth-child(6n+6),.fin-cards ~ .hero-cards .mini:nth-child(6n+6),.fin-cards ~ .hero-cards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.fin-cards ~ .fin-cards .hcard:nth-child(6n+1),.fin-cards ~ .fin-cards .fcard:nth-child(6n+1),.fin-cards ~ .fin-cards .metric-card:nth-child(6n+1),.fin-cards ~ .fin-cards .mini:nth-child(6n+1),.fin-cards ~ .fin-cards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.fin-cards ~ .fin-cards .hcard:nth-child(6n+2),.fin-cards ~ .fin-cards .fcard:nth-child(6n+2),.fin-cards ~ .fin-cards .metric-card:nth-child(6n+2),.fin-cards ~ .fin-cards .mini:nth-child(6n+2),.fin-cards ~ .fin-cards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.fin-cards ~ .fin-cards .hcard:nth-child(6n+3),.fin-cards ~ .fin-cards .fcard:nth-child(6n+3),.fin-cards ~ .fin-cards .metric-card:nth-child(6n+3),.fin-cards ~ .fin-cards .mini:nth-child(6n+3),.fin-cards ~ .fin-cards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.fin-cards ~ .fin-cards .hcard:nth-child(6n+4),.fin-cards ~ .fin-cards .fcard:nth-child(6n+4),.fin-cards ~ .fin-cards .metric-card:nth-child(6n+4),.fin-cards ~ .fin-cards .mini:nth-child(6n+4),.fin-cards ~ .fin-cards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.fin-cards ~ .fin-cards .hcard:nth-child(6n+5),.fin-cards ~ .fin-cards .fcard:nth-child(6n+5),.fin-cards ~ .fin-cards .metric-card:nth-child(6n+5),.fin-cards ~ .fin-cards .mini:nth-child(6n+5),.fin-cards ~ .fin-cards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.fin-cards ~ .fin-cards .hcard:nth-child(6n+6),.fin-cards ~ .fin-cards .fcard:nth-child(6n+6),.fin-cards ~ .fin-cards .metric-card:nth-child(6n+6),.fin-cards ~ .fin-cards .mini:nth-child(6n+6),.fin-cards ~ .fin-cards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.fin-cards ~ .hcards .hcard:nth-child(6n+1),.fin-cards ~ .hcards .fcard:nth-child(6n+1),.fin-cards ~ .hcards .metric-card:nth-child(6n+1),.fin-cards ~ .hcards .mini:nth-child(6n+1),.fin-cards ~ .hcards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.fin-cards ~ .hcards .hcard:nth-child(6n+2),.fin-cards ~ .hcards .fcard:nth-child(6n+2),.fin-cards ~ .hcards .metric-card:nth-child(6n+2),.fin-cards ~ .hcards .mini:nth-child(6n+2),.fin-cards ~ .hcards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.fin-cards ~ .hcards .hcard:nth-child(6n+3),.fin-cards ~ .hcards .fcard:nth-child(6n+3),.fin-cards ~ .hcards .metric-card:nth-child(6n+3),.fin-cards ~ .hcards .mini:nth-child(6n+3),.fin-cards ~ .hcards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.fin-cards ~ .hcards .hcard:nth-child(6n+4),.fin-cards ~ .hcards .fcard:nth-child(6n+4),.fin-cards ~ .hcards .metric-card:nth-child(6n+4),.fin-cards ~ .hcards .mini:nth-child(6n+4),.fin-cards ~ .hcards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.fin-cards ~ .hcards .hcard:nth-child(6n+5),.fin-cards ~ .hcards .fcard:nth-child(6n+5),.fin-cards ~ .hcards .metric-card:nth-child(6n+5),.fin-cards ~ .hcards .mini:nth-child(6n+5),.fin-cards ~ .hcards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.fin-cards ~ .hcards .hcard:nth-child(6n+6),.fin-cards ~ .hcards .fcard:nth-child(6n+6),.fin-cards ~ .hcards .metric-card:nth-child(6n+6),.fin-cards ~ .hcards .mini:nth-child(6n+6),.fin-cards ~ .hcards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hcards ~ .kpi-grid .hcard:nth-child(6n+1),.hcards ~ .kpi-grid .fcard:nth-child(6n+1),.hcards ~ .kpi-grid .metric-card:nth-child(6n+1),.hcards ~ .kpi-grid .mini:nth-child(6n+1),.hcards ~ .kpi-grid .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hcards ~ .kpi-grid .hcard:nth-child(6n+2),.hcards ~ .kpi-grid .fcard:nth-child(6n+2),.hcards ~ .kpi-grid .metric-card:nth-child(6n+2),.hcards ~ .kpi-grid .mini:nth-child(6n+2),.hcards ~ .kpi-grid .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hcards ~ .kpi-grid .hcard:nth-child(6n+3),.hcards ~ .kpi-grid .fcard:nth-child(6n+3),.hcards ~ .kpi-grid .metric-card:nth-child(6n+3),.hcards ~ .kpi-grid .mini:nth-child(6n+3),.hcards ~ .kpi-grid .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.hcards ~ .kpi-grid .hcard:nth-child(6n+4),.hcards ~ .kpi-grid .fcard:nth-child(6n+4),.hcards ~ .kpi-grid .metric-card:nth-child(6n+4),.hcards ~ .kpi-grid .mini:nth-child(6n+4),.hcards ~ .kpi-grid .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hcards ~ .kpi-grid .hcard:nth-child(6n+5),.hcards ~ .kpi-grid .fcard:nth-child(6n+5),.hcards ~ .kpi-grid .metric-card:nth-child(6n+5),.hcards ~ .kpi-grid .mini:nth-child(6n+5),.hcards ~ .kpi-grid .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hcards ~ .kpi-grid .hcard:nth-child(6n+6),.hcards ~ .kpi-grid .fcard:nth-child(6n+6),.hcards ~ .kpi-grid .metric-card:nth-child(6n+6),.hcards ~ .kpi-grid .mini:nth-child(6n+6),.hcards ~ .kpi-grid .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hcards ~ .hero-cards .hcard:nth-child(6n+1),.hcards ~ .hero-cards .fcard:nth-child(6n+1),.hcards ~ .hero-cards .metric-card:nth-child(6n+1),.hcards ~ .hero-cards .mini:nth-child(6n+1),.hcards ~ .hero-cards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hcards ~ .hero-cards .hcard:nth-child(6n+2),.hcards ~ .hero-cards .fcard:nth-child(6n+2),.hcards ~ .hero-cards .metric-card:nth-child(6n+2),.hcards ~ .hero-cards .mini:nth-child(6n+2),.hcards ~ .hero-cards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hcards ~ .hero-cards .hcard:nth-child(6n+3),.hcards ~ .hero-cards .fcard:nth-child(6n+3),.hcards ~ .hero-cards .metric-card:nth-child(6n+3),.hcards ~ .hero-cards .mini:nth-child(6n+3),.hcards ~ .hero-cards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.hcards ~ .hero-cards .hcard:nth-child(6n+4),.hcards ~ .hero-cards .fcard:nth-child(6n+4),.hcards ~ .hero-cards .metric-card:nth-child(6n+4),.hcards ~ .hero-cards .mini:nth-child(6n+4),.hcards ~ .hero-cards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hcards ~ .hero-cards .hcard:nth-child(6n+5),.hcards ~ .hero-cards .fcard:nth-child(6n+5),.hcards ~ .hero-cards .metric-card:nth-child(6n+5),.hcards ~ .hero-cards .mini:nth-child(6n+5),.hcards ~ .hero-cards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hcards ~ .hero-cards .hcard:nth-child(6n+6),.hcards ~ .hero-cards .fcard:nth-child(6n+6),.hcards ~ .hero-cards .metric-card:nth-child(6n+6),.hcards ~ .hero-cards .mini:nth-child(6n+6),.hcards ~ .hero-cards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hcards ~ .fin-cards .hcard:nth-child(6n+1),.hcards ~ .fin-cards .fcard:nth-child(6n+1),.hcards ~ .fin-cards .metric-card:nth-child(6n+1),.hcards ~ .fin-cards .mini:nth-child(6n+1),.hcards ~ .fin-cards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hcards ~ .fin-cards .hcard:nth-child(6n+2),.hcards ~ .fin-cards .fcard:nth-child(6n+2),.hcards ~ .fin-cards .metric-card:nth-child(6n+2),.hcards ~ .fin-cards .mini:nth-child(6n+2),.hcards ~ .fin-cards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hcards ~ .fin-cards .hcard:nth-child(6n+3),.hcards ~ .fin-cards .fcard:nth-child(6n+3),.hcards ~ .fin-cards .metric-card:nth-child(6n+3),.hcards ~ .fin-cards .mini:nth-child(6n+3),.hcards ~ .fin-cards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.hcards ~ .fin-cards .hcard:nth-child(6n+4),.hcards ~ .fin-cards .fcard:nth-child(6n+4),.hcards ~ .fin-cards .metric-card:nth-child(6n+4),.hcards ~ .fin-cards .mini:nth-child(6n+4),.hcards ~ .fin-cards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hcards ~ .fin-cards .hcard:nth-child(6n+5),.hcards ~ .fin-cards .fcard:nth-child(6n+5),.hcards ~ .fin-cards .metric-card:nth-child(6n+5),.hcards ~ .fin-cards .mini:nth-child(6n+5),.hcards ~ .fin-cards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hcards ~ .fin-cards .hcard:nth-child(6n+6),.hcards ~ .fin-cards .fcard:nth-child(6n+6),.hcards ~ .fin-cards .metric-card:nth-child(6n+6),.hcards ~ .fin-cards .mini:nth-child(6n+6),.hcards ~ .fin-cards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
+.hcards ~ .hcards .hcard:nth-child(6n+1),.hcards ~ .hcards .fcard:nth-child(6n+1),.hcards ~ .hcards .metric-card:nth-child(6n+1),.hcards ~ .hcards .mini:nth-child(6n+1),.hcards ~ .hcards .kpi-hero:nth-child(6n+1){ --m:#f0f3f6 0%,#d4dbe2 20%,#eaeff3 40%,#bcc6cf 60%,#e1e7ec 80%,#cfd7de 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.24); }
+.hcards ~ .hcards .hcard:nth-child(6n+2),.hcards ~ .hcards .fcard:nth-child(6n+2),.hcards ~ .hcards .metric-card:nth-child(6n+2),.hcards ~ .hcards .mini:nth-child(6n+2),.hcards ~ .hcards .kpi-hero:nth-child(6n+2){ --m:#1e7a4c 0%,#14522f 20%,#2d9463 40%,#103f25 60%,#256f49 80%,#17603a 100%; --txt:#fff; --gl:rgba(15,61,36,.46); }
+.hcards ~ .hcards .hcard:nth-child(6n+3),.hcards ~ .hcards .fcard:nth-child(6n+3),.hcards ~ .hcards .metric-card:nth-child(6n+3),.hcards ~ .hcards .mini:nth-child(6n+3),.hcards ~ .hcards .kpi-hero:nth-child(6n+3){ --m:#f7f9fa 0%,#dde4ea 22%,#f2f5f8 42%,#c5cfd8 62%,#e8edf1 82%,#d6dee5 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.22); }
+.hcards ~ .hcards .hcard:nth-child(6n+4),.hcards ~ .hcards .fcard:nth-child(6n+4),.hcards ~ .hcards .metric-card:nth-child(6n+4),.hcards ~ .hcards .mini:nth-child(6n+4),.hcards ~ .hcards .kpi-hero:nth-child(6n+4){ --m:#2f9a64 0%,#248050 18%,#46b881 36%,#1f7047 56%,#3fae76 76%,#27895a 100%; --txt:#fff; --gl:rgba(31,112,71,.42); }
+.hcards ~ .hcards .hcard:nth-child(6n+5),.hcards ~ .hcards .fcard:nth-child(6n+5),.hcards ~ .hcards .metric-card:nth-child(6n+5),.hcards ~ .hcards .mini:nth-child(6n+5),.hcards ~ .hcards .kpi-hero:nth-child(6n+5){ --m:#fdfefe 0%,#e6eaee 20%,#f8fafb 38%,#ccd4db 58%,#eef2f5 78%,#dde3e9 100%; --txt:#1b1e23; --gl:rgba(17,19,24,.20); }
+.hcards ~ .hcards .hcard:nth-child(6n+6),.hcards ~ .hcards .fcard:nth-child(6n+6),.hcards ~ .hcards .metric-card:nth-child(6n+6),.hcards ~ .hcards .mini:nth-child(6n+6),.hcards ~ .hcards .kpi-hero:nth-child(6n+6){ --m:#4b515a 0%,#2c3037 18%,#5b626c 38%,#23262c 58%,#474d56 78%,#33373e 100%; --txt:#fff; --gl:rgba(17,19,24,.42); }
 
 /* ─── 25.3 desenho do card ─── */
 .hcard,.fcard,.metric-card,.mini,.kpi-hero{
   position:relative; overflow:hidden;
-  border:none !important; color:#fff !important;
+  border:none !important; color:var(--txt) !important;
   background-color:transparent !important;
   background-image:
-    radial-gradient(130% 130% at 100% 0%, var(--a) 0%, transparent 62%),
-    linear-gradient(135deg, var(--a) 0%, var(--b) 100%) !important;
+    linear-gradient(122deg, var(--m)) !important;
   box-shadow:0 8px 24px -12px var(--gl);
   transition:transform .3s var(--ease), box-shadow .3s var(--ease);
 }
@@ -2084,24 +2040,32 @@ canvas{ max-width:100%; }
 }
 .hcard::before,.fcard::before,.metric-card::before,.mini::before,.kpi-hero::before{
   content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background:linear-gradient(135deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,0) 50%);
+  background:
+    linear-gradient(118deg, rgba(255,255,255,.42) 0%, rgba(255,255,255,0) 34%),
+    linear-gradient(298deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,0) 30%);
   display:block; width:auto; height:auto; border-radius:0; transform:none;
 }
 .hcard > *,.fcard > *,.metric-card > *,.mini > *,.kpi-hero > *{ position:relative; z-index:1; }
 .hcard::after,.metric-card::after,.kpi-hero::after{ display:none; }
 
 .hcard-label,.fcard-label,.metric-label,.mini-label,.kpi-hero .kpi-label,
-.hcard-sub,.fcard-sub,.metric-sub,.mini-sub,.kpi-hero .kpi-sub{ color:rgba(255,255,255,.88) !important; }
+.hcard-sub,.fcard-sub,.metric-sub,.mini-sub,.kpi-hero .kpi-sub{
+  color:var(--txt) !important; opacity:.72;
+}
 .hcard-value,.fcard-value,.metric-val,.mini-value,.kpi-hero .kpi-value,
 .fcard-value.blue,.fcard-value.green,.metric-val.green,.metric-delta.up{
-  color:#fff !important; text-shadow:0 1px 2px rgba(0,0,0,.12);
+  color:var(--txt) !important;
 }
 .hcard-icon,.fcard-icon,.mini-ico,.kpi-hero .kpi-icon{
-  background:rgba(255,255,255,.24) !important;
-  border:1px solid rgba(255,255,255,.34) !important;
-  box-shadow:none !important; backdrop-filter:none; color:#fff !important;
+  background:rgba(255,255,255,.30) !important;
+  border:1px solid rgba(255,255,255,.42) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5) !important;
+  backdrop-filter:none; color:var(--txt) !important;
 }
-.hcard-icon svg,.mini-ico svg,.fcard-icon svg,.kpi-hero .kpi-icon svg{ stroke:#fff !important; }
+.hcard-icon svg,.mini-ico svg,.fcard-icon svg,.kpi-hero .kpi-icon svg{ stroke:var(--txt) !important; }
+/* nos tons prateados o chip precisa de contraste ao contrario */
+.hcard:not([style]) .hcard-icon{ }
+
 
 .hcard{ padding:18px 20px; border-radius:20px; }
 .hcard-icon{
@@ -2173,9 +2137,24 @@ body{
 .sidebar{ background:#fff; border-right:1px solid var(--border); }
 .topbar{ background:#fff; border-bottom:1px solid var(--border); }
 
-/* campos e pilulas sobre o fundo tingido precisam de branco cheio */
-.ff select,.ff input,.pill,.tb-btn,.tb-icon,.tb-user,
+/* campos e pilulas sobre o fundo tingido precisam de branco cheio.
+   :not(...) e obrigatorio aqui — sem ele esta regra, por vir depois,
+   apagava o fundo verde dos botoes primarios e o texto branco deles
+   ficava invisivel sobre branco. */
+.ff select,.ff input,.tb-icon,.tb-user,
+.pill:not(.go),
+.tb-btn:not(.tb-btn-primary),
+.btn:not(.btn-primary):not(.tb-btn-primary),
 .filter-select,.filter-input,.form-input{ background:#fff; }
+
+/* garantia: botao primario sempre verde com texto branco */
+.tb-btn-primary,.btn-primary,.pill.go{
+  background:var(--g600) !important; border-color:var(--g600) !important; color:#fff !important;
+}
+.tb-btn-primary:hover,.btn-primary:hover,.pill.go:hover{
+  background:var(--g700) !important; border-color:var(--g700) !important;
+}
+.tb-btn-primary svg,.btn-primary svg,.pill.go svg{ stroke:#fff; }
 
 /* cabecalho de tabela levemente tingido, para separar do corpo */
 .content thead th{ background:#fafbfc; }
@@ -2202,6 +2181,47 @@ body{
   font-size:16px !important; letter-spacing:-.025em;
   font-variant-numeric:tabular-nums;
 }
+
+
+/* ══════════════════════════════════════════════════════════
+   28. PALETA GERAL: prata · grafite · branco · verde
+   Tira o azul, o ambar e o roxo que sobraram em detalhes soltos.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --bg:#eceff2; --bg2:#fff; --bg3:#f7f9fa; --bg4:#e8ecef;
+  --border:#dfe4e9; --border2:#c8d0d7;
+  --text:#1b1e23; --text2:#5f6771; --text3:#98a1aa;
+}
+body{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(92% 62% at  6%  0%, rgba(34,164,93,.055) 0%, transparent 60%),
+    radial-gradient(80% 55% at 100% 6%, rgba(27,30,35,.045) 0%, transparent 56%),
+    radial-gradient(70% 60% at 55% 100%, rgba(27,30,35,.030) 0%, transparent 58%);
+  background-attachment:fixed; background-repeat:no-repeat;
+}
+
+/* chips e etiquetas coloridas viram verde ou cinza */
+.badge-blue,.badge-purple,.badge-indigo{ background:var(--bg4) !important; color:var(--text2) !important; }
+.badge-amber{ background:#eef2f5 !important; color:#5f6771 !important; }
+
+/* links e textos de destaque */
+a,.link{ color:var(--g700); }
+
+/* barras de progresso */
+progress::-webkit-progress-value,.progress-bar,.bar-fill{ background:var(--g600) !important; }
+
+/* chips de saldo: prata com valor em verde/grafite */
+.chip-saldo{ border-radius:14px; }
+
+/* cabecalhos tingidos de secao (verde/vermelho) ficam neutros */
+.section-card-header[style*="background"]{ background:#f7f9fa !important; }
+
+/* o unico vermelho que fica e o de valor negativo, porque significa algo */
+.neg,.text-red,.valor-negativo{ color:#b3453f !important; }
+
+/* termometro e medidores em escala verde */
+.gauge-fill,.termo-fill{ background:linear-gradient(180deg,#7fd0aa,#1e7a4c) !important; }
 
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
@@ -12917,7 +12937,7 @@ async function loadContasPagar() {
     catMap[cat] = (catMap[cat]||0) + Number(c.valor||0);
   });
   const catArr = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
-  const CORES_CP = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
+  const CORES_CP = ['#1e7a4c','#2f9a64','#4cb886','#7fd0aa','#3c4249','#5c636c','#8b939c','#b9c1c9','#d9dee3','#a8dcc2'];
   const totalCat = catArr.reduce((s,[,v])=>s+v,0);
 
   if (!window._cpChartCat) window._cpChartCat = null;
@@ -13351,7 +13371,7 @@ async function loadLucratividade() {
   if(el('luc-comissao')) el('luc-comissao').textContent = fmtBRL(totalComissao);
   if(el('luc-custoserv'))el('luc-custoserv').textContent= fmtBRL(totalServico);
 
-  const CORES = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
+  const CORES = ['#1e7a4c','#2f9a64','#4cb886','#7fd0aa','#3c4249','#5c636c','#8b939c','#b9c1c9','#d9dee3','#a8dcc2'];
 
   // ── Gráfico composição: Custo Serviço · Custo Comissão · Lucro (barras verticais) ──
   const ctxComp = el('luc-chart-comp')?.getContext('2d');
@@ -13760,7 +13780,7 @@ function renderClientesPage() {
   }
 
   // ── GRÁFICO 1: Atendimentos por dia do mês (usa ultimaVisita, já filtrado por mês/ano) ──
-  const CORES_CLI = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
+  const CORES_CLI = ['#1e7a4c','#2f9a64','#4cb886','#7fd0aa','#3c4249','#5c636c','#8b939c','#b9c1c9','#d9dee3','#a8dcc2'];
   const diasMap = {};
   todos.forEach(c => {
     if (!c.ultimaVisita) return;
@@ -13870,7 +13890,7 @@ function formatarTelefoneCliente(v) {
 
 function renderClientes(linhas, ano, mes) {
   const el = id => document.getElementById(id);
-  const CORES = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
+  const CORES = ['#1e7a4c','#2f9a64','#4cb886','#7fd0aa','#3c4249','#5c636c','#8b939c','#b9c1c9','#d9dee3','#a8dcc2'];
 
   // ── Agrupa por cliente ──────────────────────────────────
   const cliMap = {};
@@ -14258,7 +14278,7 @@ function renderProdutos(rows) {
   const subCat = el('prod-cat-sub');
   if (subCat) subCat.textContent = `${catRank.length} categorias`;
 
-  const CORES = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
+  const CORES = ['#1e7a4c','#2f9a64','#4cb886','#7fd0aa','#3c4249','#5c636c','#8b939c','#b9c1c9','#d9dee3','#a8dcc2'];
   const ctxCat = el('prod-chart-cat')?.getContext('2d');
   // Sem ajustarZoomGrafico: ele aplica zoom/height inline no container e o
   // card encolhe, deixando de acompanhar o Ranking ao lado.
