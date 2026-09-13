@@ -61,9 +61,31 @@
           if (ds.maxBarThickness == null) ds.maxBarThickness = 34;
         }
         if (t === 'line') {
-          if (ds.tension == null) ds.tension = 0.4;
+          ds.tension     = 0.45;
+          ds.borderWidth = ds.borderWidth ?? 2.5;
+          ds.borderCapStyle = 'round';
+          ds.borderJoinStyle = 'round';
+          if (ds.pointRadius == null) ds.pointRadius = 0;
+          ds.pointHoverRadius = 5;
+          ds.pointHoverBorderWidth = 3;
+          ds.pointHoverBorderColor = '#fff';
+        }
+        if (t === 'doughnut' || t === 'pie') {
+          /* Anel grosso, pontas arredondadas e folga entre fatias —
+             e isso que da o visual limpo da referencia. */
+          ds.borderRadius = 12;
+          ds.spacing      = 4;
+          ds.borderWidth  = 0;
+          ds.hoverOffset  = 6;
         }
       });
+      /* anel mais fino/aberto, como na referencia */
+      const tipo2 = chart.config.type;
+      if ((tipo2 === 'doughnut' || tipo2 === 'pie') && chart.options) {
+        if (chart.options.cutout == null || chart.options.cutout === '68%') {
+          chart.options.cutout = '72%';
+        }
+      }
     }
   });
 
@@ -1538,6 +1560,38 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
   box-shadow:0 4px 14px rgba(17,19,24,.07); }
 .tb-user > div[style*="flex-direction:column"]{ flex:1; line-height:1.25; }
 .tb-user svg{ flex-shrink:0; }
+
+
+/* ─── 19. LEGENDAS E CARDS DE GRAFICO ───────────────────── */
+/* legenda: bolinha + rotulo + valor a direita, como na referencia */
+.donut-legend,.chart-legend{ display:flex; flex-direction:column; gap:9px; }
+.donut-legend > div,.chart-legend > div{
+  display:flex; align-items:center; gap:9px; font-size:12px; color:var(--text2);
+}
+.donut-legend span[style*="border-radius:50%"],
+.chart-legend span[style*="border-radius:50%"]{
+  width:8px !important; height:8px !important; flex-shrink:0;
+}
+
+/* cartao que embrulha qualquer grafico */
+canvas{ max-width:100%; }
+
+/* ─── 20. CARDS: padrao unico em todo o sistema ─────────── */
+.card,.section-card,.metric-card,.fcard,.kpi,.hcard,.fin-card{
+  background:#fff; border:1px solid var(--border); border-radius:20px;
+}
+.card{ padding:18px 20px; }
+.section-card-header{ padding:16px 20px !important; }
+.section-card-title{ font-size:14.5px; font-weight:600; letter-spacing:-.015em; }
+
+/* titulo de secao: o emoji vira discreto em vez de dominar */
+.section-card-title > :first-child{ opacity:.7; }
+
+/* selects e pilulas dentro de cabecalho de card */
+.section-card-header select,.card-header select{
+  border-radius:999px !important; padding:7px 14px; font-size:12px;
+  border:1px solid var(--border); background:#fff;
+}
 
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
@@ -12160,7 +12214,7 @@ async function loadContasPagar() {
     catMap[cat] = (catMap[cat]||0) + Number(c.valor||0);
   });
   const catArr = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
-  const CORES_CP = ['#22a45d','#dc2626','#d97706','#2563eb','#15803d','#0891b2','#15803d','#db2777'];
+  const CORES_CP = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
   const totalCat = catArr.reduce((s,[,v])=>s+v,0);
 
   if (!window._cpChartCat) window._cpChartCat = null;
@@ -12594,7 +12648,7 @@ async function loadLucratividade() {
   if(el('luc-comissao')) el('luc-comissao').textContent = fmtBRL(totalComissao);
   if(el('luc-custoserv'))el('luc-custoserv').textContent= fmtBRL(totalServico);
 
-  const CORES = ['#15803d','#2563eb','#22a45d','#d97706','#0891b2','#dc2626','#1a8f52','#15803d','#ea580c','#0e7490'];
+  const CORES = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
 
   // ── Gráfico composição: Custo Serviço · Custo Comissão · Lucro (barras verticais) ──
   const ctxComp = el('luc-chart-comp')?.getContext('2d');
@@ -13003,7 +13057,7 @@ function renderClientesPage() {
   }
 
   // ── GRÁFICO 1: Atendimentos por dia do mês (usa ultimaVisita, já filtrado por mês/ano) ──
-  const CORES_CLI = ['#15803d','#2563eb','#22a45d','#d97706','#0891b2','#dc2626','#1a8f52','#15803d'];
+  const CORES_CLI = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
   const diasMap = {};
   todos.forEach(c => {
     if (!c.ultimaVisita) return;
@@ -13113,7 +13167,7 @@ function formatarTelefoneCliente(v) {
 
 function renderClientes(linhas, ano, mes) {
   const el = id => document.getElementById(id);
-  const CORES = ['#15803d','#2563eb','#22a45d','#d97706','#0891b2','#dc2626','#1a8f52','#15803d'];
+  const CORES = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
 
   // ── Agrupa por cliente ──────────────────────────────────
   const cliMap = {};
@@ -13501,7 +13555,7 @@ function renderProdutos(rows) {
   const subCat = el('prod-cat-sub');
   if (subCat) subCat.textContent = `${catRank.length} categorias`;
 
-  const CORES = ['#15803d','#2563eb','#22a45d','#d97706','#0891b2','#dc2626','#1a8f52','#15803d','#ea580c'];
+  const CORES = ['#22a45d','#34c97a','#6ee7a8','#a7f3c9','#45454b','#82828c','#d0d0d4','#15803d','#0f3d24','#dcfce7'];
   const ctxCat = el('prod-chart-cat')?.getContext('2d');
   // Sem ajustarZoomGrafico: ele aplica zoom/height inline no container e o
   // card encolhe, deixando de acompanhar o Ranking ao lado.
