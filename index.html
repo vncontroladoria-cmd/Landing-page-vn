@@ -1894,51 +1894,90 @@ canvas{ max-width:100%; }
 
 /* ══════════════════════════════════════════════════════════
    25. CARDS COLORIDOS EM TODO O SISTEMA
-   Mesmo tratamento do dashboard aplicado a .hcard, .fcard,
-   .metric-card e .mini — que sao TODOS os cards de numero.
-   Cards-container (.card, .section-card) continuam brancos.
+   ORDEM IMPORTA: a cor padrao vem PRIMEIRO, as variantes depois.
+   (Antes o padrao estava no fim e engolia todas as variantes —
+   por isso os 5 cards de apoio sairam todos verdes.)
    ══════════════════════════════════════════════════════════ */
 
-.hcard, .fcard, .metric-card, .mini{
+/* ─── 25.1 cor padrao (so vale se o card nao tiver variante) ─── */
+.hcard,.fcard,.metric-card,.mini,.kpi-hero{
+  --g1:#4ab884; --g2:#6bcb9c; --g3:#96debb; --gl:rgba(34,164,93,.30);
+}
+
+/* ─── 25.2 variantes ─── */
+.hcard.green,.metric-card.c-green,.mini-green,.fcard.success,.kpi-hero.kpi-green{
+  --g1:#3fb074; --g2:#5ec593; --g3:#8fdcb5; --gl:rgba(34,164,93,.32);
+}
+.hcard.blue,.metric-card.c-blue,.mini-blue,.kpi-hero.kpi-blue{
+  --g1:#4f7fdd; --g2:#7099e8; --g3:#a2bdf2; --gl:rgba(59,130,246,.30);
+}
+.hcard.teal,.metric-card.c-teal,.mini-teal,.kpi-hero.kpi-mint{
+  --g1:#3ba3bd; --g2:#5bbad1; --g3:#92d6e3; --gl:rgba(8,145,178,.30);
+}
+.hcard.amber,.metric-card.c-amber,.mini-amber,.kpi-hero.kpi-lime{
+  --g1:#d6a04e; --g2:#e3b672; --g3:#f0d2a4; --gl:rgba(217,119,6,.28);
+}
+.hcard.red,.metric-card.c-red,.mini-red{
+  --g1:#d4726e; --g2:#e08e8a; --g3:#eeb5b2; --gl:rgba(220,38,38,.28);
+}
+.hcard.purple,.hcard.indigo,.metric-card.c-purple,.mini-forest{
+  --g1:#2f7d55; --g2:#4a9c72; --g3:#80c4a0; --gl:rgba(21,128,61,.32);
+}
+.hcard.pink,.mini-pink{
+  --g1:#cc75a1; --g2:#dc93b6; --g3:#ebbbd2; --gl:rgba(219,39,119,.26);
+}
+.hcard.dark,.hcard.gray,.mini-ink{
+  --g1:#565660; --g2:#6f6f79; --g3:#9b9ba3; --gl:rgba(17,19,24,.32);
+}
+
+/* ─── 25.3 o desenho do card ─── */
+.hcard,.fcard,.metric-card,.mini,.kpi-hero{
   position:relative; overflow:hidden;
   border:none !important;
   color:#fff !important;
   background-color:transparent !important;
-  background-image:var(--gradiente) !important;
-  box-shadow:0 10px 30px -12px var(--gl);
+  background-image:
+    radial-gradient(125% 125% at 0% 0%,   var(--g3) 0%, transparent 60%),
+    radial-gradient(125% 125% at 100% 100%, var(--g1) 0%, transparent 58%),
+    linear-gradient(135deg, var(--g1) 0%, var(--g2) 52%, var(--g3) 100%) !important;
+  box-shadow:0 8px 24px -12px var(--gl);
   transition:transform .3s var(--ease), box-shadow .3s var(--ease);
 }
-.hcard:hover,.fcard:hover,.metric-card:hover,.mini:hover{
+.hcard:hover,.fcard:hover,.metric-card:hover,.mini:hover,.kpi-hero:hover{
   transform:translateY(-4px);
-  box-shadow:0 20px 44px -16px var(--gl);
+  box-shadow:0 18px 40px -16px var(--gl);
   border:none !important;
 }
 
-/* brilho de vidro por cima, sem tapar o conteudo */
-.hcard::before,.fcard::before,.metric-card::before,.mini::before{
+/* brilho de vidro, atras do conteudo */
+.hcard::before,.fcard::before,.metric-card::before,.mini::before,.kpi-hero::before{
   content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background:linear-gradient(135deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 46%);
+  background:linear-gradient(135deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 48%);
   display:block; width:auto; height:auto; border-radius:0; transform:none;
 }
-.hcard > *,.fcard > *,.metric-card > *,.mini > *{ position:relative; z-index:1; }
-.hcard::after,.metric-card::after{ display:none; }
+.hcard > *,.fcard > *,.metric-card > *,.mini > *,.kpi-hero > *{ position:relative; z-index:1; }
+.hcard::after,.metric-card::after,.kpi-hero::after{ display:none; }
 
-/* textos ficam brancos */
-.hcard-label,.fcard-label,.metric-label,.mini-label,
-.hcard-sub,.fcard-sub,.metric-sub,.mini-sub{ color:rgba(255,255,255,.80) !important; }
-.hcard-value,.fcard-value,.metric-val,.mini-value{ color:#fff !important; }
-.fcard-value.blue,.fcard-value.green,.metric-val.green,.metric-delta.up{ color:#fff !important; }
-
-/* chip do icone: vidro translucido */
-.hcard-icon,.fcard-icon,.mini-ico,.fcard-icon-row .fcard-icon{
-  background:rgba(255,255,255,.20) !important;
-  border:1px solid rgba(255,255,255,.30) !important;
-  box-shadow:none !important; backdrop-filter:none;
-  color:#fff !important;
+/* textos */
+.hcard-label,.fcard-label,.metric-label,.mini-label,.kpi-hero .kpi-label,
+.hcard-sub,.fcard-sub,.metric-sub,.mini-sub,.kpi-hero .kpi-sub{
+  color:rgba(255,255,255,.86) !important;
 }
-.hcard-icon svg,.mini-ico svg,.fcard-icon svg{ stroke:#fff !important; }
+.hcard-value,.fcard-value,.metric-val,.mini-value,.kpi-hero .kpi-value,
+.fcard-value.blue,.fcard-value.green,.metric-val.green,.metric-delta.up{
+  color:#fff !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.10);
+}
 
-/* o icone do .hcard era marca d'agua gigante: vira chip no canto */
+/* chip do icone */
+.hcard-icon,.fcard-icon,.mini-ico,.kpi-hero .kpi-icon{
+  background:rgba(255,255,255,.24) !important;
+  border:1px solid rgba(255,255,255,.34) !important;
+  box-shadow:none !important; backdrop-filter:none; color:#fff !important;
+}
+.hcard-icon svg,.mini-ico svg,.fcard-icon svg,.kpi-hero .kpi-icon svg{ stroke:#fff !important; }
+
+/* o icone do .hcard era marca d'agua cortada: vira chip no canto */
 .hcard{ padding:18px 20px; border-radius:20px; }
 .hcard-icon{
   position:absolute; top:16px; right:16px; bottom:auto; left:auto;
@@ -1946,72 +1985,6 @@ canvas{ max-width:100%; }
   display:flex; align-items:center; justify-content:center;
 }
 .hcard-label{ padding-right:44px; }
-
-/* ─────────── PALETAS (--gradiente + --gl) ─────────── */
-.hcard.green,  .metric-card.c-green, .mini-green, .fcard.success{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #34c97a 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #15803d 0%, transparent 58%),
-    linear-gradient(135deg,#1a8f52 0%,#22a45d 55%,#34c97a 100%);
-  --gl:rgba(21,128,61,.55);
-}
-.hcard.blue,   .metric-card.c-blue{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #60a5fa 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #1d4ed8 0%, transparent 58%),
-    linear-gradient(135deg,#1d4ed8 0%,#2563eb 55%,#60a5fa 100%);
-  --gl:rgba(37,99,235,.50);
-}
-.hcard.teal,   .metric-card.c-teal, .mini-teal{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #38bdf8 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #0e7490 0%, transparent 58%),
-    linear-gradient(135deg,#0e7490 0%,#0891b2 55%,#38bdf8 100%);
-  --gl:rgba(14,116,144,.50);
-}
-.hcard.amber,  .metric-card.c-amber, .mini-amber{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #fbbf24 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #b45309 0%, transparent 58%),
-    linear-gradient(135deg,#b45309 0%,#d97706 55%,#fbbf24 100%);
-  --gl:rgba(180,83,9,.50);
-}
-.hcard.red,    .metric-card.c-red, .mini-red{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #f87171 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #991b1b 0%, transparent 58%),
-    linear-gradient(135deg,#991b1b 0%,#dc2626 55%,#f87171 100%);
-  --gl:rgba(185,28,28,.50);
-}
-.hcard.purple, .hcard.indigo, .metric-card.c-purple{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #6ee7a8 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #0f3d24 0%, transparent 58%),
-    linear-gradient(135deg,#0f3d24 0%,#15803d 55%,#6ee7a8 100%);
-  --gl:rgba(15,61,36,.55);
-}
-.hcard.pink{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #f9a8d4 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #9d174d 0%, transparent 58%),
-    linear-gradient(135deg,#9d174d 0%,#db2777 55%,#f9a8d4 100%);
-  --gl:rgba(157,23,77,.48);
-}
-.hcard.dark, .hcard.gray, .mini-ink{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #56565e 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #111113 0%, transparent 58%),
-    linear-gradient(135deg,#111113 0%,#343438 55%,#56565e 100%);
-  --gl:rgba(17,19,24,.50);
-}
-/* card sem variante: verde da marca, para nada ficar transparente */
-.hcard,.fcard,.metric-card,.mini{
-  --gradiente:
-    radial-gradient(120% 120% at 0% 0%, #34c97a 0%, transparent 62%),
-    radial-gradient(120% 120% at 100% 0%, #15803d 0%, transparent 58%),
-    linear-gradient(135deg,#1a8f52 0%,#22a45d 55%,#34c97a 100%);
-  --gl:rgba(21,128,61,.50);
-}
 
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
@@ -3816,7 +3789,7 @@ canvas{ max-width:100%; }
               </div>
             </div>
 
-            <div class="mini mini-amber">
+            <div class="mini mini-blue">
               <span class="mini-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg></span>
               <div class="mini-txt">
                 <span class="mini-label">Produtos</span>
@@ -3834,7 +3807,7 @@ canvas{ max-width:100%; }
               </div>
             </div>
 
-            <div class="mini mini-red">
+            <div class="mini mini-amber">
               <span class="mini-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h3"/></svg></span>
               <div class="mini-txt">
                 <span class="mini-label">Total a pagar</span>
@@ -3843,7 +3816,7 @@ canvas{ max-width:100%; }
               </div>
             </div>
 
-            <div class="mini mini-ink">
+            <div class="mini mini-forest">
               <span class="mini-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9M3 21h18"/></svg></span>
               <div class="mini-txt">
                 <span class="mini-label">Saldo em caixa</span>
