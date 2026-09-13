@@ -1683,6 +1683,114 @@ canvas{ max-width:100%; }
 /* o filete inferior fica sutil sobre a malha */
 .kpi::after{ height:2.5px; opacity:.85; }
 
+
+/* ══════════════════════════════════════════════════════════
+   22. DASHBOARD RECONSTRUIDO
+   Grid 4+5 em vez de 6 apertados. Platinado SO na linha de
+   destaque; a linha de apoio e branca lisa (como na referencia,
+   onde so os cartoes de conta tem gradiente).
+   ══════════════════════════════════════════════════════════ */
+
+/* ─ cabecalho ─ */
+.dash-head{
+  display:flex; justify-content:space-between; align-items:flex-end;
+  gap:20px; flex-wrap:wrap; margin-bottom:22px;
+}
+.dash-title{ font-size:27px; font-weight:700; letter-spacing:-.035em;
+  color:var(--text); margin:0; line-height:1.15; }
+.dash-sub{ font-size:13px; color:var(--text2); margin:5px 0 0; }
+.dash-filters-row{ display:flex; gap:9px; align-items:flex-end; flex-wrap:wrap; }
+.ff{ display:flex; flex-direction:column; gap:5px; }
+.ff > span{ font-size:10px; font-weight:600; color:var(--text3);
+  letter-spacing:.06em; text-transform:uppercase; padding-left:12px; }
+.ff select,.ff input{
+  height:40px; padding:0 14px; font-size:13px; font-family:'Outfit',sans-serif;
+  border:1px solid var(--border); border-radius:999px; background:#fff;
+  color:var(--text); cursor:pointer; transition:border-color .18s, box-shadow .18s;
+}
+.ff select:hover,.ff input:hover{ border-color:var(--border2); }
+.ff select:focus,.ff input:focus{ outline:none; border-color:var(--g500);
+  box-shadow:0 0 0 3px rgba(34,164,93,.15); }
+.dash-filters-row .btn{ height:40px; display:inline-flex; align-items:center;
+  gap:8px; padding:0 20px; font-size:13px; }
+.dash-filters-row .btn svg{ width:16px; height:16px; }
+.btn-ghost{ background:#fff; border:1px solid var(--border); color:var(--text2); }
+.btn-ghost:hover{ background:var(--bg3); border-color:var(--border2); color:var(--text); }
+
+/* ─ grids ─ */
+.kpi-grid{ display:grid; gap:16px; margin-bottom:16px; }
+.kpi-grid-4{ grid-template-columns:repeat(4,1fr); }
+.kpi-grid-5{ grid-template-columns:repeat(5,1fr); }
+@media (max-width:1400px){ .kpi-grid-5{ grid-template-columns:repeat(3,1fr); } }
+@media (max-width:1100px){
+  .kpi-grid-4{ grid-template-columns:repeat(2,1fr); }
+  .kpi-grid-5{ grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width:640px){
+  .kpi-grid-4,.kpi-grid-5{ grid-template-columns:1fr; }
+  .dash-title{ font-size:22px; }
+}
+
+/* ─ LINHA 1: cards de destaque, platinados ─ */
+.kpi-hero{
+  min-height:132px; padding:20px 22px; border-radius:22px;
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+.kpi-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.kpi-hero .kpi-label{
+  margin:0; padding:0; font-size:12.5px; font-weight:500; letter-spacing:0;
+  text-transform:none; color:var(--text2);
+}
+.kpi-hero .kpi-value{
+  font-size:31px; font-weight:700; letter-spacing:-.035em;
+  line-height:1; margin-top:14px; color:var(--text);
+}
+.kpi-hero .kpi-sub{ font-size:11.5px; color:var(--text3); margin-top:9px; }
+.kpi-hero .kpi-icon{
+  position:static; width:38px; height:38px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.75) !important;
+  border:1px solid rgba(255,255,255,.95);
+  box-shadow:0 2px 8px rgba(17,19,24,.07);
+}
+.kpi-hero .kpi-icon svg{ width:19px; height:19px; stroke:var(--c); }
+.kpi-hero::after{ display:none; }
+
+/* ─ LINHA 2: cards de apoio, BRANCO LISO (sem platinado) ─ */
+.mini{
+  display:flex; align-items:center; gap:14px;
+  padding:16px 18px; border-radius:18px;
+  background:#fff !important; background-image:none !important;
+  border:1px solid var(--border);
+  box-shadow:0 1px 2px rgba(17,19,24,.04);
+  transition:transform .28s var(--ease), box-shadow .28s var(--ease), border-color .28s;
+}
+.mini:hover{ transform:translateY(-3px); border-color:var(--mc);
+  box-shadow:0 12px 28px -14px var(--mg); }
+.mini-ico{
+  width:42px; height:42px; border-radius:13px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--mbg); transition:transform .28s var(--ease);
+}
+.mini:hover .mini-ico{ transform:scale(1.07); }
+.mini-ico svg{ width:19px; height:19px; stroke:var(--mc); }
+.mini-txt{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.mini-label{ font-size:11.5px; color:var(--text2); font-weight:500; }
+.mini-value{ font-size:19px; font-weight:700; letter-spacing:-.03em;
+  color:var(--text); font-variant-numeric:tabular-nums; line-height:1.15; }
+.mini-sub{ font-size:10.5px; color:var(--text3); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+
+.mini-green{--mc:#15803d;--mbg:#f0fdf4;--mg:rgba(21,128,61,.45)}
+.mini-amber{--mc:#b45309;--mbg:#fffbeb;--mg:rgba(180,83,9,.40)}
+.mini-teal {--mc:#0e7490;--mbg:#ecfeff;--mg:rgba(14,116,144,.40)}
+.mini-red  {--mc:#b91c1c;--mbg:#fef2f2;--mg:rgba(185,28,28,.38)}
+.mini-ink  {--mc:#343438;--mbg:#f4f5f7;--mg:rgba(17,19,24,.30)}
+
+/* platinado agora vale SO para os cards de destaque.
+   Cards comuns voltam a ser branco liso. */
+.fcard,.metric-card,.fincard{ background-image:none !important; background-color:#fff; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -3399,116 +3507,127 @@ canvas{ max-width:100%; }
         <!-- DASHBOARD -->
         <div class="page active" id="page-dashboard">
 
-          <!-- HEADER + FILTROS -->
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.2rem;flex-wrap:wrap;gap:10px">
-            <div>
-              <div style="font-size:18px;font-weight:700">Dashboard Executivo</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:2px">Visão consolidada da operação do salão</div>
+          <!-- ════ CABECALHO ════ -->
+          <div class="dash-head">
+            <div class="dash-head-txt">
+              <h1 class="dash-title">Dashboard Executivo</h1>
+              <p class="dash-sub">Visão consolidada da operação do salão</p>
             </div>
-            <div class="dash-filters-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">ANO</span>
-                <select id="dash-ano" onchange="comLoader('Carregando Dashboard...', loadDashboard)" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+            <div class="dash-filters-row">
+              <label class="ff"><span>Ano</span>
+                <select id="dash-ano" onchange="comLoader('Carregando Dashboard...', loadDashboard)">
                   <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
                 </select>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">MÊS</span>
-                <select id="dash-mes" onchange="comLoader('Carregando Dashboard...', loadDashboard)" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
+              </label>
+              <label class="ff"><span>Mês</span>
+                <select id="dash-mes" onchange="comLoader('Carregando Dashboard...', loadDashboard)">
                   <option value="">Todos os meses</option>
                   <option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option>
                   <option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option>
                   <option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option>
                   <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
                 </select>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">DATA INI</span>
-                <input type="date" id="dash-ini" onchange="comLoader('Carregando Dashboard...', loadDashboard)" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
-              </div>
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase">DATA FIM</span>
-                <input type="date" id="dash-fim" onchange="comLoader('Carregando Dashboard...', loadDashboard)" style="padding:5px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--text)">
-              </div>
-              <button class="btn" onclick="document.getElementById('dash-ini').value='';document.getElementById('dash-fim').value='';comLoader('Carregando Dashboard...', loadDashboard)">Limpar</button>
-              <button class="btn btn-primary" onclick="comLoader('Carregando Dashboard...', loadDashboard)">↻ Atualizar</button>
+              </label>
+              <label class="ff"><span>Data início</span>
+                <input type="date" id="dash-ini" onchange="comLoader('Carregando Dashboard...', loadDashboard)">
+              </label>
+              <label class="ff"><span>Data fim</span>
+                <input type="date" id="dash-fim" onchange="comLoader('Carregando Dashboard...', loadDashboard)">
+              </label>
+              <button class="btn btn-ghost" onclick="document.getElementById('dash-ini').value='';document.getElementById('dash-fim').value='';comLoader('Carregando Dashboard...', loadDashboard)">Limpar</button>
+              <button class="btn btn-primary" onclick="comLoader('Carregando Dashboard...', loadDashboard)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 11-2.6-6.4"/><polyline points="21 3 21 9 15 9"/></svg>
+                Atualizar
+              </button>
             </div>
           </div>
 
-          <!-- LINHA 1: 6 CARDS COLORIDOS PRINCIPAIS -->
-          <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
-            <!-- Faturamento -->
-            <div class="kpi kpi-green">
-              <div class="kpi-label">FATURAMENTO</div>
-              <div class="kpi-value" id="m-fat">—</div>
-              <div class="kpi-sub" id="m-fat-d">faturamento de serviços</div>
-              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+          <!-- ════ LINHA 1 — 4 INDICADORES PRINCIPAIS (platinado) ════ -->
+          <div class="kpi-grid kpi-grid-4">
+
+            <div class="kpi kpi-hero kpi-green">
+              <div class="kpi-top">
+                <span class="kpi-label">Faturamento</span>
+                <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+              </div>
+              <div class="kpi-value" id="m-fat">R$ 0,00</div>
+              <div class="kpi-sub" id="m-fat-d">—</div>
             </div>
-            <!-- Clientes -->
-            <div class="kpi kpi-blue">
-              <div class="kpi-label">CLIENTES</div>
-              <div class="kpi-value" id="m-cli">—</div>
-              <div class="kpi-sub" id="m-cli-d">clientes únicos</div>
-              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg></div>
+
+            <div class="kpi kpi-hero kpi-blue">
+              <div class="kpi-top">
+                <span class="kpi-label">Clientes</span>
+                <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg></span>
+              </div>
+              <div class="kpi-value" id="m-cli">0</div>
+              <div class="kpi-sub" id="m-cli-d">—</div>
             </div>
-            <!-- Serviços -->
-            <div class="kpi kpi-mint">
-              <div class="kpi-label">SERVIÇOS</div>
-              <div class="kpi-value" id="m-srv">—</div>
-              <div class="kpi-sub" id="m-srv-d">atendimentos</div>
-              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88"/><path d="M14.47 14.48L20 20"/><path d="M8.12 8.12L12 12"/></svg></div>
-            </div>
-            <!-- Produtos -->
-            <div class="kpi kpi-amber">
-              <div class="kpi-label">PRODUTOS</div>
-              <div class="kpi-value" id="m-prod">—</div>
-              <div class="kpi-sub" id="m-prod-d">unidades vendidas</div>
-              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg></div>
-            </div>
-            <!-- Ticket Médio -->
-            <div class="kpi kpi-teal">
-              <div class="kpi-label">TICKET MÉDIO</div>
-              <div class="kpi-value" id="m-ticket">—</div>
+
+            <div class="kpi kpi-hero kpi-mint">
+              <div class="kpi-top">
+                <span class="kpi-label">Ticket médio</span>
+                <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></span>
+              </div>
+              <div class="kpi-value" id="m-ticket">R$ 0,00</div>
               <div class="kpi-sub">por atendimento</div>
-              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></div>
             </div>
-            <!-- Média de Faturamento/dia -->
-            <div class="kpi kpi-lime">
-              <div class="kpi-label">MÉDIA DE FATURAMENTO</div>
-              <div class="kpi-value" id="m-media-fat">—</div>
-              <div class="kpi-sub" id="m-media-fat-d">por dia trabalhado</div>
-              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></div>
+
+            <div class="kpi kpi-hero kpi-lime">
+              <div class="kpi-top">
+                <span class="kpi-label">Média de faturamento</span>
+                <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span>
+              </div>
+              <div class="kpi-value" id="m-media-fat">R$ 0,00</div>
+              <div class="kpi-sub" id="m-media-fat-d">—</div>
             </div>
           </div>
 
-          <!-- LINHA 2: 3 CARDS FINANCEIROS BRANCOS -->
-          <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
-            <!-- A Vencer -->
-            <div class="card fincard fincard-green">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span class="fin-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">A Vencer</span>
+          <!-- ════ LINHA 2 — INDICADORES DE APOIO (branco liso) ════ -->
+          <div class="kpi-grid kpi-grid-5">
+
+            <div class="mini mini-green">
+              <span class="mini-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg></span>
+              <div class="mini-txt">
+                <span class="mini-label">Serviços</span>
+                <span class="mini-value" id="m-srv">0</span>
+                <span class="mini-sub" id="m-srv-d">—</span>
               </div>
-              <div style="font-size:14px;font-weight:800;color:#22a45d;font-family:'Outfit',sans-serif" id="m-avencer">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-avencer-d">contas a pagar</div>
             </div>
-            <!-- Total a Pagar -->
-            <div class="card fincard fincard-blue">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span class="fin-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h3"/></svg></span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Total a Pagar</span>
+
+            <div class="mini mini-amber">
+              <span class="mini-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg></span>
+              <div class="mini-txt">
+                <span class="mini-label">Produtos</span>
+                <span class="mini-value" id="m-prod">0</span>
+                <span class="mini-sub" id="m-prod-d">—</span>
               </div>
-              <div style="font-size:14px;font-weight:800;color:#2563eb;font-family:'Outfit',sans-serif" id="m-total-pagar">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-total-pagar-d">sem pendências</div>
             </div>
-            <!-- Saldo em Caixa -->
-            <div class="card fincard fincard-teal">
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span class="fin-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9"/><path d="M3 21h18"/></svg></span>
-                <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Saldo em Caixa</span>
+
+            <div class="mini mini-teal">
+              <span class="mini-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span>
+              <div class="mini-txt">
+                <span class="mini-label">A vencer</span>
+                <span class="mini-value" id="m-avencer">R$ 0,00</span>
+                <span class="mini-sub" id="m-avencer-d">—</span>
               </div>
-              <div style="font-size:14px;font-weight:800;color:#0891b2;font-family:'Outfit',sans-serif" id="m-saldo-caixa">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-saldo-caixa-d">saldo PDV do período</div>
+            </div>
+
+            <div class="mini mini-red">
+              <span class="mini-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h3"/></svg></span>
+              <div class="mini-txt">
+                <span class="mini-label">Total a pagar</span>
+                <span class="mini-value" id="m-total-pagar">R$ 0,00</span>
+                <span class="mini-sub" id="m-total-pagar-d">—</span>
+              </div>
+            </div>
+
+            <div class="mini mini-ink">
+              <span class="mini-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9M3 21h18"/></svg></span>
+              <div class="mini-txt">
+                <span class="mini-label">Saldo em caixa</span>
+                <span class="mini-value" id="m-saldo-caixa">R$ 0,00</span>
+                <span class="mini-sub" id="m-saldo-caixa-d">—</span>
+              </div>
             </div>
           </div>
 
