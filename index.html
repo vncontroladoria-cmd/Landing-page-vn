@@ -2319,6 +2319,80 @@ progress::-webkit-progress-value,.progress-bar,.bar-fill{ background:var(--g600)
     #1e7a4c 62%, #3fae76 82%, #24875a 100%) !important;
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   31. ALINHAMENTO — TODO ICONE A DIREITA
+   .hcard ja tinha o icone no canto direito, mas .fcard e .mini
+   ficavam com ele a esquerda. Fileiras vizinhas pareciam de
+   sistemas diferentes.
+   ══════════════════════════════════════════════════════════ */
+
+/* .fcard: icone e rotulo estavam colados a esquerda */
+.fcard{ padding:16px 18px; border-radius:18px; }
+.fcard-icon-row{
+  display:flex; align-items:flex-start; gap:12px;
+  flex-direction:row-reverse; justify-content:space-between;
+  margin-bottom:10px; min-height:34px;
+}
+.fcard-label{
+  flex:1; font-size:12px; font-weight:500; line-height:1.3;
+  padding-top:7px;
+}
+.fcard-icon{
+  width:34px; height:34px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px;
+}
+.fcard-value{ font-size:21px; font-weight:700; letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums; line-height:1.1; }
+.fcard-sub{ font-size:11px; margin-top:6px; }
+
+/* .mini: mesma logica */
+.mini{
+  flex-direction:row-reverse; justify-content:space-between;
+  align-items:flex-start; padding:15px 17px;
+}
+.mini-ico{ margin-left:12px; }
+.mini-txt{ flex:1; min-width:0; }
+
+/* .hcard e .kpi-hero ja estao a direita — so alinho a altura */
+.hcard,.fcard,.mini,.kpi-hero{ min-height:104px; }
+.hcard{ display:flex; flex-direction:column; justify-content:flex-start; }
+.hcard-value{ margin-top:auto; padding-top:8px; }
+
+/* ══════════════════════════════════════════════════════════
+   32. CARDS SAINDO DA LINHA
+   .hero-cards e .fin-cards tinham numero fixo de colunas e nao
+   encolhiam: em tela estreita os cards vazavam para fora.
+   ══════════════════════════════════════════════════════════ */
+.hero-cards,.fin-cards,.kpi-grid{ gap:14px; }
+.hero-cards > *,.fin-cards > *,.kpi-grid > *{ min-width:0; }
+
+@media (max-width:1500px){
+  .hero-cards.cols-7,.fin-cards.cols-7{ grid-template-columns:repeat(4,1fr); }
+  .hero-cards.cols-6,.fin-cards.cols-6{ grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width:1250px){
+  .hero-cards,.fin-cards,
+  .hero-cards.cols-5,.fin-cards.cols-5,
+  .hero-cards.cols-6,.fin-cards.cols-6,
+  .hero-cards.cols-7,.fin-cards.cols-7{ grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width:900px){
+  .hero-cards,.fin-cards,.kpi-grid,
+  .hero-cards[class*="cols-"],.fin-cards[class*="cols-"]{
+    grid-template-columns:repeat(2,1fr) !important;
+  }
+}
+@media (max-width:560px){
+  .hero-cards,.fin-cards,.kpi-grid,
+  .hero-cards[class*="cols-"],.fin-cards[class*="cols-"]{
+    grid-template-columns:1fr !important;
+  }
+}
+/* nada pode empurrar a pagina para os lados */
+.content,.page{ max-width:100%; overflow-x:clip; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
