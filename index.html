@@ -2720,6 +2720,115 @@ progress::-webkit-progress-value,.progress-bar,.bar-fill{ background:var(--g600)
   #painel-operador .cal-ev-hora{ min-width:0; }
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   37. RESPOSTA AO MOUSE
+   Regra que segui: quanto mais clicavel, mais forte a reacao.
+   Linha de tabela -> destaque leve. Botao -> sobe e ganha sombra.
+   Card de numero -> salta. Assim o movimento informa o que da
+   para clicar, em vez de so enfeitar.
+   ══════════════════════════════════════════════════════════ */
+
+/* ─ menu principal ─ */
+.nav-item{ position:relative; transition:background .18s var(--ease), color .18s var(--ease), padding-left .18s var(--ease); }
+.nav-item:hover:not(.active){ background:var(--g100); color:var(--g800); padding-left:1rem; }
+.nav-item:hover:not(.active) svg{ stroke:var(--g700); }
+.nav-item:not(.active)::after{
+  content:''; position:absolute; left:4px; top:50%; width:3px; height:0;
+  background:var(--g600); border-radius:999px; transform:translateY(-50%);
+  transition:height .22s var(--ease);
+}
+.nav-item:hover:not(.active)::after{ height:60%; }
+.nav-item.active:hover{ box-shadow:0 7px 20px rgba(34,164,93,.38); }
+.submenu-item{ transition:background .18s var(--ease), color .18s var(--ease), padding-left .18s var(--ease); }
+.submenu-item:hover{ padding-left:1.15rem; }
+
+/* ─ linhas de tabela ─ */
+.content tbody tr{ position:relative; transition:background .16s var(--ease), box-shadow .2s var(--ease); }
+.content tbody tr:hover{
+  background:var(--g100) !important;
+  box-shadow:inset 3px 0 0 var(--g500);
+}
+.content tbody tr:hover td{ color:var(--text); }
+/* a linha destaca o valor ao passar */
+.content tbody tr:hover .money,
+.content tbody tr:hover td[style*="text-align:right"]{ font-weight:700; }
+/* cabecalho ordenavel avisa que e clicavel */
+.content thead th{ transition:color .16s, background .16s; }
+.content thead th[onclick]{ cursor:pointer; }
+.content thead th[onclick]:hover{ color:var(--g700); background:var(--g100); }
+
+/* ─ cards de numero: saltam ─ */
+.hcard,.fcard,.metric-card,.mini,.kpi-hero{
+  transition:transform .3s var(--ease), box-shadow .3s var(--ease), filter .3s var(--ease);
+}
+.hcard:hover,.fcard:hover,.metric-card:hover,.mini:hover,.kpi-hero:hover{
+  transform:translateY(-6px) scale(1.012);
+  filter:saturate(1.12) brightness(1.04);
+}
+.hcard-icon,.fcard-icon,.mini-ico,.kpi-hero .kpi-icon{ transition:transform .3s var(--ease); }
+.hcard:hover .hcard-icon,
+.fcard:hover .fcard-icon,
+.mini:hover .mini-ico,
+.kpi-hero:hover .kpi-icon{ transform:scale(1.12) rotate(-5deg); }
+.chip-saldo:hover{ transform:translateY(-3px); }
+
+/* ─ caixas brancas ─ */
+.card,.section-card,.box,.stat-box{ transition:box-shadow .28s var(--ease), border-color .28s, transform .28s var(--ease); }
+.card:hover,.section-card:hover,.box:hover{
+  border-color:var(--border2);
+  box-shadow:0 1px 2px rgba(17,19,24,.05), 0 16px 38px -20px rgba(17,19,24,.26);
+}
+
+/* ─ botoes e pilulas ─ */
+.btn,.pill,.tb-btn,.tb-icon,.btn-logout{ transition:transform .2s var(--ease), box-shadow .2s var(--ease), background .16s, border-color .16s, color .16s; }
+.btn:active,.pill:active,.tb-btn:active,.tb-icon:active{ transform:translateY(0) scale(.97); }
+.btn svg,.pill svg,.tb-btn svg{ transition:transform .2s var(--ease); }
+.btn:hover svg,.pill:hover svg,.tb-btn:hover svg{ transform:scale(1.1); }
+
+/* ─ campos ─ */
+select,input[type=text],input[type=date],input[type=time],input[type=number],input[type=search],textarea{
+  transition:border-color .16s, box-shadow .16s, background .16s;
+}
+select:hover,input:hover:not(:focus),textarea:hover:not(:focus){ border-color:var(--border2); }
+
+/* ─ etiquetas e chips clicaveis ─ */
+.badge,.tag{ transition:transform .18s var(--ease), box-shadow .18s var(--ease); }
+.badge[onclick]:hover,.tag[onclick]:hover{ transform:translateY(-1px); box-shadow:0 4px 10px rgba(17,19,24,.14); }
+
+/* ─ abas ─ */
+.tab,.aba,[class*="tab-"]:not([class*="table"]){ transition:color .16s, border-color .16s, background .16s; }
+
+/* ─ links ─ */
+a{ transition:color .16s; }
+a:hover{ color:var(--g600); }
+
+/* ─ itens de lista clicaveis ─ */
+tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
+
+/* ─ menu da Controladoria ─ */
+#painel-operador .op-nav-item{ transition:background .18s var(--ease), color .18s var(--ease), transform .18s var(--ease); }
+#painel-operador .op-nav-item:hover:not(.active){ transform:translateX(2px); }
+#painel-operador .op-nav-item.active:hover{ box-shadow:0 7px 20px rgba(31,112,71,.42); }
+#painel-operador tbody tr{ transition:background .16s, box-shadow .2s; }
+#painel-operador tbody tr:hover{ box-shadow:inset 3px 0 0 #2f9a64; }
+#painel-operador .cal-ev{ transition:background .16s var(--ease); border-radius:10px; }
+#painel-operador .cal-ev:hover{ background:rgba(255,255,255,.04); }
+
+/* ─ acessibilidade: teclado enxerga o mesmo destaque ─ */
+.nav-item:focus-visible,.btn:focus-visible,.pill:focus-visible,
+.tb-btn:focus-visible,.tb-icon:focus-visible,.hcard:focus-visible{
+  outline:2px solid var(--g500); outline-offset:2px;
+}
+
+/* ─ quem pediu menos movimento no sistema, recebe menos ─ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
