@@ -10761,18 +10761,42 @@ async function loadDashboard() {
   // Busca PDV antecipado para preencher cards linha 1
   const hoje0 = new Date();
   const hojeStr0 = hoje0.toISOString().substring(0,10);
+  // ── CACHE PDV ──────────────────────────────────────────────
+  // pdv_caixas + pdv_itens eram buscados 4x nesta funcao, sempre
+  // com o mesmo periodo. Agora busca 1x e reaproveita.
+  const _pdvCache = {};
+  async function pdvPeriodo(_ini, _fim) {
+    const chave = _ini + '|' + _fim;
+    if (_pdvCache[chave]) return _pdvCache[chave];
+    const { data: cx } = await qE('pdv_caixas').select('id,data_caixa')
+      .gte('data_caixa', _ini).lte('data_caixa', _fim);
+    const caixas = cx || [];
+    const mapaData = {};
+    caixas.forEach(c => { mapaData[c.id] = c.data_caixa; });
+    const ids = caixas.map(c => c.id);
+    let itens = [];
+    if (ids.length) {
+      // lotes de 200 disparados juntos, em vez de um esperando o outro
+      const lotes = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        lotes.push(qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
+                     .in('caixa_id', ids.slice(i, i + 200)));
+      }
+      const res = await Promise.all(lotes);
+      res.forEach(r => { if (r?.data?.length) itens = itens.concat(r.data); });
+    }
+    _pdvCache[chave] = { caixas, ids, mapaData, itens };
+    return _pdvCache[chave];
+  }
+
   let pdvDiarioEarly = {}, pdvTotCatEarly = {}, pdvHojeEarly = 0;
   try {
-    const { data: cxE } = await qE('pdv_caixas').select('id,data_caixa')
-      .gte('data_caixa', ini).lte('data_caixa', fim);
+    const _p1 = await pdvPeriodo(ini, fim);
+    const cxE = _p1.caixas;
     if (cxE?.length) {
-      const cxDataE = {}; cxE.forEach(c => { cxDataE[c.id] = c.data_caixa; });
-      const idsE = cxE.map(c => c.id);
-      let itE = [];
-      for(let i=0;i<idsE.length;i+=200){
-        const {data:l} = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').in('caixa_id',idsE.slice(i,i+200));
-        if(l?.length) itE = itE.concat(l);
-      }
+      const cxDataE = _p1.mapaData;
+      const idsE = _p1.ids;
+      const itE = _p1.itens;
       const normE = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       // Exclui "Crédito/Dívida", "Débito/Dívida" e similares — só Comanda, Cartão Crédito, Cartão Débito, Pix
       const isFatE = n => {
@@ -10903,19 +10927,13 @@ async function loadDashboard() {
   let pdvHoje   = 0;  // soma PDV de hoje
 
   try {
-    const { data: caixasPDV } = await qE('pdv_caixas').select('id,data_caixa')
-      .gte('data_caixa', ini).lte('data_caixa', fim);
+    const _p2 = await pdvPeriodo(ini, fim);
+    const caixasPDV = _p2.caixas;
 
     if (caixasPDV?.length) {
-      const caixaData = {}; // id → data_caixa
-      caixasPDV.forEach(c => { caixaData[c.id] = c.data_caixa; });
-      const ids = caixasPDV.map(c => c.id);
-      let itens = [];
-      for (let i = 0; i < ids.length; i += 200) {
-        const { data: lote } = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
-          .in('caixa_id', ids.slice(i, i + 200));
-        if (lote?.length) itens = itens.concat(lote);
-      }
+      const caixaData = _p2.mapaData;
+      const ids = _p2.ids;
+      const itens = _p2.itens;
       // Só ENTRADA: Comanda, Cartão Crédito, Cartão Débito, Pix — exclui Crédito/Dívida
       const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const isFat = n => {
@@ -11106,12 +11124,12 @@ async function loadDashboard() {
   const entCatMap = {};
   try {
     // Busca itens PDV do período (entradas por forma de pagamento)
-    const { data: caixasPer } = await qE('pdv_caixas').select('id')
-      .gte('data_caixa', ini).lte('data_caixa', fim);
+    const _p3 = await pdvPeriodo(ini, fim);
+    const caixasPer = _p3.caixas;
     if (caixasPer?.length) {
-      const ids = caixasPer.map(c => c.id);
-      const { data: itensPdv } = await qE('pdv_itens').select('forma_pagamento,valor,tipo')
-        .in('caixa_id', ids).eq('tipo','ENTRADA');
+      const ids = _p3.ids;
+      // o filtro tipo=ENTRADA agora e feito aqui, sobre o dado ja em memoria
+      const itensPdv = _p3.itens.filter(it => it.tipo === 'ENTRADA');
       (itensPdv||[]).forEach(it => {
         const fp = (it.forma_pagamento||'Outros').trim();
         // Normaliza nomes: agrupa variações
@@ -11273,21 +11291,16 @@ async function loadDashboard() {
 
   try {
     // 1 query: todos os caixas dos 6 meses
-    const { data: cxAll } = await qE('pdv_caixas').select('id,data_caixa')
-      .gte('data_caixa', ini6).lte('data_caixa', fim6);
+    const _p6 = await pdvPeriodo(ini6, fim6);
+    const cxAll = _p6.caixas;
 
     if (cxAll?.length) {
-      // mapa caixaId → mês "MM/AAAA"
+      // mapa caixaId → mês "AAAA-MM"
       const cxMesMap = {};
-      cxAll.forEach(c => { cxMesMap[c.id] = c.data_caixa.substring(0, 7); }); // "AAAA-MM"
+      cxAll.forEach(c => { cxMesMap[c.id] = c.data_caixa.substring(0, 7); });
 
-      const idsAll = cxAll.map(c => c.id);
-      let itAll = [];
-      for (let j = 0; j < idsAll.length; j += 200) {
-        const { data: lote } = await qE('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
-          .in('caixa_id', idsAll.slice(j, j + 200));
-        if (lote?.length) itAll = itAll.concat(lote);
-      }
+      const idsAll = _p6.ids;
+      const itAll  = _p6.itens;
 
       // Filtro correto com unicode
       const isFatT = n => {
