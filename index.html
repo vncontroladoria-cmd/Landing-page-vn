@@ -1733,8 +1733,10 @@ canvas{ max-width:100%; }
 
 /* ─ LINHA 1: cards de destaque, platinados ─ */
 .kpi-hero{
-  min-height:132px; padding:20px 22px; border-radius:22px;
-  display:flex; flex-direction:column; justify-content:space-between;
+  /* SEM min-height + space-between: era isso que abria o buraco no
+     meio do card e empurrava o numero pro rodape. Agora a altura
+     vem do conteudo, compacta, como na referencia. */
+  padding:18px 20px; border-radius:20px; display:block;
 }
 .kpi-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
 .kpi-hero .kpi-label{
@@ -1742,18 +1744,19 @@ canvas{ max-width:100%; }
   text-transform:none; color:var(--text2);
 }
 .kpi-hero .kpi-value{
-  font-size:31px; font-weight:700; letter-spacing:-.035em;
-  line-height:1; margin-top:14px; color:var(--text);
+  font-size:26px; font-weight:700; letter-spacing:-.035em;
+  line-height:1.1; margin-top:12px; color:var(--text);
 }
-.kpi-hero .kpi-sub{ font-size:11.5px; color:var(--text3); margin-top:9px; }
+.kpi-hero .kpi-sub{ font-size:11.5px; color:var(--text3); margin-top:7px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .kpi-hero .kpi-icon{
-  position:static; width:38px; height:38px; border-radius:12px; flex-shrink:0;
+  position:static; width:34px; height:34px; border-radius:11px; flex-shrink:0;
   display:flex; align-items:center; justify-content:center;
   background:rgba(255,255,255,.75) !important;
   border:1px solid rgba(255,255,255,.95);
   box-shadow:0 2px 8px rgba(17,19,24,.07);
 }
-.kpi-hero .kpi-icon svg{ width:19px; height:19px; stroke:var(--c); }
+.kpi-hero .kpi-icon svg{ width:17px; height:17px; stroke:var(--c); }
 .kpi-hero::after{ display:none; }
 
 /* ─ LINHA 2: cards de apoio, BRANCO LISO (sem platinado) ─ */
@@ -1790,6 +1793,46 @@ canvas{ max-width:100%; }
 /* platinado agora vale SO para os cards de destaque.
    Cards comuns voltam a ser branco liso. */
 .fcard,.metric-card,.fincard{ background-image:none !important; background-color:#fff; }
+
+
+/* ─── 23. AJUSTE FINAL DE PROPORCAO ─────────────────────── */
+
+/* Borda igual em todos os 4 cards. Na referencia a cor aparece no
+   conteudo e no icone, nunca na moldura — moldura colorida faz
+   cada card brigar com o vizinho. */
+.kpi-hero{ border-color:var(--border) !important; }
+.kpi-hero:hover{ border-color:var(--c) !important; }
+
+/* Platinado mais contido: so um sopro no canto, nao a malha inteira */
+.kpi-hero{
+  background-image:
+    linear-gradient(135deg, rgba(255,255,255,.88) 0%, rgba(255,255,255,0) 40%),
+    radial-gradient(110% 110% at 100% 0%, var(--p1) 0%, transparent 46%),
+    radial-gradient(120% 120% at 0% 100%, var(--p3) 0%, transparent 48%) !important;
+}
+
+/* O titulo estava sendo cortado no topo */
+.content{ padding-top:26px; }
+.dash-head{ margin-bottom:20px; }
+
+/* Cards de apoio mais baixos, alinhados com a linha de cima */
+.mini{ padding:14px 16px; gap:12px; }
+.mini-ico{ width:38px; height:38px; border-radius:12px; }
+.mini-ico svg{ width:17px; height:17px; }
+.mini-value{ font-size:18px; }
+
+/* Selo de variacao (ex: +12,1% vs mes anterior) — pronto para uso */
+.delta{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 9px; border-radius:999px;
+  font-size:11px; font-weight:600; line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.delta-up  { background:#dcfce7; color:#15803d; }
+.delta-down{ background:#fee2e2; color:#b91c1c; }
+.delta-flat{ background:#f1f3f5; color:#56565e; }
+.delta svg{ width:11px; height:11px; }
+.delta + .delta-txt{ margin-left:7px; font-size:11px; color:var(--text3); }
 
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
