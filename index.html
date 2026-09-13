@@ -1487,6 +1487,58 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
 /* Card que embrulha a tabela */
 .table-wrap,.card{ border-radius:18px; }
 
+
+/* ─── 18. TOPBAR estilo referencia ──────────────────────── */
+.topbar{ height:66px; padding:0 22px; gap:10px; }
+.topbar-title{ font-size:17px; font-weight:600; letter-spacing:-.02em; }
+.topbar-right{ gap:10px; }
+
+/* botao de icone circular (menu, sino) */
+.tb-icon{
+  width:40px; height:40px; flex-shrink:0; padding:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:#fff; border:1px solid var(--border); border-radius:50%;
+  color:var(--text2); cursor:pointer; position:relative;
+  transition:all .22s var(--ease);
+}
+.tb-icon:hover{ background:var(--g100); border-color:var(--g300);
+  color:var(--g700); transform:translateY(-1px); }
+.tb-icon:active{ transform:translateY(0) scale(.95); }
+.tb-icon svg{ width:19px; height:19px; }
+
+/* botao de acao em pilula */
+.tb-btn{
+  display:inline-flex; align-items:center; gap:8px;
+  height:40px; padding:0 18px; border-radius:999px;
+  font-family:'Outfit',sans-serif; font-size:13px; font-weight:500;
+  background:#fff; border:1px solid var(--border); color:var(--text);
+  cursor:pointer; white-space:nowrap;
+  transition:all .22s var(--ease);
+}
+.tb-btn svg{ width:17px; height:17px; flex-shrink:0; }
+.tb-btn:hover{ background:var(--bg3); border-color:var(--border2);
+  transform:translateY(-1px); box-shadow:0 4px 12px rgba(17,19,24,.07); }
+.tb-btn:active{ transform:translateY(0) scale(.98); box-shadow:none; }
+
+.tb-btn-primary{
+  background:var(--g600); border-color:var(--g600); color:#fff; font-weight:600;
+}
+.tb-btn-primary:hover{ background:var(--g700); border-color:var(--g700);
+  box-shadow:0 8px 20px rgba(34,164,93,.30); }
+
+/* pilula do usuario / empresa */
+.tb-user{
+  display:flex; align-items:center; gap:11px;
+  height:46px; padding:0 16px 0 6px; border-radius:999px;
+  background:#fff; border:1px solid var(--border);
+  min-width:190px; cursor:pointer; user-select:none;
+  transition:all .22s var(--ease);
+}
+.tb-user:hover{ border-color:var(--g300); background:var(--g100);
+  box-shadow:0 4px 14px rgba(17,19,24,.07); }
+.tb-user > div[style*="flex-direction:column"]{ flex:1; line-height:1.25; }
+.tb-user svg{ flex-shrink:0; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -3121,7 +3173,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
     <!-- MAIN -->
     <div class="main">
       <div class="topbar">
-        <button onclick="toggleSidebar()" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;color:var(--text2);margin-right:8px" title="Menu">
+        <button onclick="toggleSidebar()" class="tb-icon" style="margin-right:10px" title="Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
         <div class="topbar-title" id="page-title">Dashboard</div>
@@ -3129,8 +3181,9 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
           <!-- filtro de mês removido do topbar — está dentro do dashboard -->
           <!-- Botão empresa — clicável para trocar (admin/operador com múltiplas empresas) -->
           <!-- Botão Voltar à Controladoria (operador ou admin via Controladoria) -->
-          <button id="btn-voltar-controladoria" onclick="voltarAoPainelOperador()" title="Voltar à Controladoria" style="display:none;background:rgba(34,164,93,.12);border:1px solid rgba(34,164,93,.3);border-radius:8px;color:#22a45d;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;align-items:center;gap:6px">
-            📋 <span class="topbar-btn-label">Controladoria</span>
+          <button id="btn-voltar-controladoria" onclick="voltarAoPainelOperador()" title="Voltar à Controladoria" class="tb-btn tb-btn-primary" style="display:none">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="8" y="3" width="8" height="4" rx="1.5"/><path d="M16 5h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/><path d="M9 12h6M9 16h4"/></svg>
+            <span class="topbar-btn-label">Controladoria</span>
           </button>
 
 
@@ -3166,30 +3219,30 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
 
           <!-- Botão Exportar Excel — exporta a tabela da página atual, funciona em qualquer página -->
           <button id="btn-exportar-excel" onclick="exportarPaginaAtualExcel()" title="Exportar Excel"
-            style="background:rgba(52,201,122,.12);border:1px solid rgba(52,201,122,.3);border-radius:8px;color:#1a8f52;cursor:pointer;padding:6px 12px;font-size:12px;font-weight:700;font-family:'Outfit',sans-serif;display:flex;align-items:center;gap:6px">
-            📊 <span class="topbar-btn-label">Exportar Excel</span>
+            class="tb-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="topbar-btn-label">Exportar Excel</span>
           </button>
 
           <!-- Ícone de notificações -->
           <button id="btn-notificacoes" title="Notificações (em breve)"
-            style="background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;position:relative;color:var(--text2)">
+            class="tb-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-            <span id="notif-badge" style="display:none;position:absolute;top:4px;right:4px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span>
+            <span id="notif-badge" style="display:none;position:absolute;top:-2px;right:-2px;background:#e83838;border-radius:50%;width:10px;height:10px;border:2px solid #fff"></span>
           </button>
 
           <div id="topbar-empresa-tag"
             onclick="abrirSeletorEmpresas()"
-            style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(0,0,0,.12);border:1.5px solid rgba(0,0,0,.15);border-radius:8px;min-width:180px;cursor:pointer;transition:all .15s;user-select:none"
-            onmouseover="this.style.background='rgba(0,0,0,.2)'" onmouseout="this.style.background='rgba(0,0,0,.12)'"
+            class="tb-user"
             title="Clique para trocar de empresa">
             <!-- Logo do salão -->
-            <div id="topbar-logo-wrap" style="display:none;width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(0,0,0,.1)">
+            <div id="topbar-logo-wrap" style="display:none;width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1px solid #e9ebee">
               <img id="topbar-logo" src="" style="width:100%;height:100%;object-fit:cover">
             </div>
             <svg id="topbar-casa-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
             <div style="display:flex;flex-direction:column;line-height:1.3;flex:1">
-              <span id="topbar-empresa-nome" style="font-size:13px;font-weight:800;color:#111">—</span>
-              <span id="topbar-empresa-id" style="font-size:10px;font-weight:600;color:#555"></span>
+              <span id="topbar-empresa-nome" style="font-size:13px;font-weight:600;color:#111318;letter-spacing:-.01em">—</span>
+              <span id="topbar-empresa-id" style="font-size:10.5px;font-weight:400;color:#9ca3af"></span>
             </div>
             <svg id="topbar-trocar-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
