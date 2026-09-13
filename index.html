@@ -1249,8 +1249,9 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
 .btn-logout:hover{ border-color:#e83838; color:#e83838; background:#fff5f5; }
 
 /* ─── 4. TOPBAR ─────────────────────────────────────────── */
-.topbar{ background:rgba(255,255,255,.88); backdrop-filter:blur(14px);
-  box-shadow:none; border-bottom:1px solid var(--border); }
+/* SEM backdrop-filter aqui: isso cria bloco de contencao e quebra o
+   position:fixed do #btn-chat, que e filho da topbar. */
+.topbar{ background:#fff; box-shadow:none; border-bottom:1px solid var(--border); }
 .empresa-tag{ background:var(--g100); color:var(--g700);
   border:1px solid var(--g200); border-radius:999px; }
 
@@ -1420,6 +1421,71 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
 .kpi-value,.hcard-value,.fcard-value,.metric-val{
   font-variant-numeric:tabular-nums; letter-spacing:-.025em;
 }
+
+
+/* ─── 16. TABELAS estilo referencia ─────────────────────── */
+.content table{ border-collapse:separate; border-spacing:0; }
+.content thead th{
+  padding:13px 14px; font-size:10px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--text3);
+  background:transparent; border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.content thead th:hover{ color:var(--g600); }
+.content tbody td{
+  padding:15px 14px; border-bottom:1px solid #f2f4f6;
+  font-size:13px; color:var(--text); vertical-align:middle;
+}
+/* Sem zebra: a referencia usa linhas limpas separadas so por um fio */
+.content tbody tr:nth-child(even){ background:transparent; }
+.content tbody tr{ transition:background .16s var(--ease); }
+.content tbody tr:hover{ background:#f7fbf8 !important; }
+.content tbody tr:last-child td{ border-bottom:none; }
+
+/* Cantos arredondados na primeira e ultima celula da linha no hover */
+.content tbody tr td:first-child{ border-radius:12px 0 0 12px; }
+.content tbody tr td:last-child { border-radius:0 12px 12px 0; }
+
+/* Valores monetarios alinhados e com peso */
+.content tbody td[style*="text-align:right"]{ font-variant-numeric:tabular-nums; font-weight:600; }
+
+/* Checkbox no padrao da referencia */
+.content input[type=checkbox]{
+  width:16px; height:16px; border-radius:5px; accent-color:var(--g600); cursor:pointer;
+}
+
+/* Botoes de acao da linha: circulos fantasma que so acendem no hover */
+.content td button,
+.content td .btn-sm{
+  border-radius:999px; transition:all .18s var(--ease);
+}
+.content tbody tr td:last-child button{
+  width:30px; height:30px; padding:0; display:inline-flex;
+  align-items:center; justify-content:center;
+  border:1px solid transparent; background:transparent; opacity:.55;
+}
+.content tbody tr:hover td:last-child button{ opacity:1; background:var(--bg4); }
+.content tbody tr td:last-child button:hover{
+  background:var(--g100); border-color:var(--g300); transform:none;
+}
+
+/* ─── 17. BARRA DE FILTROS em pilulas ───────────────────── */
+.filters,.filter-row{ gap:10px; align-items:center; }
+.filter-select,.filter-input,
+.content select:not([multiple]),
+.content input[type=text],.content input[type=date],.content input[type=search]{
+  border-radius:999px !important; padding:8px 14px;
+  border:1px solid var(--border); background:#fff;
+  transition:border-color .18s, box-shadow .18s;
+}
+.content select:not([multiple]):hover,
+.content input[type=text]:hover{ border-color:var(--border2); }
+
+/* Chips de categoria (DFC / DRE) */
+.content td span[style*="border-radius"]{ font-weight:600; }
+
+/* Card que embrulha a tabela */
+.table-wrap,.card{ border-radius:18px; }
 
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
