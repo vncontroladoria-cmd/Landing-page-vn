@@ -46,6 +46,27 @@
     D.datasets.bar.categoryPercentage = 0.7;
     D.datasets.bar.barPercentage = 0.82;
   }
+  /* Plugin: normaliza a forma das barras em TODOS os graficos,
+     mesmo nos que ja passam config propria. So mexe em aparencia. */
+  Chart.register({
+    id: 'vnSkinBarras',
+    beforeUpdate(chart) {
+      const tipo = chart.config.type;
+      chart.data.datasets.forEach(ds => {
+        const t = ds.type || tipo;
+        if (t === 'bar') {
+          ds.borderRadius   = 10;
+          ds.borderSkipped  = 'bottom';
+          ds.borderWidth    = 0;
+          if (ds.maxBarThickness == null) ds.maxBarThickness = 34;
+        }
+        if (t === 'line') {
+          if (ds.tension == null) ds.tension = 0.4;
+        }
+      });
+    }
+  });
+
   if (D.scale) {
     D.scale.grid.color = '#f1f3f5';
     D.scale.grid.drawTicks = false;
@@ -294,7 +315,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .metric-card.c-red    { background:#fff1f2; border-color:#fecdd3; }
 .metric-card.c-red::before    { background:linear-gradient(90deg,#dc2626,transparent); }
 .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 8px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; }
-.metric-val { font-size: 22px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -0.5px; line-height: 1.2; color: var(--text); }
+.metric-val { font-size: 22px; font-weight: 700; font-family: 'Outfit', sans-serif; letter-spacing: -0.5px; line-height: 1.2; color: var(--text); }
 .metric-val.green { color: var(--green); }
 .metric-val.red { color: var(--red); }
 .metric-val.amber { color: var(--amber); }
@@ -340,7 +361,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
   position:relative; overflow:hidden;
 }
 .hcard-label { font-size:9px; font-weight:700; text-transform:uppercase; opacity:.8; letter-spacing:.5px; margin-bottom:6px; }
-.hcard-value { font-size:22px; font-weight:800; line-height:1.1; font-family:'DM Mono',monospace; }
+.hcard-value { font-size:22px; font-weight:800; line-height:1.1; font-family:'Outfit',sans-serif; }
 .hcard-value.sm { font-size:16px; }
 .hcard-sub { font-size:10px; opacity:.75; margin-top:4px; }
 .hcard-icon { position:absolute; right:-8px; bottom:-8px; font-size:44px; opacity:.12; pointer-events:none; }
@@ -372,7 +393,7 @@ body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--te
 .fcard-icon-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
 .fcard-icon { font-size:16px; }
 .fcard-label { font-size:9px; font-weight:700; text-transform:uppercase; color:var(--text2); }
-.fcard-value { font-size:15px; font-weight:800; font-family:'DM Mono',monospace; }
+.fcard-value { font-size:15px; font-weight:800; font-family:'Outfit',sans-serif; }
 .fcard-value.green { color:#15803d; }
 .fcard-value.red   { color:#dc2626; }
 .fcard-value.blue  { color:#2563eb; }
@@ -1387,6 +1408,19 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
 .section-card-body{ padding:18px !important; }
 .pg-header{ margin-bottom:1.5rem; }
 
+
+/* ─── 15. ICONES SVG NOS CARDS ──────────────────────────── */
+.kpi-icon svg{ width:19px; height:19px; stroke:var(--c); }
+.fin-ico{ display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:9px; background:var(--bg4); flex-shrink:0; }
+.fin-ico svg{ width:15px; height:15px; stroke:var(--c,var(--text2)); }
+.fincard .fin-ico{ background:color-mix(in srgb, var(--c) 10%, #fff); }
+
+/* numeros: sem fonte de maquina de escrever, com tabular-nums */
+.kpi-value,.hcard-value,.fcard-value,.metric-val{
+  font-variant-numeric:tabular-nums; letter-spacing:-.025em;
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -1582,25 +1616,25 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
         <div style="background:linear-gradient(135deg,#1e3a5f,#222226);border-radius:14px;padding:20px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden">
           <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;font-weight:700;letter-spacing:.06em;margin-bottom:10px">Total Empresas</div>
-          <div style="font-size:36px;font-weight:800;color:#fff;font-family:'DM Mono',monospace" id="m-total-emp">—</div>
+          <div style="font-size:36px;font-weight:800;color:#fff;font-family:'Outfit',sans-serif" id="m-total-emp">—</div>
           <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">no sistema</div>
           <div style="position:absolute;right:16px;top:16px;font-size:28px;opacity:.15">🏢</div>
         </div>
         <div style="background:linear-gradient(135deg,#0f3d24,#222226);border-radius:14px;padding:20px;border:1px solid rgba(52,201,122,.15);position:relative;overflow:hidden">
           <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;font-weight:700;letter-spacing:.06em;margin-bottom:10px">Ativas</div>
-          <div style="font-size:36px;font-weight:800;color:#6ee7a8;font-family:'DM Mono',monospace" id="m-ativas">—</div>
+          <div style="font-size:36px;font-weight:800;color:#6ee7a8;font-family:'Outfit',sans-serif" id="m-ativas">—</div>
           <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">em operação</div>
           <div style="position:absolute;right:16px;top:16px;font-size:28px;opacity:.15">✅</div>
         </div>
         <div style="background:linear-gradient(135deg,#4c1d1d,#222226);border-radius:14px;padding:20px;border:1px solid rgba(239,68,68,.15);position:relative;overflow:hidden">
           <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;font-weight:700;letter-spacing:.06em;margin-bottom:10px">Inativas</div>
-          <div style="font-size:36px;font-weight:800;color:#f87171;font-family:'DM Mono',monospace" id="m-inativas">—</div>
+          <div style="font-size:36px;font-weight:800;color:#f87171;font-family:'Outfit',sans-serif" id="m-inativas">—</div>
           <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">desativadas</div>
           <div style="position:absolute;right:16px;top:16px;font-size:28px;opacity:.15">⛔</div>
         </div>
         <div style="background:linear-gradient(135deg,#312e81,#222226);border-radius:14px;padding:20px;border:1px solid rgba(52,201,122,.15);position:relative;overflow:hidden">
           <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;font-weight:700;letter-spacing:.06em;margin-bottom:10px">Total Usuários</div>
-          <div style="font-size:36px;font-weight:800;color:#6ee7a8;font-family:'DM Mono',monospace" id="m-total-usr">—</div>
+          <div style="font-size:36px;font-weight:800;color:#6ee7a8;font-family:'Outfit',sans-serif" id="m-total-usr">—</div>
           <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:4px">cadastrados</div>
           <div style="position:absolute;right:16px;top:16px;font-size:28px;opacity:.15">👥</div>
         </div>
@@ -1869,7 +1903,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
         <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">Cor Principal</div>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="color" id="tema-cor-primaria" value="#22a45d" oninput="atualizarPreviewTema()" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:6px;padding:2px">
-          <input id="tema-cor-primaria-hex" placeholder="#22a45d" oninput="sincronizarCorHex('primaria')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:12px">
+          <input id="tema-cor-primaria-hex" placeholder="#22a45d" oninput="sincronizarCorHex('primaria')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:12px">
         </div>
         <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap" id="presets-primaria">
           <div onclick="aplicarPreset('primaria','#22a45d')" style="width:20px;height:20px;border-radius:4px;background:#22a45d;cursor:pointer;border:2px solid transparent"></div>
@@ -1884,7 +1918,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
         <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">Sidebar</div>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="color" id="tema-cor-sidebar" value="#1a1a1e" oninput="atualizarPreviewTema()" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:6px;padding:2px">
-          <input id="tema-cor-sidebar-hex" placeholder="#1a1a1e" oninput="sincronizarCorHex('sidebar')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:12px">
+          <input id="tema-cor-sidebar-hex" placeholder="#1a1a1e" oninput="sincronizarCorHex('sidebar')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:12px">
         </div>
         <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
           <div onclick="aplicarPreset('sidebar','#1a1a1e')" style="width:20px;height:20px;border-radius:4px;background:#1a1a1e;cursor:pointer;border:2px solid transparent"></div>
@@ -1899,7 +1933,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
         <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;margin-bottom:8px">Botões Accent</div>
         <div style="display:flex;gap:8px;align-items:center">
           <input type="color" id="tema-cor-accent" value="#22a45d" oninput="atualizarPreviewTema()" style="width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:6px;padding:2px">
-          <input id="tema-cor-accent-hex" placeholder="#22a45d" oninput="sincronizarCorHex('accent')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:12px">
+          <input id="tema-cor-accent-hex" placeholder="#22a45d" oninput="sincronizarCorHex('accent')" style="flex:1;padding:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;font-family:'Outfit',sans-serif;font-size:12px">
         </div>
         <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
           <div onclick="aplicarPreset('accent','#22a45d')" style="width:20px;height:20px;border-radius:4px;background:#22a45d;cursor:pointer;border:2px solid transparent"></div>
@@ -1965,7 +1999,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
 
     <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:14px">
       <div style="font-size:11px;color:var(--text2)">Saldo em espécie hoje</div>
-      <div id="sangria-saldo" style="font-size:20px;font-weight:800;font-family:'DM Mono',monospace;color:var(--green)">—</div>
+      <div id="sangria-saldo" style="font-size:20px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--green)">—</div>
     </div>
 
     <div class="form-group">
@@ -3145,42 +3179,42 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               <div class="kpi-label">FATURAMENTO</div>
               <div class="kpi-value" id="m-fat">—</div>
               <div class="kpi-sub" id="m-fat-d">faturamento de serviços</div>
-              <div class="kpi-icon">💰</div>
+              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
             </div>
             <!-- Clientes -->
             <div class="kpi kpi-blue">
               <div class="kpi-label">CLIENTES</div>
               <div class="kpi-value" id="m-cli">—</div>
               <div class="kpi-sub" id="m-cli-d">clientes únicos</div>
-              <div class="kpi-icon">👥</div>
+              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg></div>
             </div>
             <!-- Serviços -->
             <div class="kpi kpi-mint">
               <div class="kpi-label">SERVIÇOS</div>
               <div class="kpi-value" id="m-srv">—</div>
               <div class="kpi-sub" id="m-srv-d">atendimentos</div>
-              <div class="kpi-icon">✂️</div>
+              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88"/><path d="M14.47 14.48L20 20"/><path d="M8.12 8.12L12 12"/></svg></div>
             </div>
             <!-- Produtos -->
             <div class="kpi kpi-amber">
               <div class="kpi-label">PRODUTOS</div>
               <div class="kpi-value" id="m-prod">—</div>
               <div class="kpi-sub" id="m-prod-d">unidades vendidas</div>
-              <div class="kpi-icon">📦</div>
+              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg></div>
             </div>
             <!-- Ticket Médio -->
             <div class="kpi kpi-teal">
               <div class="kpi-label">TICKET MÉDIO</div>
               <div class="kpi-value" id="m-ticket">—</div>
               <div class="kpi-sub">por atendimento</div>
-              <div class="kpi-icon">🎯</div>
+              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></div>
             </div>
             <!-- Média de Faturamento/dia -->
             <div class="kpi kpi-lime">
               <div class="kpi-label">MÉDIA DE FATURAMENTO</div>
               <div class="kpi-value" id="m-media-fat">—</div>
               <div class="kpi-sub" id="m-media-fat-d">por dia trabalhado</div>
-              <div class="kpi-icon">📅</div>
+              <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></div>
             </div>
           </div>
 
@@ -3189,28 +3223,28 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
             <!-- A Vencer -->
             <div class="card fincard fincard-green">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:16px">📅</span>
+                <span class="fin-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></span>
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">A Vencer</span>
               </div>
-              <div style="font-size:14px;font-weight:800;color:#22a45d;font-family:'DM Mono',monospace" id="m-avencer">—</div>
+              <div style="font-size:14px;font-weight:800;color:#22a45d;font-family:'Outfit',sans-serif" id="m-avencer">—</div>
               <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-avencer-d">contas a pagar</div>
             </div>
             <!-- Total a Pagar -->
             <div class="card fincard fincard-blue">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:16px">💳</span>
+                <span class="fin-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h3"/></svg></span>
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Total a Pagar</span>
               </div>
-              <div style="font-size:14px;font-weight:800;color:#2563eb;font-family:'DM Mono',monospace" id="m-total-pagar">—</div>
+              <div style="font-size:14px;font-weight:800;color:#2563eb;font-family:'Outfit',sans-serif" id="m-total-pagar">—</div>
               <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-total-pagar-d">sem pendências</div>
             </div>
             <!-- Saldo em Caixa -->
             <div class="card fincard fincard-teal">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                <span style="font-size:16px">🏦</span>
+                <span class="fin-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9"/><path d="M3 21h18"/></svg></span>
                 <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text2)">Saldo em Caixa</span>
               </div>
-              <div style="font-size:14px;font-weight:800;color:#0891b2;font-family:'DM Mono',monospace" id="m-saldo-caixa">—</div>
+              <div style="font-size:14px;font-weight:800;color:#0891b2;font-family:'Outfit',sans-serif" id="m-saldo-caixa">—</div>
               <div style="font-size:10px;color:var(--text3);margin-top:3px" id="m-saldo-caixa-d">saldo PDV do período</div>
             </div>
           </div>
@@ -3229,7 +3263,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
                     <span style="width:12px;height:3px;border-top:2px dashed #ef4444;display:inline-block"></span>Meta diária
                   </span>
                   <span style="display:flex;align-items:center;gap:4px">
-                    <span style="width:12px;height:10px;background:#1a5c38;display:inline-block;border-radius:2px"></span>Faturamento
+                    <span style="width:12px;height:10px;background:#22a45d;display:inline-block;border-radius:2px"></span>Faturamento
                   </span>
                 </div>
               </div>
@@ -3262,22 +3296,22 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               </div>
 
               <!-- % grande -->
-              <div style="font-size:24px;font-weight:900;margin-top:14px;font-family:'DM Mono',monospace" id="dash-termo-pct">0%</div>
+              <div style="font-size:24px;font-weight:900;margin-top:14px;font-family:'Outfit',sans-serif" id="dash-termo-pct">0%</div>
               <div style="font-size:9px;text-transform:uppercase;color:var(--text2);letter-spacing:.5px;margin-bottom:10px">da meta</div>
 
               <!-- Linhas de detalhe -->
               <div style="width:100%;border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:6px">
                 <div style="display:flex;justify-content:space-between;font-size:10px">
                   <span style="color:var(--text2)">Realizado</span>
-                  <strong style="font-family:'DM Mono',monospace" id="dash-termo-fat">—</strong>
+                  <strong style="font-family:'Outfit',sans-serif" id="dash-termo-fat">—</strong>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:10px">
                   <span style="color:var(--text2)">Meta/dia</span>
-                  <strong style="font-family:'DM Mono',monospace" id="dash-termo-meta">—</strong>
+                  <strong style="font-family:'Outfit',sans-serif" id="dash-termo-meta">—</strong>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:10px">
                   <span style="color:var(--text2)">Meta mês</span>
-                  <strong style="font-family:'DM Mono',monospace" id="dash-termo-mes">—</strong>
+                  <strong style="font-family:'Outfit',sans-serif" id="dash-termo-mes">—</strong>
                 </div>
               </div>
             </div>
@@ -3303,19 +3337,19 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
                 <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
                   <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Saldo Inicial</div>
-                  <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace;color:var(--accent)" id="proj-saldo-ini">—</div>
+                  <div style="font-size:14px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--accent)" id="proj-saldo-ini">—</div>
                 </div>
                 <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
                   <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Receita Projetada</div>
-                  <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace;color:#1a8f52" id="proj-receita">—</div>
+                  <div style="font-size:14px;font-weight:800;font-family:'Outfit',sans-serif;color:#1a8f52" id="proj-receita">—</div>
                 </div>
                 <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
                   <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Contas a Pagar</div>
-                  <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace;color:#dc2626" id="proj-contas">—</div>
+                  <div style="font-size:14px;font-weight:800;font-family:'Outfit',sans-serif;color:#dc2626" id="proj-contas">—</div>
                 </div>
                 <div style="background:var(--bg3);border-radius:8px;padding:10px 12px">
                   <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase">Saldo Final Projetado</div>
-                  <div style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace" id="proj-saldo-fin">—</div>
+                  <div style="font-size:14px;font-weight:800;font-family:'Outfit',sans-serif" id="proj-saldo-fin">—</div>
                 </div>
               </div>
               <!-- Gráfico -->
@@ -3537,11 +3571,11 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
             <!-- Código do Operador da empresa: acesso rápido pra copiar -->
             <div id="lanc-cod-operador" style="display:none;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;font-size:12px;width:fit-content">
               <span style="color:var(--text2);font-weight:600">🔢 Código do Operador</span>
-              <strong id="lanc-cod-operador-valor" style="font-family:'DM Mono',monospace;font-size:14px;color:var(--accent);letter-spacing:.5px"></strong>
+              <strong id="lanc-cod-operador-valor" style="font-family:'Outfit',sans-serif;font-size:14px;color:var(--accent);letter-spacing:.5px"></strong>
               <button onclick="copiarCodOperador('valor')" title="Copiar código" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 7px;cursor:pointer;font-size:12px">📋</button>
               <span id="lanc-cod-operador-senha-box" style="display:none;align-items:center;gap:6px;border-left:1px solid var(--border);padding-left:10px">
                 <span style="color:var(--text2);font-weight:600">Senha</span>
-                <strong id="lanc-cod-operador-senha" style="font-family:'DM Mono',monospace;font-size:14px;color:var(--text);cursor:pointer" onclick="this.dataset.ver = this.dataset.ver==='1'?'0':'1'; this.textContent = this.dataset.ver==='1' ? this.dataset.real : '••••••'" title="Clique para mostrar/ocultar">••••••</strong>
+                <strong id="lanc-cod-operador-senha" style="font-family:'Outfit',sans-serif;font-size:14px;color:var(--text);cursor:pointer" onclick="this.dataset.ver = this.dataset.ver==='1'?'0':'1'; this.textContent = this.dataset.ver==='1' ? this.dataset.real : '••••••'" title="Clique para mostrar/ocultar">••••••</strong>
                 <button onclick="copiarCodOperador('senha')" title="Copiar senha" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 7px;cursor:pointer;font-size:12px">📋</button>
               </span>
             </div>
@@ -3553,15 +3587,15 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
           <div id="lanc-saldo-bancos" style="display:flex;gap:8px;"></div>
             <div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Entradas</div>
-              <div id="lanc-total-entrada" style="font-size:13px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">—</div>
+              <div id="lanc-total-entrada" style="font-size:13px;font-weight:700;color:var(--green);font-family:'Outfit',sans-serif">—</div>
             </div>
             <div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Saídas</div>
-              <div id="lanc-total-saida" style="font-size:13px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">—</div>
+              <div id="lanc-total-saida" style="font-size:13px;font-weight:700;color:var(--red);font-family:'Outfit',sans-serif">—</div>
             </div>
             <div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;border:2px solid var(--accent)">
               <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em">Saldo Final</div>
-              <div id="lanc-saldo-mes" style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">—</div>
+              <div id="lanc-saldo-mes" style="font-size:13px;font-weight:700;font-family:'Outfit',sans-serif">—</div>
             </div>
           </div>
 
@@ -3571,9 +3605,9 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
           <div id="lanc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px;flex-wrap:wrap;">
             <span id="lanc-sel-count" style="font-size:13px;font-weight:600;color:#92400e">0 selecionados</span>
             <span style="font-size:12px;color:#92400e">|</span>
-            <span style="font-size:12px;color:#0f3d24;font-weight:600">✅ Entradas: <span id="lanc-sel-ent" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
-            <span style="font-size:12px;color:#92400e;font-weight:600">❌ Saídas: <span id="lanc-sel-sai" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
-            <span style="font-size:12px;color:#1e40af;font-weight:600">= Saldo: <span id="lanc-sel-saldo" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
+            <span style="font-size:12px;color:#0f3d24;font-weight:600">✅ Entradas: <span id="lanc-sel-ent" style="font-family:'Outfit',sans-serif">R$ 0,00</span></span>
+            <span style="font-size:12px;color:#92400e;font-weight:600">❌ Saídas: <span id="lanc-sel-sai" style="font-family:'Outfit',sans-serif">R$ 0,00</span></span>
+            <span style="font-size:12px;color:#1e40af;font-weight:600">= Saldo: <span id="lanc-sel-saldo" style="font-family:'Outfit',sans-serif">R$ 0,00</span></span>
             <span style="font-size:12px;color:#92400e">|</span>
             <span style="font-size:12px;color:#92400e;font-weight:600">Mudar categoria para:</span>
             <span style="position:relative;display:inline-block">
@@ -3784,9 +3818,9 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
             <div id="cp-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px;flex-wrap:wrap">
               <span id="cp-sel-count" style="font-size:13px;font-weight:700;color:#92400e">0 selecionadas</span>
               <span style="font-size:12px;color:#92400e">|</span>
-              <span style="font-size:12px;color:#92400e;font-weight:600">💰 Total: <span id="cp-sel-total" style="font-family:'DM Mono',monospace;font-size:13px">R$ 0,00</span></span>
-              <span style="font-size:12px;color:#0f3d24;font-weight:600">✅ Pago: <span id="cp-sel-pago" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
-              <span style="font-size:12px;color:#b91c1c;font-weight:600">⏳ A pagar: <span id="cp-sel-apagar" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
+              <span style="font-size:12px;color:#92400e;font-weight:600">💰 Total: <span id="cp-sel-total" style="font-family:'Outfit',sans-serif;font-size:13px">R$ 0,00</span></span>
+              <span style="font-size:12px;color:#0f3d24;font-weight:600">✅ Pago: <span id="cp-sel-pago" style="font-family:'Outfit',sans-serif">R$ 0,00</span></span>
+              <span style="font-size:12px;color:#b91c1c;font-weight:600">⏳ A pagar: <span id="cp-sel-apagar" style="font-family:'Outfit',sans-serif">R$ 0,00</span></span>
             </div>
             <div id="cp-det-table" style="overflow-x:auto">
               <div class="loading" style="padding:1.5rem;text-align:center"><div class="spin" style="margin:0 auto"></div></div>
@@ -4101,9 +4135,9 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
 
               <!-- TOTAIS -->
               <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-                <div style="text-align:right"><div style="font-size:11px;color:var(--text2)">ENTRADAS</div><div id="pdv-total-entrada" style="font-size:15px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">R$ 0,00</div></div>
-                <div style="text-align:right"><div style="font-size:11px;color:var(--text2)">SAÍDAS</div><div id="pdv-total-saida" style="font-size:15px;font-weight:700;color:var(--red);font-family:'DM Mono',monospace">R$ 0,00</div></div>
-                <div style="text-align:right"><div style="font-size:11px;color:var(--text2)">TOTAL</div><div id="pdv-total-geral" style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace">R$ 0,00</div></div>
+                <div style="text-align:right"><div style="font-size:11px;color:var(--text2)">ENTRADAS</div><div id="pdv-total-entrada" style="font-size:15px;font-weight:700;color:var(--green);font-family:'Outfit',sans-serif">R$ 0,00</div></div>
+                <div style="text-align:right"><div style="font-size:11px;color:var(--text2)">SAÍDAS</div><div id="pdv-total-saida" style="font-size:15px;font-weight:700;color:var(--red);font-family:'Outfit',sans-serif">R$ 0,00</div></div>
+                <div style="text-align:right"><div style="font-size:11px;color:var(--text2)">TOTAL</div><div id="pdv-total-geral" style="font-size:15px;font-weight:700;font-family:'Outfit',sans-serif">R$ 0,00</div></div>
               </div>
 
               <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">
@@ -4436,8 +4470,8 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
           <div id="cc-selecao-bar" style="display:none;background:#fef3c7;border:1px solid #f59e0b;padding:10px 16px;margin-bottom:10px;align-items:center;gap:12px;flex-wrap:wrap;">
             <span id="cc-sel-count" style="font-size:13px;font-weight:600;color:#92400e">0 selecionados</span>
             <span style="font-size:12px;color:#92400e">|</span>
-            <span style="font-size:12px;color:#0f3d24;font-weight:600">✅ Entradas: <span id="cc-sel-ent" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
-            <span style="font-size:12px;color:#92400e;font-weight:600">❌ Saídas: <span id="cc-sel-sai" style="font-family:'DM Mono',monospace">R$ 0,00</span></span>
+            <span style="font-size:12px;color:#0f3d24;font-weight:600">✅ Entradas: <span id="cc-sel-ent" style="font-family:'Outfit',sans-serif">R$ 0,00</span></span>
+            <span style="font-size:12px;color:#92400e;font-weight:600">❌ Saídas: <span id="cc-sel-sai" style="font-family:'Outfit',sans-serif">R$ 0,00</span></span>
             <span style="font-size:12px;color:#92400e">|</span>
             <span style="font-size:12px;color:#92400e;font-weight:600">Mudar categoria para:</span>
             <span style="position:relative;display:inline-block">
@@ -4735,7 +4769,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">👥</div>
               <div>
                 <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px;margin-bottom:3px">Clientes Totais</div>
-                <div style="font-size:28px;font-weight:800;line-height:1;font-family:'DM Mono',monospace" id="cli-total">—</div>
+                <div style="font-size:28px;font-weight:800;line-height:1;font-family:'Outfit',sans-serif" id="cli-total">—</div>
                 <div style="font-size:10px;opacity:.65;margin-top:3px" id="cli-total-sub">do relatório importado</div>
               </div>
             </div>
@@ -4743,7 +4777,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">💰</div>
               <div>
                 <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px;margin-bottom:3px">Valor Consumido</div>
-                <div style="font-size:20px;font-weight:800;line-height:1;font-family:'DM Mono',monospace" id="cli-consumido">—</div>
+                <div style="font-size:20px;font-weight:800;line-height:1;font-family:'Outfit',sans-serif" id="cli-consumido">—</div>
                 <div style="font-size:10px;opacity:.65;margin-top:3px">total no período</div>
               </div>
             </div>
@@ -4751,7 +4785,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📅</div>
               <div>
                 <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px;margin-bottom:3px">Total de Visitas</div>
-                <div style="font-size:28px;font-weight:800;line-height:1;font-family:'DM Mono',monospace" id="cli-visitas">—</div>
+                <div style="font-size:28px;font-weight:800;line-height:1;font-family:'Outfit',sans-serif" id="cli-visitas">—</div>
                 <div style="font-size:10px;opacity:.65;margin-top:3px" id="cli-visitas-sub">atendimentos únicos</div>
               </div>
             </div>
@@ -4759,7 +4793,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
               <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎫</div>
               <div>
                 <div style="font-size:9px;font-weight:700;text-transform:uppercase;opacity:.7;letter-spacing:.5px;margin-bottom:3px">Ticket Médio</div>
-                <div style="font-size:20px;font-weight:800;line-height:1;font-family:'DM Mono',monospace" id="cli-ticket">—</div>
+                <div style="font-size:20px;font-weight:800;line-height:1;font-family:'Outfit',sans-serif" id="cli-ticket">—</div>
                 <div style="font-size:10px;opacity:.65;margin-top:3px">por visita/cliente</div>
               </div>
             </div>
@@ -6377,7 +6411,7 @@ body{ background:var(--bg); letter-spacing:-.006em; -webkit-font-smoothing:antia
       </div>
       <div class="form-group" style="grid-column:1/-1">
         <label>Código <span style="font-size:11px;color:var(--text3)">(gerado automaticamente — você pode editar)</span></label>
-        <input type="text" id="cat-codigo-input" placeholder="Ex: 1.1" style="font-family:'DM Mono',monospace;font-weight:600">
+        <input type="text" id="cat-codigo-input" placeholder="Ex: 1.1" style="font-family:'Outfit',sans-serif;font-weight:600">
       </div>
     </div>
     <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);margin-top:4px">
@@ -8056,7 +8090,7 @@ function abrirPreviewExcelPDV(linhas, nomeArq) {
       <td style="padding:6px 10px;text-align:center">
         <span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${l.tipo==='ENTRADA'?'#dcfce7':'#fee2e2'};color:${l.tipo==='ENTRADA'?'#0f3d24':'#991b1b'}">${l.tipo}</span>
       </td>
-      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${l.tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
+      <td style="padding:6px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:${l.tipo==='ENTRADA'?'var(--green)':'var(--red)'}">
         ${fmtBRL(l.valor)}
       </td>
       <td style="padding:6px 10px;text-align:center;font-size:14px">
@@ -8295,12 +8329,12 @@ async function loadPDV() {
       .reduce((s,[,v]) => s+v, 0);
     let html = `<div class="metric-card" style="padding:10px 14px;min-width:120px">
       <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase">Total Período</div>
-      <div style="font-size:14px;font-weight:700;color:var(--green);font-family:'DM Mono',monospace">${fmtBRL(totalGeral)}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--green);font-family:'Outfit',sans-serif">${fmtBRL(totalGeral)}</div>
     </div>`;
     Object.entries(grupos).filter(([f]) => formasTotal.includes(f)).sort((a,b)=>b[1]-a[1]).forEach(([f,v]) => {
       html += `<div class="metric-card" style="padding:10px 14px;min-width:110px">
         <div style="font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;white-space:nowrap">${f}</div>
-        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace">${fmtBRL(v)}</div>
+        <div style="font-size:13px;font-weight:700;font-family:'Outfit',sans-serif">${fmtBRL(v)}</div>
       </div>`;
     });
     cardsDiv.innerHTML = html;
@@ -8473,18 +8507,18 @@ function renderPDVLinhas(caixas, todosItens, formas) {
       // Forma marcada como errada na conferencia: destaca em vermelho
       const _err = (c.conferencia === 'ajustar') && (c.conferencia_obs || '').split('|').includes(f);
       const _st = _err
-        ? "padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;background:#fee2e2;border:2px solid #dc2626;color:#b91c1c;font-weight:700"
-        : "padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px";
+        ? "padding:10px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;background:#fee2e2;border:2px solid #dc2626;color:#b91c1c;font-weight:700"
+        : "padding:10px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px";
       return `<td style="${_st}" ${_err?'title="Precisa ser corrigido"':''}>${v > 0 ? fmtBRL(v) : '<span style="color:var(--text3)">—</span>'}</td>`;
     }).join('');
     return `<tr id="pdv-row-${c.id}" style="border-bottom:1px solid var(--border)">
       <td style="padding:10px 12px;text-align:center">
         <input type="checkbox" class="pdv-chk" data-id="${c.id}" onchange="pdvToggleSel('${c.id}',this.checked)" style="cursor:pointer">
       </td>
-      <td style="padding:10px 12px;font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${fmtDate(c.data_caixa)}</td>
+      <td style="padding:10px 12px;font-family:'Outfit',sans-serif;font-size:12px;white-space:nowrap">${fmtDate(c.data_caixa)}</td>
       <td style="padding:10px 12px;font-size:13px">${c.responsavel||'—'}</td>
       ${colsForma}
-      <td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(totalDia)}</td>
+      <td style="padding:10px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(totalDia)}</td>
       ${celulaConferencia(c)}
       <td style="padding:10px 12px;text-align:center">
         <div style="display:flex;gap:4px;justify-content:center">
@@ -8637,7 +8671,7 @@ function adicionarLinhaPDV(item = null) {
     <td style="padding:6px 8px">
       <input type="text" placeholder="0,00" value="${item?.valor?fmtBRLRaw(item.valor):''}"
         oninput="calcTotaisPDV()"
-        style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px;text-align:right;font-family:'DM Mono',monospace">
+        style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px;text-align:right;font-family:'Outfit',sans-serif">
     </td>
     <td style="padding:6px 8px;text-align:center">
       <button onclick="this.closest('tr').remove();calcTotaisPDV()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px">✕</button>
@@ -9373,8 +9407,8 @@ async function loadLancamentosDRE() {
       <td style="padding:9px 12px;font-size:12px;color:var(--text2);white-space:nowrap">${d}</td>
       <td style="padding:9px 12px;font-size:12px">${l.descricao||l.extrato||'—'}</td>
       <td style="padding:9px 12px;font-size:12px;color:var(--text2)">${l.categoria||'—'}</td>
-      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${rec > 0 ? fmtBRL(rec).replace('R$\u00a0','').replace('R$ ','') : ''}</td>
-      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">${des > 0 ? fmtBRL(des).replace('R$\u00a0','').replace('R$ ','') : ''}</td>
+      <td style="padding:9px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;color:var(--green)">${rec > 0 ? fmtBRL(rec).replace('R$\u00a0','').replace('R$ ','') : ''}</td>
+      <td style="padding:9px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;color:var(--red)">${des > 0 ? fmtBRL(des).replace('R$\u00a0','').replace('R$ ','') : ''}</td>
       <td style="padding:9px 12px;text-align:right">
         <button onclick="excluirLancamentoDRE('${l.id}')" style="background:none;border:1px solid var(--red-dim);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:var(--red)">🗑️</button>
       </td>
@@ -9436,7 +9470,7 @@ async function renderFluxoCaixaChart(ini, fim) {
   ].map(([lbl,cor,val],i,arr) => `
     <div style="flex:1;padding:10px 16px;text-align:center${i<arr.length-1?';border-right:1px solid var(--border)':''}">
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.5px">${lbl}</div>
-      <div style="font-size:13px;font-weight:800;font-family:'DM Mono',monospace;color:${cor};margin-top:3px">${fmtBRL(Math.abs(val))}</div>
+      <div style="font-size:13px;font-weight:800;font-family:'Outfit',sans-serif;color:${cor};margin-top:3px">${fmtBRL(Math.abs(val))}</div>
     </div>`).join('');
 
   if (window._dashFluxoChart) { try { window._dashFluxoChart.destroy(); } catch(e){} }
@@ -9846,12 +9880,12 @@ async function loadDashboard() {
     pdvTotaisEl.innerHTML = Object.entries(pdvTotCat).sort((a,b) => b[1]-a[1]).map(([cat, val]) =>
       `<div style="display:flex;flex-direction:column;gap:2px">
         <span style="font-size:9px;font-weight:600;text-transform:uppercase;color:var(--text2)">${cat}</span>
-        <strong style="font-size:13px;font-family:'DM Mono',monospace">${fmtBRL(val)}</strong>
+        <strong style="font-size:13px;font-family:'Outfit',sans-serif">${fmtBRL(val)}</strong>
       </div>`
     ).join('') +
     `<div style="display:flex;flex-direction:column;gap:2px;margin-left:auto;padding-left:14px;border-left:2px solid var(--border)">
       <span style="font-size:9px;font-weight:600;text-transform:uppercase;color:var(--text2)">TOTAL</span>
-      <strong style="font-size:13px;font-family:'DM Mono',monospace">${fmtBRL(totalPDV)}</strong>
+      <strong style="font-size:13px;font-family:'Outfit',sans-serif">${fmtBRL(totalPDV)}</strong>
     </div>`;
   }
 
@@ -9942,7 +9976,7 @@ async function loadDashboard() {
       ctx.save();
       ctx.font = 'bold 8px Outfit,sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#1a5c38';
+      ctx.fillStyle = '#22a45d';
       meta0.data.forEach((bar, i) => {
         const val = data.datasets[0].data[i];
         if (val > 0) {
@@ -9960,8 +9994,8 @@ async function loadDashboard() {
     const datasets = [{
       label: 'Faturamento',
       data: dVals,
-      backgroundColor: '#1a5c38',
-      borderColor: '#1a5c38',
+      backgroundColor: '#22a45d',
+      borderColor: '#22a45d',
       borderWidth: 0,
       borderRadius: 3,
       type: 'bar'
@@ -10078,7 +10112,7 @@ async function loadDashboard() {
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:${i<3?'13':'10'}px;width:28px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
           <td style="padding:7px 4px;font-weight:600">${n}</td>
-          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v)}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v)}</td>
         </tr>`).join('')}</table>`
     : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
   if(topProf[0]) {
@@ -10112,7 +10146,7 @@ async function loadDashboard() {
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:${i<3?'13':'10'}px;width:28px">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
           <td style="padding:7px 4px;font-weight:600">${n}</td>
-          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v)}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v)}</td>
         </tr>`).join('')}</table>`
     : '<div class="empty" style="padding:1rem;font-size:11px">Sem dados</div>';
 
@@ -10245,7 +10279,7 @@ async function loadDashboard() {
           type: 'bar',
           label: 'Faturamento',
           data: valsTend,
-          backgroundColor: '#1a5c38',
+          backgroundColor: '#22a45d',
           borderRadius: 5,
           borderSkipped: false,
           order: 2
@@ -10368,7 +10402,7 @@ function mostrarPreviewPDV(itens, dataCaixa, responsavel) {
           </td>
           <td style="padding:5px 8px;font-size:11px;color:var(--text2)">${it.descricao||'—'}</td>
           <td style="padding:5px 8px;text-align:center"><span style="font-size:10px;font-weight:600;color:${it.tipo==='ENTRADA'?'var(--green)':'var(--red)'}">${it.tipo}</span></td>
-          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(it.valor)}</td>
+          <td style="padding:5px 8px;text-align:right;font-family:'Outfit',sans-serif">${fmtBRL(it.valor)}</td>
         </tr>`).join('')}</tbody>
       </table>
     </div>
@@ -10578,7 +10612,7 @@ function renderCategoriasPDV() {
     return `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);flex-wrap:wrap;${oculta?'opacity:.45':''}">
       <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
-        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);min-width:20px">${c.ordem||'—'}</span>
+        <span style="font-family:'Outfit',sans-serif;font-size:10px;color:var(--accent);min-width:20px">${c.ordem||'—'}</span>
         <span style="font-size:13px;font-weight:600;${oculta?'text-decoration:line-through':''}">${c.nome}</span>
         <span style="font-size:10px;color:var(--text3)">${c.tipo}</span>
         ${vinculoBadge}
@@ -10900,7 +10934,7 @@ async function loadLancamentos(forcarBancoFilter) {
       const isSelected = bancoFilter === b.id;
       cardsHtml += `<div class="metric-card" style="min-width:130px;padding:10px 14px;white-space:nowrap;cursor:pointer;${isSelected?'border:2px solid var(--accent);background:var(--bg3)':'border:1.5px solid var(--border)'}" onclick="filtrarPorBanco('${b.id}')">
         <div style="font-size:10px;font-weight:600;color:${isSelected?'var(--accent)':'var(--text2)'};text-transform:uppercase;letter-spacing:0.04em">${b.nome}${isSelected?' ✓':''}</div>
-        <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${cor}">${fmtBRL(saldoB)}</div>
+        <div style="font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;color:${cor}">${fmtBRL(saldoB)}</div>
       </div>`;
     });
     // Adiciona cards de Entradas, Saídas e Saldo Total do período
@@ -10997,7 +11031,7 @@ async function loadLancamentos(forcarBancoFilter) {
         <input type="checkbox" class="lanc-check" data-id="${l.id}" onchange="atualizarSelecao()" style="cursor:pointer;width:15px;height:15px">
       </td>
       <td style="padding:9px 12px;white-space:nowrap;color:var(--text2);font-size:12px">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3)">${l.codigo||''}</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:10px;color:var(--text3)">${l.codigo||''}</div>
         <span class="cell-view">${fmtDate(l.data_lancamento)}</span>
         <input class="cell-edit" type="date" style="display:none;width:120px" value="${l.data_lancamento||''}">
       </td>
@@ -11005,11 +11039,11 @@ async function loadLancamentos(forcarBancoFilter) {
         <span class="cell-view" style="font-size:12px;color:var(--text2)">${l.extrato||l.descricao||'—'}</span>
         <input class="cell-edit" style="display:none;width:100%;font-size:12px" value="${l.extrato||l.descricao||''}">
       </td>
-      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;color:var(--green);font-size:12px">
+      <td style="padding:9px 12px;text-align:right;font-family:'Outfit',sans-serif;color:var(--green);font-size:12px">
         <span class="cell-view">${entrada > 0 ? fmtBRL(entrada).replace('R$\u00a0','').replace('R$ ','') : ''}</span>
         <input class="cell-edit" type="number" style="display:none;width:90px;text-align:right" value="${entrada||''}">
       </td>
-      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;color:var(--red);font-size:12px">
+      <td style="padding:9px 12px;text-align:right;font-family:'Outfit',sans-serif;color:var(--red);font-size:12px">
         <span class="cell-view">${saida > 0 ? fmtBRL(saida).replace('R$\u00a0','').replace('R$ ','') : ''}</span>
         <input class="cell-edit" type="number" style="display:none;width:90px;text-align:right" value="${saida||''}">
       </td>
@@ -11058,7 +11092,7 @@ async function loadLancamentos(forcarBancoFilter) {
           <div style="font-size:9px;color:var(--text3);margin-top:1px">vazio = usa a data de pagamento</div>
         </div>
       </td>
-      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--green)':'var(--red)'}">
+      <td style="padding:9px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:${saldoAcum>=0?'var(--green)':'var(--red)'}">
         ${fmtBRL(saldoAcum).replace('R$\u00a0','').replace('R$ ','')}
       </td>
       <td style="padding:9px 12px;white-space:nowrap;display:flex;gap:4px">
@@ -11684,7 +11718,7 @@ function renderLancTable(data, targetId, mini) {
       <td style="font-size:12px">${l.descricao||l.extrato||'—'}</td>
       <td><span class="badge badge-blue" style="font-size:10px">${l.categoria||'—'}</span></td>
       <td><span class="badge badge-${cor}" style="font-size:10px">${l.tipo}</span></td>
-      <td style="color:var(--${cor});font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(val)}</td>
+      <td style="color:var(--${cor});font-family:'Outfit',sans-serif;font-size:12px">${fmtBRL(val)}</td>
     </tr>`;
   });
   html += '</tbody></table></div>';
@@ -11753,8 +11787,8 @@ async function loadDocumentos() {
             <td style="padding:7px 10px;text-align:center;font-size:18px">${iconArq(a.arquivo_url||nome)}</td>
             <td style="padding:7px 10px;color:var(--text2);white-space:nowrap">${data}</td>
             <td style="padding:7px 10px;font-weight:600;cursor:pointer;color:var(--accent)" onclick="abrirDocumento('${a.arquivo_url||''}')">${nome}</td>
-            <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${a.valor ? fmtBRL(Number(a.valor)) : '—'}</td>
-            <td style="padding:7px 10px;font-family:'DM Mono',monospace;color:var(--text2)">${a.numero_nf||'—'}</td>
+            <td style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:var(--red)">${a.valor ? fmtBRL(Number(a.valor)) : '—'}</td>
+            <td style="padding:7px 10px;font-family:'Outfit',sans-serif;color:var(--text2)">${a.numero_nf||'—'}</td>
             <td style="padding:7px 10px;text-align:center">
               <div style="display:flex;gap:4px;justify-content:center">
                 ${a.arquivo_url ? `<button onclick="abrirDocumento('${a.arquivo_url}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px" title="Abrir">👁</button>` : ''}
@@ -12084,8 +12118,8 @@ async function loadContasPagar() {
             <div style="font-size:12px;font-weight:600">${c.descricao||'—'}</div>
             ${c.palavra_chave?`<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>`:''}
           </td>
-          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${cor};white-space:nowrap">${fmtBRL(c.valor)}</td>
-          <td style="padding:7px 10px;text-align:center;font-size:11px;font-family:'DM Mono',monospace;color:${c.total_parcelas>1?'#22a45d':'var(--text3)'};font-weight:${c.total_parcelas>1?'700':'400'}">${parcLabel}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:${cor};white-space:nowrap">${fmtBRL(c.valor)}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:11px;font-family:'Outfit',sans-serif;color:${c.total_parcelas>1?'#22a45d':'var(--text3)'};font-weight:${c.total_parcelas>1?'700':'400'}">${parcLabel}</td>
           <td style="padding:7px 10px;text-align:center">
             <div style="display:flex;align-items:center;gap:5px;justify-content:center">
               <span style="font-size:14px">${icone}</span>
@@ -12513,18 +12547,18 @@ async function loadLucratividade() {
               </div>
             </td>
             <td style="padding:6px 8px;text-align:right;color:var(--text2)">${d.atend.size}</td>
-            <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(d.fat)}</td>
-            <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(d.custo)}</td>
-            <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${d.lucro>=0?'#15803d':'#dc2626'}">${fmtBRL(d.lucro)}</td>
+            <td style="padding:6px 8px;text-align:right;font-family:'Outfit',sans-serif">${fmtBRL(d.fat)}</td>
+            <td style="padding:6px 8px;text-align:right;font-family:'Outfit',sans-serif">${fmtBRL(d.custo)}</td>
+            <td style="padding:6px 8px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:${d.lucro>=0?'#15803d':'#dc2626'}">${fmtBRL(d.lucro)}</td>
             <td style="padding:6px 8px;text-align:right;font-weight:700;color:${mgColor}">${mg.toFixed(1)}%</td>
           </tr>`;
         }).join('')}
         <tr style="background:var(--bg3);font-weight:700;border-top:2px solid var(--border)">
           <td colspan="2" style="padding:7px 8px;font-size:11px">TOTAL</td>
           <td style="padding:7px 8px;text-align:right">${nComandas}</td>
-          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(totalFat)}</td>
-          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(totalComissao)}</td>
-          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#15803d">${fmtBRL(totalLucro)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif">${fmtBRL(totalFat)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif">${fmtBRL(totalComissao)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif;color:#15803d">${fmtBRL(totalLucro)}</td>
           <td style="padding:7px 8px;text-align:right;font-weight:700">${margemGeral.toFixed(1)}%</td>
         </tr>
       </tbody></table>`);
@@ -12589,17 +12623,17 @@ async function loadLucratividade() {
           const mgColor = mg>=50?'#15803d':mg>=30?'#d97706':'#dc2626';
           return `<tr style="border-bottom:1px solid var(--border)">
             <td style="padding:7px 8px;font-weight:600">${cat}</td>
-            <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(d.fat)}</td>
-            <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#dc2626">${fmtBRL(d.custo)}</td>
-            <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${fmtBRL(d.lucro)}</td>
+            <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif">${fmtBRL(d.fat)}</td>
+            <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif;color:#dc2626">${fmtBRL(d.custo)}</td>
+            <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:#15803d">${fmtBRL(d.lucro)}</td>
             <td style="padding:7px 8px;text-align:right;font-weight:700;color:${mgColor}">${mg.toFixed(1)}%</td>
           </tr>`;
         }).join('')}
         <tr style="background:var(--bg3);font-weight:700;border-top:2px solid var(--border)">
           <td style="padding:7px 8px">TOTAL</td>
-          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(totalFat)}</td>
-          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#dc2626">${fmtBRL(totalCusto)}</td>
-          <td style="padding:7px 8px;text-align:right;font-family:'DM Mono',monospace;color:#15803d">${fmtBRL(totalLucro)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif">${fmtBRL(totalFat)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif;color:#dc2626">${fmtBRL(totalCusto)}</td>
+          <td style="padding:7px 8px;text-align:right;font-family:'Outfit',sans-serif;color:#15803d">${fmtBRL(totalLucro)}</td>
           <td style="padding:7px 8px;text-align:right;font-weight:700">${margemGeral.toFixed(1)}%</td>
         </tr>
       </tbody></table>`);
@@ -12644,8 +12678,8 @@ async function loadLucratividade() {
             </div>
           </td>
           <td style="padding:6px 8px;text-align:right;color:var(--text2)">${d.n}</td>
-          <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace">${fmtBRL(d.fat)}</td>
-          <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${fmtBRL(d.lucro)}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'Outfit',sans-serif">${fmtBRL(d.fat)}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:#15803d">${fmtBRL(d.lucro)}</td>
           <td style="padding:6px 8px;text-align:right;font-weight:700;color:${d.mg>=50?'#15803d':d.mg>=30?'#d97706':'#dc2626'}">${d.mg.toFixed(1)}%</td>
         </tr>`).join('')}
       </tbody></table>`;
@@ -12786,9 +12820,9 @@ function renderClientesPage() {
               <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,#15803d,#6ee7a8);border-radius:2px"></div>
             </div>
           </td>
-          <td style="padding:6px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${c.celular ? formatarTelefoneCliente(c.celular) : '—'}</td>
+          <td style="padding:6px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'Outfit',sans-serif">${c.celular ? formatarTelefoneCliente(c.celular) : '—'}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${c.visitas}</td>
-          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(c.total)}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(c.total)}</td>
         </tr>`;
       }).join('')}</tbody>
     </table>`);
@@ -12831,7 +12865,7 @@ function renderClientesPage() {
               </td>
               <td style="padding:6px 8px;font-size:10px;color:var(--text2)">${c.canal||'—'}</td>
               <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${c.visitas}</td>
-              <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(c.total)}</td>
+              <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(c.total)}</td>
             </tr>`).join('')}
           ${novosSemServico.map(c => `
             <tr style="border-bottom:1px solid var(--border);opacity:.55">
@@ -13122,9 +13156,9 @@ function renderClientes(linhas, ano, mes) {
               <div style="position:absolute;left:0;top:0;height:100%;width:${barW}%;background:linear-gradient(90deg,#15803d,#6ee7a8);border-radius:2px"></div>
             </div>
           </td>
-          <td style="padding:6px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${v.celular ? formatarTelefoneCliente(v.celular) : '—'}</td>
+          <td style="padding:6px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'Outfit',sans-serif">${v.celular ? formatarTelefoneCliente(v.celular) : '—'}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.visitas}</td>
-          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`
       }).join('')}</tbody>
     </table>`);
@@ -13159,10 +13193,10 @@ function renderClientes(linhas, ano, mes) {
               <div style="position:absolute;left:0;top:0;height:100%;width:${(v.total/maxNovo*100).toFixed(1)}%;background:linear-gradient(90deg,#22a45d,#6ee7a8);border-radius:2px"></div>
             </div>
           </td>
-          <td style="padding:6px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${v.celular ? formatarTelefoneCliente(v.celular) : '—'}</td>
+          <td style="padding:6px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'Outfit',sans-serif">${v.celular ? formatarTelefoneCliente(v.celular) : '—'}</td>
           <td style="padding:6px 8px;font-size:10px;color:var(--text2);white-space:nowrap">${v.canal&&v.canal!=='Não informado'?`<span style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 6px">${v.canal}</span>`:'—'}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.visitas}</td>
-          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}</tbody>
     </table>`);
   }
@@ -13329,7 +13363,7 @@ function renderProdutos(rows) {
             </div>
           </td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
-          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${pctTotal.toFixed(1)}%</td>
         </tr>`
       }).join('')}</tbody>
@@ -13414,12 +13448,12 @@ function renderProdutos(rows) {
             </div>
           </td>
           <td style="padding:7px 8px;text-align:right;font-size:12px;color:var(--text2)">${v.qtd}</td>
-          <td style="padding:7px 8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:7px 8px;text-align:right;font-size:12px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}
         <tr style="background:var(--bg3);border-top:2px solid var(--border2)">
           <td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2)">TOTAL</td>
           <td style="padding:8px;text-align:right;font-size:11px;font-weight:700">${qtd}</td>
-          <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(total)}</td>
+          <td style="padding:8px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(total)}</td>
         </tr>
       </tbody>
     </table>`);
@@ -13459,7 +13493,7 @@ function renderProdutos(rows) {
             </div>
           </td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
-          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:6px 8px;text-align:right;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`
       }).join('')}</tbody>
     </table>`);
@@ -13585,16 +13619,16 @@ async function loadPerformance() {
               </div>
             </td>
             <td style="padding:8px;text-align:right;font-size:12px;color:var(--text2)">${v.atend.size}</td>
-            <td style="padding:8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.fat)}</td>
-            <td style="padding:8px;text-align:right;font-size:12px;font-family:'DM Mono',monospace;color:var(--text2)">${fmtBRL(v.comissao)}</td>
+            <td style="padding:8px;text-align:right;font-size:12px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v.fat)}</td>
+            <td style="padding:8px;text-align:right;font-size:12px;font-family:'Outfit',sans-serif;color:var(--text2)">${fmtBRL(v.comissao)}</td>
             <td style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:var(--text2)">${pctFat.toFixed(1)}%</td>
           </tr>`
         }).join('')}
         <tr style="background:var(--bg3);border-top:2px solid var(--border2)">
           <td colspan="2" style="padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2)">TOTAL</td>
           <td style="padding:8px;text-align:right;font-size:11px;font-weight:700">${totalAtend}</td>
-          <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(totalFat)}</td>
-          <td style="padding:8px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--text2)">${fmtBRL(totalComissao)}</td>
+          <td style="padding:8px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:var(--green)">${fmtBRL(totalFat)}</td>
+          <td style="padding:8px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--text2)">${fmtBRL(totalComissao)}</td>
           <td style="padding:8px;text-align:right;font-size:11px;font-weight:700;color:var(--text2)">100%</td>
         </tr>
       </tbody>
@@ -13659,7 +13693,7 @@ async function loadPerformance() {
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
           <td style="padding:7px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
-          <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}
       </tbody>
     </table>`);
@@ -13691,9 +13725,9 @@ async function loadPerformance() {
         <tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:11px;color:var(--text3)">${i+1}</td>
           <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
-          <td style="padding:7px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${v.celular ? formatarTelefoneCliente(v.celular) : '—'}</td>
+          <td style="padding:7px 8px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'Outfit',sans-serif">${v.celular ? formatarTelefoneCliente(v.celular) : '—'}</td>
           <td style="padding:7px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.visitas.size}</td>
-          <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:7px 8px;text-align:right;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
         </tr>`).join('')}
       </tbody>
     </table>`);
@@ -14321,7 +14355,7 @@ async function loadFornecedores() {
   let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody id="forn-tbody">';
   data.forEach(r => {
     html += `<tr id="forn-row-${r.id}">
-      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
+      <td style="font-family:'Outfit',sans-serif;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
       <td style="font-weight:500">${r.nome||''}</td>
       <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
       <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
@@ -14496,7 +14530,7 @@ async function loadPlanoContas() {
       html += `<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
           <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:13px;color:var(--accent);border-left:3px solid ${g.cor||'#6b7280'};padding-left:8px">${g.ordem}.</span>
+            <span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;color:var(--accent);border-left:3px solid ${g.cor||'#6b7280'};padding-left:8px">${g.ordem}.</span>
             <span style="font-weight:600;font-size:13px">${g.nome}</span>
             <span class="badge ${g.tipo==='ENTRADA'?'badge-green':'badge-red'}" style="font-size:10px">${g.tipo==='ENTRADA'?'(+)':'(-)'}</span>
           </div>
@@ -14528,7 +14562,7 @@ async function loadPlanoContas() {
         html += `<div style="padding:0">`;
         gCats.forEach((c, idx) => {
           html += `<div id="cat-row-${c.id}" style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);${idx%2===1?'background:var(--bg3)':''}">
-            <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:32px" class="cell-view">${c.codigo||''}</span>
+            <span style="font-family:'Outfit',sans-serif;font-size:11px;color:var(--accent);min-width:32px" class="cell-view">${c.codigo||''}</span>
             <input class="cell-edit" style="display:none;width:50px;font-family:monospace;font-size:12px" value="${c.codigo||''}">
             <span style="font-size:13px;flex:1" class="cell-view">${c.nome}</span>
             <input class="cell-edit" style="display:none;flex:1;font-size:13px" value="${c.nome||''}">
@@ -15398,7 +15432,7 @@ function addTfoot(el) {
       const isReais = t.isMono;
       td.textContent = isReais ? fmtBRL(t.soma) : t.soma.toLocaleString('pt-BR');
       td.style.textAlign = 'right';
-      td.style.fontFamily = "'DM Mono', monospace";
+      td.style.fontFamily = "'Outfit', sans-serif";
       td.style.fontSize = '12px';
       if (t.isGreen) td.style.color = 'var(--green)';
     }
@@ -15790,7 +15824,7 @@ function renderServicos(data) {
             : `<span style="color:var(--amber)" title="${[...v.cats].join(', ')}">${v.cats.size} categorias</span>`
           }</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
-          <td style="padding:6px 8px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:6px 8px;text-align:right;font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
           <td style="padding:6px 8px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
         </tr>`
       }).join('')}</tbody>
@@ -15821,7 +15855,7 @@ function renderServicos(data) {
         return `<tr style="border-bottom:1px solid var(--border)">
           <td style="padding:7px 10px;font-size:11px;font-weight:500">${nome}</td>
           <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--text2)">${v.qtd}</td>
-          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;color:var(--green)">${fmtBRL(v.total)}</td>
           <td style="padding:7px 10px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
         </tr>`
       }).join('')}</tbody>
@@ -15857,8 +15891,8 @@ function renderServicos(data) {
           <td style="padding:8px 12px;font-size:12px;font-weight:600">${nome}</td>
           <td style="padding:8px 12px;text-align:right;font-size:12px">${v.qtd}</td>
           <td style="padding:8px 12px;text-align:right;font-size:12px">${v.clientes.size}</td>
-          <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(ticket)}</td>
-          <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
+          <td style="padding:8px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px">${fmtBRL(ticket)}</td>
+          <td style="padding:8px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(v.total)}</td>
           <td style="padding:8px 12px;text-align:right;font-size:11px;color:var(--text2)">${pct}%</td>
         </tr>`
       }).join('')}
@@ -15866,8 +15900,8 @@ function renderServicos(data) {
         <td style="padding:8px 12px;font-size:12px">TOTAL</td>
         <td style="padding:8px 12px;text-align:right;font-size:12px">${atend.toLocaleString('pt-BR')}</td>
         <td style="padding:8px 12px;text-align:right;font-size:12px">${new Set(data.map(r=>r.cliente).filter(Boolean)).size}</td>
-        <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${fmtBRL(atend > 0 ? total/atend : 0)}</td>
-        <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fmtBRL(total)}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px">${fmtBRL(atend > 0 ? total/atend : 0)}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;color:var(--green)">${fmtBRL(total)}</td>
         <td style="padding:8px 12px;text-align:right;font-size:11px"></td>
       </tr>
       </tbody>
@@ -15960,10 +15994,10 @@ function renderSrvHistoricoCliente(data) {
                   <div style="position:absolute;left:0;top:0;height:100%;width:${barPct}%;background:linear-gradient(90deg,#22a45d,#6ee7a8);border-radius:2px"></div>
                 </div>
               </td>
-              <td style="padding:7px 10px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'DM Mono',monospace">${c.celular ? formatarTelefoneCliente(c.celular) : '—'}</td>
+              <td style="padding:7px 10px;font-size:11px;color:var(--text2);white-space:nowrap;font-family:'Outfit',sans-serif">${c.celular ? formatarTelefoneCliente(c.celular) : '—'}</td>
               <td style="padding:7px 10px;text-align:right;font-size:12px;font-weight:700;color:#22a45d">${c.visitas.size}</td>
               <td style="padding:7px 10px;text-align:right;font-size:12px;color:var(--text2)">${c.totalSrv}</td>
-              <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(c.totalVal)}</td>
+              <td style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:var(--green)">${fmtBRL(c.totalVal)}</td>
             </tr>
             <tr id="${id}" style="display:none;background:var(--bg3)">
               <td colspan="7" style="padding:0 0 12px 44px">
@@ -15982,12 +16016,12 @@ function renderSrvHistoricoCliente(data) {
                         <td style="padding:6px 12px;color:var(--text2);white-space:nowrap">${a.data ? fmtDate(a.data) : '—'}</td>
                         <td style="padding:6px 12px;font-weight:500">${a.servico||'—'}</td>
                         <td style="padding:6px 12px;color:var(--text2)">${a.profissional}</td>
-                        <td style="padding:6px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green)">${a.total>0?fmtBRL(a.total):'—'}</td>
+                        <td style="padding:6px 12px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green)">${a.total>0?fmtBRL(a.total):'—'}</td>
                       </tr>
                     `).join('')}
                     <tr style="background:var(--bg3);border-top:1.5px solid var(--border2)">
                       <td colspan="3" style="padding:7px 12px;font-size:10.5px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">Subtotal</td>
-                      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:800;font-size:12.5px;color:var(--green)">${fmtBRL(c.totalVal)}</td>
+                      <td style="padding:7px 12px;text-align:right;font-family:'Outfit',sans-serif;font-weight:800;font-size:12.5px;color:var(--green)">${fmtBRL(c.totalVal)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -16044,7 +16078,7 @@ function renderSrvDetalhe(data) {
       <td style="padding:6px 10px">${r.cliente||'—'}</td>
       <td style="padding:6px 10px">${r.servico||'—'}</td>
       <td style="padding:6px 10px"><span class="badge badge-blue">${r.categoria||'—'}</span></td>
-      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${Number(r.total)>0?'var(--green)':'var(--text2)'}">${fmtBRL(r.total||0)}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'Outfit',sans-serif;font-weight:600;color:${Number(r.total)>0?'var(--green)':'var(--text2)'}">${fmtBRL(r.total||0)}</td>
     </tr>`).join('')}</tbody>
   </table>`);
 }
@@ -16276,7 +16310,7 @@ function abrirModalPreviewImport(dados) {
       <td style="padding:6px 10px">${r.servico||'—'}</td>
       <td style="padding:6px 10px;color:var(--text2)">${r.categoria||'—'}</td>
       <td style="padding:6px 10px">${r.cliente||'—'}</td>
-      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:var(--green)">${r.total>0?'R$ '+r.total.toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'Outfit',sans-serif;font-weight:600;color:var(--green)">${r.total>0?'R$ '+r.total.toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</td>
     </tr>
   `).join('') + (dados.length > 200 ? `<tr><td colspan="6" style="padding:8px;text-align:center;color:var(--text3);font-size:11px">... e mais ${dados.length-200} registros</td></tr>` : '');
 
@@ -16431,12 +16465,12 @@ async function loadProjecaoDRE() {
           return `<td style="padding:2px 1px"><input type="number" step="0.01" min="0"
             id="proj_${cat.id}_${mi+1}" value="${val}" placeholder="0"
             onchange="recalcTotalAno('${cat.id}')"
-            style="width:100%;padding:3px 2px;font-size:9px;text-align:right;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text);font-family:'DM Mono',monospace;box-sizing:border-box"></td>`;
+            style="width:100%;padding:3px 2px;font-size:9px;text-align:right;border:1px solid var(--border);border-radius:4px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif;box-sizing:border-box"></td>`;
         }).join('')}
         <td style="padding:2px 2px;text-align:center">
           <button onclick="replicarParaTodos('${cat.id}')" style="padding:2px 5px;font-size:9px;font-weight:700;border:1px solid var(--accent);color:var(--accent);background:none;border-radius:4px;cursor:pointer" title="Replicar para todos os meses">↦</button>
         </td>
-        <td style="padding:4px 4px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:var(--green)" id="proj-total-${cat.id}">
+        <td style="padding:4px 4px;text-align:right;font-family:'Outfit',sans-serif;font-size:9px;font-weight:700;color:var(--green)" id="proj-total-${cat.id}">
           ${totalAno > 0 ? fmtBRL(totalAno) : '—'}
         </td>
       </tr>`;
@@ -17345,7 +17379,7 @@ function toggleListaNaoAgrupados() {
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:${cor}15;border-left:3px solid ${cor};border-radius:6px 6px 0 0">
           <span style="font-weight:700;font-size:12px;color:${cor}">${titulo} · ${arr.length} lançamento(s)</span>
-          <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${cor}">${fmtBRL(total)}</span>
+          <span style="font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;color:${cor}">${fmtBRL(total)}</span>
         </div>
         <table class="table" style="font-size:11px">
           <thead><tr><th>DATA</th><th>EXTRATO</th><th>DESCRIÇÃO</th><th>CATEGORIA</th><th>BANCO</th><th style="text-align:right">VALOR</th></tr></thead>
@@ -17355,7 +17389,7 @@ function toggleListaNaoAgrupados() {
             <td>${l.descricao || '—'}</td>
             <td>${l.categoria || '<span style="color:var(--red);font-weight:700">sem categoria</span>'}</td>
             <td>${l.banco_nome || '—'}</td>
-            <td style="text-align:right;font-family:'DM Mono',monospace;color:${Number(l.entrada||0)>0?'var(--green)':'var(--red)'}">${fmtNum(Number(l.entrada||0) - Number(l.saida||0))}</td>
+            <td style="text-align:right;font-family:'Outfit',sans-serif;color:${Number(l.entrada||0)>0?'var(--green)':'var(--red)'}">${fmtNum(Number(l.entrada||0) - Number(l.saida||0))}</td>
           </tr>`).join('')}</tbody>
         </table>
       </div>`;
@@ -17364,7 +17398,7 @@ function toggleListaNaoAgrupados() {
     box.innerHTML = `<div class="card" style="padding:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <span style="font-weight:700;font-size:13px">Lançamentos fora dos grupos do DFC</span>
-        <span style="font-size:12px;color:var(--text2)">Total: <strong style="font-family:'DM Mono',monospace;color:${totalGeral>=0?'var(--green)':'var(--red)'}">${fmtBRL(totalGeral)}</strong> · deve bater com a linha ⚠️ acima</span>
+        <span style="font-size:12px;color:var(--text2)">Total: <strong style="font-family:'Outfit',sans-serif;color:${totalGeral>=0?'var(--green)':'var(--red)'}">${fmtBRL(totalGeral)}</strong> · deve bater com a linha ⚠️ acima</span>
       </div>
       ${tabela('❗ Sem categoria — precisa classificar', semCat, totalSem, '#dc2626')}
       ${tabela('🔄 Entre contas — normal, não entra no DFC', entreContas, totalEC, '#22a45d')}
@@ -17504,7 +17538,7 @@ async function loadDFC() {
   const clsProj = m => `dfc-px dfc-px-${m}`;
   const dispProj = m => mesAberto(m) ? '' : 'display:none;';
 
-  const CEL = "padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px";
+  const CEL = "padding:6px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px";
   const cor = v => v>0?'var(--green)':v<0?'var(--red)':'var(--text3)';
 
   // Celulas de um mes para uma CATEGORIA (projetado editavel)
@@ -17518,7 +17552,7 @@ async function loadDFC() {
           <input type="number" step="0.01" class="dfc-proj-input" data-cat="${cat.id}" data-mes="${m}"
             value="${pj || ''}" placeholder="0"
             oninput="recalcPctDFC('${cat.id}','${m}',${r})"
-            style="width:72px;padding:3px 5px;font-size:10px;text-align:right;font-family:'DM Mono',monospace;border:1px solid #a7f3c9;border-radius:5px;background:var(--bg2);color:var(--text)">
+            style="width:72px;padding:3px 5px;font-size:10px;text-align:right;font-family:'Outfit',sans-serif;border:1px solid #a7f3c9;border-radius:5px;background:var(--bg2);color:var(--text)">
           <button onclick="event.stopPropagation();replicarCategoriaDFC('${cat.id}','${m}')"
             title="Replicar este valor para os meses seguintes"
             style="background:none;border:1px solid #a7f3c9;border-radius:4px;padding:1px 3px;cursor:pointer;font-size:9px;color:#22a45d;line-height:1.4">▶</button>
@@ -17686,8 +17720,8 @@ async function loadDFC() {
   });
 
   // Sem fundo: a cor do numero ja destaca e a tabela fica mais limpa
-  const AVCEL = "padding:6px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:#22a45d";
-  const AHCEL = "padding:6px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700";
+  const AVCEL = "padding:6px 5px;text-align:right;font-family:'Outfit',sans-serif;font-size:9px;font-weight:700;color:#22a45d";
+  const AHCEL = "padding:6px 5px;text-align:right;font-family:'Outfit',sans-serif;font-size:9px;font-weight:700";
 
   // Qual analise mostrar. AV = peso sobre as entradas do mes.
   // AH = variacao em relacao ao mes ANTERIOR da propria linha.
@@ -17744,7 +17778,7 @@ async function loadDFC() {
   const celAV = valor => {
     if (!mostraTotais) return '';
     const pct = totalEntradasPeriodo > 0 ? (Math.abs(valor) / totalEntradasPeriodo * 100) : null;
-    return `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#15803d">${pct===null||!valor?'':pct.toFixed(1)+'%'}</td>`;
+    return `<td style="padding:8px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;color:#15803d">${pct===null||!valor?'':pct.toFixed(1)+'%'}</td>`;
   };
 
   const thS = `padding:8px 6px;text-align:right;border-bottom:2px solid var(--border);font-size:10px;font-weight:600;color:var(--text2);white-space:nowrap`;
@@ -17782,8 +17816,8 @@ async function loadDFC() {
   // Saldo Inicial
   html += `<tr style="background:#f0fdf4">
     <td style="padding:8px 10px;font-weight:700;position:sticky;left:0;background:#f0fdf4;z-index:10;font-size:11px">Saldo Inicial</td>
-    ${saldoInicialMes.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px`, i>0 ? saldoInicialMes[i-1] : null, true)).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>${mostraTotais?'<td></td>':''}`}
+    ${saldoInicialMes.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:11px`, i>0 ? saldoInicialMes[i-1] : null, true)).join('')}
+    ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;background:#e8f0fe"></td><td style="background:#fef9f0"></td>${mostraTotais?'<td></td>':''}`}
   </tr>`;
 
   // Grupos
@@ -17798,8 +17832,8 @@ async function loadDFC() {
       const totalRO = resultadoOp.reduce((s,v)=>s+v,0);
       html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
         <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
-        ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`, i>0 ? resultadoOp[i-1] : null, true)).join('')}
-        ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(mediaFechados(resultadoOp)||0)}</td>` + celAV(totalRO)}
+        ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;font-size:11px`, i>0 ? resultadoOp[i-1] : null, true)).join('')}
+        ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;background:#e8f0fe;color:${totalRO>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO)}</td><td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;background:#fef9f0;color:var(--text2)">${fmtNum(mediaFechados(resultadoOp)||0)}</td>` + celAV(totalRO)}
       </tr>`;
     }
     const totalG = g.totalGrupo.reduce((s,v) => s+v, 0);
@@ -17812,8 +17846,8 @@ async function loadDFC() {
       <td style="padding:9px 10px;font-weight:700;color:${corG};border-left:4px solid ${corG};position:sticky;left:0;background:${bgG};z-index:10;font-size:11px">
         <span id="${gId}-arrow" style="margin-right:6px;font-size:10px">▶</span>${g.ordem}. ${g.nome} <span style="font-weight:400;font-size:10px;color:var(--text2)">${g.sinal}</span>
       </td>
-      ${g.totalGrupo.map((v,i) => celulasResumo(mCols[i], v, g.gCats.reduce((sm,c)=>sm+projDeCat(c,mCols[i]),0), `padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;font-size:11px`, i>0 ? g.totalGrupo[i-1] : null, g.tipo === 'ENTRADA')).join('')}
-      ${!mostraTotais ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>` + celAV(totalG)}
+      ${g.totalGrupo.map((v,i) => celulasResumo(mCols[i], v, g.gCats.reduce((sm,c)=>sm+projDeCat(c,mCols[i]),0), `padding:9px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:600;font-size:11px`, i>0 ? g.totalGrupo[i-1] : null, g.tipo === 'ENTRADA')).join('')}
+      ${!mostraTotais ? '' : `<td style="padding:9px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;background:#e8f0fe;font-size:11px;color:${totalG>0?'var(--green)':totalG<0?'var(--red)':'var(--text3)'}">${totalG!==0?fmtNum(Math.abs(totalG)):''}</td><td style="padding:9px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;background:#fef9f0;color:var(--text2)">${mediaG!==0?fmtNum(Math.abs(mediaG)):''}</td>` + celAV(totalG)}
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
@@ -17824,7 +17858,7 @@ async function loadDFC() {
       html += `<tr class="dfc-cat-${gId}" style="border-bottom:1px solid var(--border);background:${bgC};display:none">
         <td style="padding:6px 10px 6px 24px;color:var(--text2);font-size:10px;position:sticky;left:0;background:${bgC};z-index:10">${c.codigo} — ${c.nome}</td>
         ${vals.map((v,i) => celulasCat(c, mCols[i], v, i>0 ? vals[i-1] : null, g.tipo === 'ENTRADA')).join('')}
-        ${!mostraTotais ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>` + celAV(total)}
+        ${!mostraTotais ? '' : `<td style="padding:6px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td><td style="padding:6px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;background:#fef9f0;color:var(--text2)">${media!==0?fmtNum(Math.abs(media)):''}</td>` + celAV(total)}
       </tr>`;
     });
   });
@@ -17834,8 +17868,8 @@ async function loadDFC() {
     const totalRO2 = resultadoOp.reduce((s,v)=>s+v,0);
     html += `<tr style="background:var(--bg3);border-top:3px solid var(--accent)">
       <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:var(--bg3);z-index:10;color:var(--accent);font-size:11px">⚡ Resultado Operacional</td>
-      ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px`, i>0 ? resultadoOp[i-1] : null, true)).join('')}
-      ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>${mostraTotais?'<td></td>':''}`}
+      ${resultadoOp.map((v,i) => celulasVazias(mCols[i], v, `padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;font-size:11px`, i>0 ? resultadoOp[i-1] : null, true)).join('')}
+      ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;background:#e8f0fe;color:${totalRO2>=0?'var(--green)':'var(--red)'}">${fmtNum(totalRO2)}</td><td style="background:#fef9f0"></td>${mostraTotais?'<td></td>':''}`}
     </tr>`;
   }
 
@@ -17870,8 +17904,8 @@ async function loadDFC() {
         <span id="dfc-na-seta">▶</span> ⚠️ Entre contas / sem categoria
         <span style="font-size:9px;font-weight:400;text-decoration:underline;margin-left:4px">ver lista</span>
       </td>
-      ${naoAgrupado.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:600`)).join('')}
-      ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;background:#e8f0fe;color:${totalNA>=0?'var(--green)':'var(--red)'}">${fmtNum(totalNA)}</td><td style="background:#fef9f0"></td><td></td>`}
+      ${naoAgrupado.map((v,i) => celulasVazias(mCols[i], v, `padding:8px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;font-weight:600`)).join('')}
+      ${!mostraTotais ? '' : `<td style="padding:8px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:600;background:#e8f0fe;color:${totalNA>=0?'var(--green)':'var(--red)'}">${fmtNum(totalNA)}</td><td style="background:#fef9f0"></td><td></td>`}
     </tr>`;
   }
 
@@ -17880,7 +17914,7 @@ async function loadDFC() {
   const BG_RL = '#dbeafe', BG_RL2 = '#eff6ff';
   html += `<tr style="background:${BG_RL};border-top:2px solid #93c5fd">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_RL};z-index:10;color:#1e3a8a;font-size:11px">Resultado Líquido</td>
-    ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':
+    ${resultadoLiq.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':
    (temAV ? (() => {
       // Margem liquida do mes + seta comparando com o mes anterior
       const base = entradasDoMes[mCols[i]] || 0;
@@ -17892,10 +17926,10 @@ async function loadDFC() {
         const dif = pct - pctA;
         if (Math.abs(dif) >= 0.5) { seta = dif > 0 ? '▲' : '▼'; cor = dif > 0 ? '#15803d' : '#b91c1c'; }
       }
-      return `<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:${cor}" title="${pctA!==null?'Mês anterior: '+pctA.toFixed(0)+'%':''}">${pct===null?'':seta+pct.toFixed(0)+'%'}</td>`;
+      return `<td style="padding:10px 5px;text-align:right;font-family:'Outfit',sans-serif;font-size:9px;font-weight:700;color:${cor}" title="${pctA!==null?'Mês anterior: '+pctA.toFixed(0)+'%':''}">${pct===null?'':seta+pct.toFixed(0)+'%'}</td>`;
     })() : '')
  + (temAH ? celAHMes(v, i>0?resultadoLiq[i-1]:null, true) : '')) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_RL2}"></td>` : '')).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_RL2};color:${totalRL>=0?'#15803d':'#b91c1c'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;background:${BG_RL2};color:#1e40af">${fmtNum(mediaFechados(resultadoLiq)||0)}</td><td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:${BG_RL2};color:#15803d">${totalEntradasPeriodo>0?(Math.abs(totalRL)/totalEntradasPeriodo*100).toFixed(1)+'%':''}</td>`}
+    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;background:${BG_RL2};color:${totalRL>=0?'#15803d':'#b91c1c'}">${fmtNum(totalRL)}</td><td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;background:${BG_RL2};color:#1e40af">${fmtNum(mediaFechados(resultadoLiq)||0)}</td><td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;background:${BG_RL2};color:#15803d">${totalEntradasPeriodo>0?(Math.abs(totalRL)/totalEntradasPeriodo*100).toFixed(1)+'%':''}</td>`}
   </tr>`;
 
   // Saldo Acumulado — verde claro (é o dinheiro que sobra em caixa)
@@ -17903,17 +17937,17 @@ async function loadDFC() {
   const ultimoSA = saldoFinalMes[saldoFinalMes.length-1];
   html += `<tr style="background:${BG_SA};border-top:2px solid var(--accent)">
     <td style="padding:10px 10px;font-weight:700;position:sticky;left:0;background:${BG_SA};z-index:10;font-size:11px;color:#0f3d24">Saldo Acumulado</td>
-    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':
+    ${saldoFinalMes.map((v,i) => `<td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;color:${v>=0?'#15803d':'#b91c1c'}">${fmtNum(v)}</td>` + (modo==='projetado'?'':
    (temAV ? (i>0 ? (() => {
       // Saldo nao e parte das entradas: aqui a seta compara o proprio saldo
       const a = Math.abs(v), b = Math.abs(saldoFinalMes[i-1]);
       if (!b) return '<td></td>';
       const d = (a-b)/b*100;
-      if (Math.abs(d) < 0.5) return `<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;color:var(--text3)">=</td>`;
-      return `<td style="padding:10px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:${d>0?'#15803d':'#b91c1c'}">${d>0?'▲':'▼'}${Math.abs(d).toFixed(0)}%</td>`;
+      if (Math.abs(d) < 0.5) return `<td style="padding:10px 5px;text-align:right;font-family:'Outfit',sans-serif;font-size:9px;color:var(--text3)">=</td>`;
+      return `<td style="padding:10px 5px;text-align:right;font-family:'Outfit',sans-serif;font-size:9px;font-weight:700;color:${d>0?'#15803d':'#b91c1c'}">${d>0?'▲':'▼'}${Math.abs(d).toFixed(0)}%</td>`;
     })() : '<td></td>') : '')
  + (temAH? (i>0 ? celAHMes(v, saldoFinalMes[i-1], true) : '<td></td>') : '')) + (modo==='ambos' ? `<td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td><td class="${clsProj(mCols[i])}" style="${dispProj(mCols[i])}background:${BG_SA2}"></td>` : '')).join('')}
-    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;background:${BG_SA2};color:${ultimoSA>=0?'#15803d':'#b91c1c'}">${fmtNum(ultimoSA)}</td><td style="padding:10px 6px;background:${BG_SA2}"></td><td style="padding:10px 6px;background:${BG_SA2}"></td>`}
+    ${!mostraTotais ? '' : `<td style="padding:10px 6px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;background:${BG_SA2};color:${ultimoSA>=0?'#15803d':'#b91c1c'}">${fmtNum(ultimoSA)}</td><td style="padding:10px 6px;background:${BG_SA2}"></td><td style="padding:10px 6px;background:${BG_SA2}"></td>`}
   </tr>`;
 
   html += '</tbody></table></div>';
@@ -18445,7 +18479,7 @@ async function loadDRE() {
   // Estilos
   const thS  = `padding:6px 5px;text-align:right;border-bottom:2px solid var(--border);font-size:9px;font-weight:700;color:var(--text2);white-space:nowrap;background:var(--bg3)`;
   const thSL = `padding:6px 8px;text-align:left;border-bottom:2px solid var(--border);font-size:9px;font-weight:700;color:var(--text2);background:var(--bg3)`;
-  const tdV  = `padding:5px 5px;text-align:right;font-size:9px;white-space:nowrap;font-family:'DM Mono',monospace`;
+  const tdV  = `padding:5px 5px;text-align:right;font-size:9px;white-space:nowrap;font-family:'Outfit',sans-serif`;
   // Separador vertical entre meses (aplicado na 1ª coluna de cada mês)
   const sepMes = `border-left:1.5px solid rgba(0,0,0,0.1)`;
 
@@ -18482,7 +18516,7 @@ async function loadDRE() {
       const clrR = r>0?'var(--green)':r<0?'var(--red)':'var(--text3)';
       const sep = i>0 ? 'border-left:1.5px solid rgba(0,0,0,0.08)' : '';
       const base = `padding:5px 5px;text-align:right;font-size:9px;white-space:nowrap`;
-      const mono = `${base};font-family:'DM Mono',monospace`;
+      const mono = `${base};font-family:'Outfit',sans-serif`;
       if (modo === 'ambos') return `
         <td style="${mono};${sep};color:${clrR}">${r!==0?fmtNum(Math.abs(r)):''}</td>
         <td style="${mono};color:#3b82f6">${p!==0?fmtNum(Math.abs(p)):''}</td>
@@ -18504,13 +18538,13 @@ async function loadDRE() {
     const pct = totalRec && Math.abs(totalRec)>0?(Math.abs(total)/Math.abs(totalRec)*100).toFixed(1)+'%':'';
     const media = total/nMeses;
     if (modo === 'ambos') return `
-      <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
+      <td style="padding:7px 5px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
       <td style="padding:7px 5px;text-align:right;font-size:9px;background:#e8f0fe;color:var(--text2)">${pct}</td>
-      <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;background:#fef9f0;color:var(--text2)">${fmtNum(Math.abs(media))}</td>`;
+      <td style="padding:7px 5px;text-align:right;font-family:'Outfit',sans-serif;font-size:9px;background:#fef9f0;color:var(--text2)">${fmtNum(Math.abs(media))}</td>`;
     return `
-      <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
+      <td style="padding:7px 5px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;font-size:10px;background:#e8f0fe;color:${total>0?'var(--green)':total<0?'var(--red)':'var(--text3)'}">${total!==0?fmtNum(Math.abs(total)):''}</td>
       <td style="padding:7px 5px;text-align:right;font-size:9px;background:#e8f0fe;color:var(--text2)">${pct}</td>
-      <td style="padding:7px 5px;text-align:right;font-family:'DM Mono',monospace;font-size:9px;background:#fef9f0;color:var(--text2)">${fmtNum(Math.abs(media))}</td>`;
+      <td style="padding:7px 5px;text-align:right;font-family:'Outfit',sans-serif;font-size:9px;background:#fef9f0;color:var(--text2)">${fmtNum(Math.abs(media))}</td>`;
   }
 
   // indicadorRow: pctBase = array de valores base para o % (recBruta ou recLiq)
@@ -18523,14 +18557,14 @@ async function loadDRE() {
       const b = baseArr[i];
       const pct = showPct && b && Math.abs(b)>0 ? (v/Math.abs(b)*100).toFixed(1)+'%' : '';
       const cols = modo==='ambos' ? 3 : 2;
-      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:${bold?'700':'500'};font-size:11px;color:${v>=0?textColor:'var(--red)'}">
+      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'Outfit',sans-serif;font-weight:${bold?'700':'500'};font-size:11px;color:${v>=0?textColor:'var(--red)'}">
         ${fmtNum(v)}${pct?`<span style="font-size:11px;color:${textColor};opacity:0.75;margin-left:6px">${pct}</span>`:''}
       </td>`;
     }).join('');
     const totCols = mesFiltro ? '' : (() => {
       const pct = showPct && totalBase && Math.abs(totalBase)>0 ? (total/Math.abs(totalBase)*100).toFixed(1)+'%' : '';
       const cols = modo==='ambos' ? 3 : 3;
-      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:11px;color:${total>=0?textColor:'var(--red)'}">
+      return `<td colspan="${cols}" style="padding:8px 5px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;color:${total>=0?textColor:'var(--red)'}">
         ${fmtNum(total)}${pct?`<span style="font-size:11px;opacity:0.75;margin-left:6px">${pct}</span>`:''}
       </td>`;
     })();
@@ -18854,7 +18888,7 @@ async function lerDocumentoConta(files) {
         <div style="display:flex;gap:8px;align-items:center;font-size:11px;padding:3px 0;border-bottom:1px solid #dcfce7">
           <span style="font-weight:700;color:#0f3d24">Parcela ${i+1}/${_contaParcelas.length}</span>
           <span>${p.vencimento ? p.vencimento.split('-').reverse().join('/') : '—'}</span>
-          <span style="font-family:'DM Mono',monospace;font-weight:700">${p.valor ? 'R$ ' + p.valor.toFixed(2).replace('.',',') : '—'}</span>
+          <span style="font-family:'Outfit',sans-serif;font-weight:700">${p.valor ? 'R$ ' + p.valor.toFixed(2).replace('.',',') : '—'}</span>
           ${p.numero_doc ? `<span style="color:#6b7280">Doc: ${p.numero_doc}</span>` : ''}
         </div>
       `).join('')}
@@ -18924,7 +18958,7 @@ function atualizarPreviewParcelas() {
       <span style="background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700;font-size:10px">${l.n}/${l.total}</span>
       <span style="font-weight:600">${nome}</span>
       <span style="color:var(--text2)">Venc: ${l.venc}</span>
-      <span style="font-family:'DM Mono',monospace;font-weight:700;color:var(--red);margin-left:auto">R$ ${l.valor.toFixed(2).replace('.',',')}</span>
+      <span style="font-family:'Outfit',sans-serif;font-weight:700;color:var(--red);margin-left:auto">R$ ${l.valor.toFixed(2).replace('.',',')}</span>
     </div>
   `).join('');
 }
@@ -19264,8 +19298,8 @@ async function loadContasReceber() {
             <div style="font-size:12px;font-weight:600">${c.descricao||'—'}</div>
             ${c.palavra_chave?`<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>`:''}
           </td>
-          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--green);white-space:nowrap">${fmtBRL(c.valor)}</td>
-          <td style="padding:7px 10px;text-align:center;font-size:11px;font-family:'DM Mono',monospace;color:${c.total_parcelas>1?'#22a45d':'var(--text3)'};font-weight:${c.total_parcelas>1?'700':'400'}">${parcLabel}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:var(--green);white-space:nowrap">${fmtBRL(c.valor)}</td>
+          <td style="padding:7px 10px;text-align:center;font-size:11px;font-family:'Outfit',sans-serif;color:${c.total_parcelas>1?'#22a45d':'var(--text3)'};font-weight:${c.total_parcelas>1?'700':'400'}">${parcLabel}</td>
           <td style="padding:7px 10px;text-align:center">
             <select onchange="atualizarStatusConta('${c.id}','receber',this.value,this)"
               style="padding:3px 7px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid ${cor};color:${cor};background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;outline:none">
@@ -19348,9 +19382,9 @@ function renderTabelaConta(targetId, contas, tipo, hoje) {
         ${c.palavra_chave ? `<div style="font-size:10px;color:var(--accent)">🔑 ${c.palavra_chave}</div>` : ''}
         ${c.observacao ? `<div style="font-size:10px;color:var(--text3)">${c.observacao}</div>` : ''}
       </td>
-      <td style="padding:9px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:600;color:${tipo==='pagar'?'var(--red)':'var(--green)'}">${fmtBRL(c.valor)}</td>
+      <td style="padding:9px 12px;text-align:right;font-family:'Outfit',sans-serif;font-weight:600;color:${tipo==='pagar'?'var(--red)':'var(--green)'}">${fmtBRL(c.valor)}</td>
       <td style="padding:9px 12px;text-align:center;font-size:11px;color:${vencido&&statusAtual!=='pago'&&statusAtual!=='recebido'?'#ef4444':'var(--text2)'};font-weight:${vencido&&statusAtual!=='pago'&&statusAtual!=='recebido'?'700':'400'}">${fmtDate(c.data_vencimento)}</td>
-      <td style="padding:9px 12px;text-align:center;font-size:12px;font-family:'DM Mono',monospace;${parcColor}">${parcLabel}</td>
+      <td style="padding:9px 12px;text-align:center;font-size:12px;font-family:'Outfit',sans-serif;${parcColor}">${parcLabel}</td>
       <td style="padding:9px 12px;text-align:center">
         <select onchange="atualizarStatusConta('${c.id}','${tipo}',this.value,this)"
           style="padding:4px 8px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid ${cor};color:${cor};background:transparent;cursor:pointer;font-family:'Outfit',sans-serif;outline:none">
@@ -19727,9 +19761,9 @@ async function loadEvolucaoProfissional() {
 
     html += `<tr>
       <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">${nomesMes[m]}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fat > 0 ? fmtBRL(fat) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:#f59e0b">${comPorMes[m] > 0 ? fmtBRL(comPorMes[m]) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:12px">${meta > 0 ? fmtBRL(meta) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'Outfit',sans-serif;font-size:12px;color:var(--green)">${fat > 0 ? fmtBRL(fat) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'Outfit',sans-serif;font-size:12px;color:#f59e0b">${comPorMes[m] > 0 ? fmtBRL(comPorMes[m]) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'Outfit',sans-serif;font-size:12px">${meta > 0 ? fmtBRL(meta) : '<span style="color:var(--text3)">—</span>'}</td>
       <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;font-size:12px;color:${pctAtingido===null?'var(--text3)':pctAtingido>=100?'var(--green)':'var(--amber)'}">${pctAtingido===null?'—':pctAtingido.toFixed(0)+'%'}</td>
       <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;font-size:12px;color:${corCrescimento}">${crescimento===null?'—':setaCrescimento+' '+Math.abs(crescimento).toFixed(0)+'%'}</td>
     </tr>`;
@@ -19820,10 +19854,10 @@ async function loadProfissionaisMetricas(mes, ano, ini, fim) {
       <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right">
         <input type="text" value="${meta > 0 ? meta : ''}" placeholder="Definir meta"
           onblur="salvarMetaProfissional('${p.id}', this.value, '${mes}', '${ano}')"
-          style="width:100px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
+          style="width:100px;text-align:right;font-family:'Outfit',sans-serif;font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text)">
       </td>
-      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${fat > 0 ? fmtBRL(fat) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:#f59e0b">${com > 0 ? fmtBRL(com) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'Outfit',sans-serif;font-size:13px;color:var(--green)">${fat > 0 ? fmtBRL(fat) : '<span style="color:var(--text3)">—</span>'}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-family:'Outfit',sans-serif;font-size:13px;color:#f59e0b">${com > 0 ? fmtBRL(com) : '<span style="color:var(--text3)">—</span>'}</td>
       <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">
         <div style="font-weight:700;font-size:13px;color:${cor}">${meta > 0 ? pct.toFixed(0)+'%' : '—'}</div>
         <div style="margin-top:4px;height:3px;background:var(--bg4);border-radius:3px;overflow:hidden">
@@ -20005,7 +20039,7 @@ async function abrirModalMetaFinanceira() {
         <input type="number" id="metafin-dias-${mesNum}" placeholder="dias" value="${diasVal}" min="1" max="31"
           oninput="calcMetaDia('${mesNum}')"
           style="width:65px;font-size:12px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);text-align:center">
-        <span id="metafin-dia-${mesNum}" style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;white-space:nowrap">${metaDia}</span>
+        <span id="metafin-dia-${mesNum}" style="font-size:11px;color:var(--accent);font-family:'Outfit',sans-serif;white-space:nowrap">${metaDia}</span>
       </div>
     </div>`;
   });
@@ -20922,7 +20956,7 @@ async function verAuditoria(id) {
     <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="color:var(--text2)">Código</span>
-        <strong style="font-family:'DM Mono',monospace">${l.codigo || '—'}</strong>
+        <strong style="font-family:'Outfit',sans-serif">${l.codigo || '—'}</strong>
       </div>
       <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
         <span style="color:var(--text2)">Origem</span>
@@ -21925,7 +21959,7 @@ async function atualizarFornecedores() {
   let html = '<div class="table-wrap"><table><thead><tr><th>Cód</th><th>Nome</th><th>CPF/CNPJ</th><th>Tipo</th><th>Cat DFC</th><th>Cat DRE</th><th>Palavra-chave</th><th>Ações</th></tr></thead><tbody>';
   forns.forEach(r => {
     html += `<tr id="forn-row-${r.id}">
-      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
+      <td style="font-family:'Outfit',sans-serif;font-size:11px;color:var(--accent)">${r.codigo||'—'}</td>
       <td style="font-weight:500">${r.nome||''}</td>
       <td style="font-size:12px;color:var(--text2)">${r.cnpj||'—'}</td>
       <td><span class="badge badge-blue">${r.tipo||'—'}</span></td>
@@ -22005,7 +22039,7 @@ function renderDonutLegend(elId, items, opts) {
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-shrink:0">
         ${it.pct !== undefined ? `<span style="font-size:11px;font-weight:700;color:var(--text2);min-width:38px;text-align:right">${Number(it.pct).toFixed(1)}%</span>` : ''}
-        ${it.value !== undefined ? `<span style="font-size:11px;font-family:'DM Mono',monospace;min-width:88px;text-align:right;font-weight:600">${it.value}</span>` : ''}
+        ${it.value !== undefined ? `<span style="font-size:11px;font-family:'Outfit',sans-serif;min-width:88px;text-align:right;font-weight:600">${it.value}</span>` : ''}
       </div>
     </div>`
   ).join('');
@@ -22023,7 +22057,7 @@ function renderDonutLegend(elId, items, opts) {
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
           ${it.pct !== undefined ? `<span style="font-size:10px;font-weight:700;color:var(--text2);min-width:32px;text-align:right">${Number(it.pct).toFixed(1)}%</span>` : ''}
-          ${it.value !== undefined ? `<span style="font-size:10px;font-family:'DM Mono',monospace;min-width:72px;text-align:right">${it.value}</span>` : ''}
+          ${it.value !== undefined ? `<span style="font-size:10px;font-family:'Outfit',sans-serif;min-width:72px;text-align:right">${it.value}</span>` : ''}
         </div>
       </div>`).join('');
     el.style.display = 'grid';
@@ -23699,8 +23733,8 @@ async function buscarDocumentos(termo) {
           <td style="padding:7px 10px;text-align:center;font-size:18px">${iconArq(a.arquivo_url)}</td>
           <td style="padding:7px 10px;color:var(--text2);white-space:nowrap">${data}</td>
           <td style="padding:7px 10px;font-weight:600;cursor:pointer;color:var(--accent)" onclick="abrirDocumento('${a.arquivo_url||''}')">${a.fornecedor||'—'}</td>
-          <td style="padding:7px 10px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--red)">${a.valor ? fmtBRL(Number(a.valor)) : '—'}</td>
-          <td style="padding:7px 10px;font-family:'DM Mono',monospace;color:var(--text2)">${a.numero_nf||'—'}</td>
+          <td style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-weight:700;color:var(--red)">${a.valor ? fmtBRL(Number(a.valor)) : '—'}</td>
+          <td style="padding:7px 10px;font-family:'Outfit',sans-serif;color:var(--text2)">${a.numero_nf||'—'}</td>
           <td style="padding:7px 10px;text-align:center">
             ${a.arquivo_url ? `<button onclick="abrirDocumento('${a.arquivo_url}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px">👁</button>` : ''}
             <button onclick="deletarDocumento('${a.id}',false);buscarDocumentos('${termo}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:13px">🗑</button>
@@ -24268,7 +24302,7 @@ async function loadCartaoLancamentos() {
         <span class="cell-view">${competenciaLabel}</span>
         <input class="cell-edit" type="date" style="display:none;width:130px" value="${l.data_competencia||''}">
       </td>
-      <td style="text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${saldo>=0?'var(--green)':'var(--red)'}">${fmtBRL(saldo)}</td>
+      <td style="text-align:right;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:${saldo>=0?'var(--green)':'var(--red)'}">${fmtBRL(saldo)}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="toggleInline('cc-row-${l.id}')">✏️</button>
         <button class="btn btn-sm btn-save-inline" style="display:none;padding:3px 8px;font-size:11px;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarLancamentoInlineCC('${l.id}','cc-row-${l.id}')">💾</button>
@@ -24575,8 +24609,8 @@ async function renderListaCartoes() {
           ${limite > 0 ? `
           <div style="margin-top:6px">
             <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
-              <span style="color:var(--text2)">Usado: <strong style="font-family:'DM Mono',monospace;color:${corBar}">${fmtBRL(usado)}</strong></span>
-              <span style="color:var(--text2)">Disponível: <strong style="font-family:'DM Mono',monospace;color:${disp<0?'var(--red)':'var(--green)'}">${fmtBRL(disp)}</strong></span>
+              <span style="color:var(--text2)">Usado: <strong style="font-family:'Outfit',sans-serif;color:${corBar}">${fmtBRL(usado)}</strong></span>
+              <span style="color:var(--text2)">Disponível: <strong style="font-family:'Outfit',sans-serif;color:${disp<0?'var(--red)':'var(--green)'}">${fmtBRL(disp)}</strong></span>
             </div>
             <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
               <div style="width:${pct}%;height:100%;background:${corBar};transition:width .3s"></div>
@@ -25116,12 +25150,12 @@ async function previewFaturaCCPdf(file) {
               style="width:100%;padding:4px 7px;font-size:11px;border:1.5px solid ${r._categoria?'var(--green)':'var(--border)'};border-radius:6px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif;box-sizing:border-box">
             <div id="ccpdf-dd-${i}" style="display:none;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.22)"></div>
           </td>
-          <td style="padding:5px 8px;text-align:right;font-family:'DM Mono',monospace;color:${r._valor<0?'var(--green)':'var(--text)'}">${fmtBRL(r._valor)}</td>
+          <td style="padding:5px 8px;text-align:right;font-family:'Outfit',sans-serif;color:${r._valor<0?'var(--green)':'var(--text)'}">${fmtBRL(r._valor)}</td>
         </tr>`).join('')}</tbody>
       </table>
       <div style="padding:8px;font-weight:700;text-align:right;border-top:1px solid var(--border);background:var(--bg3)">
         ${reconhecidos} de ${_ccFaturaRows.length} categorizados automaticamente ·
-        Total: <span style="font-family:'DM Mono',monospace">${fmtBRL(totalPdf)}</span>
+        Total: <span style="font-family:'Outfit',sans-serif">${fmtBRL(totalPdf)}</span>
       </div>
     </div>`;
     previewEl.insertAdjacentHTML('beforeend', listaHtml);
@@ -26260,7 +26294,7 @@ function renderOnbVisaoGeral() {
         <div onclick="abrirOnbEmpresa('${e.id}')" style="background:#222226;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px">
             <div style="font-size:14px;font-weight:700;color:#fff">${e.nome}</div>
-            <div style="font-size:13px;font-weight:800;color:${geral.pct===100?'#34c97a':'#f59e0b'};font-family:'DM Mono',monospace">
+            <div style="font-size:13px;font-weight:800;color:${geral.pct===100?'#34c97a':'#f59e0b'};font-family:'Outfit',sans-serif">
               ${geral.pct}% <span style="font-size:11px;color:rgba(255,255,255,.35);font-weight:400">${geral.feitos}/${geral.total}</span>
             </div>
           </div>
@@ -26298,7 +26332,7 @@ function renderOnbDetalhe() {
         <div style="font-size:17px;font-weight:800;color:#fff">${emp.nome}</div>
         <div style="font-size:12px;color:rgba(255,255,255,.4)">${geral.feitos} de ${geral.total} concluídos</div>
       </div>
-      <div style="font-size:22px;font-weight:800;color:${geral.pct===100?'#34c97a':'#f59e0b'};font-family:'DM Mono',monospace">${geral.pct}%</div>
+      <div style="font-size:22px;font-weight:800;color:${geral.pct===100?'#34c97a':'#f59e0b'};font-family:'Outfit',sans-serif">${geral.pct}%</div>
     </div>
     <div style="margin-bottom:18px">${barraProgresso(geral.pct, 10)}</div>
 
@@ -26309,7 +26343,7 @@ function renderOnbDetalhe() {
       <div style="background:#222226;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 16px;margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div style="font-size:14px;font-weight:800;color:#fff">Etapa ${et}</div>
-          <div style="font-size:12px;font-weight:700;color:${pEt.pct===100?'#34c97a':'#f59e0b'};font-family:'DM Mono',monospace">${pEt.pct}%</div>
+          <div style="font-size:12px;font-weight:700;color:${pEt.pct===100?'#34c97a':'#f59e0b'};font-family:'Outfit',sans-serif">${pEt.pct}%</div>
         </div>
         ${barraProgresso(pEt.pct, 5)}
 
@@ -28365,7 +28399,7 @@ function timerControlHtml(tarefaId, dataRef, tempoInfo) {
       html: `
         <div style="display:flex;align-items:center;gap:6px;background:rgba(52,201,122,.1);border-radius:6px;padding:4px 8px">
           <span style="width:6px;height:6px;border-radius:50%;background:#6ee7a8;animation:pulse 1.5s infinite"></span>
-          <span id="${elId}" style="font-family:'DM Mono',monospace;font-size:12px;color:#6ee7a8;font-weight:700;min-width:42px">00:00</span>
+          <span id="${elId}" style="font-family:'Outfit',sans-serif;font-size:12px;color:#6ee7a8;font-weight:700;min-width:42px">00:00</span>
           <button onclick="pausarTimerTarefa('${tempoInfo.ativa.id}')" 
             style="background:none;border:none;cursor:pointer;color:#6ee7a8;font-size:13px;padding:0">⏸️</button>
         </div>`,
@@ -28444,7 +28478,7 @@ async function masterLoadProdutividade() {
             <div style="font-size:10px;color:#45454b;margin-top:2px">tarefas</div>
           </div>
           <div>
-            <div style="font-size:28px;font-weight:800;color:#60a5fa;line-height:1;font-family:'DM Mono',monospace">${formatarDuracao(porOperador[nome].tempo)}</div>
+            <div style="font-size:28px;font-weight:800;color:#60a5fa;line-height:1;font-family:'Outfit',sans-serif">${formatarDuracao(porOperador[nome].tempo)}</div>
             <div style="font-size:10px;color:#45454b;margin-top:2px">tempo total</div>
           </div>
         </div>
@@ -28496,9 +28530,9 @@ async function masterLoadProdutividade() {
               <td style="padding:9px 12px;color:#efeff1">${t?.titulo || '—'}</td>
               <td style="padding:9px 12px;color:#82828c">${empresaTagInline(t)}</td>
               <td style="padding:9px 12px;color:#82828c">${dataRefBr}</td>
-              <td style="padding:9px 12px;color:#82828c;font-family:'DM Mono',monospace">${horaInicio}</td>
-              <td style="padding:9px 12px;color:#82828c;font-family:'DM Mono',monospace">${horaFim}</td>
-              <td style="padding:9px 12px;color:#6ee7a8;font-weight:700;font-family:'DM Mono',monospace">${duracao}</td>
+              <td style="padding:9px 12px;color:#82828c;font-family:'Outfit',sans-serif">${horaInicio}</td>
+              <td style="padding:9px 12px;color:#82828c;font-family:'Outfit',sans-serif">${horaFim}</td>
+              <td style="padding:9px 12px;color:#6ee7a8;font-weight:700;font-family:'Outfit',sans-serif">${duracao}</td>
               <td style="padding:9px 12px;color:#56565e;max-width:240px">${r.observacao || '—'}</td>
             </tr>
           `;
@@ -29820,7 +29854,7 @@ async function masterLoadLogs() {
               ${l.acao||'—'}
             </span>
           </td>
-          <td style="padding:10px 14px;font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.4)">${l.ip||'—'}</td>
+          <td style="padding:10px 14px;font-family:'Outfit',sans-serif;font-size:11px;color:rgba(255,255,255,.4)">${l.ip||'—'}</td>
           <td style="padding:10px 14px;font-size:12px;color:rgba(255,255,255,.5)">${l.criado_em ? new Date(l.criado_em).toLocaleString('pt-BR') : '—'}</td>
         </tr>`
       ).join('')}
