@@ -1834,6 +1834,63 @@ canvas{ max-width:100%; }
 .delta svg{ width:11px; height:11px; }
 .delta + .delta-txt{ margin-left:7px; font-size:11px; color:var(--text3); }
 
+
+/* ─── 24. CARDS COLORIDOS (gradiente saturado + texto branco) ─── */
+.kpi-hero{
+  border:none !important;
+  color:#fff !important;
+  background-color:transparent !important;
+  box-shadow:0 10px 30px -10px var(--gl);
+}
+.kpi-hero .kpi-label{ color:rgba(255,255,255,.85) !important; }
+.kpi-hero .kpi-value{ color:#fff !important; }
+.kpi-hero .kpi-sub  { color:rgba(255,255,255,.72) !important; }
+.kpi-hero .kpi-icon{
+  background:rgba(255,255,255,.20) !important;
+  border:1px solid rgba(255,255,255,.30);
+  box-shadow:none;
+}
+.kpi-hero .kpi-icon svg{ stroke:#fff !important; }
+.kpi-hero:hover{ border:none !important; transform:translateY(-4px);
+  box-shadow:0 20px 44px -14px var(--gl); }
+
+/* brilho de vidro por cima, sem tapar o texto */
+.kpi-hero::before{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:linear-gradient(135deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 46%);
+}
+.kpi-hero > *{ position:relative; z-index:1; }
+
+/* ─ as 4 combinações de cor ─ */
+.kpi-hero.kpi-green{
+  background-image:
+    radial-gradient(120% 120% at 0% 0%,   #34c97a 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #15803d 0%, transparent 58%),
+    linear-gradient(135deg, #1a8f52 0%, #22a45d 55%, #34c97a 100%) !important;
+  --gl:rgba(21,128,61,.55);
+}
+.kpi-hero.kpi-blue{
+  background-image:
+    radial-gradient(120% 120% at 0% 0%,   #60a5fa 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #1d4ed8 0%, transparent 58%),
+    linear-gradient(135deg, #1d4ed8 0%, #2563eb 55%, #60a5fa 100%) !important;
+  --gl:rgba(37,99,235,.50);
+}
+.kpi-hero.kpi-mint{
+  background-image:
+    radial-gradient(120% 120% at 0% 0%,   #38bdf8 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #0e7490 0%, transparent 58%),
+    linear-gradient(135deg, #0e7490 0%, #0891b2 55%, #38bdf8 100%) !important;
+  --gl:rgba(14,116,144,.50);
+}
+.kpi-hero.kpi-lime{
+  background-image:
+    radial-gradient(120% 120% at 0% 0%,   #fbbf24 0%, transparent 62%),
+    radial-gradient(120% 120% at 100% 0%, #b45309 0%, transparent 58%),
+    linear-gradient(135deg, #b45309 0%, #d97706 55%, #fbbf24 100%) !important;
+  --gl:rgba(180,83,9,.50);
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
