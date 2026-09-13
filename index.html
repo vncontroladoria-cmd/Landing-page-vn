@@ -1593,6 +1593,96 @@ canvas{ max-width:100%; }
   border:1px solid var(--border); background:#fff;
 }
 
+
+/* ─── 21. ACABAMENTO "PLATINADO" DOS CARDS DE NUMERO ─────
+   Malha de gradientes radiais sobrepostos + brilho diagonal.
+   Vale para .kpi, .hcard, .fcard e .metric-card em todo o sistema.
+   As camadas ficam ATRAS do texto (sao background, nao pseudo-elemento),
+   entao nada some nem perde contraste. */
+
+.kpi, .hcard, .fcard, .metric-card{
+  position:relative; overflow:hidden;
+  background-color:#fff;
+  background-repeat:no-repeat;
+  background-image:
+    linear-gradient(135deg, rgba(255,255,255,.82) 0%, rgba(255,255,255,0) 46%),
+    radial-gradient(125% 125% at   0%   0%, var(--p1) 0%, transparent 58%),
+    radial-gradient(115% 115% at 100%   0%, var(--p2) 0%, transparent 52%),
+    radial-gradient(135% 135% at 100% 100%, var(--p3) 0%, transparent 62%),
+    radial-gradient(110% 110% at   0% 100%, var(--p4) 0%, transparent 55%);
+  border:1px solid var(--pb, var(--border));
+  box-shadow:0 2px 4px rgba(17,19,24,.03), 0 10px 26px -14px var(--pg, rgba(17,19,24,.20));
+  transition:transform .34s var(--ease), box-shadow .34s var(--ease);
+}
+.kpi:hover, .hcard:hover, .fcard:hover, .metric-card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 4px 8px rgba(17,19,24,.04), 0 22px 44px -18px var(--pg, rgba(17,19,24,.28));
+}
+
+/* ─ paletas platinadas (p1..p4 = malha, pb = borda, pg = brilho) ─ */
+.kpi-green,.hcard.green,.fcard.success,.metric-card.c-green{
+  --p1:#dcfce7; --p2:#e9fbf1; --p3:#c9f2dd; --p4:#f2fdf7;
+  --pb:#cdeedd; --pg:rgba(34,164,93,.40); --c:#15803d; --cbg:#ffffffcc;
+}
+.kpi-mint{ --p1:#d6f7e4; --p2:#eafaf2; --p3:#bdedd2; --p4:#f0fdf6;
+  --pb:#c6ebd8; --pg:rgba(21,128,61,.40); --c:#15803d; --cbg:#ffffffcc; }
+.kpi-lime{ --p1:#e2fbe9; --p2:#f0fdf4; --p3:#cbf3d9; --p4:#f6fef9;
+  --pb:#d2efdd; --pg:rgba(52,201,122,.38); --c:#1a8f52; --cbg:#ffffffcc; }
+.kpi-blue,.hcard.blue,.metric-card.c-blue{
+  --p1:#dbeafe; --p2:#eaf2ff; --p3:#cfe3fd; --p4:#f4f8ff;
+  --pb:#d4e5fb; --pg:rgba(37,99,235,.36); --c:#1d4ed8; --cbg:#ffffffcc;
+}
+.kpi-amber,.hcard.amber,.metric-card.c-amber{
+  --p1:#fef3c7; --p2:#fffaeb; --p3:#fde9b0; --p4:#fffdf5;
+  --pb:#f7e4b5; --pg:rgba(217,119,6,.34); --c:#b45309; --cbg:#ffffffcc;
+}
+.kpi-teal,.hcard.teal,.metric-card.c-teal{
+  --p1:#cffafe; --p2:#e8fdff; --p3:#b6f2f8; --p4:#f2feff;
+  --pb:#c4eff4; --pg:rgba(8,145,178,.34); --c:#0e7490; --cbg:#ffffffcc;
+}
+.hcard.red,.metric-card.c-red{
+  --p1:#fee2e2; --p2:#fff1f1; --p3:#fbcfcf; --p4:#fff7f7;
+  --pb:#f7d2d2; --pg:rgba(220,38,38,.32); --c:#b91c1c; --cbg:#ffffffcc;
+}
+.hcard.pink{ --p1:#fce7f3; --p2:#fdf2f8; --p3:#f9d0e4; --p4:#fff7fb;
+  --pb:#f6d5e6; --pg:rgba(219,39,119,.30); --c:#9d174d; --cbg:#ffffffcc; }
+.hcard.purple,.hcard.indigo,.metric-card.c-purple{
+  --p1:#dcfce7; --p2:#e6f7ff; --p3:#c9f2dd; --p4:#f3fbff;
+  --pb:#cfeade; --pg:rgba(21,128,61,.36); --c:#15803d; --cbg:#ffffffcc;
+}
+.hcard.gray,.hcard.dark{
+  --p1:#eceef1; --p2:#f6f7f9; --p3:#dfe3e8; --p4:#fafbfc;
+  --pb:#e2e5e9; --pg:rgba(17,19,24,.24); --c:#343438; --cbg:#ffffffcc;
+}
+/* card sem variante definida: platinado neutro */
+.kpi,.hcard,.fcard,.metric-card{
+  --p1:#f1f3f6; --p2:#f8f9fb; --p3:#e9ecf0; --p4:#fbfcfd;
+}
+
+/* chip do icone: vidro fosco por cima da malha */
+.kpi-icon,.hcard-icon{
+  background:rgba(255,255,255,.72) !important;
+  border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 2px 6px rgba(17,19,24,.06);
+  backdrop-filter:blur(6px);
+}
+
+/* cards financeiros brancos ganham a mesma malha, em tom do seu acento */
+.fincard{ background-color:#fff; }
+.fincard-green{ --p1:#e7faef; --p2:#f4fdf8; --p3:#d8f5e6; --p4:#fbfefc; --pb:#dcf0e6; }
+.fincard-blue { --p1:#e8f1fe; --p2:#f5f9ff; --p3:#dbe9fd; --p4:#fbfdff; --pb:#e0ebfb; }
+.fincard-teal { --p1:#e2fbfe; --p2:#f3feff; --p3:#d0f5fa; --p4:#fbffff; --pb:#dbf2f6; }
+.fincard{
+  background-image:
+    linear-gradient(135deg, rgba(255,255,255,.80) 0%, rgba(255,255,255,0) 48%),
+    radial-gradient(125% 125% at 0% 0%, var(--p1) 0%, transparent 58%),
+    radial-gradient(130% 130% at 100% 100%, var(--p3) 0%, transparent 60%);
+  background-repeat:no-repeat;
+}
+
+/* o filete inferior fica sutil sobre a malha */
+.kpi::after{ height:2.5px; opacity:.85; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
