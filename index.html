@@ -30190,6 +30190,13 @@ async function loadTarefasOperador() {
   const grupos = {};
 
   // Grupo Geral (sem empresa ou empresa_ids múltiplas)
+  // Conjunto de ids ATIVOS. A checagem tem que ser por id, nao pelo
+  // campo .ativo: a consulta traz empresas(nome), sem o campo ativo,
+  // entao emp.ativo vinha undefined e o filtro nunca pegava.
+  const _ativasLista = (typeof empresasAtivas === 'function')
+    ? empresasAtivas() : (_todasEmpresas||[]).filter(e => e.ativo !== false);
+  const _ativasIds = new Set(_ativasLista.map(e => e.id));
+
   tarefasHoje.forEach(t => {
     const empresas = [];
     if (t.empresa_id) {
@@ -30200,14 +30207,11 @@ async function loadTarefasOperador() {
         if (emp) empresas.push({ id: emp.id, nome: emp.nome });
       });
     } else {
-      // Sem empresa definida = vale para TODAS as ATIVAS. Antes ia para um
-      // grupo "Geral" separado, que ninguém abria.
-      (typeof empresasVisiveis === 'function' ? empresasVisiveis() : (_todasEmpresas||[]))
-        .forEach(e => empresas.push({ id: e.id, nome: e.nome }));
+      // Sem empresa definida = vale para todas as ATIVAS.
+      _ativasLista.forEach(e => empresas.push({ id: e.id, nome: e.nome }));
     }
     empresas.forEach(emp => {
-      // tarefa antiga de empresa desativada nao reabre a caixinha
-      if (emp.ativo === false) return;
+      if (!_ativasIds.has(emp.id)) return;   // empresa desativada: fora
       if (!grupos[emp.id]) grupos[emp.id] = { nome: emp.nome, tarefas: [] };
       grupos[emp.id].tarefas.push(t);
     });
@@ -31525,6 +31529,16 @@ async function buscarTarefasAtivas(filtroTipo) {
   const { data } = await query.order('criado_em');
   let tarefas = data || [];
 
+  // Corte na origem: tarefa cuja UNICA empresa esta desativada nao passa.
+  // Tarefa geral (sem empresa) continua valendo para as ativas.
+  const _idsAtv = new Set(((typeof empresasAtivas === 'function')
+    ? empresasAtivas() : (_todasEmpresas||[]).filter(e => e.ativo !== false)).map(e => e.id));
+  tarefas = tarefas.filter(t => {
+    if (t.empresa_id) return _idsAtv.has(t.empresa_id);
+    if (t.empresa_ids?.length) return t.empresa_ids.some(id => _idsAtv.has(id));
+    return true;
+  });
+
   // Filtro global de empresa (selecionado no topo de Minhas Tarefas)
   const filtroEmp = window._filtroEmpresaTarefas || '';
   if (filtroEmp) {
@@ -31535,11 +31549,15 @@ async function buscarTarefasAtivas(filtroTipo) {
 
 // Retorna o HTML das tags de empresa (suporta empresa_id único, empresa_ids[] ou geral)
 function empresaTagsHtml(t) {
+  // Checagem por id: a consulta traz empresas(nome), sem o campo ativo
+  const _ids = new Set(((typeof empresasAtivas === 'function')
+    ? empresasAtivas() : (_todasEmpresas||[]).filter(e => e.ativo !== false)).map(e => e.id));
   if (t.empresa_id && t.empresas?.nome) {
+    if (!_ids.has(t.empresa_id)) return '';
     return `<span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 7px;border-radius:5px;font-weight:700">${t.empresas.nome}</span>`;
   }
   if (t.empresa_ids?.length) {
-    return t.empresa_ids.map(eid => {
+    return t.empresa_ids.filter(eid => _ids.has(eid)).map(eid => {
       const e = (_todasEmpresas||[]).find(x=>x.id===eid);
       return `<span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:2px 7px;border-radius:5px;font-weight:700">${e?.nome || '—'}</span>`;
     }).join('');
@@ -31752,9 +31770,17 @@ async function loadCadastroTarefas() {
   }
   const { data: tarefasRaw } = await query.order('criado_em', {ascending:false});
   const filtroEmp = window._filtroEmpresaTarefas || '';
+  // Corte na origem: tarefa cuja UNICA empresa esta desativada nao passa
+  const _idsAtv2 = new Set(((typeof empresasAtivas === 'function')
+    ? empresasAtivas() : (_todasEmpresas||[]).filter(e => e.ativo !== false)).map(e => e.id));
+  const tarefasAtv = (tarefasRaw || []).filter(t => {
+    if (t.empresa_id) return _idsAtv2.has(t.empresa_id);
+    if (t.empresa_ids?.length) return t.empresa_ids.some(id => _idsAtv2.has(id));
+    return true;
+  });
   const tarefas = (filtroEmp
-    ? (tarefasRaw||[]).filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp) || (!t.empresa_id && !t.empresa_ids?.length))
-    : tarefasRaw
+    ? tarefasAtv.filter(t => t.empresa_id === filtroEmp || (t.empresa_ids||[]).includes(filtroEmp) || (!t.empresa_id && !t.empresa_ids?.length))
+    : tarefasAtv
   )?.filter(t => t.tipo !== 'lembrete') // Lembrete não aparece em Cadastro
    .filter(t => _cadastroFiltroRec === 'todas' || t.recorrencia === _cadastroFiltroRec);
 
