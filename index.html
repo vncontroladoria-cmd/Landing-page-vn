@@ -3121,6 +3121,136 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 #painel-operador .cal-imp-log .av{ color:#e8c46a; }
 @media (max-width:700px){ #painel-operador .cal-imp-grid{ grid-template-columns:repeat(2,1fr); } }
 
+
+/* ══════════════════════════════════════════════════════════
+   GRADE DE 24 HORAS (visões Dia e Semana)
+   ══════════════════════════════════════════════════════════ */
+#painel-operador .cal-grade24{
+  background:#222226; border:1px solid rgba(255,255,255,.07);
+  border-radius:18px; overflow:hidden; margin-top:14px;
+}
+#painel-operador .cal-g-rolo{
+  display:flex; max-height:640px; overflow-y:auto; overflow-x:auto;
+  scrollbar-width:thin;
+}
+#painel-operador .cal-g-rolo::-webkit-scrollbar{ width:8px; height:8px; }
+#painel-operador .cal-g-rolo::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.14); border-radius:999px; }
+
+/* régua de horas */
+#painel-operador .cal-g-regua{ width:58px; flex-shrink:0; position:sticky; left:0; z-index:3; background:#222226; }
+#painel-operador .cal-g-h{
+  position:absolute; right:9px; transform:translateY(-6px);
+  font-size:10px; color:rgba(255,255,255,.34);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+
+/* colunas de dia */
+#painel-operador .cal-g-col{ flex:1; min-width:120px; border-left:1px solid rgba(255,255,255,.06); }
+#painel-operador .cal-g-col.hoje{ background:rgba(47,154,100,.05); }
+#painel-operador .cal-g-cab{
+  height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-bottom:1px solid rgba(255,255,255,.08); cursor:pointer;
+  position:sticky; top:0; z-index:4; background:#26262b; transition:background .16s;
+}
+#painel-operador .cal-g-cab:hover{ background:#2e2e34; }
+#painel-operador .cal-g-cab.vazio{ cursor:default; background:#222226; }
+#painel-operador .cal-g-cab span{ font-size:9px; text-transform:uppercase; letter-spacing:.09em; color:rgba(255,255,255,.34); }
+#painel-operador .cal-g-cab b{ font-size:16px; color:#fff; font-weight:600; line-height:1.2; }
+#painel-operador .cal-g-col.hoje .cal-g-cab b{ color:#6ee7a8; }
+
+/* faixa de dia inteiro */
+#painel-operador .cal-g-inteiro{
+  min-height:26px; padding:4px 4px 3px; display:flex; flex-direction:column; gap:3px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  position:sticky; top:52px; z-index:3; background:#26262b;
+}
+#painel-operador .cal-g-regua .cal-g-inteiro{ top:0; background:#222226; }
+#painel-operador .cal-g-inteiro.vazio{ background:#222226; }
+#painel-operador .cal-g-chip{
+  font-size:10px; padding:3px 7px; border-radius:6px; cursor:pointer;
+  background:var(--tf); color:#fff; border-left:2px solid var(--tc);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#painel-operador .cal-g-chip.feito{ opacity:.5; text-decoration:line-through; }
+#painel-operador .cal-g-chip.atras{ background:rgba(209,106,102,.25); border-left-color:#d16a66; }
+
+/* pista das horas */
+#painel-operador .cal-g-pista{ position:relative; }
+#painel-operador .cal-g-risco{ position:absolute; left:0; right:0; height:1px; background:rgba(255,255,255,.05); }
+#painel-operador .cal-g-regua .cal-g-pista{ border-right:1px solid rgba(255,255,255,.08); }
+
+/* linha do horário atual */
+#painel-operador .cal-g-agora{ position:absolute; left:0; right:0; height:2px; background:#e8564f; z-index:5; }
+#painel-operador .cal-g-agora i{
+  position:absolute; left:-4px; top:-3px; width:8px; height:8px;
+  border-radius:50%; background:#e8564f; box-shadow:0 0 0 3px rgba(232,86,79,.24);
+}
+
+/* blocos de evento */
+#painel-operador .cal-g-ev{
+  position:absolute; border-radius:7px; padding:4px 7px; cursor:pointer; overflow:hidden;
+  background:var(--tf); border-left:3px solid var(--tc);
+  box-shadow:0 2px 8px rgba(0,0,0,.22);
+  transition:transform .16s var(--ease), box-shadow .16s var(--ease), filter .16s;
+}
+#painel-operador .cal-g-ev:hover{ transform:scale(1.015); filter:brightness(1.18); box-shadow:0 6px 18px rgba(0,0,0,.34); z-index:6; }
+#painel-operador .cal-g-ev b{
+  display:block; font-size:11px; font-weight:600; color:#fff; line-height:1.25;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+#painel-operador .cal-g-ev span{ display:block; font-size:9.5px; color:rgba(255,255,255,.62); margin-top:1px; font-variant-numeric:tabular-nums; }
+#painel-operador .cal-g-ev.tar{ border-left-style:dashed; }
+#painel-operador .cal-g-ev.feito{ opacity:.5; }
+#painel-operador .cal-g-ev.feito b{ text-decoration:line-through; }
+#painel-operador .cal-g-ev.atras{ background:rgba(209,106,102,.26); border-left-color:#d16a66; }
+
+@media (max-width:900px){
+  #painel-operador .cal-grade24.semana .cal-g-col{ min-width:104px; }
+  #painel-operador .cal-g-rolo{ max-height:480px; }
+}
+
+
+/* ── modal compacto ── */
+#painel-operador .cal-modal-box.compacto{ max-width:520px; }
+#painel-operador .cal-form{ gap:10px; padding:15px 18px; }
+#painel-operador .cal-linha2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#painel-operador .cal-linha3{ display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:10px; }
+#painel-operador .cal-form label{ gap:4px; font-size:10.5px; }
+#painel-operador .cal-form input[type=text],
+#painel-operador .cal-form input[type=date],
+#painel-operador .cal-form input[type=time],
+#painel-operador .cal-form select,
+#painel-operador .cal-form textarea{ padding:8px 11px; font-size:12.5px; border-radius:9px; }
+#painel-operador .cal-form .cal-check{ align-self:end; height:35px; margin-bottom:0; }
+#painel-operador .cal-form .erro{ border-color:#d16a66 !important; box-shadow:0 0 0 3px rgba(209,106,102,.18) !important; }
+#painel-operador .cal-m-erro{
+  background:rgba(209,106,102,.16); border:1px solid rgba(209,106,102,.4);
+  color:#f5b8b5; font-size:12px; padding:9px 12px; border-radius:10px;
+}
+#painel-operador .cal-m-nota{
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+  color:rgba(255,255,255,.65); font-size:11.5px; padding:8px 12px; border-radius:10px;
+}
+#painel-operador .cal-dias-sem span{ height:30px; font-size:11.5px; border-radius:8px; }
+#painel-operador .cal-rot-mini{ font-size:10.5px; margin-bottom:5px; }
+#painel-operador .cal-mais{ border-top:1px solid rgba(255,255,255,.07); padding-top:9px; }
+#painel-operador .cal-mais summary{
+  cursor:pointer; font-size:11.5px; color:rgba(255,255,255,.5);
+  list-style:none; display:flex; align-items:center; gap:6px; user-select:none;
+}
+#painel-operador .cal-mais summary::-webkit-details-marker{ display:none; }
+#painel-operador .cal-mais summary::before{ content:'+'; font-size:14px; line-height:1; }
+#painel-operador .cal-mais[open] summary::before{ content:'−'; }
+#painel-operador .cal-mais summary:hover{ color:#fff; }
+#painel-operador .cal-mais[open] summary{ margin-bottom:9px; }
+#painel-operador .cal-mais label{ margin-top:9px; }
+#painel-operador .cal-modal-cab{ padding:14px 18px; font-size:14px; }
+#painel-operador .cal-modal-rod{ padding:13px 18px; }
+@media (max-width:620px){
+  #painel-operador .cal-linha2,#painel-operador .cal-linha3{ grid-template-columns:1fr 1fr; }
+  #painel-operador .cal-linha3 > label:first-child{ grid-column:1 / -1; }
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -4081,6 +4211,123 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
         <div class="cal-lista-wrap" id="cal-lista-wrap">
           <div class="cal-lista-tit" id="cal-lista-tit">Selecione um dia</div>
           <div id="cal-lista"></div>
+        </div>
+      </div>
+
+      <!-- IMPORTAR TAREFAS EXISTENTES -->
+      <div id="cal-imp" class="cal-modal">
+        <div class="cal-modal-box" style="max-width:560px">
+          <div class="cal-modal-cab">
+            <span>Importar tarefas para a agenda</span>
+            <button onclick="calFecharImportar()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          </div>
+          <div class="cal-modal-corpo">
+            <div id="cal-imp-prev"></div>
+            <div class="cal-imp-como">
+              <div class="cal-imp-como-t">Como cada repetição é traduzida</div>
+              <div class="cal-imp-de-para">
+                <span>Todos os dias</span><i>&#8594;</i><span>repete diariamente</span>
+                <span>Semanal</span><i>&#8594;</i><span>repete nos dias marcados</span>
+                <span>Mensal</span><i>&#8594;</i><span>repete no dia do mês</span>
+                <span>Data única</span><i>&#8594;</i><span>um único dia, sem repetir</span>
+              </div>
+            </div>
+            <div class="cal-nota">
+              Importa <b>somente as tarefas em que você é o responsável</b>. As de outros operadores não entram.
+              Rodar de novo não duplica: o que já foi importado é reconhecido e pulado.
+            </div>
+            <div id="cal-imp-log" class="cal-imp-log"></div>
+          </div>
+          <div class="cal-modal-rod">
+            <button class="cal-btn" onclick="calFecharImportar()">Fechar</button>
+            <button class="cal-btn cal-btn-go" id="cal-imp-rodar" onclick="calImportar()">Importar agora</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL DO CALENDÁRIO -->
+      <div id="cal-modal" class="cal-modal">
+        <div class="cal-modal-box compacto">
+          <div class="cal-modal-cab">
+            <span><span id="cal-m-titulo-box">Novo</span> item</span>
+            <button onclick="calFecharModal()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          </div>
+          <div class="cal-modal-corpo cal-form">
+            <input type="hidden" id="cal-m-id">
+            <div id="cal-m-erro" class="cal-m-erro" style="display:none"></div>
+            <div id="cal-m-nota" class="cal-m-nota" style="display:none"></div>
+
+            <div class="cal-linha2">
+              <label>Tipo
+                <select id="cal-m-tipo">
+                  <option value="evento">Evento</option>
+                  <option value="tarefa">Tarefa</option>
+                </select>
+              </label>
+              <label>Empresa<select id="cal-m-empresa"></select></label>
+            </div>
+
+            <label>Título<input type="text" id="cal-m-tit" placeholder="Fechamento do mês"></label>
+
+            <div class="cal-linha3">
+              <label>Data<input type="date" id="cal-m-data"></label>
+              <label id="cal-m-lb-ini">Início<input type="time" id="cal-m-ini" onchange="calAjustarFim()"></label>
+              <label id="cal-m-lb-fim">Fim<input type="time" id="cal-m-fim" onchange="calAvisoModal('')"></label>
+            </div>
+
+            <div class="cal-linha2">
+              <label class="cal-check"><input type="checkbox" id="cal-m-inteiro" onchange="calAtualizarModal()"> Dia inteiro</label>
+              <label>Avisar antes
+                <select id="cal-m-alerta">
+                  <option value="">Sem alerta</option>
+                  <option value="0">Na hora</option>
+                  <option value="10">10 min antes</option>
+                  <option value="30" selected>30 min antes</option>
+                  <option value="60">1 hora antes</option>
+                  <option value="180">3 horas antes</option>
+                  <option value="1440">1 dia antes</option>
+                  <option value="2880">2 dias antes</option>
+                  <option value="10080">1 semana antes</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="cal-linha2">
+              <label>Repetir
+                <select id="cal-m-freq" onchange="calAtualizarModal()">
+                  <option value="">Não repete</option>
+                  <option value="DAILY">Todo dia</option>
+                  <option value="WEEKLY">Toda semana</option>
+                  <option value="MONTHLY">Todo mês</option>
+                  <option value="YEARLY">Todo ano</option>
+                </select>
+              </label>
+              <label id="cal-m-rep-extra" style="display:none">Repetir até<input type="date" id="cal-m-ate"></label>
+            </div>
+
+            <div id="cal-m-dias-wrap" style="display:none">
+              <div class="cal-rot-mini">Dias da semana</div>
+              <div class="cal-dias-sem" id="cal-m-dias">
+                <label><input type="checkbox" value="SU"><span>D</span></label>
+                <label><input type="checkbox" value="MO"><span>S</span></label>
+                <label><input type="checkbox" value="TU"><span>T</span></label>
+                <label><input type="checkbox" value="WE"><span>Q</span></label>
+                <label><input type="checkbox" value="TH"><span>Q</span></label>
+                <label><input type="checkbox" value="FR"><span>S</span></label>
+                <label><input type="checkbox" value="SA"><span>S</span></label>
+              </div>
+            </div>
+
+            <details class="cal-mais">
+              <summary>Local e descrição</summary>
+              <label>Local<input type="text" id="cal-m-local" placeholder="Opcional"></label>
+              <label>Descrição<textarea id="cal-m-desc" rows="2" placeholder="Opcional"></textarea></label>
+            </details>
+          </div>
+          <div class="cal-modal-rod">
+            <button class="cal-btn" onclick="calFecharModal()">Cancelar</button>
+            <button class="cal-btn cal-btn-go" id="cal-m-salvar" onclick="calSalvar()">Salvar</button>
+          </div>
         </div>
       </div>
 
@@ -9531,6 +9778,107 @@ function calCartao(ev, compacto) {
   '</div>';
 }
 
+const CAL_PX_HORA = 46;   // altura de 1 hora na grade
+
+// Distribui eventos que se sobrepoem em colunas lado a lado,
+// senao um tapa o outro na grade.
+function calColunas(evs) {
+  const ord = evs.slice().sort((a,b) => calInicioDe(a) - calInicioDe(b));
+  const cols = [];   // fim de cada coluna
+  const pos = [];
+  ord.forEach(ev => {
+    const ini = calInicioDe(ev).getTime();
+    const fim = Math.max(calFimDe(ev).getTime(), ini + 20*60000);
+    let c = cols.findIndex(f => f <= ini);
+    if (c === -1) { c = cols.length; cols.push(fim); } else { cols[c] = fim; }
+    pos.push({ ev, col: c, ini, fim });
+  });
+  // quantas colunas cada bloco divide (grupos que se cruzam)
+  pos.forEach(p => {
+    p.total = pos.filter(q => q.ini < p.fim && q.fim > p.ini)
+                 .reduce((m,q) => Math.max(m, q.col + 1), 1);
+  });
+  return pos;
+}
+
+// Uma coluna de dia dentro da grade de 24h
+function calColunaDia(iso, evs, mostrarCab) {
+  const hoje = calISO(new Date());
+  const d = new Date(iso + 'T00:00:00');
+  const comHora = evs.filter(e => e.start?.dateTime);
+  const inteiro = evs.filter(e => e.start?.date);
+  const pos = calColunas(comHora);
+
+  let h = '<div class="cal-g-col' + (iso === hoje ? ' hoje' : '') + '">';
+  if (mostrarCab) {
+    h += '<div class="cal-g-cab" onclick="calIrPara(\'' + iso + '\',\'dia\')">' +
+           '<span>' + CAL_DIAS_C[d.getDay()] + '</span><b>' + d.getDate() + '</b>' +
+         '</div>';
+  }
+  h += '<div class="cal-g-inteiro">' +
+         inteiro.map(ev => {
+           const tom = calTomEmpresa(calEmpresaId(ev));
+           return '<div class="cal-g-chip' + (calStatus(ev)==='concluida'?' feito':'') + (calAtrasada(ev)?' atras':'') +
+                  '" style="--tc:' + tom.c + ';--tf:' + tom.f + '" onclick="calAbrirModal(\'' + ev.id + '\')" title="' +
+                  calEsc(ev.summary) + '">' + calEsc(ev.summary || '—') + '</div>';
+         }).join('') +
+       '</div>';
+
+  h += '<div class="cal-g-pista" style="height:' + (24 * CAL_PX_HORA) + 'px">';
+  for (let i = 1; i < 24; i++) h += '<div class="cal-g-risco" style="top:' + (i*CAL_PX_HORA) + 'px"></div>';
+
+  if (iso === hoje) {
+    const ag = new Date();
+    const top = (ag.getHours()*60 + ag.getMinutes()) / 60 * CAL_PX_HORA;
+    h += '<div class="cal-g-agora" style="top:' + top.toFixed(1) + 'px"><i></i></div>';
+  }
+
+  pos.forEach(p => {
+    const ini = calInicioDe(p.ev), fim = calFimDe(p.ev);
+    const top = (ini.getHours()*60 + ini.getMinutes()) / 60 * CAL_PX_HORA;
+    const dur = Math.max((fim - ini) / 60000, 22);
+    const alt = Math.max(dur / 60 * CAL_PX_HORA, 21);
+    const larg = 100 / p.total, esq = larg * p.col;
+    const tom = calTomEmpresa(calEmpresaId(p.ev));
+    const tarefa = calTipo(p.ev) === 'tarefa';
+    const cls = ['cal-g-ev'];
+    if (tarefa) cls.push('tar');
+    if (calStatus(p.ev) === 'concluida') cls.push('feito');
+    if (calAtrasada(p.ev)) cls.push('atras');
+    h += '<div class="' + cls.join(' ') + '" onclick="calAbrirModal(\'' + p.ev.id + '\')" title="' +
+         calEsc((p.ev.summary||'') + ' · ' + calHoraTxt(p.ev)) + '" style="' +
+         'top:' + top.toFixed(1) + 'px;height:' + alt.toFixed(1) + 'px;' +
+         'left:calc(' + esq.toFixed(2) + '% + 2px);width:calc(' + larg.toFixed(2) + '% - 4px);' +
+         '--tc:' + tom.c + ';--tf:' + tom.f + '">' +
+           '<b>' + calEsc(p.ev.summary || '—') + '</b>' +
+           (alt > 34 ? '<span>' + calHHMM(ini) + ' – ' + calHHMM(fim) + '</span>' : '') +
+         '</div>';
+  });
+  return h + '</div></div>';
+}
+
+// Régua de horas à esquerda
+function calReguaHoras(comEspacoCab, comEspacoInteiro) {
+  let h = '<div class="cal-g-regua">';
+  if (comEspacoCab) h += '<div class="cal-g-cab vazio"></div>';
+  if (comEspacoInteiro) h += '<div class="cal-g-inteiro vazio"></div>';
+  h += '<div class="cal-g-pista" style="height:' + (24 * CAL_PX_HORA) + 'px">';
+  for (let i = 0; i < 24; i++) {
+    h += '<span class="cal-g-h" style="top:' + (i*CAL_PX_HORA) + 'px">' +
+         String(i).padStart(2,'0') + ':00</span>';
+  }
+  return h + '</div></div>';
+}
+
+// Rola até a primeira coisa do dia (ou 7h), em vez de abrir na meia-noite
+function calRolarGrade() {
+  const g = document.querySelector('#cal-corpo .cal-g-rolo');
+  if (!g) return;
+  const prim = g.querySelector('.cal-g-ev');
+  const alvo = prim ? Math.max(parseFloat(prim.style.top) - 70, 0) : 7 * CAL_PX_HORA;
+  g.scrollTop = alvo;
+}
+
 // ── VISÃO: MÊS ──────────────────────────────────────────────────
 function calViewMes() {
   const ano = _calRef.getFullYear(), mes = _calRef.getMonth();
@@ -9561,68 +9909,44 @@ function calViewMes() {
 
 // ── VISÃO: SEMANA ───────────────────────────────────────────────
 function calViewSemana() {
-  const i = calInicioSemana(_calRef);
-  const hoje = calISO(new Date());
+  const ini = calInicioSemana(_calRef);
   const porDia = calPorDia(calVisiveis());
-  let h = '<div class="cal-semana">';
+  let h = '<div class="cal-grade24 semana"><div class="cal-g-rolo">' + calReguaHoras(true, true);
   for (let n = 0; n < 7; n++) {
-    const d = new Date(i.getFullYear(), i.getMonth(), i.getDate() + n);
-    const iso = calISO(d), evs = porDia[iso] || [];
-    h += '<div class="cal-col' + (iso === hoje ? ' hoje' : '') + '">' +
-           '<div class="cal-col-cab" onclick="calIrPara(\'' + iso + '\',\'dia\')">' +
-             '<span>' + CAL_DIAS_C[d.getDay()] + '</span><b>' + d.getDate() + '</b>' +
-           '</div>' +
-           '<div class="cal-col-corpo">' +
-             (evs.length ? evs.map(ev => calCartao(ev, true)).join('')
-                         : '<div class="cal-vazio-mini">—</div>') +
-           '</div></div>';
+    const d = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + n);
+    const iso = calISO(d);
+    h += calColunaDia(iso, porDia[iso] || [], true);
   }
-  return h + '</div>';
+  setTimeout(calRolarGrade, 0);
+  return h + '</div></div>';
 }
 
-// ── VISÃO: DIA ──────────────────────────────────────────────────
 function calViewDia() {
   const iso = calISO(_calRef);
   const doDia = calVisiveis().filter(ev => calDiaDoEvento(ev) === iso);
   const tarefas = doDia.filter(ev => calTipo(ev) === 'tarefa')
                        .sort((a,b) => (calStatus(a)==='concluida') - (calStatus(b)==='concluida')
                                       || calInicioDe(a) - calInicioDe(b));
-  const eventos = doDia.filter(ev => calTipo(ev) !== 'tarefa')
-                       .sort((a,b) => calInicioDe(a) - calInicioDe(b));
-
-  if (!doDia.length) return '<div class="cal-dia-wrap"><div class="cal-vazio">Nada marcado neste dia.</div></div>';
-
+  const eventos = doDia.filter(ev => calTipo(ev) !== 'tarefa');
   const pend = tarefas.filter(t => calStatus(t) !== 'concluida').length;
-  let h = '<div class="cal-dia-cols">';
 
-  // TAREFAS
-  h += '<div class="cal-dia-bloco tarefas">' +
-         '<div class="cal-bloco-cab">' +
-           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>' +
-           '<b>Tarefas do dia</b>' +
-           (tarefas.length ? '<i>' + pend + ' pendente(s) de ' + tarefas.length + '</i>' : '') +
-         '</div>' +
-         '<div class="cal-bloco-corpo">' +
-           (tarefas.length ? tarefas.map(ev => calCartao(ev)).join('')
-                           : '<div class="cal-vazio-mini">Nenhuma tarefa hoje.</div>') +
+  let h = '<div class="cal-dia-bloco tarefas">' +
+            '<div class="cal-bloco-cab">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>' +
+              '<b>Tarefas do dia</b>' +
+              (tarefas.length ? '<i>' + pend + ' pendente(s) de ' + tarefas.length + '</i>' : '') +
+            '</div>' +
+            '<div class="cal-bloco-corpo">' +
+              (tarefas.length ? tarefas.map(ev => calCartao(ev)).join('')
+                              : '<div class="cal-vazio-mini">Nenhuma tarefa hoje.</div>') +
+            '</div></div>';
+
+  h += '<div class="cal-grade24">' +
+         '<div class="cal-g-rolo">' +
+           calReguaHoras(false, true) +
+           calColunaDia(iso, eventos, false) +
          '</div></div>';
-
-  // EVENTOS
-  const inteiro = eventos.filter(ev => ev.start?.date);
-  const comHora = eventos.filter(ev => ev.start?.dateTime);
-  h += '<div class="cal-dia-bloco eventos">' +
-         '<div class="cal-bloco-cab">' +
-           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>' +
-           '<b>Eventos</b>' + (eventos.length ? '<i>' + eventos.length + '</i>' : '') +
-         '</div>' +
-         '<div class="cal-bloco-corpo">';
-  if (!eventos.length) h += '<div class="cal-vazio-mini">Nenhum evento hoje.</div>';
-  if (inteiro.length) h += '<div class="cal-sub-rot">Dia inteiro</div>' + inteiro.map(ev => calCartao(ev)).join('');
-  comHora.forEach(ev => {
-    h += '<div class="cal-hora-linha"><div class="cal-hora-marca">' + calHHMM(calInicioDe(ev)) + '</div>' +
-         '<div class="cal-hora-ev">' + calCartao(ev) + '</div></div>';
-  });
-  h += '</div></div></div>';
+  setTimeout(calRolarGrade, 0);
   return h;
 }
 
@@ -9743,9 +10067,13 @@ function calAbrirModal(id) {
   document.querySelectorAll('#cal-m-dias input').forEach(c => { c.checked = dias.includes(c.value); });
 
   g('cal-m-titulo-box').textContent = id ? 'Editar' : 'Novo';
-  if (ev?.recurringEventId) {
-    calAviso('Este item faz parte de uma repetição. A alteração vale só para esta ocorrência.', 'info');
+  const nota = document.getElementById('cal-m-nota');
+  if (nota) {
+    const rep = !!ev?.recurringEventId;
+    nota.style.display = rep ? 'block' : 'none';
+    nota.textContent = rep ? 'Este item faz parte de uma repetição. A alteração vale só para esta ocorrência.' : '';
   }
+  calAvisoModal('');
   calAtualizarModal();
   g('cal-modal').classList.add('on');
 }
@@ -9754,10 +10082,39 @@ function calFecharModal(){ document.getElementById('cal-modal').classList.remove
 
 function calAtualizarModal() {
   const inteiro = document.getElementById('cal-m-inteiro').checked;
-  document.getElementById('cal-m-horas').style.display = inteiro ? 'none' : '';
+  document.getElementById('cal-m-lb-ini').style.visibility = inteiro ? 'hidden' : '';
+  document.getElementById('cal-m-lb-fim').style.visibility = inteiro ? 'hidden' : '';
   const freq = document.getElementById('cal-m-freq').value;
   document.getElementById('cal-m-rep-extra').style.display = freq ? '' : 'none';
   document.getElementById('cal-m-dias-wrap').style.display = freq === 'WEEKLY' ? '' : 'none';
+}
+
+function calAvisoModal(msg, campo) {
+  const el = document.getElementById('cal-m-erro');
+  if (el) {
+    el.textContent = msg || '';
+    el.style.display = msg ? 'block' : 'none';
+    if (msg) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  document.querySelectorAll('#cal-modal .erro').forEach(x => x.classList.remove('erro'));
+  if (campo) {
+    const c = document.getElementById(campo);
+    if (c) { c.classList.add('erro'); c.focus(); }
+  }
+}
+
+// Ao escolher o início, o fim acompanha (+1h) se estiver vazio ou
+// anterior. Era isso que deixava o campo em --:-- e travava o salvar.
+function calAjustarFim() {
+  const i = document.getElementById('cal-m-ini').value;
+  const f = document.getElementById('cal-m-fim');
+  if (!i) return;
+  if (!f.value || f.value <= i) {
+    const [h, m] = i.split(':').map(Number);
+    const d = new Date(2000, 0, 1, h + 1, m);
+    f.value = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+  calAvisoModal('');
 }
 
 async function calSalvar() {
@@ -9775,10 +10132,16 @@ async function calSalvar() {
   const freq    = g('cal-m-freq');
   const ate     = g('cal-m-ate');
 
-  if (!titulo) { calAviso('Dê um título.', 'erro'); return; }
-  if (!data)   { calAviso('Escolha a data.', 'erro'); return; }
-  if (!inteiro && hFim <= hIni) { calAviso('O horário final precisa ser depois do inicial.', 'erro'); return; }
-  if (ate && ate < data) { calAviso('A repetição não pode terminar antes de começar.', 'erro'); return; }
+  if (!titulo) { calAvisoModal('Dê um título ao item.', 'cal-m-tit'); return; }
+  if (!data)   { calAvisoModal('Escolha a data.', 'cal-m-data'); return; }
+  if (!inteiro && !hIni) { calAvisoModal('Informe o horário de início.', 'cal-m-ini'); return; }
+  if (!inteiro && !hFim) { calAvisoModal('Informe o horário de fim.', 'cal-m-fim'); return; }
+  if (!inteiro && hFim <= hIni) { calAvisoModal('O horário final precisa ser depois do inicial.', 'cal-m-fim'); return; }
+  if (ate && ate < data) { calAvisoModal('A repetição não pode terminar antes de começar.', 'cal-m-ate'); return; }
+  if (freq === 'WEEKLY' && !document.querySelectorAll('#cal-m-dias input:checked').length) {
+    calAvisoModal('Marque pelo menos um dia da semana.'); return;
+  }
+  calAvisoModal('');
 
   const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo';
   const antigo = id ? _calEventos.find(e => e.id === id) : null;
@@ -9833,7 +10196,7 @@ async function calSalvar() {
       _calRef = new Date(d.getFullYear(), d.getMonth(), 1);
     }
     await calCarregarEventos();
-  } catch (e) { calAviso(e.message, 'erro'); }
+  } catch (e) { calAvisoModal(e.message); }
   finally { if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; } }
 }
 
