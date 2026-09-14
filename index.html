@@ -3288,6 +3288,26 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
   #painel-operador .cal-modal-box.compacto{ height:92vh; }
 }
 
+
+/* ── seletor: esta ocorrência ou toda a série ── */
+#painel-operador .cal-escopo{
+  background:rgba(232,196,106,.10); border:1px solid rgba(232,196,106,.28);
+  border-radius:11px; padding:10px 12px;
+}
+#painel-operador .cal-escopo .cal-rot-mini{ color:#e8c46a; margin-bottom:7px; }
+#painel-operador .cal-escopo-btns{ display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+#painel-operador .cal-escopo-btns label{ cursor:pointer; margin:0; }
+#painel-operador .cal-escopo-btns input{ display:none; }
+#painel-operador .cal-escopo-btns span{
+  display:flex; align-items:center; justify-content:center; height:33px; border-radius:9px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.6); font-size:12px; font-weight:500; transition:all .16s;
+}
+#painel-operador .cal-escopo-btns span:hover{ background:rgba(255,255,255,.1); color:#fff; }
+#painel-operador .cal-escopo-btns input:checked + span{
+  background:linear-gradient(122deg,#2f9a64,#1f7047); border-color:transparent; color:#fff; font-weight:600;
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -4293,6 +4313,13 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
             <input type="hidden" id="cal-m-id">
             <div id="cal-m-erro" class="cal-m-erro" style="display:none"></div>
             <div id="cal-m-nota" class="cal-m-nota" style="display:none"></div>
+            <div id="cal-m-escopo-wrap" class="cal-escopo" style="display:none">
+              <div class="cal-rot-mini">Este item se repete. Aplicar a alteração em:</div>
+              <div class="cal-escopo-btns">
+                <label><input type="radio" name="cal-escopo" value="esta" checked><span>Só este dia</span></label>
+                <label><input type="radio" name="cal-escopo" value="serie"><span>Toda a série</span></label>
+              </div>
+            </div>
 
             <div class="cal-linha2">
               <label>Tipo
@@ -10105,14 +10132,38 @@ function calAbrirModal(id) {
 
   g('cal-m-titulo-box').textContent = id ? 'Editar' : 'Novo';
   const nota = document.getElementById('cal-m-nota');
-  if (nota) {
-    const rep = !!ev?.recurringEventId;
-    nota.style.display = rep ? 'block' : 'none';
-    nota.textContent = rep ? 'Este item faz parte de uma repetição. A alteração vale só para esta ocorrência.' : '';
+  const escW = document.getElementById('cal-m-escopo-wrap');
+  const ehInstancia = !!ev?.recurringEventId;
+  if (nota) { nota.style.display = 'none'; nota.textContent = ''; }
+  if (escW) {
+    escW.style.display = ehInstancia ? 'block' : 'none';
+    const r = document.querySelector('input[name="cal-escopo"][value="esta"]');
+    if (r) r.checked = true;
+  }
+  // A regra de repetição mora no evento-pai, nunca na ocorrência.
+  // Sem buscar lá, os campos abririam vazios e a regra se perderia.
+  if (ehInstancia) {
+    calCarregarRegraDoPai(ev.recurringEventId);
   }
   calAvisoModal('');
   calAtualizarModal();
   g('cal-modal').classList.add('on');
+}
+
+async function calCarregarRegraDoPai(paiId) {
+  try {
+    const pai = await calApi('/calendars/primary/events/' + encodeURIComponent(paiId));
+    const rr = (pai?.recurrence || []).find(r => r.startsWith('RRULE:'));
+    if (!rr) return;
+    const f = /FREQ=(\w+)/.exec(rr);
+    const u = /UNTIL=(\d{8})/.exec(rr);
+    const b = /BYDAY=([^;]+)/.exec(rr);
+    if (f) document.getElementById('cal-m-freq').value = f[1];
+    document.getElementById('cal-m-ate').value = u ? (u[1].slice(0,4)+'-'+u[1].slice(4,6)+'-'+u[1].slice(6,8)) : '';
+    const dias = b ? b[1].split(',') : [];
+    document.querySelectorAll('#cal-m-dias input').forEach(c => { c.checked = dias.includes(c.value); });
+    calAtualizarModal();
+  } catch (e) { console.warn('regra do pai:', e.message); }
 }
 
 function calFecharModal(){ document.getElementById('cal-modal').classList.remove('on'); }
@@ -10178,6 +10229,15 @@ async function calSalvar() {
   if (freq === 'WEEKLY' && !document.querySelectorAll('#cal-m-dias input:checked').length) {
     calAvisoModal('Marque pelo menos um dia da semana.'); return;
   }
+  const _paiId = antigo?.recurringEventId || null;
+  const _esc = document.querySelector('input[name="cal-escopo"]:checked')?.value || 'esta';
+  const _mudouRegra = _paiId && _esc === 'esta' && freq;
+  if (_mudouRegra && !window._calAvisouRegra) {
+    window._calAvisouRegra = true;
+    calAvisoModal('Você mexeu na repetição. Para valer em todos os dias, marque "Toda a série" acima. Clique em Salvar de novo para aplicar só neste dia.');
+    return;
+  }
+  window._calAvisouRegra = false;
   calAvisoModal('');
 
   const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo';
@@ -10222,10 +10282,35 @@ async function calSalvar() {
   const btn = document.getElementById('cal-m-salvar');
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
   try {
-    if (id) await calApi('/calendars/primary/events/' + encodeURIComponent(id),
-                         { method: 'PATCH', body: JSON.stringify(corpo) });
-    else    await calApi('/calendars/primary/events',
-                         { method: 'POST', body: JSON.stringify(corpo) });
+    const paiId = antigo?.recurringEventId || null;
+    const escolha = document.querySelector('input[name="cal-escopo"]:checked')?.value || 'esta';
+    // Regra do Google: repetição só existe no evento-pai. Mandar
+    // recurrence numa ocorrência é ignorado silenciosamente — era
+    // isso que fazia o "toda terça" não pegar.
+    const naSerie = paiId && escolha === 'serie';
+
+    if (naSerie) {
+      const pai = await calApi('/calendars/primary/events/' + encodeURIComponent(paiId));
+      const baseIso = (pai.start?.dateTime || pai.start?.date || '').substring(0,10) || data;
+      const corpoPai = Object.assign({}, corpo);
+      if (inteiro) {
+        const d0 = new Date(baseIso + 'T00:00:00');
+        corpoPai.start = { date: baseIso };
+        corpoPai.end   = { date: calISO(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate()+1)) };
+      } else {
+        corpoPai.start = { dateTime: baseIso + 'T' + hIni + ':00', timeZone: fuso };
+        corpoPai.end   = { dateTime: baseIso + 'T' + hFim + ':00', timeZone: fuso };
+      }
+      await calApi('/calendars/primary/events/' + encodeURIComponent(paiId),
+                   { method: 'PUT', body: JSON.stringify(Object.assign({}, pai, corpoPai)) });
+    } else if (id) {
+      const corpoOcor = Object.assign({}, corpo);
+      delete corpoOcor.recurrence;          // ocorrência não carrega regra
+      await calApi('/calendars/primary/events/' + encodeURIComponent(id),
+                   { method: 'PATCH', body: JSON.stringify(corpoOcor) });
+    } else {
+      await calApi('/calendars/primary/events', { method: 'POST', body: JSON.stringify(corpo) });
+    }
     calFecharModal();
     _calSel = data;
     const d = new Date(data + 'T00:00:00');
