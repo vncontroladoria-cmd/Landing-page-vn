@@ -29737,6 +29737,17 @@ function empresasVisiveis() {
   return todas.filter(e => e.ativo !== false);
 }
 
+// Empresa desativada nao pode aparecer em lugar NENHUM de operacao,
+// nem para admin. empresasVisiveis() abre excecao para admin porque
+// ele precisa enxergar as desativadas na tela de gestao de empresas —
+// mas tarefas, agenda e afins devem usar esta aqui.
+function empresasAtivas() {
+  return (_todasEmpresas || []).filter(e => e.ativo !== false);
+}
+function empresasAtivasIds() {
+  return empresasAtivas().map(e => e.id);
+}
+
 function popularFiltroEmpresaGlobal() {
   const sel = document.getElementById('filtro-empresa-global');
   if (!sel || sel.dataset.populado) return;
@@ -30020,7 +30031,8 @@ function barraProgresso(pct, altura) {
 // ── VISÃO GERAL: todas as empresas com o seu percentual ──
 function renderOnbVisaoGeral() {
   const el = document.getElementById('onb-conteudo');
-  const empresas = (typeof empresasVisiveis === 'function' ? empresasVisiveis() : (_todasEmpresas||[]));
+  const empresas = (typeof empresasAtivas === 'function' ? empresasAtivas()
+    : (_todasEmpresas||[]).filter(e => e.ativo !== false));
   const etapas = [...new Set(_onbItens.map(i => i.etapa))].sort((a,b)=>a-b);
 
   el.innerHTML = `
@@ -30194,6 +30206,8 @@ async function loadTarefasOperador() {
         .forEach(e => empresas.push({ id: e.id, nome: e.nome }));
     }
     empresas.forEach(emp => {
+      // tarefa antiga de empresa desativada nao reabre a caixinha
+      if (emp.ativo === false) return;
       if (!grupos[emp.id]) grupos[emp.id] = { nome: emp.nome, tarefas: [] };
       grupos[emp.id].tarefas.push(t);
     });
@@ -30201,7 +30215,8 @@ async function loadTarefasOperador() {
 
   // Garantir que todas as empresas do operador tenham uma caixinha (mesmo sem tarefas)
   // Só empresas ativas ganham caixinha de tarefas
-  (typeof empresasVisiveis === 'function' ? empresasVisiveis() : (_todasEmpresas||[])).forEach(e => {
+  (typeof empresasAtivas === 'function' ? empresasAtivas()
+    : (_todasEmpresas||[]).filter(e => e.ativo !== false)).forEach(e => {
     if (!grupos[e.id]) grupos[e.id] = { nome: e.nome, tarefas: [] };
   });
   // Não existe mais caixinha "Geral": tarefa geral aparece em cada empresa
@@ -31471,7 +31486,9 @@ function statusBadgeHtml(status) {
 
 // Busca todas as tarefas ativas visíveis para este usuário (gerais + empresas vinculadas)
 async function buscarTarefasAtivas(filtroTipo) {
-  const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
+  const empresaIds = (typeof empresasAtivasIds === 'function')
+    ? empresasAtivasIds()
+    : (_todasEmpresas||[]).filter(e => e.ativo !== false).map(e=>e.id);
   const uid = _vnUser?.id;
 
   let query = sb.from('tarefas_operador').select('*, empresas(nome), criador:vn_usuarios!criado_por(nome,email)').eq('ativo', true);
@@ -31705,7 +31722,9 @@ function cadastroFiltroRecorrencia(tipo) {
 }
 
 async function loadCadastroTarefas() {
-  const empresaIds = (_todasEmpresas||[]).map(e=>e.id);
+  const empresaIds = (typeof empresasAtivasIds === 'function')
+    ? empresasAtivasIds()
+    : (_todasEmpresas||[]).filter(e => e.ativo !== false).map(e=>e.id);
   const uid = _vnUser?.id;
   let query = sb.from('tarefas_operador').select('*, empresas(nome), criador:vn_usuarios!criado_por(nome,email)').eq('ativo', true);
 
