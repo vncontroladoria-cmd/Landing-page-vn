@@ -29805,8 +29805,8 @@ async function loadEmpresasOperador() {
   const container = document.getElementById('op-lista-empresas');
   // Empresa desativada não aparece pro operador — ele não consegue entrar
   // nela mesmo, então listar só gera confusão.
-  const _visiveis = (typeof empresasVisiveis === 'function')
-    ? empresasVisiveis()
+  const _visiveis = (typeof empresasAtivas === 'function')
+    ? empresasAtivas()
     : (_todasEmpresas||[]).filter(e => e.ativo !== false);
   if (!_visiveis.length) {
     container.innerHTML = `<div style="background:#222226;border-radius:12px;padding:24px;border:1px solid rgba(255,255,255,.06);text-align:center;color:rgba(255,255,255,.4);font-size:13px">
@@ -30669,7 +30669,9 @@ async function loadAnotacoes() {
   const { data, error } = await query.order('criado_em', {ascending:false});
 
   const empresaNomePorId = {};
-  (_todasEmpresas||[]).forEach(e => empresaNomePorId[e.id] = e.nome);
+  const _idsAtivas = new Set(((typeof empresasAtivas === 'function')
+    ? empresasAtivas() : (_todasEmpresas||[]).filter(e => e.ativo !== false)).map(e => e.id));
+  (_todasEmpresas||[]).forEach(e => { if (_idsAtivas.has(e.id)) empresaNomePorId[e.id] = e.nome; });
 
   const container = document.getElementById('op-anotacoes-lista');
   if (error) { container.innerHTML = `<div style="color:#f87171;font-size:12px">Erro: ${error.message}</div>`; return; }
@@ -30710,7 +30712,9 @@ async function loadAnotacoes() {
 function abrirModalAnotacao() {
   const selModal = document.getElementById('anot-empresa');
   if (selModal && !selModal.dataset.populado) {
-    selModal.innerHTML = '<option value="">— Sem empresa —</option>' + (_todasEmpresas||[]).map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+    selModal.innerHTML = '<option value="">— Sem empresa —</option>' + ((typeof empresasAtivas === 'function')
+      ? empresasAtivas() : (_todasEmpresas||[]).filter(e => e.ativo !== false))
+      .map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
     selModal.dataset.populado = '1';
   }
   document.getElementById('anot-titulo-modal').textContent = 'Nova Anotação';
@@ -30838,7 +30842,9 @@ async function abrirModalTarefa(tarefaId, tipoInicial) {
 
   // Popular checkboxes de empresas
   const cont = document.getElementById('tarefa-emp-checkboxes');
-  cont.innerHTML = (_todasEmpresas||[]).map(e => `
+  // Empresa desativada nao pode receber tarefa nova
+  cont.innerHTML = ((typeof empresasAtivas === 'function')
+    ? empresasAtivas() : (_todasEmpresas||[]).filter(e => e.ativo !== false)).map(e => `
     <label style="display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 0;cursor:pointer">
       <input type="checkbox" class="tarefa-emp-check" value="${e.id}" onchange="onChangeEmpresaCheck()" style="cursor:pointer">
       ${e.nome}
