@@ -5,6 +5,88 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VN — Controladoria Financeira</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- ══════════════════════════════════════════════════════════
+     SENTRY — registro de erros
+     Mostra o erro que o usuario viu, com a linha exata e o caminho
+     ate ele. Pega tambem o que o "node --check" nao pega: quebra em
+     tempo de execucao (const reatribuido, campo nulo, API fora do ar).
+
+     COMO LIGAR (uma vez):
+       1. Crie conta em https://sentry.io (plano gratuito basta)
+       2. Novo projeto -> plataforma "Browser JavaScript"
+       3. Copie o DSN e cole em VN_SENTRY_DSN abaixo
+     Enquanto o DSN estiver vazio, nada e carregado e nada muda.
+     ══════════════════════════════════════════════════════════ -->
+<script>
+  window.VN_SENTRY_DSN = '';            // <- cole o DSN aqui
+  window.VN_VERSAO     = '2026-09-14';  // ajuda a saber de qual versao veio o erro
+</script>
+<script>
+(function () {
+  if (!window.VN_SENTRY_DSN) return;
+  const t = document.createElement('script');
+  t.src = 'https://browser.sentry-cdn.com/8.26.0/bundle.tracing.min.js';
+  t.crossOrigin = 'anonymous';
+  t.onload = function () {
+    if (!window.Sentry) return;
+    Sentry.init({
+      dsn: window.VN_SENTRY_DSN,
+      release: window.VN_VERSAO,
+      environment: location.hostname.includes('localhost') ? 'local' : 'producao',
+      tracesSampleRate: 0.1,
+      // Ruido que nao e problema do sistema
+      ignoreErrors: [
+        'ResizeObserver loop', 'Non-Error promise rejection',
+        'Failed to fetch', 'NetworkError', 'Load failed',
+        'popup_closed_by_user', 'access_denied'
+      ],
+      beforeSend(ev) {
+        // Nunca enviar dado sensivel para fora
+        try {
+          const txt = JSON.stringify(ev);
+          if (/senha|password|token|client_secret|access_token|GOCSPX/i.test(txt)) {
+            if (ev.request) delete ev.request.data;
+            if (ev.extra)   delete ev.extra;
+            if (ev.breadcrumbs) ev.breadcrumbs = ev.breadcrumbs.map(b => {
+              if (b.data) delete b.data;
+              return b;
+            });
+          }
+        } catch (e) {}
+        return ev;
+      }
+    });
+    // Quem estava usando quando quebrou (sem e-mail nem senha)
+    try {
+      if (window._vnUser) {
+        Sentry.setUser({ id: _vnUser.id, username: _vnUser.nome || '' });
+        Sentry.setTag('perfil', _vnUser.perfil || '');
+      }
+      if (window._empresaAtual) Sentry.setTag('empresa', _empresaAtual.nome || '');
+    } catch (e) {}
+  };
+  document.head.appendChild(t);
+})();
+
+// Funciona com ou sem Sentry: registra e nunca quebra o sistema.
+window.vnErro = function (erro, contexto) {
+  try { console.error('[VN]', contexto || '', erro); } catch (e) {}
+  try {
+    if (window.Sentry?.captureException) {
+      Sentry.captureException(erro instanceof Error ? erro : new Error(String(erro)),
+        { tags: { contexto: contexto || 'geral' } });
+    }
+  } catch (e) {}
+};
+
+// Erros que ninguem tratou tambem sao registrados
+window.addEventListener('error', e => {
+  if (e?.error) window.vnErro(e.error, 'erro-global');
+});
+window.addEventListener('unhandledrejection', e => {
+  if (e?.reason) window.vnErro(e.reason, 'promessa-sem-catch');
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
 /* ══ SKIN VN 2.0 — padroes visuais dos graficos ══
@@ -3349,6 +3431,62 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 /* destacados: cor pelo texto, não por stroke fixo */
 .sidebar .nav-item[style*="background"] .nav-icon{ color:#15803d; }
 .sidebar .nav-item[style*="background"]{ min-height:40px; }
+
+
+/* ══════════════════════════════════════════════════════════
+   39. SKELETON — espera com forma, não tela vazia
+   ══════════════════════════════════════════════════════════ */
+.sk{
+  display:block; border-radius:6px; margin-bottom:7px; width:100%;
+  background:linear-gradient(100deg,
+    rgba(17,19,24,.055) 30%, rgba(17,19,24,.10) 45%,
+    rgba(17,19,24,.055) 60%);
+  background-size:280% 100%;
+  animation:skBrilho 1.25s ease-in-out infinite;
+}
+@keyframes skBrilho{ 0%{background-position:170% 0} 100%{background-position:-70% 0} }
+.sk:last-child{ margin-bottom:0; }
+.sk-ico{ width:34px !important; height:34px; border-radius:11px; flex-shrink:0; margin:0 !important; }
+.sk-card{
+  background:#fff; border:1px solid var(--border); border-radius:20px;
+  padding:18px 20px; min-height:104px;
+}
+.sk-row{ display:flex; align-items:center; gap:13px; min-height:82px; }
+.sk-topo{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.sk-topo .sk{ margin-bottom:0; }
+.sk-graf{
+  display:flex; align-items:flex-end; gap:10px; height:190px; padding:14px 0;
+}
+.sk-graf .sk{ margin-bottom:0; }
+.sk-tab{ display:flex; flex-direction:column; gap:2px; }
+.sk-tr{ display:flex; gap:16px; align-items:center; padding:14px; border-bottom:1px solid #f2f4f6; }
+.sk-tr .sk{ margin-bottom:0; }
+
+/* valor que está sendo atualizado: some o texto e vira placa */
+.sk-txt{
+  color:transparent !important; position:relative; border-radius:6px;
+  background:linear-gradient(100deg,
+    rgba(17,19,24,.055) 30%, rgba(17,19,24,.10) 45%, rgba(17,19,24,.055) 60%) !important;
+  background-size:280% 100% !important;
+  animation:skBrilho 1.25s ease-in-out infinite;
+  -webkit-text-fill-color:transparent;
+}
+/* dentro de card colorido a placa precisa ser clara, não escura */
+.hcard .sk-txt,.kpi-hero .sk-txt,.mini .sk-txt,.fcard .sk-txt,.metric-card .sk-txt{
+  background:linear-gradient(100deg,
+    rgba(255,255,255,.16) 30%, rgba(255,255,255,.34) 45%, rgba(255,255,255,.16) 60%) !important;
+  background-size:280% 100% !important;
+}
+#painel-operador .sk{
+  background:linear-gradient(100deg,
+    rgba(255,255,255,.05) 30%, rgba(255,255,255,.11) 45%, rgba(255,255,255,.05) 60%);
+  background-size:280% 100%;
+}
+#painel-operador .sk-card{ background:#222226; border-color:rgba(255,255,255,.07); }
+
+@media (prefers-reduced-motion:reduce){
+  .sk,.sk-txt{ animation:none; }
+}
 
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
@@ -8905,6 +9043,73 @@ function esconderLoader() {
 }
 // Roda as funcoes de carregamento da pagina com o loader na tela.
 // Espera TODAS terminarem — inclusive as async — antes de liberar.
+
+// ══════════════════════════════════════════════════════════════
+// SKELETON — placa cinza no formato do conteudo enquanto carrega
+//
+// Nao deixa mais rapido: deixa a espera compreensivel. Tela vazia
+// ou congelada parece quebrada; o contorno do que vem indica que
+// esta vindo e onde vai aparecer.
+// ══════════════════════════════════════════════════════════════
+
+function skBloco(alt, larg) {
+  return '<span class="sk" style="height:' + (alt || 14) + 'px' +
+         (larg ? ';width:' + larg : '') + '"></span>';
+}
+
+// Desenha esqueletos nos containers indicados.
+// destinos = [{ sel: '#id', tipo: 'kpi'|'mini'|'linha'|'grafico'|'tabela', qtd: n }]
+function skMostrar(destinos) {
+  (destinos || []).forEach(d => {
+    const alvo = document.querySelector(d.sel);
+    if (!alvo) return;
+    if (!alvo.dataset.skOriginal) alvo.dataset.skOriginal = '1';
+    const n = d.qtd || 1;
+    let html = '';
+    for (let i = 0; i < n; i++) {
+      if (d.tipo === 'kpi') {
+        html += '<div class="sk-card"><div class="sk-topo">' + skBloco(11, '46%') +
+                '<span class="sk sk-ico"></span></div>' +
+                skBloco(26, '68%') + skBloco(10, '52%') + '</div>';
+      } else if (d.tipo === 'mini') {
+        html += '<div class="sk-card sk-row"><span class="sk sk-ico"></span>' +
+                '<div style="flex:1">' + skBloco(10, '44%') + skBloco(18, '62%') + '</div></div>';
+      } else if (d.tipo === 'grafico') {
+        html += '<div class="sk-graf">' +
+                [58,76,44,88,63,92,51,70,39,82,60,74].map(h =>
+                  '<span class="sk" style="height:' + h + '%;width:100%;border-radius:7px 7px 3px 3px"></span>').join('') +
+                '</div>';
+      } else if (d.tipo === 'tabela') {
+        html += '<div class="sk-tab">' +
+                Array.from({length:n}, () =>
+                  '<div class="sk-tr">' + skBloco(11,'16%') + skBloco(11,'34%') +
+                  skBloco(11,'20%') + skBloco(11,'14%') + '</div>').join('') + '</div>';
+        alvo.innerHTML = html; return;
+      } else {
+        html += '<div class="sk-card">' + skBloco(13, '70%') + skBloco(13, '45%') + '</div>';
+      }
+    }
+    alvo.innerHTML = html;
+  });
+}
+
+// Marca os campos de valor com aparencia de carregando, sem apagar
+// o numero antigo — evita o "pisca zero" antes do dado chegar.
+function skCampos(ids, ligar) {
+  (ids || []).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('sk-txt', !!ligar);
+  });
+}
+
+const SK_DASH_CAMPOS = ['m-fat','m-cli','m-ticket','m-media-fat','m-srv','m-prod',
+                        'm-avencer','m-total-pagar','m-saldo-caixa',
+                        'm-fat-d','m-cli-d','m-srv-d','m-prod-d','m-media-fat-d',
+                        'm-avencer-d','m-total-pagar-d','m-saldo-caixa-d'];
+
+function skDashboardLigar()   { skCampos(SK_DASH_CAMPOS, true); }
+function skDashboardDesligar(){ skCampos(SK_DASH_CAMPOS, false); }
+
 async function comLoader(txt, ...fns) {
   mostrarLoader(txt);
   try {
@@ -10845,7 +11050,7 @@ async function calSincronizar() {
   } catch (e) {
     // token de sincronia vence (erro 410): recomeça do zero.
     // Nunca propaga: falha de agenda nao pode afetar o resto do painel.
-    console.warn('Sincronia da agenda:', e.message);
+    window.vnErro?.(e, 'agenda-sincronia');
     _calSyncToken = null;
   } finally { _calSincronizando = false; }
 }
@@ -13360,6 +13565,12 @@ async function renderFluxoCaixaChart(ini, fim) {
 }
 
 async function loadDashboard() {
+  if (typeof skDashboardLigar === 'function') skDashboardLigar();
+  try { return await _loadDashboardInterno(); }
+  finally { if (typeof skDashboardDesligar === 'function') skDashboardDesligar(); }
+}
+
+async function _loadDashboardInterno() {
   const el = id => document.getElementById(id);
   const hoje = new Date();
 
@@ -29850,7 +30061,7 @@ async function operadorPage(page) {
   if (page === 'calendario') {
     // blindagem: se algo falhar na agenda, o painel continua de pe
     try { await calInit(); }
-    catch (e) { console.error('Agenda:', e); calAviso('Erro ao abrir a agenda: ' + e.message, 'erro'); }
+    catch (e) { window.vnErro?.(e, 'agenda-abrir'); calAviso('Erro ao abrir a agenda: ' + e.message, 'erro'); }
   }
   if (page === 'tarefas')   tarefasTab('hoje');
   if (page === 'empresas')  await loadEmpresasOperador();
