@@ -2859,6 +2859,175 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 }
 #painel-operador .cal-nota b{ color:#f0d2a4; }
 
+
+/* ── contadores ── */
+#painel-operador .cal-cards{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+#painel-operador .cal-card{
+  background:#222226; border:1px solid rgba(255,255,255,.07); border-radius:16px;
+  padding:14px 16px; display:flex; flex-direction:column; gap:3px;
+  transition:transform .26s var(--ease), border-color .26s;
+}
+#painel-operador .cal-card:hover{ transform:translateY(-3px); border-color:rgba(255,255,255,.17); }
+#painel-operador .cal-card-n{ font-size:24px; font-weight:700; color:#fff; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+#painel-operador .cal-card-r{ font-size:11px; color:rgba(255,255,255,.45); }
+#painel-operador .cal-card.t   .cal-card-n{ color:#8fdcb5; }
+#painel-operador .cal-card.ok  .cal-card-n{ color:#4cb886; }
+#painel-operador .cal-card.bad .cal-card-n{ color:#f08b87; }
+#painel-operador .cal-card.bad{ cursor:pointer; }
+
+/* ── abas de visão ── */
+#painel-operador .cal-vtabs{ display:flex; gap:3px; background:rgba(255,255,255,.05); padding:3px; border-radius:999px; }
+#painel-operador .cal-vtab{
+  padding:7px 14px; border-radius:999px; border:none; background:transparent;
+  color:rgba(255,255,255,.55); font-family:'Outfit',sans-serif; font-size:12.5px;
+  font-weight:500; cursor:pointer; white-space:nowrap; transition:all .2s var(--ease);
+}
+#painel-operador .cal-vtab:hover{ color:#fff; background:rgba(255,255,255,.06); }
+#painel-operador .cal-vtab.on{ background:linear-gradient(122deg,#2f9a64,#1f7047); color:#fff; font-weight:600; }
+#painel-operador .cal-rotulo{ font-size:15px; font-weight:600; color:#fff; min-width:210px; text-align:center; letter-spacing:-.02em; }
+#painel-operador .cal-sel{
+  height:36px; padding:0 12px; border-radius:999px; cursor:pointer;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.13);
+  color:rgba(255,255,255,.85); font-family:'Outfit',sans-serif; font-size:12.5px; max-width:190px;
+}
+
+/* ── mês ── */
+#painel-operador .cal-dia{ min-height:88px; }
+#painel-operador .cal-dia.temAtraso{ box-shadow:inset 0 -2px 0 #d16a66; }
+#painel-operador .cal-mini{ display:flex; flex-direction:column; gap:2px; margin-top:5px; }
+#painel-operador .cal-mini-ev{
+  font-size:9.5px; padding:2px 5px; border-radius:5px; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+  background:rgba(47,154,100,.24); color:#bdf0d5;
+}
+#painel-operador .cal-mini-ev.feito{ background:rgba(255,255,255,.07); color:rgba(255,255,255,.4); text-decoration:line-through; }
+#painel-operador .cal-mini-ev.atras{ background:rgba(209,106,102,.26); color:#f5b8b5; }
+#painel-operador .cal-mais{ font-size:9px; color:rgba(255,255,255,.4); padding-left:4px; }
+
+/* ── semana ── */
+#painel-operador .cal-semana{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+#painel-operador .cal-col{ background:#222226; border:1px solid rgba(255,255,255,.06); border-radius:14px; overflow:hidden; min-height:200px; }
+#painel-operador .cal-col.hoje{ border-color:rgba(47,154,100,.5); }
+#painel-operador .cal-col-cab{ padding:9px; text-align:center; border-bottom:1px solid rgba(255,255,255,.06); cursor:pointer; transition:background .16s; }
+#painel-operador .cal-col-cab:hover{ background:rgba(255,255,255,.05); }
+#painel-operador .cal-col-cab span{ display:block; font-size:9.5px; text-transform:uppercase; letter-spacing:.07em; color:rgba(255,255,255,.35); }
+#painel-operador .cal-col-cab b{ font-size:16px; color:#fff; font-weight:600; }
+#painel-operador .cal-col.hoje .cal-col-cab b{ color:#6ee7a8; }
+#painel-operador .cal-col-corpo{ padding:7px; display:flex; flex-direction:column; gap:5px; }
+#painel-operador .cal-col .cal-ev{ flex-direction:column; align-items:stretch; gap:5px; padding:8px; background:rgba(255,255,255,.04); border-radius:10px; border:none; }
+#painel-operador .cal-col .cal-ev-hora{ min-width:0; font-size:10px; }
+#painel-operador .cal-col .cal-ev-btns{ justify-content:flex-end; }
+#painel-operador .cal-vazio-mini{ text-align:center; color:rgba(255,255,255,.2); font-size:11px; padding:14px 0; }
+
+/* ── dia ── */
+#painel-operador .cal-dia-wrap{ background:#222226; border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:16px 18px; }
+#painel-operador .cal-bloco-tit{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.35); margin-bottom:7px; }
+#painel-operador .cal-bloco{ margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,.06); }
+#painel-operador .cal-hora-linha{ display:flex; gap:14px; align-items:flex-start; }
+#painel-operador .cal-hora-marca{
+  width:52px; flex-shrink:0; font-size:12px; color:#6ee7a8; font-weight:600;
+  font-variant-numeric:tabular-nums; padding-top:14px;
+  border-right:1px solid rgba(255,255,255,.08);
+}
+#painel-operador .cal-hora-ev{ flex:1; min-width:0; }
+
+/* ── ano ── */
+#painel-operador .cal-ano{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+#painel-operador .cal-mini-mes{ background:#222226; border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:11px; }
+#painel-operador .cal-mini-cab{ font-size:12.5px; font-weight:600; color:#fff; margin-bottom:8px; cursor:pointer; display:flex; justify-content:space-between; align-items:baseline; }
+#painel-operador .cal-mini-cab:hover{ color:#6ee7a8; }
+#painel-operador .cal-mini-cab i{ font-style:normal; font-size:9.5px; color:rgba(255,255,255,.35); }
+#painel-operador .cal-mini-dias{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+#painel-operador .cal-mini-cabdia{ font-size:8px; text-align:center; color:rgba(255,255,255,.22); padding-bottom:3px; }
+#painel-operador .cal-mini-d{
+  font-size:9.5px; text-align:center; padding:3px 0; border-radius:5px; cursor:pointer;
+  color:rgba(255,255,255,.55); transition:background .14s;
+}
+#painel-operador .cal-mini-d:hover{ background:rgba(255,255,255,.1); }
+#painel-operador .cal-mini-d.fora{ opacity:.2; }
+#painel-operador .cal-mini-d.hoje{ outline:1px solid #2f9a64; color:#6ee7a8; }
+#painel-operador .cal-mini-d.tem{ background:rgba(47,154,100,.3); color:#bdf0d5; font-weight:600; }
+#painel-operador .cal-mini-d.atras{ background:rgba(209,106,102,.3); color:#f5b8b5; font-weight:600; }
+
+/* ── linha do tempo ── */
+#painel-operador .cal-linha{ position:relative; padding-left:20px; background:#222226; border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px 18px 18px 26px; }
+#painel-operador .cal-linha::before{ content:''; position:absolute; left:10px; top:18px; bottom:18px; width:2px; background:rgba(255,255,255,.09); border-radius:2px; }
+#painel-operador .cal-linha-dia{ display:flex; align-items:center; gap:11px; margin:16px 0 7px; position:relative; }
+#painel-operador .cal-linha-dia:first-child{ margin-top:0; }
+#painel-operador .cal-linha-marca{ position:absolute; left:-20px; width:11px; height:11px; border-radius:50%; background:#4cb886; border:2px solid #222226; }
+#painel-operador .cal-linha-dia.passou .cal-linha-marca{ background:rgba(255,255,255,.22); }
+#painel-operador .cal-linha-dia.hoje .cal-linha-marca{ background:#6ee7a8; box-shadow:0 0 0 4px rgba(110,231,168,.2); }
+#painel-operador .cal-linha-data{ font-size:12.5px; font-weight:600; color:#fff; }
+#painel-operador .cal-linha-dia.passou .cal-linha-data{ color:rgba(255,255,255,.42); }
+#painel-operador .cal-linha-data i{ font-style:normal; font-weight:400; font-size:10.5px; color:rgba(255,255,255,.35); margin-left:7px; }
+#painel-operador .cal-linha-item{ padding-left:2px; }
+#painel-operador .cal-linha-agora{ position:relative; margin:18px 0; border-top:1px dashed rgba(240,139,135,.5); }
+#painel-operador .cal-linha-agora span{ position:absolute; left:0; top:-8px; background:#d16a66; color:#fff; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:2px 8px; border-radius:999px; }
+
+/* ── cartão do item ── */
+#painel-operador .cal-ev{ display:flex; align-items:flex-start; gap:12px; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.06); transition:background .16s; border-radius:10px; }
+#painel-operador .cal-ev:last-child{ border-bottom:none; }
+#painel-operador .cal-ev:hover{ background:rgba(255,255,255,.04); }
+#painel-operador .cal-ev.feito .cal-ev-tit{ text-decoration:line-through; color:rgba(255,255,255,.4); }
+#painel-operador .cal-ev.atrasado{ box-shadow:inset 3px 0 0 #d16a66; padding-left:9px; }
+#painel-operador .cal-check-btn{
+  width:19px; height:19px; margin-top:2px; flex-shrink:0; border-radius:6px; cursor:pointer;
+  border:1.6px solid rgba(255,255,255,.3); background:transparent; color:#fff;
+  display:flex; align-items:center; justify-content:center; transition:all .18s;
+}
+#painel-operador .cal-check-btn:hover{ border-color:#4cb886; }
+#painel-operador .cal-check-btn.on{ background:#2f9a64; border-color:#2f9a64; }
+#painel-operador .cal-check-btn svg{ width:11px; height:11px; }
+#painel-operador .cal-bolha{ width:7px; height:7px; margin-top:8px; flex-shrink:0; border-radius:50%; background:#4cb886; }
+#painel-operador .cal-ev-emp{ font-size:10.5px; color:rgba(255,255,255,.38); margin-top:2px; }
+#painel-operador .cal-flag{ font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:2px 7px; border-radius:999px; margin-left:7px; vertical-align:middle; }
+#painel-operador .cal-flag.atras{ background:rgba(209,106,102,.25); color:#f5b8b5; }
+#painel-operador .cal-flag.ok{ background:rgba(47,154,100,.25); color:#a3ddc0; }
+#painel-operador .cal-flag.rep{ background:rgba(255,255,255,.09); color:rgba(255,255,255,.5); }
+
+/* ── dias da semana no modal ── */
+#painel-operador .cal-rot-mini{ font-size:11.5px; color:rgba(255,255,255,.55); margin-bottom:7px; }
+#painel-operador .cal-dias-sem{ display:flex; gap:5px; }
+#painel-operador .cal-dias-sem label{ flex:1; cursor:pointer; }
+#painel-operador .cal-dias-sem input{ display:none; }
+#painel-operador .cal-dias-sem span{
+  display:flex; align-items:center; justify-content:center; height:34px; border-radius:10px;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.6); font-size:12px; font-weight:600; transition:all .16s;
+}
+#painel-operador .cal-dias-sem input:checked + span{ background:linear-gradient(122deg,#2f9a64,#1f7047); border-color:transparent; color:#fff; }
+#painel-operador .cal-modal-corpo select{
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); border-radius:11px;
+  padding:10px 13px; color:#fff; font-family:'Outfit',sans-serif; font-size:13px; width:100%; cursor:pointer;
+}
+
+/* ── alertas flutuantes ── */
+#cal-toasts{ position:fixed; right:18px; bottom:18px; z-index:4000; display:flex; flex-direction:column; gap:9px; max-width:340px; }
+.cal-toast{
+  display:flex; align-items:flex-start; gap:11px; padding:13px 14px; border-radius:15px; cursor:pointer;
+  background:#26262b; border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 18px 44px rgba(0,0,0,.45);
+  opacity:0; transform:translateX(24px); transition:opacity .28s var(--ease), transform .28s var(--ease);
+}
+.cal-toast.on{ opacity:1; transform:none; }
+.cal-toast-ico{ width:32px; height:32px; flex-shrink:0; border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(47,154,100,.2); color:#6ee7a8; }
+.cal-toast.atras .cal-toast-ico{ background:rgba(209,106,102,.22); color:#f5b8b5; }
+.cal-toast-ico svg{ width:17px; height:17px; }
+.cal-toast-txt{ flex:1; min-width:0; }
+.cal-toast-txt b{ display:block; font-size:13px; color:#fff; font-weight:600; line-height:1.3; }
+.cal-toast-txt span{ display:block; font-size:11px; color:rgba(255,255,255,.5); margin-top:2px; }
+.cal-toast > button{ width:24px; height:24px; flex-shrink:0; border-radius:7px; border:none; background:transparent; color:rgba(255,255,255,.4); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.cal-toast > button:hover{ background:rgba(255,255,255,.1); color:#fff; }
+.cal-toast > button svg{ width:13px; height:13px; }
+
+@media (max-width:1000px){
+  #painel-operador .cal-ano{ grid-template-columns:repeat(2,1fr); }
+  #painel-operador .cal-cards{ grid-template-columns:repeat(2,1fr); }
+  #painel-operador .cal-semana{ grid-template-columns:1fr; }
+  #painel-operador .cal-rotulo{ min-width:0; }
+  #cal-toasts{ left:12px; right:12px; max-width:none; }
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -3746,6 +3915,115 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
       <div id="cal-modal" class="cal-modal">
         <div class="cal-modal-box">
           <div class="cal-modal-cab">
+            <span><span id="cal-m-titulo-box">Novo</span> item</span>
+            <button onclick="calFecharModal()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          </div>
+          <div class="cal-modal-corpo">
+            <input type="hidden" id="cal-m-id">
+
+            <label>Tipo
+              <select id="cal-m-tipo">
+                <option value="evento">Evento — compromisso marcado</option>
+                <option value="tarefa">Tarefa — tem que ser concluída</option>
+              </select>
+            </label>
+
+            <label>Título<input type="text" id="cal-m-tit" placeholder="Fechamento do mês"></label>
+
+            <label>Empresa<select id="cal-m-empresa"></select></label>
+
+            <label>Data<input type="date" id="cal-m-data"></label>
+            <label class="cal-check"><input type="checkbox" id="cal-m-inteiro" onchange="calAtualizarModal()"> Dia inteiro</label>
+            <div id="cal-m-horas" class="cal-duplo">
+              <label>Início<input type="time" id="cal-m-ini"></label>
+              <label>Fim<input type="time" id="cal-m-fim"></label>
+            </div>
+
+            <label>Avisar antes
+              <select id="cal-m-alerta">
+                <option value="">Sem alerta</option>
+                <option value="0">Na hora</option>
+                <option value="10">10 minutos antes</option>
+                <option value="30" selected>30 minutos antes</option>
+                <option value="60">1 hora antes</option>
+                <option value="180">3 horas antes</option>
+                <option value="1440">1 dia antes</option>
+                <option value="2880">2 dias antes</option>
+                <option value="10080">1 semana antes</option>
+              </select>
+            </label>
+
+            <label>Repetir
+              <select id="cal-m-freq" onchange="calAtualizarModal()">
+                <option value="">Não repete</option>
+                <option value="DAILY">Todo dia</option>
+                <option value="WEEKLY">Toda semana</option>
+                <option value="MONTHLY">Todo mês</option>
+                <option value="YEARLY">Todo ano</option>
+              </select>
+            </label>
+
+            <div id="cal-m-rep-extra" style="display:none">
+              <div id="cal-m-dias-wrap" style="display:none">
+                <div class="cal-rot-mini">Dias da semana</div>
+                <div class="cal-dias-sem" id="cal-m-dias">
+                  <label><input type="checkbox" value="SU"><span>D</span></label>
+                  <label><input type="checkbox" value="MO"><span>S</span></label>
+                  <label><input type="checkbox" value="TU"><span>T</span></label>
+                  <label><input type="checkbox" value="WE"><span>Q</span></label>
+                  <label><input type="checkbox" value="TH"><span>Q</span></label>
+                  <label><input type="checkbox" value="FR"><span>S</span></label>
+                  <label><input type="checkbox" value="SA"><span>S</span></label>
+                </div>
+              </div>
+              <label style="margin-top:11px">Repetir até<input type="date" id="cal-m-ate"></label>
+            </div>
+
+            <label>Local<input type="text" id="cal-m-local" placeholder="Opcional"></label>
+            <label>Descrição<textarea id="cal-m-desc" rows="3" placeholder="Opcional"></textarea></label>
+          </div>
+          <div class="cal-modal-rod">
+            <button class="cal-btn" onclick="calFecharModal()">Cancelar</button>
+            <button class="cal-btn cal-btn-go" id="cal-m-salvar" onclick="calSalvar()">Salvar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONFIGURAÇÃO DO GOOGLE (uma vez só) -->
+      <div id="cal-cfg" class="cal-modal">
+        <div class="cal-modal-box" style="max-width:540px">
+          <div class="cal-modal-cab">
+            <span>Ligar ao Google Agenda</span>
+            <button onclick="calFecharConfig()" aria-label="Fechar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="cal-modal-corpo">
+            <div class="cal-passos">
+              <div class="cal-passo"><b>1</b><span>No <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>, ative a <i>Google Calendar API</i>.</span></div>
+              <div class="cal-passo"><b>2</b><span>Em <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Credenciais</a>, crie um <i>ID do cliente OAuth</i> do tipo <i>Aplicativo da Web</i>.</span></div>
+              <div class="cal-passo"><b>3</b><span>Em <i>Origens JavaScript autorizadas</i>, cole este endereço:
+                <span class="cal-origem"><code id="cal-cfg-origem">—</code><button id="cal-cfg-copiar" onclick="calCopiarOrigem()">Copiar</button></span></span></div>
+              <div class="cal-passo"><b>4</b><span>Copie o <i>ID do cliente</i> gerado e cole no campo abaixo.</span></div>
+            </div>
+            <label>ID do cliente
+              <input type="text" id="cal-cfg-id" placeholder="000000000000-xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+            </label>
+            <div class="cal-nota">
+              Guarde só o <b>ID</b>. A <b>chave secreta</b> não é usada aqui e nunca deve ser colada em página de navegador.
+            </div>
+          </div>
+          <div class="cal-modal-rod">
+            <button class="cal-btn" onclick="calFecharConfig()">Cancelar</button>
+            <button class="cal-btn cal-btn-go" onclick="calSalvarConfig()">Salvar e conectar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL DO CALENDÁRIO -->
+      <div id="cal-modal" class="cal-modal">
+        <div class="cal-modal-box">
+          <div class="cal-modal-cab">
             <span id="cal-modal-titulo-box">Novo evento</span>
             <button onclick="calFecharModal()" aria-label="Fechar">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -3777,8 +4055,8 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 
         <div class="cal-topo">
           <div>
-            <div class="cal-titulo">Calendário</div>
-            <div class="cal-sub">Sincronizado com o Google Agenda</div>
+            <div class="cal-titulo">Agenda</div>
+            <div class="cal-sub">Eventos e tarefas · sincronizado com o Google Agenda</div>
           </div>
           <div class="cal-acoes">
             <span id="cal-status" class="cal-status">Desconectado</span>
@@ -3790,34 +4068,46 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
             </button>
             <button class="cal-btn cal-btn-go" id="cal-btn-novo" onclick="calAbrirModal()" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              Novo evento
+              Novo
             </button>
           </div>
         </div>
 
+        <div class="cal-cards">
+          <div class="cal-card"><span class="cal-card-n" id="cal-c-total">0</span><span class="cal-card-r">No período</span></div>
+          <div class="cal-card t"><span class="cal-card-n" id="cal-c-tarefas">0</span><span class="cal-card-r">Tarefas</span></div>
+          <div class="cal-card ok"><span class="cal-card-n" id="cal-c-concl">0</span><span class="cal-card-r">Concluídas</span></div>
+          <div class="cal-card bad" onclick="document.getElementById('cal-f-status').value='atrasadas';calFiltrar()">
+            <span class="cal-card-n" id="cal-c-atras">0</span><span class="cal-card-r">Atrasadas</span></div>
+        </div>
+
         <div class="cal-barra">
-          <button class="cal-nav" onclick="calMover(-1)" aria-label="Mês anterior">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <div class="cal-mes" id="cal-mes-rotulo">—</div>
-          <button class="cal-nav" onclick="calMover(1)" aria-label="Próximo mês">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
+          <div class="cal-vtabs">
+            <button class="cal-vtab" data-v="dia"    onclick="calVisao('dia')">Dia</button>
+            <button class="cal-vtab" data-v="semana" onclick="calVisao('semana')">Semana</button>
+            <button class="cal-vtab on" data-v="mes" onclick="calVisao('mes')">Mês</button>
+            <button class="cal-vtab" data-v="ano"    onclick="calVisao('ano')">Ano</button>
+            <button class="cal-vtab" data-v="linha"  onclick="calVisao('linha')">Linha do tempo</button>
+          </div>
+          <button class="cal-nav" onclick="calMover(-1)" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <div class="cal-rotulo" id="cal-rotulo">—</div>
+          <button class="cal-nav" onclick="calMover(1)" aria-label="Próximo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
           <button class="cal-btn" onclick="calHoje()">Hoje</button>
           <div style="flex:1"></div>
+          <select id="cal-f-empresa" class="cal-sel" onchange="calFiltrar()"></select>
+          <select id="cal-f-status" class="cal-sel" onchange="calFiltrar()">
+            <option value="todos">Tudo</option>
+            <option value="pendentes">Pendentes</option>
+            <option value="concluidas">Concluídas</option>
+            <option value="atrasadas">Atrasadas</option>
+          </select>
           <button class="cal-btn" onclick="calCarregarEventos()">Atualizar</button>
         </div>
 
         <div class="cal-aviso" id="cal-aviso" style="display:none"></div>
+        <div id="cal-corpo"></div>
 
-        <div class="cal-grade">
-          <div class="cal-dias-cab">
-            <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
-          </div>
-          <div class="cal-dias" id="cal-dias"></div>
-        </div>
-
-        <div class="cal-lista-wrap">
+        <div class="cal-lista-wrap" id="cal-lista-wrap">
           <div class="cal-lista-tit" id="cal-lista-tit">Selecione um dia</div>
           <div id="cal-lista"></div>
         </div>
@@ -8846,57 +9136,43 @@ document.addEventListener('keydown', function (ev) {
 
 
 // ══════════════════════════════════════════════════════════════
-// CALENDÁRIO — integração com o Google Agenda
+// AGENDA — eventos e tarefas ligados ao Google Agenda
 //
-// O Google Agenda é a FONTE ÚNICA. Nada de evento é gravado no
-// Supabase: o sistema lê e escreve direto na API do Google. Assim
-// os dois lados nunca divergem e não existe conflito de versão.
-//
-// CONFIGURAÇÃO NECESSÁRIA (uma vez, no Google Cloud Console):
-//   1. Criar projeto e ativar a "Google Calendar API"
-//   2. Criar credencial OAuth 2.0 do tipo "ID do cliente da Web"
-//   3. Em "Origens JavaScript autorizadas" adicionar o domínio:
-//        https://landing-page-vn.vercel.app
-//   4. Colar o ID gerado em CAL_CLIENT_ID abaixo
+// O Google Agenda e a FONTE UNICA. Nada e gravado no Supabase.
+// Tipo, empresa e status ficam em extendedProperties.private, um
+// campo do proprio evento no Google — assim a informacao viaja
+// junto e continua la se voce abrir pelo app do Google.
 // ══════════════════════════════════════════════════════════════
 
-// O ID e guardado no proprio navegador (localStorage). Voce cola ele
-// UMA VEZ na tela do Calendario, no botao "Configurar". Nao precisa
-// mexer no codigo. Se preferir deixar fixo aqui, pode: o valor do
-// codigo tem prioridade sobre o guardado.
-// Somente o ID do cliente. A chave secreta (client_secret) NAO entra
-// aqui: aplicacao que roda no navegador nao usa, e qualquer visitante
-// conseguiria ler no codigo-fonte da pagina.
 const CAL_CLIENT_ID_FIXO = '753483799581-oe2jta3cf8rumfpoddk8bfv64bifh6hr.apps.googleusercontent.com';
+const CAL_ESCOPO = 'https://www.googleapis.com/auth/calendar';
+const CAL_API    = 'https://www.googleapis.com/calendar/v3';
 
 function calClientId() {
   if (CAL_CLIENT_ID_FIXO) return CAL_CLIENT_ID_FIXO;
   try { return localStorage.getItem('vn_cal_client_id') || ''; } catch (e) { return ''; }
 }
-function calSalvarClientId(v) {
-  try { localStorage.setItem('vn_cal_client_id', (v || '').trim()); } catch (e) {}
-}
-const CAL_ESCOPO    = 'https://www.googleapis.com/auth/calendar';
-const CAL_API       = 'https://www.googleapis.com/calendar/v3';
+function calSalvarClientId(v) { try { localStorage.setItem('vn_cal_client_id', (v||'').trim()); } catch (e) {} }
 
-let _calToken    = null;   // token de acesso
-let _calExpira   = 0;      // quando o token vence (ms)
-let _calCliente  = null;   // cliente de token do Google
-let _calRef      = new Date();
-let _calSel      = null;   // dia selecionado 'AAAA-MM-DD'
-let _calEventos  = [];
-let _calGisPronto = false;
+let _calToken = null, _calExpira = 0, _calCliente = null, _calGisPronto = false;
+let _calRef   = new Date();                  // data de referencia da visao
+let _calSel   = null;                        // dia selecionado
+let _calVisao = 'mes';                       // dia | semana | mes | ano | linha
+let _calEventos = [];
+let _calFiltroEmpresa = '';                  // '' = todas
+let _calFiltroStatus  = 'todos';             // todos | pendentes | concluidas | atrasadas
+let _calAlertasDados  = [];                  // alertas ja disparados
+let _calTimer = null;
 
-// ── carrega o script do Google uma vez ──────────────────────────
+// ── Google Identity ─────────────────────────────────────────────
 function calCarregarGIS() {
   return new Promise((ok, falha) => {
     if (_calGisPronto || window.google?.accounts?.oauth2) { _calGisPronto = true; return ok(); }
-    const tag = document.createElement('script');
-    tag.src = 'https://accounts.google.com/gsi/client';
-    tag.async = true; tag.defer = true;
-    tag.onload = () => { _calGisPronto = true; ok(); };
-    tag.onerror = () => falha(new Error('Não foi possível carregar o Google.'));
-    document.head.appendChild(tag);
+    const t = document.createElement('script');
+    t.src = 'https://accounts.google.com/gsi/client'; t.async = true; t.defer = true;
+    t.onload = () => { _calGisPronto = true; ok(); };
+    t.onerror = () => falha(new Error('Não foi possível carregar o Google.'));
+    document.head.appendChild(t);
   });
 }
 
@@ -8910,42 +9186,31 @@ function calAviso(msg, tipo) {
 }
 
 function calAtualizarBotoes() {
-  const conectado = !!_calToken && Date.now() < _calExpira;
+  const on = !!_calToken && Date.now() < _calExpira;
   const st = document.getElementById('cal-status');
-  if (st) {
-    st.textContent = conectado ? 'Conectado' : 'Desconectado';
-    st.classList.toggle('on', conectado);
-  }
+  if (st) { st.textContent = on ? 'Conectado' : 'Desconectado'; st.classList.toggle('on', on); }
   const bC = document.getElementById('cal-btn-conectar');
   const bS = document.getElementById('cal-btn-sair');
   const bN = document.getElementById('cal-btn-novo');
-  if (bC) bC.style.display = conectado ? 'none' : '';
-  if (bS) bS.style.display = conectado ? '' : 'none';
-  if (bN) bN.disabled = !conectado;
+  if (bC) bC.style.display = on ? 'none' : '';
+  if (bS) bS.style.display = on ? '' : 'none';
+  if (bN) bN.disabled = !on;
 }
 
-// ── login ───────────────────────────────────────────────────────
 async function calConectar() {
   if (!calClientId()) { calAbrirConfig(); return; }
-  try {
-    await calCarregarGIS();
-  } catch (e) {
-    calAviso('Não foi possível carregar o Google. Verifique sua conexão.', 'erro');
-    return;
-  }
+  try { await calCarregarGIS(); }
+  catch (e) { calAviso('Não foi possível carregar o Google. Verifique sua conexão.', 'erro'); return; }
   if (!_calCliente) {
     _calCliente = google.accounts.oauth2.initTokenClient({
-      client_id: calClientId(),
-      scope: CAL_ESCOPO,
-      callback: (resp) => {
-        if (resp.error) { calAviso('Autorização recusada.', 'erro'); return; }
-        _calToken  = resp.access_token;
-        _calExpira = Date.now() + (Number(resp.expires_in || 3600) - 60) * 1000;
+      client_id: calClientId(), scope: CAL_ESCOPO,
+      callback: (r) => {
+        if (r.error) { calAviso('Autorização recusada.', 'erro'); return; }
+        _calToken = r.access_token;
+        _calExpira = Date.now() + (Number(r.expires_in || 3600) - 60) * 1000;
         try { sessionStorage.setItem('cal_tk', _calToken);
               sessionStorage.setItem('cal_tk_exp', String(_calExpira)); } catch (e) {}
-        calAviso('');
-        calAtualizarBotoes();
-        calCarregarEventos();
+        calAviso(''); calAtualizarBotoes(); calCarregarEventos();
       }
     });
   }
@@ -8958,17 +9223,14 @@ function calDesconectar() {
   }
   _calToken = null; _calExpira = 0; _calEventos = [];
   try { sessionStorage.removeItem('cal_tk'); sessionStorage.removeItem('cal_tk_exp'); } catch (e) {}
-  calAtualizarBotoes();
-  calRenderGrade();
-  calRenderLista();
+  calAtualizarBotoes(); calRender();
 }
 
-// ── chamada à API, com renovação de token ───────────────────────
 async function calApi(caminho, opcoes) {
   if (!_calToken || Date.now() >= _calExpira) {
     await new Promise((ok) => {
-      const antes = _calCliente?.callback;
       if (!_calCliente) return ok();
+      const antes = _calCliente.callback;
       _calCliente.callback = (r) => { if (antes) antes(r); ok(); };
       _calCliente.requestAccessToken({ prompt: '' });
     });
@@ -8980,38 +9242,70 @@ async function calApi(caminho, opcoes) {
   if (r.status === 401) { _calToken = null; _calExpira = 0; calAtualizarBotoes();
     throw new Error('Sessão do Google expirou. Conecte novamente.'); }
   if (!r.ok) {
-    let det = '';
-    try { det = (await r.json())?.error?.message || ''; } catch (e) {}
-    throw new Error(det || ('Erro ' + r.status + ' na API do Google.'));
+    let d = ''; try { d = (await r.json())?.error?.message || ''; } catch (e) {}
+    throw new Error(d || ('Erro ' + r.status + ' na API do Google.'));
   }
   return r.status === 204 ? null : r.json();
 }
 
 // ── datas ───────────────────────────────────────────────────────
-function calISO(d) {
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+const CAL_MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CAL_MESES_C = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const CAL_DIAS_C  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function calISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function calHHMM(d){ return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function calInicioSemana(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()-d.getDay()); }
+function calDiaDoEvento(ev){ const s = ev.start?.dateTime || ev.start?.date; return s ? s.substring(0,10) : null; }
+function calInicioDe(ev){ return ev.start?.dateTime ? new Date(ev.start.dateTime) : new Date(ev.start.date+'T00:00:00'); }
+function calFimDe(ev){
+  if (ev.end?.dateTime) return new Date(ev.end.dateTime);
+  if (ev.end?.date){ const d=new Date(ev.end.date+'T00:00:00'); return new Date(d.getFullYear(),d.getMonth(),d.getDate(),23,59,59); }
+  return calInicioDe(ev);
 }
-function calRotuloMes(d) {
-  const m = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  return m[d.getMonth()] + ' de ' + d.getFullYear();
-}
-function calDiaDoEvento(ev) {
-  const s = ev.start?.dateTime || ev.start?.date;
-  return s ? s.substring(0,10) : null;
-}
-function calHora(ev) {
+function calHoraTxt(ev){
   if (ev.start?.date) return 'Dia inteiro';
-  const ini = new Date(ev.start.dateTime);
-  const fim = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
-  const f = (x) => String(x.getHours()).padStart(2,'0') + ':' + String(x.getMinutes()).padStart(2,'0');
-  return f(ini) + (fim ? ' – ' + f(fim) : '');
+  return calHHMM(calInicioDe(ev)) + (ev.end?.dateTime ? ' – ' + calHHMM(calFimDe(ev)) : '');
+}
+function calEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── propriedades do sistema dentro do evento ────────────────────
+function calProp(ev, chave, padrao){
+  const p = ev.extendedProperties?.private || {};
+  return p[chave] !== undefined ? p[chave] : padrao;
+}
+function calTipo(ev){ return calProp(ev, 'vnTipo', 'evento'); }
+function calStatus(ev){ return calProp(ev, 'vnStatus', 'pendente'); }
+function calEmpresaId(ev){ return calProp(ev, 'vnEmpresa', ''); }
+function calEmpresaNome(id){
+  const e = (typeof _todasEmpresas !== 'undefined' ? _todasEmpresas : []).find(x => x.id === id);
+  return e ? (e.nome || e.razao_social || '—') : '';
+}
+function calAtrasada(ev){
+  return calTipo(ev) === 'tarefa'
+      && calStatus(ev) !== 'concluida'
+      && calFimDe(ev).getTime() < Date.now();
 }
 
-// ── buscar eventos do mês ───────────────────────────────────────
+// ── faixa de datas que cada visao precisa ───────────────────────
+function calFaixa() {
+  const d = _calRef;
+  if (_calVisao === 'dia')    return [new Date(d.getFullYear(),d.getMonth(),d.getDate()),
+                                      new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)];
+  if (_calVisao === 'semana') { const i = calInicioSemana(d);
+                                return [i, new Date(i.getFullYear(),i.getMonth(),i.getDate()+7)]; }
+  if (_calVisao === 'ano')    return [new Date(d.getFullYear(),0,1), new Date(d.getFullYear()+1,0,1)];
+  if (_calVisao === 'linha')  return [new Date(d.getFullYear(),d.getMonth(),d.getDate()-7),
+                                      new Date(d.getFullYear(),d.getMonth(),d.getDate()+60)];
+  // mes: pega a grade inteira, inclusive os dias vizinhos que aparecem
+  const p = new Date(d.getFullYear(), d.getMonth(), 1);
+  const i = new Date(p.getFullYear(), p.getMonth(), 1 - p.getDay());
+  return [i, new Date(i.getFullYear(), i.getMonth(), i.getDate()+42)];
+}
+
 async function calCarregarEventos() {
-  if (!_calToken) { calRenderGrade(); return; }
-  const ini = new Date(_calRef.getFullYear(), _calRef.getMonth(), 1);
-  const fim = new Date(_calRef.getFullYear(), _calRef.getMonth() + 1, 1);
+  if (!_calToken) { calRender(); return; }
+  const [ini, fim] = calFaixa();
   try {
     calAviso('');
     const q = '?timeMin=' + encodeURIComponent(ini.toISOString()) +
@@ -9019,241 +9313,558 @@ async function calCarregarEventos() {
               '&singleEvents=true&orderBy=startTime&maxResults=2500';
     const r = await calApi('/calendars/primary/events' + q);
     _calEventos = (r?.items || []).filter(e => e.status !== 'cancelled');
-  } catch (e) {
-    _calEventos = [];
-    calAviso(e.message, 'erro');
-  }
-  calRenderGrade();
-  calRenderLista();
+  } catch (e) { _calEventos = []; calAviso(e.message, 'erro'); }
+  calRender();
+  calVerificarAlertas();
 }
 
-// ── desenha o mês ───────────────────────────────────────────────
-function calRenderGrade() {
-  const grade = document.getElementById('cal-dias');
-  const rot   = document.getElementById('cal-mes-rotulo');
-  if (!grade) return;
-  if (rot) rot.textContent = calRotuloMes(_calRef);
-
-  const ano = _calRef.getFullYear(), mes = _calRef.getMonth();
-  const primeiro = new Date(ano, mes, 1);
-  const inicio = new Date(ano, mes, 1 - primeiro.getDay());   // começa no domingo
-  const hoje = calISO(new Date());
-
-  // agrupa eventos por dia
-  const porDia = {};
-  _calEventos.forEach(ev => {
-    const d = calDiaDoEvento(ev);
-    if (!d) return;
-    (porDia[d] = porDia[d] || []).push(ev);
+// ── filtros ─────────────────────────────────────────────────────
+function calVisiveis() {
+  return _calEventos.filter(ev => {
+    if (_calFiltroEmpresa && calEmpresaId(ev) !== _calFiltroEmpresa) return false;
+    if (_calFiltroStatus === 'pendentes'  && !(calTipo(ev)==='tarefa' && calStatus(ev)!=='concluida')) return false;
+    if (_calFiltroStatus === 'concluidas' && calStatus(ev) !== 'concluida') return false;
+    if (_calFiltroStatus === 'atrasadas'  && !calAtrasada(ev)) return false;
+    return true;
   });
+}
 
-  let html = '';
+function calContadores() {
+  const t = _calEventos.filter(e => !_calFiltroEmpresa || calEmpresaId(e) === _calFiltroEmpresa);
+  return {
+    total:      t.length,
+    tarefas:    t.filter(e => calTipo(e) === 'tarefa').length,
+    concluidas: t.filter(e => calStatus(e) === 'concluida').length,
+    atrasadas:  t.filter(e => calAtrasada(e)).length,
+  };
+}
+
+// ── navegacao ───────────────────────────────────────────────────
+function calVisao(v) { _calVisao = v; calRender(); calCarregarEventos(); }
+function calMover(n) {
+  const d = _calRef;
+  if (_calVisao === 'dia')         _calRef = new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  else if (_calVisao === 'semana') _calRef = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7*n);
+  else if (_calVisao === 'ano')    _calRef = new Date(d.getFullYear() + n, d.getMonth(), 1);
+  else if (_calVisao === 'linha')  _calRef = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 30*n);
+  else                             _calRef = new Date(d.getFullYear(), d.getMonth() + n, 1);
+  calCarregarEventos();
+}
+function calHoje() { _calRef = new Date(); _calSel = calISO(new Date()); calCarregarEventos(); }
+function calSelecionar(iso) { _calSel = iso; calRender(); }
+function calIrPara(iso, visao) { _calRef = new Date(iso + 'T00:00:00'); _calSel = iso; if (visao) _calVisao = visao; calCarregarEventos(); }
+
+function calRotulo() {
+  const d = _calRef;
+  if (_calVisao === 'dia')    return CAL_DIAS_C[d.getDay()] + ', ' + d.getDate() + ' de ' + CAL_MESES[d.getMonth()] + ' de ' + d.getFullYear();
+  if (_calVisao === 'semana') { const i = calInicioSemana(d), f = new Date(i.getFullYear(),i.getMonth(),i.getDate()+6);
+    return i.getDate()+' '+CAL_MESES_C[i.getMonth()]+' – '+f.getDate()+' '+CAL_MESES_C[f.getMonth()]+' de '+f.getFullYear(); }
+  if (_calVisao === 'ano')    return String(d.getFullYear());
+  if (_calVisao === 'linha')  return 'Próximos 60 dias';
+  return CAL_MESES[d.getMonth()] + ' de ' + d.getFullYear();
+}
+
+// ── render principal ────────────────────────────────────────────
+function calRender() {
+  const rot = document.getElementById('cal-rotulo');
+  if (rot) rot.textContent = calRotulo();
+  document.querySelectorAll('#opage-calendario .cal-vtab').forEach(b =>
+    b.classList.toggle('on', b.dataset.v === _calVisao));
+
+  const c = calContadores();
+  const put = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  put('cal-c-total', c.total); put('cal-c-tarefas', c.tarefas);
+  put('cal-c-concl', c.concluidas); put('cal-c-atras', c.atrasadas);
+  const badge = document.getElementById('onav-cal-badge');
+  if (badge) { badge.textContent = c.atrasadas || ''; badge.style.display = c.atrasadas ? '' : 'none';
+               badge.style.background = c.atrasadas ? '#dc2626' : '#22a45d'; }
+
+  const alvo = document.getElementById('cal-corpo');
+  if (!alvo) return;
+  if (_calVisao === 'dia')         alvo.innerHTML = calViewDia();
+  else if (_calVisao === 'semana') alvo.innerHTML = calViewSemana();
+  else if (_calVisao === 'ano')    alvo.innerHTML = calViewAno();
+  else if (_calVisao === 'linha')  alvo.innerHTML = calViewLinha();
+  else                             alvo.innerHTML = calViewMes();
+
+  const lista = document.getElementById('cal-lista-wrap');
+  if (lista) lista.style.display = (_calVisao === 'mes' || _calVisao === 'ano') ? '' : 'none';
+  if (_calVisao === 'mes') calRenderLista();
+}
+
+function calPorDia(evs) {
+  const m = {};
+  evs.forEach(ev => { const d = calDiaDoEvento(ev); if (d) (m[d] = m[d] || []).push(ev); });
+  return m;
+}
+
+// ── cartao de um evento ─────────────────────────────────────────
+function calCartao(ev, compacto) {
+  const tarefa = calTipo(ev) === 'tarefa';
+  const feito  = calStatus(ev) === 'concluida';
+  const atras  = calAtrasada(ev);
+  const emp    = calEmpresaNome(calEmpresaId(ev));
+  const cls = ['cal-ev']; if (feito) cls.push('feito'); if (atras) cls.push('atrasado');
+  return '<div class="' + cls.join(' ') + '">' +
+    (tarefa
+      ? '<button class="cal-check-btn' + (feito ? ' on' : '') + '" onclick="calAlternarConcluida(\'' + ev.id + '\')" title="' + (feito ? 'Reabrir' : 'Concluir') + '">' +
+          (feito ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '') +
+        '</button>'
+      : '<span class="cal-bolha"></span>') +
+    '<div class="cal-ev-hora">' + calHoraTxt(ev) + '</div>' +
+    '<div class="cal-ev-txt">' +
+      '<div class="cal-ev-tit">' + calEsc(ev.summary || '(sem título)') +
+        (atras ? '<span class="cal-flag atras">Atrasada</span>' : '') +
+        (feito ? '<span class="cal-flag ok">Concluída</span>' : '') +
+        (ev.recurringEventId || ev.recurrence ? '<span class="cal-flag rep">Repete</span>' : '') +
+      '</div>' +
+      (emp ? '<div class="cal-ev-emp">' + calEsc(emp) + '</div>' : '') +
+      (!compacto && ev.description ? '<div class="cal-ev-desc">' + calEsc(ev.description) + '</div>' : '') +
+    '</div>' +
+    '<div class="cal-ev-btns">' +
+      '<button onclick="calAbrirModal(\'' + ev.id + '\')" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>' +
+      '<button class="del" onclick="calExcluir(\'' + ev.id + '\')" title="Excluir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>' +
+    '</div>' +
+  '</div>';
+}
+
+// ── VISÃO: MÊS ──────────────────────────────────────────────────
+function calViewMes() {
+  const ano = _calRef.getFullYear(), mes = _calRef.getMonth();
+  const p = new Date(ano, mes, 1);
+  const ini = new Date(ano, mes, 1 - p.getDay());
+  const hoje = calISO(new Date());
+  const porDia = calPorDia(calVisiveis());
+  let h = '<div class="cal-grade"><div class="cal-dias-cab">' +
+          CAL_DIAS_C.map(d => '<span>' + d + '</span>').join('') + '</div><div class="cal-dias">';
   for (let i = 0; i < 42; i++) {
-    const d = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
-    const iso = calISO(d);
-    const fora = d.getMonth() !== mes;
-    const evs = porDia[iso] || [];
+    const d = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + i);
+    const iso = calISO(d), evs = porDia[iso] || [];
     const cls = ['cal-dia'];
-    if (fora) cls.push('fora');
+    if (d.getMonth() !== mes) cls.push('fora');
     if (iso === hoje) cls.push('hoje');
     if (iso === _calSel) cls.push('sel');
-    html += '<div class="' + cls.join(' ') + '" onclick="calSelecionar(\'' + iso + '\')">' +
-              '<span class="cal-num">' + d.getDate() + '</span>' +
-              (evs.length
-                ? '<div class="cal-pontos">' +
-                    evs.slice(0,3).map(() => '<i></i>').join('') +
-                    (evs.length > 3 ? '<em>+' + (evs.length - 3) + '</em>' : '') +
-                  '</div>'
-                : '') +
-            '</div>';
+    if (evs.some(calAtrasada)) cls.push('temAtraso');
+    h += '<div class="' + cls.join(' ') + '" onclick="calSelecionar(\'' + iso + '\')" ondblclick="calIrPara(\'' + iso + '\',\'dia\')">' +
+         '<span class="cal-num">' + d.getDate() + '</span>' +
+         (evs.length ? '<div class="cal-mini">' +
+            evs.slice(0,2).map(ev => '<span class="cal-mini-ev' + (calStatus(ev)==='concluida'?' feito':'') + (calAtrasada(ev)?' atras':'') + '">' +
+              calEsc((ev.summary||'').substring(0,18)) + '</span>').join('') +
+            (evs.length > 2 ? '<span class="cal-mais">+' + (evs.length-2) + '</span>' : '') +
+          '</div>' : '') + '</div>';
   }
-  grade.innerHTML = html;
+  return h + '</div></div>';
 }
 
-function calSelecionar(iso) { _calSel = iso; calRenderGrade(); calRenderLista(); }
-function calMover(n) {
-  _calRef = new Date(_calRef.getFullYear(), _calRef.getMonth() + n, 1);
-  calCarregarEventos();
-}
-function calHoje() {
-  _calRef = new Date(); _calSel = calISO(new Date());
-  calCarregarEventos();
+// ── VISÃO: SEMANA ───────────────────────────────────────────────
+function calViewSemana() {
+  const i = calInicioSemana(_calRef);
+  const hoje = calISO(new Date());
+  const porDia = calPorDia(calVisiveis());
+  let h = '<div class="cal-semana">';
+  for (let n = 0; n < 7; n++) {
+    const d = new Date(i.getFullYear(), i.getMonth(), i.getDate() + n);
+    const iso = calISO(d), evs = porDia[iso] || [];
+    h += '<div class="cal-col' + (iso === hoje ? ' hoje' : '') + '">' +
+           '<div class="cal-col-cab" onclick="calIrPara(\'' + iso + '\',\'dia\')">' +
+             '<span>' + CAL_DIAS_C[d.getDay()] + '</span><b>' + d.getDate() + '</b>' +
+           '</div>' +
+           '<div class="cal-col-corpo">' +
+             (evs.length ? evs.map(ev => calCartao(ev, true)).join('')
+                         : '<div class="cal-vazio-mini">—</div>') +
+           '</div></div>';
+  }
+  return h + '</div>';
 }
 
-// ── lista do dia ────────────────────────────────────────────────
+// ── VISÃO: DIA ──────────────────────────────────────────────────
+function calViewDia() {
+  const iso = calISO(_calRef);
+  const evs = calVisiveis().filter(ev => calDiaDoEvento(ev) === iso);
+  const inteiro = evs.filter(ev => ev.start?.date);
+  const comHora = evs.filter(ev => ev.start?.dateTime)
+                     .sort((a,b) => calInicioDe(a) - calInicioDe(b));
+  let h = '<div class="cal-dia-wrap">';
+  if (inteiro.length) h += '<div class="cal-bloco"><div class="cal-bloco-tit">Dia inteiro</div>' +
+                            inteiro.map(ev => calCartao(ev)).join('') + '</div>';
+  if (!comHora.length && !inteiro.length)
+    return h + '<div class="cal-vazio">Nada marcado neste dia.</div></div>';
+  if (comHora.length) {
+    h += '<div class="cal-horas">';
+    comHora.forEach(ev => {
+      h += '<div class="cal-hora-linha"><div class="cal-hora-marca">' + calHHMM(calInicioDe(ev)) + '</div>' +
+           '<div class="cal-hora-ev">' + calCartao(ev) + '</div></div>';
+    });
+    h += '</div>';
+  }
+  return h + '</div>';
+}
+
+// ── VISÃO: ANO ──────────────────────────────────────────────────
+function calViewAno() {
+  const ano = _calRef.getFullYear();
+  const hoje = calISO(new Date());
+  const porDia = calPorDia(calVisiveis());
+  let h = '<div class="cal-ano">';
+  for (let m = 0; m < 12; m++) {
+    const p = new Date(ano, m, 1);
+    const ini = new Date(ano, m, 1 - p.getDay());
+    const qtd = Object.keys(porDia).filter(k => k.startsWith(ano + '-' + String(m+1).padStart(2,'0'))).length;
+    h += '<div class="cal-mini-mes"><div class="cal-mini-cab" onclick="calIrPara(\'' + ano + '-' + String(m+1).padStart(2,'0') + '-01\',\'mes\')">' +
+         CAL_MESES[m] + (qtd ? '<i>' + qtd + ' dia(s)</i>' : '') + '</div>' +
+         '<div class="cal-mini-dias">' + CAL_DIAS_C.map(d => '<span class="cal-mini-cabdia">' + d[0] + '</span>').join('');
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + i);
+      if (i >= 35 && d.getMonth() !== m) continue;
+      const iso = calISO(d), evs = porDia[iso] || [];
+      const cls = ['cal-mini-d'];
+      if (d.getMonth() !== m) cls.push('fora');
+      if (iso === hoje) cls.push('hoje');
+      if (evs.length) cls.push(evs.some(calAtrasada) ? 'atras' : 'tem');
+      h += '<span class="' + cls.join(' ') + '" onclick="calIrPara(\'' + iso + '\',\'dia\')">' + d.getDate() + '</span>';
+    }
+    h += '</div></div>';
+  }
+  return h + '</div>';
+}
+
+// ── VISÃO: LINHA DO TEMPO ───────────────────────────────────────
+function calViewLinha() {
+  const evs = calVisiveis().sort((a,b) => calInicioDe(a) - calInicioDe(b));
+  if (!evs.length) return '<div class="cal-vazio">Nada no período.</div>';
+  const hoje = calISO(new Date());
+  let h = '<div class="cal-linha">', ultimo = null, marcouHoje = false;
+  evs.forEach(ev => {
+    const iso = calDiaDoEvento(ev);
+    if (iso !== ultimo) {
+      ultimo = iso;
+      const d = new Date(iso + 'T00:00:00');
+      const passou = iso < hoje;
+      if (!marcouHoje && iso >= hoje) { marcouHoje = true;
+        if (iso > hoje) h += '<div class="cal-linha-agora"><span>agora</span></div>'; }
+      h += '<div class="cal-linha-dia' + (passou ? ' passou' : '') + (iso === hoje ? ' hoje' : '') + '">' +
+             '<div class="cal-linha-marca"></div>' +
+             '<div class="cal-linha-data">' + d.getDate() + ' ' + CAL_MESES_C[d.getMonth()] +
+               '<i>' + CAL_DIAS_C[d.getDay()] + (iso === hoje ? ' · hoje' : '') + '</i></div>' +
+           '</div>';
+    }
+    h += '<div class="cal-linha-item">' + calCartao(ev, true) + '</div>';
+  });
+  if (!marcouHoje) h += '<div class="cal-linha-agora"><span>agora</span></div>';
+  return h + '</div>';
+}
+
+// ── lista do dia (abaixo da grade do mês) ───────────────────────
 function calRenderLista() {
   const lista = document.getElementById('cal-lista');
-  const tit   = document.getElementById('cal-lista-tit');
+  const tit = document.getElementById('cal-lista-tit');
   if (!lista) return;
   if (!_calSel) { if (tit) tit.textContent = 'Selecione um dia'; lista.innerHTML = ''; return; }
-
   const [a,m,dd] = _calSel.split('-');
   if (tit) tit.textContent = dd + '/' + m + '/' + a;
-
-  const evs = _calEventos.filter(ev => calDiaDoEvento(ev) === _calSel);
-  if (!evs.length) {
-    lista.innerHTML = '<div class="cal-vazio">Nenhum evento neste dia.</div>';
-    return;
-  }
-  lista.innerHTML = evs.map(ev =>
-    '<div class="cal-ev">' +
-      '<div class="cal-ev-hora">' + calHora(ev) + '</div>' +
-      '<div class="cal-ev-txt">' +
-        '<div class="cal-ev-tit">' + calEsc(ev.summary || '(sem título)') + '</div>' +
-        (ev.description ? '<div class="cal-ev-desc">' + calEsc(ev.description) + '</div>' : '') +
-      '</div>' +
-      '<div class="cal-ev-btns">' +
-        '<button onclick="calAbrirModal(\'' + ev.id + '\')" title="Editar">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>' +
-        '</button>' +
-        '<button onclick="calExcluir(\'' + ev.id + '\')" title="Excluir" class="del">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>' +
-        '</button>' +
-      '</div>' +
-    '</div>').join('');
-}
-
-function calEsc(t) {
-  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const evs = calVisiveis().filter(ev => calDiaDoEvento(ev) === _calSel)
+                           .sort((x,y) => calInicioDe(x) - calInicioDe(y));
+  lista.innerHTML = evs.length ? evs.map(ev => calCartao(ev)).join('')
+                              : '<div class="cal-vazio">Nada marcado neste dia.</div>';
 }
 
 // ── criar / editar ──────────────────────────────────────────────
+function calPreencherEmpresas(idSelect, valor) {
+  const sel = document.getElementById(idSelect);
+  if (!sel) return;
+  const lista = (typeof _todasEmpresas !== 'undefined' ? _todasEmpresas : [])
+                  .filter(e => e.ativo !== false);
+  sel.innerHTML = '<option value="">' + (idSelect === 'cal-f-empresa' ? 'Todas as empresas' : 'Sem empresa') + '</option>' +
+    lista.map(e => '<option value="' + calEsc(e.id) + '">' + calEsc(e.nome || e.razao_social || e.id) + '</option>').join('');
+  if (valor) sel.value = valor;
+}
+
 function calAbrirModal(id) {
   const ev = id ? _calEventos.find(e => e.id === id) : null;
-  const dia = _calSel || calISO(new Date());
-  document.getElementById('cal-modal-id').value    = id || '';
-  document.getElementById('cal-modal-tit').value   = ev ? (ev.summary || '') : '';
-  document.getElementById('cal-modal-desc').value  = ev ? (ev.description || '') : '';
-  document.getElementById('cal-modal-local').value = ev ? (ev.location || '') : '';
+  const dia = _calSel || calISO(_calRef);
+  const g = (x) => document.getElementById(x);
+
+  g('cal-m-id').value    = id || '';
+  g('cal-m-tipo').value  = ev ? calTipo(ev) : 'evento';
+  g('cal-m-tit').value   = ev ? (ev.summary || '') : '';
+  g('cal-m-desc').value  = ev ? (ev.description || '') : '';
+  g('cal-m-local').value = ev ? (ev.location || '') : '';
+  calPreencherEmpresas('cal-m-empresa', ev ? calEmpresaId(ev) : _calFiltroEmpresa);
+
   const inteiro = !!(ev && ev.start?.date);
-  document.getElementById('cal-modal-inteiro').checked = inteiro;
-  document.getElementById('cal-modal-data').value = ev ? calDiaDoEvento(ev) : dia;
-  const hIni = ev && ev.start?.dateTime ? new Date(ev.start.dateTime) : null;
-  const hFim = ev && ev.end?.dateTime   ? new Date(ev.end.dateTime)   : null;
-  const hh = (x) => String(x.getHours()).padStart(2,'0') + ':' + String(x.getMinutes()).padStart(2,'0');
-  document.getElementById('cal-modal-ini').value = hIni ? hh(hIni) : '09:00';
-  document.getElementById('cal-modal-fim').value = hFim ? hh(hFim) : '10:00';
-  document.getElementById('cal-modal-titulo-box').textContent = id ? 'Editar evento' : 'Novo evento';
-  calToggleHoras();
-  document.getElementById('cal-modal').classList.add('on');
+  g('cal-m-inteiro').checked = inteiro;
+  g('cal-m-data').value = ev ? calDiaDoEvento(ev) : dia;
+  const hi = ev && ev.start?.dateTime ? calInicioDe(ev) : null;
+  const hf = ev && ev.end?.dateTime   ? calFimDe(ev)    : null;
+  g('cal-m-ini').value = hi ? calHHMM(hi) : '09:00';
+  g('cal-m-fim').value = hf ? calHHMM(hf) : '10:00';
+
+  // alerta
+  const ov = ev?.reminders?.overrides;
+  g('cal-m-alerta').value = (ov && ov.length) ? String(ov[0].minutes) : (ev ? '' : '30');
+
+  // repeticao
+  let freq = '', ate = '', dias = [];
+  const rr = (ev?.recurrence || []).find(r => r.startsWith('RRULE:'));
+  if (rr) {
+    const m = /FREQ=(\w+)/.exec(rr); if (m) freq = m[1];
+    const u = /UNTIL=(\d{8})/.exec(rr);
+    if (u) ate = u[1].slice(0,4) + '-' + u[1].slice(4,6) + '-' + u[1].slice(6,8);
+    const b = /BYDAY=([^;]+)/.exec(rr); if (b) dias = b[1].split(',');
+  }
+  g('cal-m-freq').value = freq;
+  g('cal-m-ate').value  = ate;
+  document.querySelectorAll('#cal-m-dias input').forEach(c => { c.checked = dias.includes(c.value); });
+
+  g('cal-m-titulo-box').textContent = id ? 'Editar' : 'Novo';
+  if (ev?.recurringEventId) {
+    calAviso('Este item faz parte de uma repetição. A alteração vale só para esta ocorrência.', 'info');
+  }
+  calAtualizarModal();
+  g('cal-modal').classList.add('on');
 }
-function calFecharModal() { document.getElementById('cal-modal').classList.remove('on'); }
-function calToggleHoras() {
-  const inteiro = document.getElementById('cal-modal-inteiro').checked;
-  document.getElementById('cal-modal-horas').style.display = inteiro ? 'none' : '';
+
+function calFecharModal(){ document.getElementById('cal-modal').classList.remove('on'); }
+
+function calAtualizarModal() {
+  const inteiro = document.getElementById('cal-m-inteiro').checked;
+  document.getElementById('cal-m-horas').style.display = inteiro ? 'none' : '';
+  const freq = document.getElementById('cal-m-freq').value;
+  document.getElementById('cal-m-rep-extra').style.display = freq ? '' : 'none';
+  document.getElementById('cal-m-dias-wrap').style.display = freq === 'WEEKLY' ? '' : 'none';
 }
 
 async function calSalvar() {
-  const id      = document.getElementById('cal-modal-id').value;
-  const titulo  = document.getElementById('cal-modal-tit').value.trim();
-  const desc    = document.getElementById('cal-modal-desc').value.trim();
-  const local   = document.getElementById('cal-modal-local').value.trim();
-  const data    = document.getElementById('cal-modal-data').value;
-  const inteiro = document.getElementById('cal-modal-inteiro').checked;
-  const hIni    = document.getElementById('cal-modal-ini').value;
-  const hFim    = document.getElementById('cal-modal-fim').value;
+  const g = (x) => document.getElementById(x).value;
+  const id      = g('cal-m-id');
+  const tipo    = g('cal-m-tipo');
+  const titulo  = g('cal-m-tit').trim();
+  const desc    = g('cal-m-desc').trim();
+  const local   = g('cal-m-local').trim();
+  const empresa = g('cal-m-empresa');
+  const data    = g('cal-m-data');
+  const inteiro = document.getElementById('cal-m-inteiro').checked;
+  const hIni    = g('cal-m-ini'), hFim = g('cal-m-fim');
+  const alerta  = g('cal-m-alerta');
+  const freq    = g('cal-m-freq');
+  const ate     = g('cal-m-ate');
 
-  if (!titulo) { calAviso('Dê um título ao evento.', 'erro'); return; }
+  if (!titulo) { calAviso('Dê um título.', 'erro'); return; }
   if (!data)   { calAviso('Escolha a data.', 'erro'); return; }
   if (!inteiro && hFim <= hIni) { calAviso('O horário final precisa ser depois do inicial.', 'erro'); return; }
+  if (ate && ate < data) { calAviso('A repetição não pode terminar antes de começar.', 'erro'); return; }
 
   const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo';
-  const corpo = { summary: titulo };
-  if (desc)  corpo.description = desc;
-  if (local) corpo.location = local;
+  const antigo = id ? _calEventos.find(e => e.id === id) : null;
+
+  const corpo = {
+    summary: titulo,
+    description: desc || '',
+    location: local || '',
+    extendedProperties: { private: {
+      vnTipo: tipo,
+      vnEmpresa: empresa || '',
+      vnStatus: antigo ? calStatus(antigo) : 'pendente'
+    }}
+  };
+
   if (inteiro) {
     const d = new Date(data + 'T00:00:00');
-    const dSeg = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
     corpo.start = { date: data };
-    corpo.end   = { date: calISO(dSeg) };     // no Google o fim é exclusivo
+    corpo.end   = { date: calISO(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) };
   } else {
     corpo.start = { dateTime: data + 'T' + hIni + ':00', timeZone: fuso };
     corpo.end   = { dateTime: data + 'T' + hFim + ':00', timeZone: fuso };
   }
 
-  const btn = document.getElementById('cal-modal-salvar');
+  corpo.reminders = alerta === ''
+    ? { useDefault: true }
+    : { useDefault: false, overrides: [{ method: 'popup', minutes: Number(alerta) }] };
+
+  if (freq) {
+    let regra = 'RRULE:FREQ=' + freq;
+    if (freq === 'WEEKLY') {
+      const dias = Array.from(document.querySelectorAll('#cal-m-dias input:checked')).map(c => c.value);
+      if (dias.length) regra += ';BYDAY=' + dias.join(',');
+    }
+    if (ate) regra += ';UNTIL=' + ate.replace(/-/g,'') + 'T235959Z';
+    corpo.recurrence = [regra];
+  } else if (antigo && antigo.recurrence) {
+    corpo.recurrence = null;
+  }
+
+  const btn = document.getElementById('cal-m-salvar');
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
   try {
     if (id) await calApi('/calendars/primary/events/' + encodeURIComponent(id),
                          { method: 'PATCH', body: JSON.stringify(corpo) });
     else    await calApi('/calendars/primary/events',
-                         { method: 'POST',  body: JSON.stringify(corpo) });
+                         { method: 'POST', body: JSON.stringify(corpo) });
     calFecharModal();
     _calSel = data;
-    // se o evento caiu em outro mês, vai junto
     const d = new Date(data + 'T00:00:00');
     if (d.getMonth() !== _calRef.getMonth() || d.getFullYear() !== _calRef.getFullYear()) {
       _calRef = new Date(d.getFullYear(), d.getMonth(), 1);
     }
     await calCarregarEventos();
+  } catch (e) { calAviso(e.message, 'erro'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; } }
+}
+
+async function calAlternarConcluida(id) {
+  const ev = _calEventos.find(e => e.id === id);
+  if (!ev) return;
+  const novo = calStatus(ev) === 'concluida' ? 'pendente' : 'concluida';
+  const priv = Object.assign({}, ev.extendedProperties?.private || {});
+  priv.vnStatus = novo;
+  priv.vnConcluidaEm = novo === 'concluida' ? new Date().toISOString() : '';
+  // atualiza na tela na hora; se a API falhar, volta atras
+  ev.extendedProperties = ev.extendedProperties || {};
+  ev.extendedProperties.private = priv;
+  calRender();
+  try {
+    await calApi('/calendars/primary/events/' + encodeURIComponent(id),
+                 { method: 'PATCH', body: JSON.stringify({ extendedProperties: { private: priv } }) });
   } catch (e) {
+    priv.vnStatus = novo === 'concluida' ? 'pendente' : 'concluida';
+    ev.extendedProperties.private = priv;
+    calRender();
     calAviso(e.message, 'erro');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
   }
 }
 
 async function calExcluir(id) {
   const ev = _calEventos.find(e => e.id === id);
-  if (!confirm('Excluir "' + (ev?.summary || 'este evento') + '"? Ele sai também do Google Agenda.')) return;
+  if (!confirm('Excluir "' + (ev?.summary || 'este item') + '"? Sai também do Google Agenda.')) return;
   try {
     await calApi('/calendars/primary/events/' + encodeURIComponent(id), { method: 'DELETE' });
     await calCarregarEventos();
   } catch (e) { calAviso(e.message, 'erro'); }
 }
 
-// ── tela de configuração (uma vez só) ───────────────────────────
+// ── filtros da barra ────────────────────────────────────────────
+function calFiltrar() {
+  _calFiltroEmpresa = document.getElementById('cal-f-empresa').value;
+  _calFiltroStatus  = document.getElementById('cal-f-status').value;
+  calRender();
+}
+
+// ── ALERTAS DENTRO DO SISTEMA ───────────────────────────────────
+// A cada minuto verifica o que esta chegando e o que venceu.
+// Cada alerta so aparece uma vez por sessao.
+function calVerificarAlertas() {
+  if (!_calToken) return;
+  const agora = Date.now();
+  const novos = [];
+
+  calVisiveis().forEach(ev => {
+    if (calStatus(ev) === 'concluida') return;
+    const ini = calInicioDe(ev).getTime();
+    const min = ev.reminders?.overrides?.[0]?.minutes;
+    const antecedencia = (min === undefined ? 30 : Number(min)) * 60000;
+
+    if (calAtrasada(ev)) {
+      const ch = 'atras|' + ev.id;
+      if (!_calAlertasDados.includes(ch)) { _calAlertasDados.push(ch);
+        novos.push({ id: ch, tipo: 'atras', ev }); }
+      return;
+    }
+    if (ini > agora && ini - agora <= antecedencia) {
+      const ch = 'perto|' + ev.id;
+      if (!_calAlertasDados.includes(ch)) { _calAlertasDados.push(ch);
+        novos.push({ id: ch, tipo: 'perto', ev }); }
+    }
+  });
+
+  novos.slice(0, 4).forEach((a, i) => setTimeout(() => calToast(a), i * 400));
+}
+
+function calToast(a) {
+  let caixa = document.getElementById('cal-toasts');
+  if (!caixa) {
+    caixa = document.createElement('div');
+    caixa.id = 'cal-toasts';
+    document.body.appendChild(caixa);
+  }
+  const atras = a.tipo === 'atras';
+  const quando = atras ? 'Venceu ' + calQuandoTxt(calFimDe(a.ev))
+                       : 'Começa ' + calQuandoTxt(calInicioDe(a.ev));
+  const el = document.createElement('div');
+  el.className = 'cal-toast' + (atras ? ' atras' : '');
+  el.innerHTML =
+    '<div class="cal-toast-ico">' +
+      (atras
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>') +
+    '</div>' +
+    '<div class="cal-toast-txt"><b>' + calEsc(a.ev.summary || 'Item da agenda') + '</b><span>' + quando + '</span></div>' +
+    '<button onclick="this.parentNode.remove()" aria-label="Fechar">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+    '</button>';
+  el.onclick = (e) => {
+    if (e.target.closest('button')) return;
+    const iso = calDiaDoEvento(a.ev);
+    if (iso) { if (typeof operadorPage === 'function') operadorPage('calendario'); calIrPara(iso, 'dia'); }
+  };
+  caixa.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('on'));
+  setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.remove(), 300); }, 11000);
+}
+
+function calQuandoTxt(d) {
+  const dif = d.getTime() - Date.now();
+  const abs = Math.abs(dif);
+  const min = Math.round(abs / 60000);
+  const txt = min < 60 ? (min <= 1 ? 'agora' : 'em ' + min + ' min')
+            : abs < 86400000 ? 'em ' + Math.round(min/60) + 'h'
+            : 'em ' + Math.round(abs/86400000) + ' dia(s)';
+  return dif < 0 ? txt.replace('em ', 'há ').replace('agora', 'agora há pouco') : txt;
+}
+
+// ── configuração do Google ──────────────────────────────────────
 function calAbrirConfig() {
   document.getElementById('cal-cfg-id').value = calClientId();
   document.getElementById('cal-cfg-origem').textContent = window.location.origin;
   document.getElementById('cal-cfg').classList.add('on');
 }
-function calFecharConfig() { document.getElementById('cal-cfg').classList.remove('on'); }
-
+function calFecharConfig(){ document.getElementById('cal-cfg').classList.remove('on'); }
 function calCopiarOrigem() {
-  const txt = window.location.origin;
-  const btn = document.getElementById('cal-cfg-copiar');
+  const txt = window.location.origin, btn = document.getElementById('cal-cfg-copiar');
   const ok = () => { if (btn) { btn.textContent = 'Copiado'; setTimeout(() => btn.textContent = 'Copiar', 1600); } };
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok).catch(() => {});
-  else {
-    const t = document.createElement('textarea');
-    t.value = txt; document.body.appendChild(t); t.select();
-    try { document.execCommand('copy'); ok(); } catch (e) {}
-    document.body.removeChild(t);
-  }
+  else { const t = document.createElement('textarea'); t.value = txt; document.body.appendChild(t);
+         t.select(); try { document.execCommand('copy'); ok(); } catch (e) {} document.body.removeChild(t); }
 }
-
 function calSalvarConfig() {
   const v = document.getElementById('cal-cfg-id').value.trim();
   if (v && !/\.apps\.googleusercontent\.com$/.test(v)) {
-    calAviso('Esse não parece o ID certo. Ele termina em .apps.googleusercontent.com', 'erro');
-    return;
+    calAviso('Esse não parece o ID certo. Ele termina em .apps.googleusercontent.com', 'erro'); return;
   }
-  calSalvarClientId(v);
-  _calCliente = null;          // força recriar com o ID novo
-  calFecharConfig();
-  calAviso('');
+  calSalvarClientId(v); _calCliente = null; calFecharConfig(); calAviso('');
   if (v) calConectar(); else calAtualizarBotoes();
 }
 
 // ── abertura da página ──────────────────────────────────────────
 async function calInit() {
-  // recupera token da sessão, se ainda válido
   try {
     const t = sessionStorage.getItem('cal_tk');
     const x = Number(sessionStorage.getItem('cal_tk_exp') || 0);
     if (t && Date.now() < x) { _calToken = t; _calExpira = x; }
   } catch (e) {}
   if (!_calSel) _calSel = calISO(new Date());
+  calPreencherEmpresas('cal-f-empresa', _calFiltroEmpresa);
   calAtualizarBotoes();
-  calRenderGrade();
-  calRenderLista();
+  calRender();
   if (!calClientId()) {
-    calAviso('Calendário ainda não configurado. Clique em "Configurar" para ligar ao Google — leva 5 minutos e é uma vez só.', 'info');
+    calAviso('Agenda ainda não ligada ao Google. Clique em "Configurar".', 'info');
     return;
   }
   if (_calToken) await calCarregarEventos();
+
+  // verificação periódica dos alertas, uma vez só
+  if (!_calTimer) _calTimer = setInterval(calVerificarAlertas, 60000);
 }
+
 
 function showPage(id, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
