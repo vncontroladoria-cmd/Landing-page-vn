@@ -3251,6 +3251,43 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
   #painel-operador .cal-linha3 > label:first-child{ grid-column:1 / -1; }
 }
 
+
+/* ── modal de altura FIXA: abrir opções não muda o tamanho ──
+   Antes a caixa crescia conforme o conteúdo (dias da semana,
+   "Local e descrição"), e o modal pulava de tamanho na tela.
+   Agora a altura é travada e quem rola é o miolo. */
+#painel-operador .cal-modal-box.compacto{
+  height:min(560px, 88vh);
+  max-height:88vh;
+}
+#painel-operador .cal-modal-box.compacto .cal-modal-cab,
+#painel-operador .cal-modal-box.compacto .cal-modal-rod{ flex-shrink:0; }
+#painel-operador .cal-modal-box.compacto .cal-form{
+  flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+#painel-operador .cal-form::-webkit-scrollbar{ width:7px; }
+#painel-operador .cal-form::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.16); border-radius:999px; }
+#painel-operador .cal-form::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,.26); }
+#painel-operador .cal-form::-webkit-scrollbar-track{ background:transparent; }
+
+/* sombra no rodapé avisa que ainda há conteúdo abaixo */
+#painel-operador .cal-modal-box.compacto .cal-modal-rod{
+  box-shadow:0 -10px 18px -12px rgba(0,0,0,.6);
+}
+
+/* os outros modais (configurar e importar) seguem a mesma regra */
+#painel-operador #cal-cfg .cal-modal-box,
+#painel-operador #cal-imp .cal-modal-box{ max-height:88vh; }
+#painel-operador #cal-cfg .cal-modal-corpo,
+#painel-operador #cal-imp .cal-modal-corpo{
+  flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin;
+}
+
+@media (max-height:700px){
+  #painel-operador .cal-modal-box.compacto{ height:92vh; }
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
