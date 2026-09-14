@@ -3093,6 +3093,34 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
   #painel-operador .cal-sync{ margin-left:0; }
 }
 
+
+/* ── importação de tarefas ── */
+#painel-operador #cal-imp-prev .cal-imp-linha{ font-size:13.5px; color:rgba(255,255,255,.8); margin-bottom:11px; }
+#painel-operador #cal-imp-prev b{ color:#6ee7a8; font-size:17px; }
+#painel-operador .cal-imp-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+#painel-operador .cal-imp-grid span{
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
+  border-radius:12px; padding:10px; text-align:center;
+  font-size:10.5px; color:rgba(255,255,255,.5); display:flex; flex-direction:column; gap:2px;
+}
+#painel-operador .cal-imp-grid b{ font-size:18px; color:#fff; }
+#painel-operador .cal-imp-carregando{ font-size:12.5px; color:rgba(255,255,255,.45); }
+#painel-operador .cal-imp-como{ background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:13px; padding:13px 15px; }
+#painel-operador .cal-imp-como-t{ font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.35); margin-bottom:9px; }
+#painel-operador .cal-imp-de-para{ display:grid; grid-template-columns:auto auto 1fr; gap:6px 10px; align-items:center; font-size:12px; }
+#painel-operador .cal-imp-de-para > span:nth-child(3n+1){ color:#fff; font-weight:500; }
+#painel-operador .cal-imp-de-para > span:nth-child(3n){ color:rgba(255,255,255,.5); }
+#painel-operador .cal-imp-de-para i{ font-style:normal; color:#4cb886; }
+#painel-operador .cal-imp-log{
+  max-height:190px; overflow-y:auto; font-size:11.5px; line-height:1.7;
+  font-family:ui-monospace,monospace; color:rgba(255,255,255,.6);
+}
+#painel-operador .cal-imp-log:empty{ display:none; }
+#painel-operador .cal-imp-log .ok{ color:#8fdcb5; }
+#painel-operador .cal-imp-log .err{ color:#f0a09c; }
+#painel-operador .cal-imp-log .av{ color:#e8c46a; }
+@media (max-width:700px){ #painel-operador .cal-imp-grid{ grid-template-columns:repeat(2,1fr); } }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -3976,6 +4004,117 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
         </div>
       </div>
 
+      <!-- PÁGINA: CALENDÁRIO -->
+      <div id="opage-calendario" style="display:none">
+
+        <div class="cal-topo">
+          <div>
+            <div class="cal-titulo">Agenda</div>
+            <div class="cal-sub">Eventos e tarefas &middot; sincronizado com o Google Agenda</div>
+          </div>
+          <div class="cal-acoes">
+            <span id="cal-status" class="cal-status">Desconectado</span>
+            <button class="cal-btn" id="cal-btn-conectar" onclick="calConectar()">Conectar Google</button>
+            <button class="cal-btn" id="cal-btn-sair" onclick="calDesconectar()" style="display:none">Desconectar</button>
+            <button class="cal-btn" onclick="calAbrirConfig()" title="Configurar conexão">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007 19.4a1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 15a2 2 0 110-4h.1A1.7 1.7 0 004.6 7a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 009 3a2 2 0 114 0v.1A1.7 1.7 0 0017 4.6a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1A1.7 1.7 0 0021 9a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 2z"/></svg>
+              Configurar
+            </button>
+            <button class="cal-btn" onclick="calAbrirImportar()" title="Trazer tarefas já cadastradas">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Importar tarefas
+            </button>
+            <button class="cal-btn cal-btn-go" id="cal-btn-novo" onclick="calAbrirModal()" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Novo
+            </button>
+          </div>
+        </div>
+
+        <div class="cal-cards">
+          <div class="cal-card"><span class="cal-card-n" id="cal-c-total">0</span><span class="cal-card-r">No período</span></div>
+          <div class="cal-card t"><span class="cal-card-n" id="cal-c-tarefas">0</span><span class="cal-card-r">Tarefas</span></div>
+          <div class="cal-card ok"><span class="cal-card-n" id="cal-c-concl">0</span><span class="cal-card-r">Concluídas</span></div>
+          <div class="cal-card bad" onclick="document.getElementById('cal-f-status').value='atrasadas';calFiltrar()">
+            <span class="cal-card-n" id="cal-c-atras">0</span><span class="cal-card-r">Atrasadas</span></div>
+        </div>
+
+        <div class="cal-tipos">
+          <button class="cal-ttab on" data-t="todos" onclick="calTipoFiltro('todos')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+            Tudo</button>
+          <button class="cal-ttab tar" data-t="tarefa" onclick="calTipoFiltro('tarefa')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            Tarefas</button>
+          <button class="cal-ttab eve" data-t="evento" onclick="calTipoFiltro('evento')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            Eventos</button>
+          <span class="cal-sync" id="cal-sync" title="Sincroniza com o Google a cada 15 segundos"><i></i>Sincronizando</span>
+        </div>
+
+        <div class="cal-barra">
+          <div class="cal-vtabs">
+            <button class="cal-vtab on" data-v="dia" onclick="calVisao('dia')">Dia</button>
+            <button class="cal-vtab" data-v="semana" onclick="calVisao('semana')">Semana</button>
+            <button class="cal-vtab" data-v="mes" onclick="calVisao('mes')">Mês</button>
+            <button class="cal-vtab" data-v="ano" onclick="calVisao('ano')">Ano</button>
+            <button class="cal-vtab" data-v="linha" onclick="calVisao('linha')">Linha do tempo</button>
+          </div>
+          <button class="cal-nav" onclick="calMover(-1)" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <div class="cal-rotulo" id="cal-rotulo">—</div>
+          <button class="cal-nav" onclick="calMover(1)" aria-label="Próximo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          <button class="cal-btn" onclick="calHoje()">Hoje</button>
+          <div style="flex:1"></div>
+          <select id="cal-f-empresa" class="cal-sel" onchange="calFiltrar()"></select>
+          <select id="cal-f-status" class="cal-sel" onchange="calFiltrar()">
+            <option value="todos">Tudo</option>
+            <option value="pendentes">Pendentes</option>
+            <option value="concluidas">Concluídas</option>
+            <option value="atrasadas">Atrasadas</option>
+          </select>
+          <button class="cal-btn" onclick="calCarregarEventos()">Atualizar</button>
+        </div>
+
+        <div class="cal-aviso" id="cal-aviso" style="display:none"></div>
+        <div id="cal-corpo"></div>
+
+        <div class="cal-lista-wrap" id="cal-lista-wrap">
+          <div class="cal-lista-tit" id="cal-lista-tit">Selecione um dia</div>
+          <div id="cal-lista"></div>
+        </div>
+      </div>
+
+      <!-- IMPORTAR TAREFAS EXISTENTES -->
+      <div id="cal-imp" class="cal-modal">
+        <div class="cal-modal-box" style="max-width:560px">
+          <div class="cal-modal-cab">
+            <span>Importar tarefas para a agenda</span>
+            <button onclick="calFecharImportar()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          </div>
+          <div class="cal-modal-corpo">
+            <div id="cal-imp-prev"></div>
+            <div class="cal-imp-como">
+              <div class="cal-imp-como-t">Como cada repetição é traduzida</div>
+              <div class="cal-imp-de-para">
+                <span>Todos os dias</span><i>&#8594;</i><span>repete diariamente</span>
+                <span>Semanal</span><i>&#8594;</i><span>repete nos dias marcados</span>
+                <span>Mensal</span><i>&#8594;</i><span>repete no dia do mês</span>
+                <span>Data única</span><i>&#8594;</i><span>um único dia, sem repetir</span>
+              </div>
+            </div>
+            <div class="cal-nota">
+              Importa <b>somente as tarefas em que você é o responsável</b>. As de outros operadores não entram.
+              Rodar de novo não duplica: o que já foi importado é reconhecido e pulado.
+            </div>
+            <div id="cal-imp-log" class="cal-imp-log"></div>
+          </div>
+          <div class="cal-modal-rod">
+            <button class="cal-btn" onclick="calFecharImportar()">Fechar</button>
+            <button class="cal-btn cal-btn-go" id="cal-imp-rodar" onclick="calImportar()">Importar agora</button>
+          </div>
+        </div>
+      </div>
+
       <!-- MODAL DO CALENDÁRIO -->
       <div id="cal-modal" class="cal-modal">
         <div class="cal-modal-box">
@@ -4051,145 +4190,6 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
             <button class="cal-btn" onclick="calFecharModal()">Cancelar</button>
             <button class="cal-btn cal-btn-go" id="cal-m-salvar" onclick="calSalvar()">Salvar</button>
           </div>
-        </div>
-      </div>
-
-      <!-- CONFIGURAÇÃO DO GOOGLE (uma vez só) -->
-      <div id="cal-cfg" class="cal-modal">
-        <div class="cal-modal-box" style="max-width:540px">
-          <div class="cal-modal-cab">
-            <span>Ligar ao Google Agenda</span>
-            <button onclick="calFecharConfig()" aria-label="Fechar">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="cal-modal-corpo">
-            <div class="cal-passos">
-              <div class="cal-passo"><b>1</b><span>No <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>, ative a <i>Google Calendar API</i>.</span></div>
-              <div class="cal-passo"><b>2</b><span>Em <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Credenciais</a>, crie um <i>ID do cliente OAuth</i> do tipo <i>Aplicativo da Web</i>.</span></div>
-              <div class="cal-passo"><b>3</b><span>Em <i>Origens JavaScript autorizadas</i>, cole este endereço:
-                <span class="cal-origem"><code id="cal-cfg-origem">—</code><button id="cal-cfg-copiar" onclick="calCopiarOrigem()">Copiar</button></span></span></div>
-              <div class="cal-passo"><b>4</b><span>Copie o <i>ID do cliente</i> gerado e cole no campo abaixo.</span></div>
-            </div>
-            <label>ID do cliente
-              <input type="text" id="cal-cfg-id" placeholder="000000000000-xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
-            </label>
-            <div class="cal-nota">
-              Guarde só o <b>ID</b>. A <b>chave secreta</b> não é usada aqui e nunca deve ser colada em página de navegador.
-            </div>
-          </div>
-          <div class="cal-modal-rod">
-            <button class="cal-btn" onclick="calFecharConfig()">Cancelar</button>
-            <button class="cal-btn cal-btn-go" onclick="calSalvarConfig()">Salvar e conectar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- MODAL DO CALENDÁRIO -->
-      <div id="cal-modal" class="cal-modal">
-        <div class="cal-modal-box">
-          <div class="cal-modal-cab">
-            <span id="cal-modal-titulo-box">Novo evento</span>
-            <button onclick="calFecharModal()" aria-label="Fechar">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="cal-modal-corpo">
-            <input type="hidden" id="cal-modal-id">
-            <label>Título<input type="text" id="cal-modal-tit" placeholder="Reunião com o cliente"></label>
-            <label>Data<input type="date" id="cal-modal-data"></label>
-            <label class="cal-check">
-              <input type="checkbox" id="cal-modal-inteiro" onchange="calToggleHoras()"> Dia inteiro
-            </label>
-            <div id="cal-modal-horas" class="cal-duplo">
-              <label>Início<input type="time" id="cal-modal-ini"></label>
-              <label>Fim<input type="time" id="cal-modal-fim"></label>
-            </div>
-            <label>Local<input type="text" id="cal-modal-local" placeholder="Opcional"></label>
-            <label>Descrição<textarea id="cal-modal-desc" rows="3" placeholder="Opcional"></textarea></label>
-          </div>
-          <div class="cal-modal-rod">
-            <button class="cal-btn" onclick="calFecharModal()">Cancelar</button>
-            <button class="cal-btn cal-btn-go" id="cal-modal-salvar" onclick="calSalvar()">Salvar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- PÁGINA: CALENDÁRIO -->
-      <div id="opage-calendario" style="display:none">
-
-        <div class="cal-topo">
-          <div>
-            <div class="cal-titulo">Agenda</div>
-            <div class="cal-sub">Eventos e tarefas · sincronizado com o Google Agenda</div>
-          </div>
-          <div class="cal-acoes">
-            <span id="cal-status" class="cal-status">Desconectado</span>
-            <button class="cal-btn" id="cal-btn-conectar" onclick="calConectar()">Conectar Google</button>
-            <button class="cal-btn" id="cal-btn-sair" onclick="calDesconectar()" style="display:none">Desconectar</button>
-            <button class="cal-btn" onclick="calAbrirConfig()" title="Configurar conexão">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007 19.4a1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 15a2 2 0 110-4h.1A1.7 1.7 0 004.6 7a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 009 3a2 2 0 114 0v.1A1.7 1.7 0 0017 4.6a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1A1.7 1.7 0 0021 9a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 2z"/></svg>
-              Configurar
-            </button>
-            <button class="cal-btn cal-btn-go" id="cal-btn-novo" onclick="calAbrirModal()" disabled>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-              Novo
-            </button>
-          </div>
-        </div>
-
-        <div class="cal-cards">
-          <div class="cal-card"><span class="cal-card-n" id="cal-c-total">0</span><span class="cal-card-r">No período</span></div>
-          <div class="cal-card t"><span class="cal-card-n" id="cal-c-tarefas">0</span><span class="cal-card-r">Tarefas</span></div>
-          <div class="cal-card ok"><span class="cal-card-n" id="cal-c-concl">0</span><span class="cal-card-r">Concluídas</span></div>
-          <div class="cal-card bad" onclick="document.getElementById('cal-f-status').value='atrasadas';calFiltrar()">
-            <span class="cal-card-n" id="cal-c-atras">0</span><span class="cal-card-r">Atrasadas</span></div>
-        </div>
-
-        <div class="cal-tipos">
-          <button class="cal-ttab on" data-t="todos"  onclick="calTipoFiltro('todos')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
-            Tudo</button>
-          <button class="cal-ttab tar" data-t="tarefa" onclick="calTipoFiltro('tarefa')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-            Tarefas</button>
-          <button class="cal-ttab eve" data-t="evento" onclick="calTipoFiltro('evento')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-            Eventos</button>
-          <span class="cal-sync" id="cal-sync" title="Sincroniza com o Google a cada 15 segundos">
-            <i></i>Sincronizando
-          </span>
-        </div>
-
-        <div class="cal-barra">
-          <div class="cal-vtabs">
-            <button class="cal-vtab on" data-v="dia"    onclick="calVisao('dia')">Dia</button>
-            <button class="cal-vtab" data-v="semana" onclick="calVisao('semana')">Semana</button>
-            <button class="cal-vtab" data-v="mes" onclick="calVisao('mes')">Mês</button>
-            <button class="cal-vtab" data-v="ano"    onclick="calVisao('ano')">Ano</button>
-            <button class="cal-vtab" data-v="linha"  onclick="calVisao('linha')">Linha do tempo</button>
-          </div>
-          <button class="cal-nav" onclick="calMover(-1)" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-          <div class="cal-rotulo" id="cal-rotulo">—</div>
-          <button class="cal-nav" onclick="calMover(1)" aria-label="Próximo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>
-          <button class="cal-btn" onclick="calHoje()">Hoje</button>
-          <div style="flex:1"></div>
-          <select id="cal-f-empresa" class="cal-sel" onchange="calFiltrar()"></select>
-          <select id="cal-f-status" class="cal-sel" onchange="calFiltrar()">
-            <option value="todos">Tudo</option>
-            <option value="pendentes">Pendentes</option>
-            <option value="concluidas">Concluídas</option>
-            <option value="atrasadas">Atrasadas</option>
-          </select>
-          <button class="cal-btn" onclick="calCarregarEventos()">Atualizar</button>
-        </div>
-
-        <div class="cal-aviso" id="cal-aviso" style="display:none"></div>
-        <div id="cal-corpo"></div>
-
-        <div class="cal-lista-wrap" id="cal-lista-wrap">
-          <div class="cal-lista-tit" id="cal-lista-tit">Selecione um dia</div>
-          <div id="cal-lista"></div>
         </div>
       </div>
 
@@ -9952,6 +9952,181 @@ function calQuandoTxt(d) {
             : 'em ' + Math.round(abs/86400000) + ' dia(s)';
   return dif < 0 ? txt.replace('em ', 'há ').replace('agora', 'agora há pouco') : txt;
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// IMPORTAR TAREFAS JÁ CADASTRADAS PARA A AGENDA DO GOOGLE
+//
+// Traduz a recorrência do sistema para a regra do Google (RRULE):
+//   unica   -> data_referencia, sem repetição
+//   diaria  -> FREQ=DAILY
+//   semanal -> FREQ=WEEKLY;BYDAY=... (usa dias_semana, ou dia_semana)
+//   mensal  -> FREQ=MONTHLY;BYMONTHDAY=dia_mes
+//
+// Cada tarefa importada leva vnOrigemId com o id do registro. Isso
+// evita duplicar: rodar de novo pula o que já foi.
+// ══════════════════════════════════════════════════════════════
+
+const CAL_BYDAY = ['SU','MO','TU','WE','TH','FR','SA'];   // 0=domingo
+
+function calRegraDaTarefa(t) {
+  const r = (t.recorrencia || 'unica').toLowerCase();
+  if (r === 'diaria')  return 'RRULE:FREQ=DAILY';
+  if (r === 'mensal') {
+    const d = parseInt(t.dia_mes);
+    return 'RRULE:FREQ=MONTHLY' + (d >= 1 && d <= 31 ? ';BYMONTHDAY=' + d : '');
+  }
+  if (r === 'semanal') {
+    let dias = Array.isArray(t.dias_semana) ? t.dias_semana : [];
+    if (!dias.length && t.dia_semana !== null && t.dia_semana !== undefined) dias = [t.dia_semana];
+    const by = dias.map(n => CAL_BYDAY[Number(n)]).filter(Boolean);
+    return 'RRULE:FREQ=WEEKLY' + (by.length ? ';BYDAY=' + by.join(',') : '');
+  }
+  return null;   // única
+}
+
+// Data de partida da série. Para semanal, avança até cair num dos
+// dias escolhidos — senão o Google ignora a primeira ocorrência.
+function calDataInicial(t) {
+  const r = (t.recorrencia || 'unica').toLowerCase();
+  if (r === 'unica') return t.data_referencia || calISO(new Date());
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  if (r === 'semanal') {
+    let dias = Array.isArray(t.dias_semana) ? t.dias_semana : [];
+    if (!dias.length && t.dia_semana !== null && t.dia_semana !== undefined) dias = [t.dia_semana];
+    dias = dias.map(Number).filter(n => n >= 0 && n <= 6);
+    if (dias.length) {
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + i);
+        if (dias.includes(d.getDay())) return calISO(d);
+      }
+    }
+  }
+  if (r === 'mensal') {
+    const dm = parseInt(t.dia_mes);
+    if (dm >= 1 && dm <= 31) {
+      const esteMes = new Date(hoje.getFullYear(), hoje.getMonth(), dm);
+      if (esteMes >= hoje && esteMes.getDate() === dm) return calISO(esteMes);
+      const prox = new Date(hoje.getFullYear(), hoje.getMonth() + 1, dm);
+      return calISO(prox);
+    }
+  }
+  return calISO(hoje);
+}
+
+const CAL_ALERTA_PRIO = { alta: 60, media: 30, baixa: 0 };
+
+async function calImportar() {
+  if (!_calToken) { calAviso('Conecte ao Google antes de importar.', 'erro'); return; }
+  const btn = document.getElementById('cal-imp-rodar');
+  const log = document.getElementById('cal-imp-log');
+  const escreve = (t, cls) => { if (log) log.innerHTML += '<div class="' + (cls||'') + '">' + calEsc(t) + '</div>'; if (log) log.scrollTop = log.scrollHeight; };
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Importando...'; }
+  if (log) log.innerHTML = '';
+
+  try {
+    // 1. quem sou eu
+    const { data: sessao } = await sb.auth.getUser();
+    const meuId = sessao?.user?.id;
+    const meuEmail = (sessao?.user?.email || '').toLowerCase();
+    if (!meuId) throw new Error('Não consegui identificar o usuário logado.');
+    escreve('Usuário: ' + meuEmail);
+
+    // 2. só as tarefas deste operador
+    const { data: tarefas, error } = await sb.from('tarefas_operador')
+      .select('*').eq('responsavel_id', meuId);
+    if (error) throw new Error(error.message);
+    if (!tarefas?.length) { escreve('Nenhuma tarefa encontrada para este usuário.', 'av'); return; }
+    escreve(tarefas.length + ' tarefa(s) encontrada(s).');
+
+    // 3. o que já foi importado antes
+    const jaTem = new Set();
+    try {
+      const r = await calApi('/calendars/primary/events?privateExtendedProperty=' +
+        encodeURIComponent('vnImportado=1') + '&maxResults=2500&showDeleted=false');
+      (r?.items || []).forEach(ev => {
+        const o = ev.extendedProperties?.private?.vnOrigemId;
+        if (o) jaTem.add(o);
+      });
+    } catch (e) { escreve('Aviso ao conferir importações anteriores: ' + e.message, 'av'); }
+    if (jaTem.size) escreve(jaTem.size + ' já estavam na agenda — serão puladas.');
+
+    const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo';
+    let criadas = 0, puladas = 0, falhas = 0;
+
+    for (const t of tarefas) {
+      if (jaTem.has(String(t.id))) { puladas++; continue; }
+      try {
+        const data  = calDataInicial(t);
+        const regra = calRegraDaTarefa(t);
+        const dSeg  = new Date(data + 'T00:00:00');
+        const corpo = {
+          summary: t.titulo || '(sem título)',
+          description: [t.descricao, t.link_url].filter(Boolean).join('\n\n') || '',
+          start: { date: data },
+          end:   { date: calISO(new Date(dSeg.getFullYear(), dSeg.getMonth(), dSeg.getDate() + 1)) },
+          reminders: { useDefault: false, overrides: [
+            { method: 'popup', minutes: CAL_ALERTA_PRIO[(t.prioridade||'media')] ?? 30 }
+          ]},
+          extendedProperties: { private: {
+            vnTipo: 'tarefa',
+            vnStatus: 'pendente',
+            vnEmpresa: t.empresa_id || '',
+            vnImportado: '1',
+            vnOrigemId: String(t.id),
+            vnPrioridade: t.prioridade || 'media',
+            vnRecorrencia: t.recorrencia || 'unica'
+          }}
+        };
+        if (regra) corpo.recurrence = [regra];
+        await calApi('/calendars/primary/events', { method: 'POST', body: JSON.stringify(corpo) });
+        criadas++;
+        escreve('✓ ' + (t.titulo || '(sem título)') + ' — ' + (t.recorrencia || 'unica'), 'ok');
+        await new Promise(r => setTimeout(r, 120));   // respeita o limite da API
+      } catch (e) {
+        falhas++;
+        escreve('✗ ' + (t.titulo || t.id) + ' — ' + e.message, 'err');
+      }
+    }
+
+    escreve('');
+    escreve('Fim: ' + criadas + ' criada(s), ' + puladas + ' já existia(m), ' + falhas + ' falha(s).');
+    _calSyncToken = null;
+    await calCarregarEventos();
+  } catch (e) {
+    escreve('Erro: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Importar agora'; }
+  }
+}
+
+async function calAbrirImportar() {
+  document.getElementById('cal-imp-log').innerHTML = '';
+  document.getElementById('cal-imp').classList.add('on');
+  // mostra o que será importado, antes de mexer em nada
+  const prev = document.getElementById('cal-imp-prev');
+  prev.innerHTML = '<div class="cal-imp-carregando">Conferindo...</div>';
+  try {
+    const { data: sessao } = await sb.auth.getUser();
+    const meuId = sessao?.user?.id;
+    const { data: t } = await sb.from('tarefas_operador').select('recorrencia').eq('responsavel_id', meuId);
+    const c = { unica:0, diaria:0, semanal:0, mensal:0 };
+    (t || []).forEach(x => { const r = (x.recorrencia || 'unica').toLowerCase(); if (c[r] !== undefined) c[r]++; else c.unica++; });
+    prev.innerHTML =
+      '<div class="cal-imp-linha"><b>' + (t?.length || 0) + '</b> tarefa(s) suas serão importadas</div>' +
+      '<div class="cal-imp-grid">' +
+        '<span><b>' + c.diaria  + '</b>Diárias</span>' +
+        '<span><b>' + c.semanal + '</b>Semanais</span>' +
+        '<span><b>' + c.mensal  + '</b>Mensais</span>' +
+        '<span><b>' + c.unica   + '</b>Data única</span>' +
+      '</div>';
+  } catch (e) {
+    prev.innerHTML = '<div class="cal-imp-carregando">Não consegui conferir: ' + calEsc(e.message) + '</div>';
+  }
+}
+function calFecharImportar(){ document.getElementById('cal-imp').classList.remove('on'); }
 
 // ── configuração do Google ──────────────────────────────────────
 function calAbrirConfig() {
