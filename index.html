@@ -9599,9 +9599,9 @@ async function calConectar() {
       callback: (r) => {
         if (r.error) { calAviso('Autorização recusada.', 'erro'); return; }
         _calToken = r.access_token;
-        _calExpira = Date.now() + (Number(r.expires_in || 3600) - 60) * 1000;
-        try { sessionStorage.setItem('cal_tk', _calToken);
-              sessionStorage.setItem('cal_tk_exp', String(_calExpira)); } catch (e) {}
+        _calExpira = Date.now() + (Number(r.expires_in || 3600) - 120) * 1000;
+        calGuardarToken();
+        calAgendarRenovacao();
         calAviso(''); calAtualizarBotoes(); calCarregarEventos();
       }
     });
@@ -9609,24 +9609,84 @@ async function calConectar() {
   _calCliente.requestAccessToken({ prompt: _calToken ? '' : 'consent' });
 }
 
+// O token do Google dura 1 hora. Em sessionStorage ele ainda morria
+// ao fechar a aba. Agora fica em localStorage e e renovado sozinho
+// antes de vencer — sem popup, porque a autorizacao ja foi dada.
+function calGuardarToken() {
+  try {
+    localStorage.setItem('vn_cal_tk', _calToken || '');
+    localStorage.setItem('vn_cal_tk_exp', String(_calExpira || 0));
+    localStorage.setItem('vn_cal_autorizado', '1');
+  } catch (e) {}
+}
+function calLerToken() {
+  try {
+    const t = localStorage.getItem('vn_cal_tk');
+    const x = Number(localStorage.getItem('vn_cal_tk_exp') || 0);
+    if (t && Date.now() < x) { _calToken = t; _calExpira = x; return true; }
+  } catch (e) {}
+  return false;
+}
+function calJaAutorizou() {
+  try { return localStorage.getItem('vn_cal_autorizado') === '1'; } catch (e) { return false; }
+}
+
+let _calTimerRenov = null;
+function calAgendarRenovacao() {
+  if (_calTimerRenov) clearTimeout(_calTimerRenov);
+  const faltam = _calExpira - Date.now() - 5 * 60000;   // 5 min de folga
+  _calTimerRenov = setTimeout(calRenovarSilencioso, Math.max(faltam, 30000));
+}
+
+// Pede um token novo sem abrir nada na tela. So funciona porque a
+// pessoa ja autorizou antes e continua logada no Google no navegador.
+async function calRenovarSilencioso() {
+  if (!calJaAutorizou() || !calClientId()) return false;
+  try { await calCarregarGIS(); } catch (e) { return false; }
+  if (!_calCliente) {
+    _calCliente = google.accounts.oauth2.initTokenClient({
+      client_id: calClientId(), scope: CAL_ESCOPO,
+      callback: (r) => {
+        if (r.error) return;
+        _calToken = r.access_token;
+        _calExpira = Date.now() + (Number(r.expires_in || 3600) - 120) * 1000;
+        calGuardarToken(); calAgendarRenovacao(); calAtualizarBotoes();
+      }
+    });
+  }
+  return new Promise((ok) => {
+    const antes = _calCliente.callback;
+    let respondeu = false;
+    _calCliente.callback = (r) => {
+      respondeu = true;
+      if (antes) antes(r);
+      _calCliente.callback = antes;
+      ok(!r.error);
+    };
+    try { _calCliente.requestAccessToken({ prompt: '' }); }
+    catch (e) { ok(false); }
+    // se o Google nao responder (pessoa deslogada da conta), desiste
+    setTimeout(() => { if (!respondeu) ok(false); }, 8000);
+  });
+}
+
 function calDesconectar() {
   if (_calToken && window.google?.accounts?.oauth2) {
     try { google.accounts.oauth2.revoke(_calToken, () => {}); } catch (e) {}
   }
   _calToken = null; _calExpira = 0; _calEventos = [];
-  try { sessionStorage.removeItem('cal_tk'); sessionStorage.removeItem('cal_tk_exp'); } catch (e) {}
+  if (_calTimerRenov) { clearTimeout(_calTimerRenov); _calTimerRenov = null; }
+  try {
+    localStorage.removeItem('vn_cal_tk');
+    localStorage.removeItem('vn_cal_tk_exp');
+    localStorage.removeItem('vn_cal_autorizado');   // so o botao Desconectar apaga isso
+    sessionStorage.removeItem('cal_tk'); sessionStorage.removeItem('cal_tk_exp');
+  } catch (e) {}
   calAtualizarBotoes(); calRender();
 }
 
 async function calApi(caminho, opcoes) {
-  if (!_calToken || Date.now() >= _calExpira) {
-    await new Promise((ok) => {
-      if (!_calCliente) return ok();
-      const antes = _calCliente.callback;
-      _calCliente.callback = (r) => { if (antes) antes(r); ok(); };
-      _calCliente.requestAccessToken({ prompt: '' });
-    });
-  }
+  if (!_calToken || Date.now() >= _calExpira) await calRenovarSilencioso();
   const o = Object.assign({}, opcoes || {});
   o.headers = Object.assign({ 'Authorization': 'Bearer ' + _calToken,
                               'Content-Type': 'application/json' }, o.headers || {});
@@ -10646,11 +10706,7 @@ function calSalvarConfig() {
 
 // ── abertura da página ──────────────────────────────────────────
 async function calInit() {
-  try {
-    const t = sessionStorage.getItem('cal_tk');
-    const x = Number(sessionStorage.getItem('cal_tk_exp') || 0);
-    if (t && Date.now() < x) { _calToken = t; _calExpira = x; }
-  } catch (e) {}
+  calLerToken();
   if (!_calSel) _calSel = calISO(new Date());
   calPreencherEmpresas('cal-f-empresa', _calFiltroEmpresa);
   calAtualizarBotoes();
@@ -10659,7 +10715,18 @@ async function calInit() {
     calAviso('Agenda ainda não ligada ao Google. Clique em "Configurar".', 'info');
     return;
   }
-  if (_calToken) await calCarregarEventos();
+  if (_calToken) {
+    calAgendarRenovacao();
+    await calCarregarEventos();
+  } else if (calJaAutorizou()) {
+    // token venceu mas a autorizacao continua valida: reconecta calado
+    const st = document.getElementById('cal-status');
+    if (st) st.textContent = 'Reconectando...';
+    const ok = await calRenovarSilencioso();
+    calAtualizarBotoes();
+    if (ok) await calCarregarEventos();
+    else calAviso('A sessão do Google expirou. Clique em "Conectar Google" uma vez.', 'info');
+  }
 
   calLigarSincronia();
 }
@@ -10684,8 +10751,13 @@ function calLigarSincronia() {
   // ao voltar para a aba, confere na hora em vez de esperar o ciclo
   if (!window._calFocoLigado) {
     window._calFocoLigado = true;
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) calSincronizar();
+    document.addEventListener('visibilitychange', async () => {
+      if (document.hidden) return;
+      if (_calToken && Date.now() >= _calExpira && calJaAutorizou()) {
+        await calRenovarSilencioso();
+        calAtualizarBotoes();
+      }
+      calSincronizar();
     });
     window.addEventListener('focus', calSincronizar);
   }
