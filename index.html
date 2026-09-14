@@ -10027,12 +10027,13 @@ async function calImportar() {
   if (log) log.innerHTML = '';
 
   try {
-    // 1. quem sou eu
-    const { data: sessao } = await sb.auth.getUser();
-    const meuId = sessao?.user?.id;
-    const meuEmail = (sessao?.user?.email || '').toLowerCase();
-    if (!meuId) throw new Error('Não consegui identificar o usuário logado.');
-    escreve('Usuário: ' + meuEmail);
+    // 1. quem sou eu — pela sessao DO SISTEMA (_vnUser / vn_usuarios).
+    //    NUNCA usar sb.auth: este sistema nao usa o login do Supabase,
+    //    e chamar sb.auth.getUser() derruba o estado de sessao do cliente.
+    const meuId = _vnUser?.id || sessionStorage.getItem('vn_user_id');
+    const meuEmail = (_vnUser?.email || '').toLowerCase();
+    if (!meuId) throw new Error('Sessão não identificada. Saia e entre novamente.');
+    escreve('Usuário: ' + (meuEmail || meuId));
 
     // 2. só as tarefas deste operador
     const { data: tarefas, error } = await sb.from('tarefas_operador')
@@ -10109,8 +10110,8 @@ async function calAbrirImportar() {
   const prev = document.getElementById('cal-imp-prev');
   prev.innerHTML = '<div class="cal-imp-carregando">Conferindo...</div>';
   try {
-    const { data: sessao } = await sb.auth.getUser();
-    const meuId = sessao?.user?.id;
+    const meuId = _vnUser?.id || sessionStorage.getItem('vn_user_id');
+    if (!meuId) { prev.innerHTML = '<div class="cal-imp-carregando">Sessão não identificada.</div>'; return; }
     const { data: t } = await sb.from('tarefas_operador').select('recorrencia').eq('responsavel_id', meuId);
     const c = { unica:0, diaria:0, semanal:0, mensal:0 };
     (t || []).forEach(x => { const r = (x.recorrencia || 'unica').toLowerCase(); if (c[r] !== undefined) c[r]++; else c.unica++; });
@@ -10236,7 +10237,9 @@ async function calSincronizar() {
       calVerificarAlertas();
     }
   } catch (e) {
-    // token de sincronia vence (erro 410): recomeça do zero
+    // token de sincronia vence (erro 410): recomeça do zero.
+    // Nunca propaga: falha de agenda nao pode afetar o resto do painel.
+    console.warn('Sincronia da agenda:', e.message);
     _calSyncToken = null;
   } finally { _calSincronizando = false; }
 }
@@ -29194,7 +29197,11 @@ async function operadorPage(page) {
   document.getElementById('opage-'+page).style.display = 'block';
   document.getElementById('onav-'+page).classList.add('active');
 
-  if (page === 'calendario') await calInit();
+  if (page === 'calendario') {
+    // blindagem: se algo falhar na agenda, o painel continua de pe
+    try { await calInit(); }
+    catch (e) { console.error('Agenda:', e); calAviso('Erro ao abrir a agenda: ' + e.message, 'erro'); }
+  }
   if (page === 'tarefas')   tarefasTab('hoje');
   if (page === 'empresas')  await loadEmpresasOperador();
   if (page === 'mensagens') {
