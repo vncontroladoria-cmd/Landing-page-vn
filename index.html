@@ -9634,7 +9634,13 @@ async function calApi(caminho, opcoes) {
   if (r.status === 401) { _calToken = null; _calExpira = 0; calAtualizarBotoes();
     throw new Error('Sessão do Google expirou. Conecte novamente.'); }
   if (!r.ok) {
-    let d = ''; try { d = (await r.json())?.error?.message || ''; } catch (e) {}
+    let d = '';
+    try {
+      const j = await r.json();
+      d = j?.error?.message || '';
+      const det = j?.error?.errors?.[0];
+      if (det?.reason) d += ' (' + det.reason + (det.location ? ' em ' + det.location : '') + ')';
+    } catch (e) {}
     throw new Error(d || ('Erro ' + r.status + ' na API do Google.'));
   }
   return r.status === 204 ? null : r.json();
@@ -10182,7 +10188,12 @@ function calAvisoModal(msg, campo) {
   if (el) {
     el.textContent = msg || '';
     el.style.display = msg ? 'block' : 'none';
-    if (msg) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (msg) {
+      // rola o miolo ate o topo: com a caixa de altura fixa o aviso
+      // podia ficar fora de vista e parecer que nada aconteceu
+      const corpo = document.querySelector('#cal-modal .cal-form');
+      if (corpo) corpo.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
   document.querySelectorAll('#cal-modal .erro').forEach(x => x.classList.remove('erro'));
   if (campo) {
@@ -10229,15 +10240,6 @@ async function calSalvar() {
   if (freq === 'WEEKLY' && !document.querySelectorAll('#cal-m-dias input:checked').length) {
     calAvisoModal('Marque pelo menos um dia da semana.'); return;
   }
-  const _paiId = antigo?.recurringEventId || null;
-  const _esc = document.querySelector('input[name="cal-escopo"]:checked')?.value || 'esta';
-  const _mudouRegra = _paiId && _esc === 'esta' && freq;
-  if (_mudouRegra && !window._calAvisouRegra) {
-    window._calAvisouRegra = true;
-    calAvisoModal('Você mexeu na repetição. Para valer em todos os dias, marque "Toda a série" acima. Clique em Salvar de novo para aplicar só neste dia.');
-    return;
-  }
-  window._calAvisouRegra = false;
   calAvisoModal('');
 
   const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo';
@@ -10290,6 +10292,9 @@ async function calSalvar() {
     const naSerie = paiId && escolha === 'serie';
 
     if (naSerie) {
+      // PATCH, nao PUT. O PUT exige o evento completo e o Google
+      // recusa os campos so-leitura que vem junto (etag, kind,
+      // created, organizer...). Era isso que travava o salvar.
       const pai = await calApi('/calendars/primary/events/' + encodeURIComponent(paiId));
       const baseIso = (pai.start?.dateTime || pai.start?.date || '').substring(0,10) || data;
       const corpoPai = Object.assign({}, corpo);
@@ -10301,8 +10306,9 @@ async function calSalvar() {
         corpoPai.start = { dateTime: baseIso + 'T' + hIni + ':00', timeZone: fuso };
         corpoPai.end   = { dateTime: baseIso + 'T' + hFim + ':00', timeZone: fuso };
       }
+      if (!corpoPai.recurrence) delete corpoPai.recurrence;   // nao apaga a regra sem querer
       await calApi('/calendars/primary/events/' + encodeURIComponent(paiId),
-                   { method: 'PUT', body: JSON.stringify(Object.assign({}, pai, corpoPai)) });
+                   { method: 'PATCH', body: JSON.stringify(corpoPai) });
     } else if (id) {
       const corpoOcor = Object.assign({}, corpo);
       delete corpoOcor.recurrence;          // ocorrência não carrega regra
@@ -10312,6 +10318,7 @@ async function calSalvar() {
       await calApi('/calendars/primary/events', { method: 'POST', body: JSON.stringify(corpo) });
     }
     calFecharModal();
+    _calSyncToken = null;   // a série mudou: recarrega do zero
     _calSel = data;
     const d = new Date(data + 'T00:00:00');
     if (d.getMonth() !== _calRef.getMonth() || d.getFullYear() !== _calRef.getFullYear()) {
