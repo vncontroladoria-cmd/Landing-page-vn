@@ -3028,6 +3028,71 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
   #cal-toasts{ left:12px; right:12px; max-width:none; }
 }
 
+
+/* ── abas Tarefas / Eventos ── */
+#painel-operador .cal-tipos{ display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+#painel-operador .cal-ttab{
+  display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 17px;
+  border-radius:999px; cursor:pointer; white-space:nowrap;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.11);
+  color:rgba(255,255,255,.62); font-family:'Outfit',sans-serif; font-size:13px; font-weight:500;
+  transition:all .2s var(--ease);
+}
+#painel-operador .cal-ttab svg{ width:16px; height:16px; }
+#painel-operador .cal-ttab:hover{ background:rgba(255,255,255,.1); color:#fff; transform:translateY(-1px); }
+#painel-operador .cal-ttab.on{ color:#fff; font-weight:600; border-color:transparent;
+  background:linear-gradient(122deg,#3d4148,#2b2f35); }
+#painel-operador .cal-ttab.tar.on{ background:linear-gradient(122deg,#2f9a64,#1f7047); box-shadow:0 6px 18px rgba(31,112,71,.4); }
+#painel-operador .cal-ttab.eve.on{ background:linear-gradient(122deg,#4f8fd6,#3a6fb0); box-shadow:0 6px 18px rgba(58,111,176,.4); }
+#painel-operador .cal-sync{ display:inline-flex; align-items:center; gap:7px; margin-left:auto;
+  font-size:10.5px; color:rgba(255,255,255,.35); }
+#painel-operador .cal-sync i{ width:7px; height:7px; border-radius:50%; background:#4cb886;
+  animation:calPulso 2.4s ease-in-out infinite; }
+@keyframes calPulso{ 0%,100%{opacity:.35; transform:scale(.85)} 50%{opacity:1; transform:scale(1)} }
+
+/* ── visão DIA em duas colunas ── */
+#painel-operador .cal-dia-cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+#painel-operador .cal-dia-bloco{ background:#222226; border:1px solid rgba(255,255,255,.07); border-radius:18px; overflow:hidden; }
+#painel-operador .cal-dia-bloco.tarefas{ border-top:3px solid #2f9a64; }
+#painel-operador .cal-dia-bloco.eventos{ border-top:3px solid #4f8fd6; }
+#painel-operador .cal-bloco-cab{ display:flex; align-items:center; gap:9px; padding:14px 17px;
+  border-bottom:1px solid rgba(255,255,255,.06); }
+#painel-operador .cal-bloco-cab svg{ width:17px; height:17px; }
+#painel-operador .cal-dia-bloco.tarefas .cal-bloco-cab svg{ stroke:#4cb886; }
+#painel-operador .cal-dia-bloco.eventos .cal-bloco-cab svg{ stroke:#6aa5e0; }
+#painel-operador .cal-bloco-cab b{ font-size:13.5px; color:#fff; font-weight:600; }
+#painel-operador .cal-bloco-cab i{ font-style:normal; margin-left:auto; font-size:10.5px;
+  color:rgba(255,255,255,.4); background:rgba(255,255,255,.06); padding:3px 9px; border-radius:999px; }
+#painel-operador .cal-bloco-corpo{ padding:6px 17px 14px; }
+#painel-operador .cal-sub-rot{ font-size:9.5px; text-transform:uppercase; letter-spacing:.08em;
+  color:rgba(255,255,255,.3); margin:10px 0 4px; }
+
+/* ── cartão colorido por empresa ── */
+#painel-operador .cal-ev{ padding-left:11px; border-left:3px solid var(--tc,transparent); }
+#painel-operador .cal-ev.tipo-tarefa .cal-bolha,
+#painel-operador .cal-ev .cal-bolha{ background:var(--tc,#4cb886); }
+#painel-operador .cal-check-btn{ border-color:var(--tc,rgba(255,255,255,.3)); }
+#painel-operador .cal-check-btn.on{ background:var(--tc,#2f9a64); border-color:var(--tc,#2f9a64); }
+#painel-operador .cal-ev-meta{ display:flex; align-items:center; gap:6px; margin-top:5px; flex-wrap:wrap; }
+#painel-operador .cal-tipo-chip{
+  font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+  padding:2px 8px; border-radius:999px; background:var(--tf,rgba(255,255,255,.08)); color:var(--tc,#fff);
+}
+#painel-operador .cal-emp-chip{
+  font-size:10px; padding:2px 9px; border-radius:999px;
+  background:rgba(255,255,255,.06); color:rgba(255,255,255,.55);
+}
+#painel-operador .cal-ev.atrasado{ box-shadow:none; border-left-color:#d16a66; background:rgba(209,106,102,.07); }
+#painel-operador .cal-ev.feito{ opacity:.62; }
+
+/* ── mês: prévia colorida ── */
+#painel-operador .cal-mini-ev{ border-left:2px solid var(--tc,#4cb886); }
+
+@media (max-width:1000px){
+  #painel-operador .cal-dia-cols{ grid-template-columns:1fr; }
+  #painel-operador .cal-sync{ margin-left:0; }
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -4081,11 +4146,26 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
             <span class="cal-card-n" id="cal-c-atras">0</span><span class="cal-card-r">Atrasadas</span></div>
         </div>
 
+        <div class="cal-tipos">
+          <button class="cal-ttab on" data-t="todos"  onclick="calTipoFiltro('todos')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+            Tudo</button>
+          <button class="cal-ttab tar" data-t="tarefa" onclick="calTipoFiltro('tarefa')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            Tarefas</button>
+          <button class="cal-ttab eve" data-t="evento" onclick="calTipoFiltro('evento')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+            Eventos</button>
+          <span class="cal-sync" id="cal-sync" title="Sincroniza com o Google a cada 15 segundos">
+            <i></i>Sincronizando
+          </span>
+        </div>
+
         <div class="cal-barra">
           <div class="cal-vtabs">
-            <button class="cal-vtab" data-v="dia"    onclick="calVisao('dia')">Dia</button>
+            <button class="cal-vtab on" data-v="dia"    onclick="calVisao('dia')">Dia</button>
             <button class="cal-vtab" data-v="semana" onclick="calVisao('semana')">Semana</button>
-            <button class="cal-vtab on" data-v="mes" onclick="calVisao('mes')">Mês</button>
+            <button class="cal-vtab" data-v="mes" onclick="calVisao('mes')">Mês</button>
             <button class="cal-vtab" data-v="ano"    onclick="calVisao('ano')">Ano</button>
             <button class="cal-vtab" data-v="linha"  onclick="calVisao('linha')">Linha do tempo</button>
           </div>
@@ -9157,7 +9237,8 @@ function calSalvarClientId(v) { try { localStorage.setItem('vn_cal_client_id', (
 let _calToken = null, _calExpira = 0, _calCliente = null, _calGisPronto = false;
 let _calRef   = new Date();                  // data de referencia da visao
 let _calSel   = null;                        // dia selecionado
-let _calVisao = 'mes';                       // dia | semana | mes | ano | linha
+let _calVisao = 'dia';                       // dia | semana | mes | ano | linha
+let _calFiltroTipo = 'todos';                // todos | tarefa | evento
 let _calEventos = [];
 let _calFiltroEmpresa = '';                  // '' = todas
 let _calFiltroStatus  = 'todos';             // todos | pendentes | concluidas | atrasadas
@@ -9281,6 +9362,21 @@ function calEmpresaNome(id){
   const e = (typeof _todasEmpresas !== 'undefined' ? _todasEmpresas : []).find(x => x.id === id);
   return e ? (e.nome || e.razao_social || '—') : '';
 }
+// Cor fixa por empresa: mesma empresa sempre no mesmo tom, em
+// qualquer tela. Sai de um hash do id, nao de uma lista fixa.
+const CAL_TONS = [
+  { c:'#4cb886', f:'rgba(76,184,134,.18)' },  { c:'#5fa8e8', f:'rgba(95,168,232,.18)' },
+  { c:'#e0a85c', f:'rgba(224,168,92,.18)' },  { c:'#b98cd8', f:'rgba(185,140,216,.18)' },
+  { c:'#e08b87', f:'rgba(224,139,135,.18)' }, { c:'#4fc4c9', f:'rgba(79,196,201,.18)' },
+  { c:'#dc93b6', f:'rgba(220,147,182,.18)' }, { c:'#9dc45f', f:'rgba(157,196,95,.18)' },
+];
+function calTomEmpresa(id){
+  if (!id) return { c:'#8b939c', f:'rgba(139,147,156,.16)' };
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return CAL_TONS[h % CAL_TONS.length];
+}
+
 function calAtrasada(ev){
   return calTipo(ev) === 'tarefa'
       && calStatus(ev) !== 'concluida'
@@ -9303,16 +9399,17 @@ function calFaixa() {
   return [i, new Date(i.getFullYear(), i.getMonth(), i.getDate()+42)];
 }
 
-async function calCarregarEventos() {
+async function calCarregarEventos(silencioso) {
   if (!_calToken) { calRender(); return; }
   const [ini, fim] = calFaixa();
   try {
-    calAviso('');
+    if (!silencioso) calAviso('');
     const q = '?timeMin=' + encodeURIComponent(ini.toISOString()) +
               '&timeMax=' + encodeURIComponent(fim.toISOString()) +
               '&singleEvents=true&orderBy=startTime&maxResults=2500';
     const r = await calApi('/calendars/primary/events' + q);
     _calEventos = (r?.items || []).filter(e => e.status !== 'cancelled');
+    if (r?.nextSyncToken) _calSyncToken = r.nextSyncToken;
   } catch (e) { _calEventos = []; calAviso(e.message, 'erro'); }
   calRender();
   calVerificarAlertas();
@@ -9321,6 +9418,7 @@ async function calCarregarEventos() {
 // ── filtros ─────────────────────────────────────────────────────
 function calVisiveis() {
   return _calEventos.filter(ev => {
+    if (_calFiltroTipo !== 'todos' && calTipo(ev) !== _calFiltroTipo) return false;
     if (_calFiltroEmpresa && calEmpresaId(ev) !== _calFiltroEmpresa) return false;
     if (_calFiltroStatus === 'pendentes'  && !(calTipo(ev)==='tarefa' && calStatus(ev)!=='concluida')) return false;
     if (_calFiltroStatus === 'concluidas' && calStatus(ev) !== 'concluida') return false;
@@ -9340,7 +9438,7 @@ function calContadores() {
 }
 
 // ── navegacao ───────────────────────────────────────────────────
-function calVisao(v) { _calVisao = v; calRender(); calCarregarEventos(); }
+function calVisao(v) { _calVisao = v; _calSyncToken = null; calRender(); calCarregarEventos(); }
 function calMover(n) {
   const d = _calRef;
   if (_calVisao === 'dia')         _calRef = new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
@@ -9404,8 +9502,10 @@ function calCartao(ev, compacto) {
   const feito  = calStatus(ev) === 'concluida';
   const atras  = calAtrasada(ev);
   const emp    = calEmpresaNome(calEmpresaId(ev));
-  const cls = ['cal-ev']; if (feito) cls.push('feito'); if (atras) cls.push('atrasado');
-  return '<div class="' + cls.join(' ') + '">' +
+  const tom = calTomEmpresa(calEmpresaId(ev));
+  const cls = ['cal-ev', tarefa ? 'tipo-tarefa' : 'tipo-evento'];
+  if (feito) cls.push('feito'); if (atras) cls.push('atrasado');
+  return '<div class="' + cls.join(' ') + '" style="--tc:' + tom.c + ';--tf:' + tom.f + '">' +
     (tarefa
       ? '<button class="cal-check-btn' + (feito ? ' on' : '') + '" onclick="calAlternarConcluida(\'' + ev.id + '\')" title="' + (feito ? 'Reabrir' : 'Concluir') + '">' +
           (feito ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '') +
@@ -9418,7 +9518,10 @@ function calCartao(ev, compacto) {
         (feito ? '<span class="cal-flag ok">Concluída</span>' : '') +
         (ev.recurringEventId || ev.recurrence ? '<span class="cal-flag rep">Repete</span>' : '') +
       '</div>' +
-      (emp ? '<div class="cal-ev-emp">' + calEsc(emp) + '</div>' : '') +
+      '<div class="cal-ev-meta">' +
+        '<span class="cal-tipo-chip">' + (tarefa ? 'Tarefa' : 'Evento') + '</span>' +
+        (emp ? '<span class="cal-emp-chip">' + calEsc(emp) + '</span>' : '') +
+      '</div>' +
       (!compacto && ev.description ? '<div class="cal-ev-desc">' + calEsc(ev.description) + '</div>' : '') +
     '</div>' +
     '<div class="cal-ev-btns">' +
@@ -9480,24 +9583,47 @@ function calViewSemana() {
 // ── VISÃO: DIA ──────────────────────────────────────────────────
 function calViewDia() {
   const iso = calISO(_calRef);
-  const evs = calVisiveis().filter(ev => calDiaDoEvento(ev) === iso);
-  const inteiro = evs.filter(ev => ev.start?.date);
-  const comHora = evs.filter(ev => ev.start?.dateTime)
-                     .sort((a,b) => calInicioDe(a) - calInicioDe(b));
-  let h = '<div class="cal-dia-wrap">';
-  if (inteiro.length) h += '<div class="cal-bloco"><div class="cal-bloco-tit">Dia inteiro</div>' +
-                            inteiro.map(ev => calCartao(ev)).join('') + '</div>';
-  if (!comHora.length && !inteiro.length)
-    return h + '<div class="cal-vazio">Nada marcado neste dia.</div></div>';
-  if (comHora.length) {
-    h += '<div class="cal-horas">';
-    comHora.forEach(ev => {
-      h += '<div class="cal-hora-linha"><div class="cal-hora-marca">' + calHHMM(calInicioDe(ev)) + '</div>' +
-           '<div class="cal-hora-ev">' + calCartao(ev) + '</div></div>';
-    });
-    h += '</div>';
-  }
-  return h + '</div>';
+  const doDia = calVisiveis().filter(ev => calDiaDoEvento(ev) === iso);
+  const tarefas = doDia.filter(ev => calTipo(ev) === 'tarefa')
+                       .sort((a,b) => (calStatus(a)==='concluida') - (calStatus(b)==='concluida')
+                                      || calInicioDe(a) - calInicioDe(b));
+  const eventos = doDia.filter(ev => calTipo(ev) !== 'tarefa')
+                       .sort((a,b) => calInicioDe(a) - calInicioDe(b));
+
+  if (!doDia.length) return '<div class="cal-dia-wrap"><div class="cal-vazio">Nada marcado neste dia.</div></div>';
+
+  const pend = tarefas.filter(t => calStatus(t) !== 'concluida').length;
+  let h = '<div class="cal-dia-cols">';
+
+  // TAREFAS
+  h += '<div class="cal-dia-bloco tarefas">' +
+         '<div class="cal-bloco-cab">' +
+           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>' +
+           '<b>Tarefas do dia</b>' +
+           (tarefas.length ? '<i>' + pend + ' pendente(s) de ' + tarefas.length + '</i>' : '') +
+         '</div>' +
+         '<div class="cal-bloco-corpo">' +
+           (tarefas.length ? tarefas.map(ev => calCartao(ev)).join('')
+                           : '<div class="cal-vazio-mini">Nenhuma tarefa hoje.</div>') +
+         '</div></div>';
+
+  // EVENTOS
+  const inteiro = eventos.filter(ev => ev.start?.date);
+  const comHora = eventos.filter(ev => ev.start?.dateTime);
+  h += '<div class="cal-dia-bloco eventos">' +
+         '<div class="cal-bloco-cab">' +
+           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>' +
+           '<b>Eventos</b>' + (eventos.length ? '<i>' + eventos.length + '</i>' : '') +
+         '</div>' +
+         '<div class="cal-bloco-corpo">';
+  if (!eventos.length) h += '<div class="cal-vazio-mini">Nenhum evento hoje.</div>';
+  if (inteiro.length) h += '<div class="cal-sub-rot">Dia inteiro</div>' + inteiro.map(ev => calCartao(ev)).join('');
+  comHora.forEach(ev => {
+    h += '<div class="cal-hora-linha"><div class="cal-hora-marca">' + calHHMM(calInicioDe(ev)) + '</div>' +
+         '<div class="cal-hora-ev">' + calCartao(ev) + '</div></div>';
+  });
+  h += '</div></div></div>';
+  return h;
 }
 
 // ── VISÃO: ANO ──────────────────────────────────────────────────
@@ -9748,6 +9874,12 @@ function calFiltrar() {
   _calFiltroStatus  = document.getElementById('cal-f-status').value;
   calRender();
 }
+function calTipoFiltro(t) {
+  _calFiltroTipo = t;
+  document.querySelectorAll('#opage-calendario .cal-ttab').forEach(b =>
+    b.classList.toggle('on', b.dataset.t === t));
+  calRender();
+}
 
 // ── ALERTAS DENTRO DO SISTEMA ───────────────────────────────────
 // A cada minuto verifica o que esta chegando e o que venceu.
@@ -9861,8 +9993,77 @@ async function calInit() {
   }
   if (_calToken) await calCarregarEventos();
 
-  // verificação periódica dos alertas, uma vez só
-  if (!_calTimer) _calTimer = setInterval(calVerificarAlertas, 60000);
+  calLigarSincronia();
+}
+
+// ══════════════════════════════════════════════════════════════
+// SINCRONIA AUTOMÁTICA
+// Criar no sistema já é instantâneo: a gravação vai direto no
+// Google. O outro sentido (criou no Google, aparece aqui) precisa
+// de verificação — a API não avisa o navegador sozinha.
+// Aqui é feito com syncToken: o Google devolve SÓ o que mudou
+// desde a última checagem, então é uma chamada leve, de poucos
+// bytes, e pode rodar a cada 15 segundos sem pesar.
+// ══════════════════════════════════════════════════════════════
+let _calSyncToken = null;
+let _calTimerSync = null;
+let _calSincronizando = false;
+
+function calLigarSincronia() {
+  if (!_calTimer)     _calTimer     = setInterval(calVerificarAlertas, 60000);
+  if (!_calTimerSync) _calTimerSync = setInterval(calSincronizar, 15000);
+
+  // ao voltar para a aba, confere na hora em vez de esperar o ciclo
+  if (!window._calFocoLigado) {
+    window._calFocoLigado = true;
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) calSincronizar();
+    });
+    window.addEventListener('focus', calSincronizar);
+  }
+}
+
+function calPaginaVisivel() {
+  const p = document.getElementById('opage-calendario');
+  return p && p.style.display !== 'none' && !document.hidden;
+}
+
+async function calSincronizar() {
+  if (_calSincronizando || !_calToken || !calPaginaVisivel()) return;
+  _calSincronizando = true;
+  try {
+    // sem token de sincronia ainda: faz uma leitura normal para obter um
+    if (!_calSyncToken) { await calCarregarEventos(true); return; }
+
+    const r = await calApi('/calendars/primary/events?syncToken=' +
+                            encodeURIComponent(_calSyncToken) + '&singleEvents=true');
+    const mudou = (r?.items || []);
+    if (r?.nextSyncToken) _calSyncToken = r.nextSyncToken;
+
+    if (!mudou.length) return;   // nada mudou: sai sem redesenhar
+
+    const [ini, fim] = calFaixa();
+    let houve = false;
+    mudou.forEach(ev => {
+      const i = _calEventos.findIndex(x => x.id === ev.id);
+      if (ev.status === 'cancelled') {
+        if (i >= 0) { _calEventos.splice(i, 1); houve = true; }
+        return;
+      }
+      const d = calInicioDe(ev);
+      const dentro = d >= ini && d < fim;
+      if (i >= 0) { if (dentro) _calEventos[i] = ev; else _calEventos.splice(i, 1); houve = true; }
+      else if (dentro) { _calEventos.push(ev); houve = true; }
+    });
+    if (houve) {
+      _calEventos.sort((a, b) => calInicioDe(a) - calInicioDe(b));
+      calRender();
+      calVerificarAlertas();
+    }
+  } catch (e) {
+    // token de sincronia vence (erro 410): recomeça do zero
+    _calSyncToken = null;
+  } finally { _calSincronizando = false; }
 }
 
 
