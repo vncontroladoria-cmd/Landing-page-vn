@@ -2829,6 +2829,36 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
   }
 }
 
+
+/* ─ tela de configuracao do calendario ─ */
+#painel-operador .cal-passos{ display:flex; flex-direction:column; gap:11px; margin-bottom:4px; }
+#painel-operador .cal-passo{ display:flex; gap:11px; align-items:flex-start; font-size:12.5px; color:rgba(255,255,255,.72); line-height:1.5; }
+#painel-operador .cal-passo b{
+  width:21px; height:21px; flex-shrink:0; border-radius:50%; margin-top:1px;
+  background:linear-gradient(122deg,#2f9a64,#1f7047); color:#fff;
+  font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;
+}
+#painel-operador .cal-passo i{ font-style:normal; color:#fff; }
+#painel-operador .cal-passo a{ color:#6ee7a8; text-decoration:underline; }
+#painel-operador .cal-origem{ display:flex; align-items:center; gap:8px; margin-top:7px; flex-wrap:wrap; }
+#painel-operador .cal-origem code{
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
+  padding:5px 10px; border-radius:9px; font-size:11.5px; color:#fff;
+  font-family:ui-monospace,monospace; word-break:break-all;
+}
+#painel-operador #cal-cfg-copiar{
+  height:28px; padding:0 12px; border-radius:999px; cursor:pointer;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+  color:rgba(255,255,255,.85); font-family:'Outfit',sans-serif; font-size:11.5px;
+}
+#painel-operador #cal-cfg-copiar:hover{ background:rgba(255,255,255,.14); }
+#painel-operador .cal-nota{
+  font-size:11.5px; color:rgba(255,255,255,.55); line-height:1.5;
+  background:rgba(217,119,6,.12); border:1px solid rgba(217,119,6,.28);
+  padding:10px 13px; border-radius:11px;
+}
+#painel-operador .cal-nota b{ color:#f0d2a4; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -3681,6 +3711,37 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
     <!-- Conteúdo -->
     <div style="flex:1;padding:24px;overflow-y:auto;max-height:100vh">
 
+      <!-- CONFIGURAÇÃO DO GOOGLE (uma vez só) -->
+      <div id="cal-cfg" class="cal-modal">
+        <div class="cal-modal-box" style="max-width:540px">
+          <div class="cal-modal-cab">
+            <span>Ligar ao Google Agenda</span>
+            <button onclick="calFecharConfig()" aria-label="Fechar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="cal-modal-corpo">
+            <div class="cal-passos">
+              <div class="cal-passo"><b>1</b><span>No <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>, ative a <i>Google Calendar API</i>.</span></div>
+              <div class="cal-passo"><b>2</b><span>Em <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Credenciais</a>, crie um <i>ID do cliente OAuth</i> do tipo <i>Aplicativo da Web</i>.</span></div>
+              <div class="cal-passo"><b>3</b><span>Em <i>Origens JavaScript autorizadas</i>, cole este endereço:
+                <span class="cal-origem"><code id="cal-cfg-origem">—</code><button id="cal-cfg-copiar" onclick="calCopiarOrigem()">Copiar</button></span></span></div>
+              <div class="cal-passo"><b>4</b><span>Copie o <i>ID do cliente</i> gerado e cole no campo abaixo.</span></div>
+            </div>
+            <label>ID do cliente
+              <input type="text" id="cal-cfg-id" placeholder="000000000000-xxxxxxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+            </label>
+            <div class="cal-nota">
+              Guarde só o <b>ID</b>. A <b>chave secreta</b> não é usada aqui e nunca deve ser colada em página de navegador.
+            </div>
+          </div>
+          <div class="cal-modal-rod">
+            <button class="cal-btn" onclick="calFecharConfig()">Cancelar</button>
+            <button class="cal-btn cal-btn-go" onclick="calSalvarConfig()">Salvar e conectar</button>
+          </div>
+        </div>
+      </div>
+
       <!-- MODAL DO CALENDÁRIO -->
       <div id="cal-modal" class="cal-modal">
         <div class="cal-modal-box">
@@ -3723,6 +3784,10 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
             <span id="cal-status" class="cal-status">Desconectado</span>
             <button class="cal-btn" id="cal-btn-conectar" onclick="calConectar()">Conectar Google</button>
             <button class="cal-btn" id="cal-btn-sair" onclick="calDesconectar()" style="display:none">Desconectar</button>
+            <button class="cal-btn" onclick="calAbrirConfig()" title="Configurar conexão">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1A1.7 1.7 0 007 19.4a1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 15a2 2 0 110-4h.1A1.7 1.7 0 004.6 7a1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 009 3a2 2 0 114 0v.1A1.7 1.7 0 0017 4.6a1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1A1.7 1.7 0 0021 9a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 2z"/></svg>
+              Configurar
+            </button>
             <button class="cal-btn cal-btn-go" id="cal-btn-novo" onclick="calAbrirModal()" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Novo evento
@@ -8795,7 +8860,22 @@ document.addEventListener('keydown', function (ev) {
 //   4. Colar o ID gerado em CAL_CLIENT_ID abaixo
 // ══════════════════════════════════════════════════════════════
 
-const CAL_CLIENT_ID = '';   // ← cole aqui o ID do cliente OAuth
+// O ID e guardado no proprio navegador (localStorage). Voce cola ele
+// UMA VEZ na tela do Calendario, no botao "Configurar". Nao precisa
+// mexer no codigo. Se preferir deixar fixo aqui, pode: o valor do
+// codigo tem prioridade sobre o guardado.
+// Somente o ID do cliente. A chave secreta (client_secret) NAO entra
+// aqui: aplicacao que roda no navegador nao usa, e qualquer visitante
+// conseguiria ler no codigo-fonte da pagina.
+const CAL_CLIENT_ID_FIXO = '753483799581-oe2jta3cf8rumfpoddk8bfv64bifh6hr.apps.googleusercontent.com';
+
+function calClientId() {
+  if (CAL_CLIENT_ID_FIXO) return CAL_CLIENT_ID_FIXO;
+  try { return localStorage.getItem('vn_cal_client_id') || ''; } catch (e) { return ''; }
+}
+function calSalvarClientId(v) {
+  try { localStorage.setItem('vn_cal_client_id', (v || '').trim()); } catch (e) {}
+}
 const CAL_ESCOPO    = 'https://www.googleapis.com/auth/calendar';
 const CAL_API       = 'https://www.googleapis.com/calendar/v3';
 
@@ -8846,10 +8926,7 @@ function calAtualizarBotoes() {
 
 // ── login ───────────────────────────────────────────────────────
 async function calConectar() {
-  if (!CAL_CLIENT_ID) {
-    calAviso('Falta configurar o ID do cliente Google. Veja as instruções no topo do bloco CALENDÁRIO no código.', 'erro');
-    return;
-  }
+  if (!calClientId()) { calAbrirConfig(); return; }
   try {
     await calCarregarGIS();
   } catch (e) {
@@ -8858,7 +8935,7 @@ async function calConectar() {
   }
   if (!_calCliente) {
     _calCliente = google.accounts.oauth2.initTokenClient({
-      client_id: CAL_CLIENT_ID,
+      client_id: calClientId(),
       scope: CAL_ESCOPO,
       callback: (resp) => {
         if (resp.error) { calAviso('Autorização recusada.', 'erro'); return; }
@@ -9125,6 +9202,40 @@ async function calExcluir(id) {
   } catch (e) { calAviso(e.message, 'erro'); }
 }
 
+// ── tela de configuração (uma vez só) ───────────────────────────
+function calAbrirConfig() {
+  document.getElementById('cal-cfg-id').value = calClientId();
+  document.getElementById('cal-cfg-origem').textContent = window.location.origin;
+  document.getElementById('cal-cfg').classList.add('on');
+}
+function calFecharConfig() { document.getElementById('cal-cfg').classList.remove('on'); }
+
+function calCopiarOrigem() {
+  const txt = window.location.origin;
+  const btn = document.getElementById('cal-cfg-copiar');
+  const ok = () => { if (btn) { btn.textContent = 'Copiado'; setTimeout(() => btn.textContent = 'Copiar', 1600); } };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok).catch(() => {});
+  else {
+    const t = document.createElement('textarea');
+    t.value = txt; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); ok(); } catch (e) {}
+    document.body.removeChild(t);
+  }
+}
+
+function calSalvarConfig() {
+  const v = document.getElementById('cal-cfg-id').value.trim();
+  if (v && !/\.apps\.googleusercontent\.com$/.test(v)) {
+    calAviso('Esse não parece o ID certo. Ele termina em .apps.googleusercontent.com', 'erro');
+    return;
+  }
+  calSalvarClientId(v);
+  _calCliente = null;          // força recriar com o ID novo
+  calFecharConfig();
+  calAviso('');
+  if (v) calConectar(); else calAtualizarBotoes();
+}
+
 // ── abertura da página ──────────────────────────────────────────
 async function calInit() {
   // recupera token da sessão, se ainda válido
@@ -9137,8 +9248,8 @@ async function calInit() {
   calAtualizarBotoes();
   calRenderGrade();
   calRenderLista();
-  if (!CAL_CLIENT_ID) {
-    calAviso('Calendário ainda não configurado: falta o ID do cliente Google. Instruções no código, bloco CALENDÁRIO.', 'info');
+  if (!calClientId()) {
+    calAviso('Calendário ainda não configurado. Clique em "Configurar" para ligar ao Google — leva 5 minutos e é uma vez só.', 'info');
     return;
   }
   if (_calToken) await calCarregarEventos();
