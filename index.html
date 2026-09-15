@@ -3798,6 +3798,42 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
   font-variant-numeric:tabular-nums; }
 .cat-mae{ font-size:10px; color:var(--text3); }
 
+
+/* ══════════════════════════════════════════════════════════
+   42. LINHA DE TABELA: destaque no hover e clique para editar
+   ══════════════════════════════════════════════════════════ */
+
+/* O verde anterior era claro demais para linha de 1800px de largura.
+   Aqui vai um tom mais firme + barra verde na lateral esquerda. */
+.content tbody tr:hover,
+#cc-tbody tr:hover,
+#lanc-tbody tr:hover{
+  background:#e7f6ed !important;
+  box-shadow:inset 4px 0 0 var(--g600);
+}
+.content tbody tr:hover td{ color:var(--text); }
+
+/* Linha que aceita edicao: o cursor avisa */
+tr[id]:has(.cell-edit){ cursor:pointer; }
+tr[id]:has(.cell-edit):hover{ position:relative; }
+
+/* Linha aberta para edicao fica evidente */
+tr[data-editing="true"]{
+  background:#f0fdf4 !important;
+  box-shadow:inset 4px 0 0 var(--g700), 0 2px 12px -4px rgba(17,19,24,.18);
+}
+tr[data-editing="true"] td{ padding-top:11px; padding-bottom:11px; }
+tr[data-editing="true"] input,
+tr[data-editing="true"] select{
+  border-color:var(--g500) !important;
+  background:#fff !important;
+}
+
+/* Navegador antigo sem :has — ao menos o hover continua forte */
+@supports not (selector(:has(*))){
+  .content tbody tr:hover{ background:#e7f6ed !important; }
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -20242,6 +20278,47 @@ async function salvarUsuarioInline(id, rowId) {
   showToast('Salvo!','success');
   loadUsuarios();
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// EDITAR CLICANDO NA LINHA
+//
+// Antes so o lapis abria a edicao. Alvo de 20px numa linha de 1800px
+// de largura — e a linha inteira ja parece clicavel.
+//
+// Delegacao de evento: vale para qualquer tabela com edicao inline,
+// inclusive linha criada depois. Nao precisa mexer em cada render.
+// ══════════════════════════════════════════════════════════════
+(function ativarCliqueNaLinha() {
+  document.addEventListener('click', (ev) => {
+    const alvo = ev.target;
+
+    // Nao interfere em coisa que ja tem acao propria
+    if (alvo.closest('button, a, input, select, textarea, label, svg, .no-edit')) return;
+
+    const linha = alvo.closest('tr[id]');
+    if (!linha) return;
+
+    // So linhas que de fato tem edicao inline
+    if (!linha.querySelector('.cell-edit')) return;
+    if (linha.dataset.editing === 'true') return;   // ja aberta
+
+    // Fecha qualquer outra linha aberta: duas abertas confundem
+    document.querySelectorAll('tr[data-editing="true"]').forEach(r => {
+      if (r !== linha && typeof toggleInline === 'function') toggleInline(r.id);
+    });
+
+    if (typeof toggleInline === 'function') toggleInline(linha.id);
+  });
+
+  // Esc fecha sem salvar
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    document.querySelectorAll('tr[data-editing="true"]').forEach(r => {
+      if (typeof toggleInline === 'function') toggleInline(r.id);
+    });
+  });
+})();
 
 function toggleInline(rowId) {
   const row = document.getElementById(rowId);
