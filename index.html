@@ -3715,6 +3715,9 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 .cal-nav-claro svg{ width:16px; height:16px; }
 #page-projecao .pc-tabs{ margin-top:0; }
 
+
+.pt-qtd{ display:block; font-size:10px; color:var(--text3); margin-top:1px; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -30641,16 +30644,19 @@ function projRenderTabelas() {
   const alvoI = document.getElementById('proj-imprevistos');
   if (alvoI) {
     if (!d.imprevistos?.length) {
-      alvoI.innerHTML = '<div class="pt-vazio">Nenhuma saída fora do previsto neste mês.</div>';
+      alvoI.innerHTML = '<div class="pt-vazio">Todas as categorias de saída do mês estavam no contas a pagar.</div>';
     } else {
       alvoI.innerHTML =
-        '<div class="pt-aviso">' + d.imprevistos.length + ' saída(s) aconteceram sem estar no contas a pagar, ' +
-        'somando <b>' + brl(d.totalImprevisto) + '</b>. A projeção não contava com elas.</div>' +
+        '<div class="pt-aviso">' + d.imprevistos.length + ' categoria(s) de despesa saíram do caixa sem ' +
+        'estar no contas a pagar, somando <b>' + brl(d.totalImprevisto) + '</b>. ' +
+        'A projeção não contava com elas.</div>' +
         '<table class="pt-tab"><thead><tr><th>Data</th><th>Descrição</th>' +
         '<th style="text-align:right">Valor</th></tr></thead><tbody>' +
         d.imprevistos.slice(0, 10).map(i => {
-          const [a,m,dd] = i.data.split('-');
-          return '<tr><td>' + dd + '/' + m + '</td><td>' + esc(i.desc) +
+          const [a,m,dd] = (i.primeira || '').split('-');
+          return '<tr><td>' + (dd ? dd + '/' + m : '—') + '</td>' +
+                 '<td><b>' + esc(i.cat) + '</b>' +
+                 (i.qtd > 1 ? '<span class="pt-qtd">' + i.qtd + ' lançamentos</span>' : '') +
                  '</td><td class="pt-num pt-s">' + brl(i.valor) + '</td></tr>';
         }).join('') +
         (d.imprevistos.length > 10
@@ -31001,27 +31007,39 @@ async function loadProjecaoCaixa() {
   let imprevistos = [];
   try {
     const { data: pagas } = await sb.from('contas_pagar')
-      .select('valor,data_vencimento,descricao,status').eq('empresa_id', empId)
+      .select('valor,data_vencimento,descricao,status,categoria').eq('empresa_id', empId)
       .gte('data_vencimento', iniStr).lte('data_vencimento', fimStr);
-    // assinatura simples: valor arredondado. Se existe conta a pagar
-    // com o mesmo valor, consideramos que aquela saída estava prevista.
-    const previstos = {};
-    (pagas || []).forEach(c => {
-      const k = Math.round(Number(c.valor || 0) * 100);
-      previstos[k] = (previstos[k] || 0) + 1;
-    });
+
+    // A comparação é por CATEGORIA, não por descrição nem por valor.
+    // Descrição muda toda vez ("Aluguel set" vs "Aluguel setembro") e
+    // valor bate por coincidência. Categoria é o que de fato define
+    // se aquele tipo de gasto estava previsto no mês.
+    const normCat = c => String(c == null ? '' : c).trim().toLowerCase()
+                          .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const catsPrevistas = new Set(
+      (pagas || []).map(c => normCat(c.categoria)).filter(Boolean));
+
     const { data: saidas } = await sb.from('lancamentos')
       .select('data_lancamento,descricao,saida,valor,tipo,categoria')
       .eq('empresa_id', empId)
       .gte('data_lancamento', iniStr).lte('data_lancamento', fimStr);
+
+    // agrupa por categoria: uma linha por categoria imprevista, não
+    // uma linha por lançamento — senão vira lista de 40 itens
+    const porCat = {};
     (saidas || []).forEach(l => {
       const v = Number(l.saida || (String(l.tipo).toUpperCase() === 'SAIDA' ? l.valor : 0) || 0);
       if (v <= 0) return;
-      const k = Math.round(v * 100);
-      if (previstos[k] > 0) { previstos[k]--; return; }   // estava prevista
-      imprevistos.push({ data: l.data_lancamento, desc: l.descricao || l.categoria || '—', valor: v });
+      const cat = normCat(l.categoria);
+      if (!cat) return;                       // sem categoria: não dá para julgar
+      if (catsPrevistas.has(cat)) return;     // essa categoria estava prevista
+      const nome = String(l.categoria).trim();
+      if (!porCat[nome]) porCat[nome] = { cat: nome, valor: 0, qtd: 0, primeira: l.data_lancamento };
+      porCat[nome].valor += v;
+      porCat[nome].qtd++;
+      if (l.data_lancamento < porCat[nome].primeira) porCat[nome].primeira = l.data_lancamento;
     });
-    imprevistos.sort((a,b) => b.valor - a.valor);
+    imprevistos = Object.values(porCat).sort((a,b) => b.valor - a.valor);
   } catch (e) { window.vnErro?.(e, 'projecao-imprevistos'); }
 
   const totalImprevisto = imprevistos.reduce((s,i) => s + i.valor, 0);
