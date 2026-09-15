@@ -13746,6 +13746,20 @@ async function renderFluxoCaixaChart(ini, fim) {
   gSaldo.addColorStop(0, 'rgba(217,166,63,.22)');
   gSaldo.addColorStop(1, 'rgba(217,166,63,0)');
 
+  // ══════════════════════════════════════════════════════════════
+  // ALINHAR O ZERO DOS DOIS EIXOS
+  // O eixo das barras tem o zero no meio (entrada sobe, saida desce).
+  // Se o eixo do saldo comecar em outro ponto, um saldo POSITIVO
+  // aparece abaixo da linha do zero — foi o que aconteceu: R$ 10 mil
+  // desenhado embaixo. Deixando os dois simetricos (-X ate +X), o
+  // zero cai na mesma altura e positivo fica sempre em cima.
+  // ══════════════════════════════════════════════════════════════
+  const maxBarra = Math.max(
+    ...dias.map(d => Math.max(entDia[d] || 0, saiDia[d] || 0)), 1);
+  const maxSaldo = Math.max(...saldos.map(v => Math.abs(v)), 1);
+  const limBarra = maxBarra * 1.18;
+  const limSaldo = maxSaldo * 1.18;
+
   const rotulosFluxo = {
     id: 'rotulosFluxo',
     afterDatasetsDraw(chart) {
@@ -13842,9 +13856,10 @@ async function renderFluxoCaixaChart(ini, fim) {
         },
         y:{
           position:'left', border:{ display:false },
+          min: -limBarra, max: limBarra,     // simetrico: zero no meio
           grid:{ color:'rgba(17,19,24,.045)', drawTicks:false },
           ticks:{
-            font:{size:9}, color:'rgba(17,19,24,.4)', padding:6, maxTicksLimit:6,
+            font:{size:9}, color:'rgba(17,19,24,.4)', padding:6, maxTicksLimit:5,
             callback: v => {
               const a = Math.abs(v);
               return a >= 1000 ? 'R$'+(a/1000).toFixed(0)+'k' : 'R$'+a.toFixed(0);
@@ -13859,10 +13874,11 @@ async function renderFluxoCaixaChart(ini, fim) {
         // significado e da pra conferir.
         y2:{
           position:'right', display:true,
+          min: -limSaldo, max: limSaldo,     // mesmo zero do eixo da esquerda
           border:{ display:false },
           grid:{ display:false },
           ticks:{
-            font:{size:9, weight:'600'}, color:'#b8862c', padding:6, maxTicksLimit:6,
+            font:{size:9, weight:'600'}, color:'#b8862c', padding:6, maxTicksLimit:5,
             callback: v => {
               const a = Math.abs(v);
               return (v<0?'-':'') + (a >= 1000 ? 'R$'+(a/1000).toFixed(0)+'k' : 'R$'+a.toFixed(0));
@@ -30714,6 +30730,13 @@ async function loadProjecaoCaixa() {
   const serieCheia = dias.map((_, i) =>
     saldoRealizado[i] != null ? saldoRealizado[i] : saldoProjetado[i]);
 
+  // Zero dos dois eixos na mesma altura — ver explicacao no Fluxo de Caixa
+  const maxBarraP = Math.max(
+    ...dias.map(d => Math.max(entradaPorDia[d] || 0, saidaPorDia[d] || 0)), 1);
+  const maxSaldoP = Math.max(...serieCheia.map(v => Math.abs(v || 0)), 1);
+  const limBarraP = maxBarraP * 1.18;
+  const limSaldoP = maxSaldoP * 1.18;
+
   // Rotulo em cima de cada barra, igual ao grafico de faturamento.
   const rotulosBarras = {
     id: 'rotulosProj',
@@ -30841,10 +30864,11 @@ async function loadProjecaoCaixa() {
         // Eixo das barras: movimento do dia, entrada acima e saida abaixo do zero
         y: {
           position: 'left',
+          min: -limBarraP, max: limBarraP,     // simetrico: zero no meio
           border: { display: false },
           grid: { color: 'rgba(17,19,24,.045)', drawTicks: false },
           ticks: {
-            font: { size: 9 }, color: 'rgba(17,19,24,.4)', padding: 6, maxTicksLimit: 6,
+            font: { size: 9 }, color: 'rgba(17,19,24,.4)', padding: 6, maxTicksLimit: 5,
             callback: v => {
               const a = Math.abs(v);
               return a >= 1000 ? 'R$' + (a/1000).toFixed(0) + 'k' : 'R$' + a;
@@ -30856,10 +30880,11 @@ async function loadProjecaoCaixa() {
         // numero nenhum da tela.
         y2: {
           position: 'right', display: true,
+          min: -limSaldoP, max: limSaldoP,     // mesmo zero do eixo da esquerda
           border: { display: false },
           grid: { display: false },
           ticks: {
-            font: { size: 9, weight: '600' }, color: '#b8862c', padding: 6, maxTicksLimit: 6,
+            font: { size: 9, weight: '600' }, color: '#b8862c', padding: 6, maxTicksLimit: 5,
             callback: v => {
               const a = Math.abs(v);
               return (v<0?'-':'') + (a >= 1000 ? 'R$'+(a/1000).toFixed(0)+'k' : 'R$'+a.toFixed(0));
