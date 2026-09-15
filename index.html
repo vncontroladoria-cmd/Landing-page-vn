@@ -15179,7 +15179,7 @@ async function confirmarImportePDV() {
 
   // Busca TODOS os itens desse caixa (não só os recém-importados, pra não perder soma
   // se já existia caixa nessa data) e sincroniza o total de Comandas pra Lançamentos
-  const { data: todosItensCaixa } = await sb.from('pdv_itens').select('tipo,valor,forma_pagamento').eq('caixa_id', caixaIdFinal);
+  const { data: todosItensCaixa } = await sb.from('pdv_itens').select('tipo,valor,forma_pagamento').eq('caixa_id', caixaIdFinal).range(0, 19999);
   await sincronizarComandaParaLancamento(caixaIdFinal, dataFinal, todosItensCaixa || []);
 
   showToast(`Caixa importado! ${payload.length} itens salvos.`, 'success');
@@ -15926,7 +15926,8 @@ async function loadLancamentos(forcarBancoFilter) {
     const primeiraData = [...lancs].sort((a,b) => a.data_lancamento.localeCompare(b.data_lancamento))[0]?.data_lancamento;
     const bancoFiltroId = bancoFilter || null;
     // Busca lançamentos anteriores ao período para calcular saldo inicial
-    let qAntes = sb.from('lancamentos').select('entrada,saida,valor,tipo').eq('empresa_id', empId2).lt('data_lancamento', primeiraData);
+    // saldo anterior soma TUDO até a data: aqui o teto precisa ser alto
+    let qAntes = sb.from('lancamentos').select('entrada,saida,valor,tipo').eq('empresa_id', empId2).lt('data_lancamento', primeiraData).range(0, 49999);
     if (bancoFiltroId) qAntes = qAntes.eq('banco_id', bancoFiltroId);
     const { data: lancAntes } = await qAntes;
     saldoAcum = (lancAntes||[]).reduce((s,l) => {
@@ -22569,13 +22570,59 @@ async function loadDFC() {
       .lte('data_lancamento', `${parseInt(ano)+1}-12-31`);
     lancs = (base||[]).filter(l => compDe(l).startsWith(ano));
 
-    // Cartao de credito entra pela competencia da compra
+    // ══════════════════════════════════════════════════════════
+    // CARTÃO DE CRÉDITO NA COMPETÊNCIA
+    //
+    // Dois problemas corrigidos aqui:
+    //
+    // 1. LIMITE SILENCIOSO. O Supabase devolve no máximo 1.000
+    //    linhas por consulta quando nenhum limite é pedido. Acima
+    //    disso ele corta sem avisar — e faltava lançamento no
+    //    relatório sem nenhuma mensagem. Agora busca em páginas.
+    //
+    // 2. FORMATO DA COMPETÊNCIA. O código só aceitava "AAAA-MM".
+    //    Registros antigos têm "MAI/2026", "16/03/2026", "Set 2026".
+    //    Todos eram descartados. Agora um leitor único entende
+    //    todos os formatos.
+    // ══════════════════════════════════════════════════════════
     try {
-      const { data: cc } = await qE('cartao_lancamentos').select('*');
+      const MESES_TXT = { jan:'01', fev:'02', mar:'03', abr:'04', mai:'05', jun:'06',
+                          jul:'07', ago:'08', set:'09', out:'10', nov:'11', dez:'12' };
+      const mesDaCompetencia = (c) => {
+        const tenta = (v) => {
+          const t = String(v == null ? '' : v).trim();
+          if (!t) return '';
+          let m;
+          if ((m = t.match(/^(\d{4})-(\d{2})/)))            return m[1] + '-' + m[2];      // 2026-03-15
+          if ((m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/))) return m[3] + '-' + m[2];      // 16/03/2026
+          if ((m = t.match(/^(\d{2})\/(\d{4})$/)))          return m[2] + '-' + m[1];      // 03/2026
+          // MAI/2026, Set 2026, maio de 2026
+          const tl = t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+          const ano4 = (tl.match(/(\d{4})/) || [])[1];
+          const abrev = Object.keys(MESES_TXT).find(k => tl.startsWith(k) || tl.includes('/' + k) || tl.includes(' ' + k));
+          if (ano4 && abrev) return ano4 + '-' + MESES_TXT[abrev];
+          return '';
+        };
+        // ordem de preferência: mes -> data_competencia -> data_lancamento
+        return tenta(c.mes) || tenta(c.data_competencia) || tenta(c.data_lancamento);
+      };
+
+      // busca em páginas: sem isso para em 1.000
+      let cc = [], de = 0;
+      for (let p = 0; p < 20; p++) {
+        const { data: pagina, error } = await qE('cartao_lancamentos')
+          .select('*').order('id').range(de, de + 999);
+        if (error) throw new Error(error.message);
+        if (!pagina?.length) break;
+        cc = cc.concat(pagina);
+        if (pagina.length < 1000) break;
+        de += 1000;
+      }
+
+      let _ccIgnorados = 0;
       (cc||[]).forEach(c => {
-        const mesComp = /^\d{4}-\d{2}$/.test(String(c.mes||''))
-          ? String(c.mes)
-          : String(c.data_competencia||'').substring(0,7);
+        const mesComp = mesDaCompetencia(c);
+        if (!mesComp) { _ccIgnorados++; return; }
         if (!mesComp.startsWith(ano)) return;
         const v = Number(c.valor||0);
         lancs.push({
@@ -22587,7 +22634,11 @@ async function loadDFC() {
           _doCartao: true
         });
       });
-    } catch(e) { console.warn('cartao na competencia:', e); }
+      if (_ccIgnorados) {
+        console.warn('Cartão: ' + _ccIgnorados + ' lançamento(s) sem competência legível');
+        window._ccSemCompetencia = _ccIgnorados;
+      } else { window._ccSemCompetencia = 0; }
+    } catch(e) { window.vnErro?.(e, 'dfc-cartao-competencia'); }
   } else {
     const { data: base } = await qE('lancamentos').select('*')
       .gte('data_lancamento',`${ano}-01-01`).lte('data_lancamento',`${ano}-12-31`);
@@ -27818,15 +27869,27 @@ async function criarEstruturaBase(empresaId) {
 // ─── MULTI-EMPRESA ───────────────────────────────────
 
 // qE: wrapper que filtra SELECT por empresa_id automaticamente
+// Tabelas grandes: sem um range explícito o Supabase devolve no
+// máximo 1.000 linhas e corta o resto SEM AVISAR. Já fez faltar
+// lançamento em relatório. O teto alto aqui não pesa: o filtro de
+// empresa e de período continuam valendo.
+const _TABELAS_GRANDES = new Set([
+  'lancamentos','cartao_lancamentos','pdv_itens','pdv_caixas',
+  'contas_pagar','contas_receber','rh_ocorrencias'
+]);
+const _TETO_LINHAS = 20000;
+
 function qE(tabela) {
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id') || localStorage.getItem('vn_empresa_id');
   const q = sb.from(tabela);
   return {
     select: (...args) => {
-      const base = q.select(...args);
-      if (empId) return base.eq('empresa_id', empId);
-      // Sem empresa: retorna vazio com segurança
-      return base.eq('empresa_id', '00000000-0000-0000-0000-000000000000');
+      let base = q.select(...args);
+      base = empId
+        ? base.eq('empresa_id', empId)
+        : base.eq('empresa_id', '00000000-0000-0000-0000-000000000000');  // sem empresa: vazio
+      if (_TABELAS_GRANDES.has(tabela)) base = base.range(0, _TETO_LINHAS - 1);
+      return base;
     }
   };
 }
@@ -29811,7 +29874,9 @@ async function loadCartaoLancamentos() {
   const empId = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
   if (!empId) return;
 
-  let q = sb.from('cartao_lancamentos').select('*, cartoes(nome,bandeira,limite)').eq('empresa_id', empId);
+  // range explícito: sem ele o Supabase devolve no máximo 1.000 linhas
+  // e o restante some da tela sem nenhum aviso
+  let q = sb.from('cartao_lancamentos').select('*, cartoes(nome,bandeira,limite)').eq('empresa_id', empId).range(0, 4999);
   if (cartaoId) q = q.eq('cartao_id', cartaoId);
   // Filtro por DATA CAIXA (data_lancamento) — a data que a fatura foi paga
   if (mes) {
@@ -30234,7 +30299,7 @@ async function renderListaCartoes() {
 
   // Quanto está em aberto em cada cartão = tudo que ainda não foi pago.
   // Isso é o que consome o limite.
-  const { data: lancs } = await qE('cartao_lancamentos').select('cartao_id,valor,tipo,status');
+  const { data: lancs } = await qE('cartao_lancamentos').select('cartao_id,valor,tipo,status').range(0, 9999);
   const emAberto = {};
   (lancs||[]).forEach(l => {
     if (normStr(l.status) === 'pago') return;          // fatura já quitada não ocupa limite
@@ -31554,7 +31619,7 @@ async function loadProjecaoCaixa() {
     if (idsCx.length) {
       const lotes = [];
       for (let i = 0; i < idsCx.length; i += 200) {
-        lotes.push(sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
+        lotes.push(sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo').range(0, 19999)
                      .in('caixa_id', idsCx.slice(i, i + 200)));
       }
       const res = await Promise.all(lotes);
