@@ -7174,7 +7174,7 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
               </button>
               <span id="proj-mes-label" style="font-size:13px;font-weight:600;min-width:110px;text-align:center">—</span>
-              <button onclick="projMesProximo()" class="cal-nav-claro" aria-label="Próximo mês">
+              <button onclick="projMesSeguinte()" class="cal-nav-claro" aria-label="Próximo mês">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
               </button>
             </div>
@@ -30582,6 +30582,9 @@ function projMesSeguinte() {
   if (_projMes > 12) { _projMes = 1; _projAno++; }
   loadProjecaoCaixa();
 }
+// Apelido: o botão já foi escrito com este nome uma vez e o clique
+// morria em silêncio, porque função inexistente não gera erro visível.
+const projMesProximo = projMesSeguinte;
 
 
 // ══════════════════════════════════════════════════════════════
