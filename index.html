@@ -3665,6 +3665,45 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
   color:var(--text3); font-size:10.5px; margin-top:2px;
 }
 
+
+/* ── painel de caixa: cenários e tabelas ── */
+.pc-tabs{ display:flex; align-items:center; gap:5px; margin:14px 0 8px;
+  background:var(--bg4); padding:3px; border-radius:999px; width:fit-content; }
+.pc-btn{ display:inline-flex; align-items:center; gap:7px; padding:8px 16px;
+  border:none; border-radius:999px; background:transparent; cursor:pointer;
+  font-family:'Outfit',sans-serif; font-size:12.5px; font-weight:500; color:var(--text2);
+  transition:all .2s var(--ease); white-space:nowrap; }
+.pc-btn svg{ width:15px; height:15px; }
+.pc-btn:hover{ background:#fff; color:var(--text); }
+.pc-btn.on{ background:var(--g600); color:#fff; font-weight:600;
+  box-shadow:0 3px 10px rgba(34,164,93,.28); }
+.pc-resumo{ display:flex; align-items:baseline; gap:8px; padding:0 14px 0 18px;
+  font-size:11.5px; color:var(--text2); white-space:nowrap; }
+.pc-resumo b{ color:var(--text); font-size:13px; font-variant-numeric:tabular-nums; }
+.pc-explica{ font-size:11.5px; color:var(--text3); line-height:1.5; margin-bottom:10px; }
+
+.pt-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;
+  padding-top:16px; border-top:1px solid var(--border); }
+.pt-bloco{ min-width:0; }
+.pt-tit{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.07em;
+  color:var(--text3); margin-bottom:9px; }
+.pt-tab{ width:100%; border-collapse:collapse; font-size:12px; }
+.pt-tab th{ text-align:left; font-size:9.5px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--text3); padding:0 8px 7px; border-bottom:1px solid var(--border); }
+.pt-tab td{ padding:8px; border-bottom:1px solid #f4f6f8; color:var(--text); }
+.pt-tab tbody tr:last-child td{ border-bottom:none; }
+.pt-tab tbody tr:hover{ background:var(--g100); }
+.pt-num{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.pt-e{ color:#15803d; } .pt-s{ color:#b3453f; }
+.pt-tab tr.pt-neg td{ background:#fef4f3; }
+.pt-tab tr.pt-neg b{ color:#b3453f; }
+.pt-vazio{ font-size:12px; color:var(--text3); padding:14px 8px; }
+.pt-mais{ font-size:11px; color:var(--text3); text-align:center; padding:8px; }
+.pt-aviso{ font-size:11.5px; line-height:1.5; color:#8a5a12; background:#fffbeb;
+  border:1px solid #f7e4b5; border-radius:10px; padding:9px 12px; margin-bottom:10px; }
+.pt-aviso b{ color:#6b4409; }
+@media (max-width:900px){ .pt-grid{ grid-template-columns:1fr; } .pc-tabs{ flex-wrap:wrap; } }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -5965,11 +6004,35 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
               <div style="position:relative;height:260px">
                 <canvas id="chart-projecao"></canvas>
               </div>
+              <div id="proj-cenarios" class="pc-tabs">
+                <button class="pc-btn on" data-c="meta" onclick="projCenario('meta')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>
+                  Por meta
+                </button>
+                <button class="pc-btn" data-c="real" onclick="projCenario('real')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h3"/></svg>
+                  Caixa real
+                </button>
+                <div id="proj-resumo-cen" class="pc-resumo"></div>
+              </div>
+              <div id="proj-explica" class="pc-explica">Quanto precisa vender para pagar as contas: meta ÷ dias abertos, menos a despesa média do dia e as contas a vencer.</div>
+
               <div class="proj-legenda">
                 <span><i class="pl-barra" style="background:linear-gradient(180deg,#3fb074,#2a7a4f)"></i>Entrou no dia</span>
                 <span><i class="pl-barra" style="background:linear-gradient(180deg,#d98b87,#b8544f)"></i>Saiu no dia</span>
                 <span><i class="pl-linha" style="background:#d9a63f"></i>Saldo acumulado</span>
                 <span><i class="pl-linha tracejada"></i>Saldo projetado</span>
+              </div>
+
+              <div class="pt-grid">
+                <div class="pt-bloco">
+                  <div class="pt-tit">Próximos 15 dias</div>
+                  <div id="proj-tabela"></div>
+                </div>
+                <div class="pt-bloco">
+                  <div class="pt-tit">Fora do previsto</div>
+                  <div id="proj-imprevistos"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -30475,6 +30538,89 @@ function projMesSeguinte() {
   loadProjecaoCaixa();
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// PAINEL DE CAIXA — botão de cenário e tabelas
+// ══════════════════════════════════════════════════════════════
+window._projCenario = window._projCenario || 'meta';
+
+function projCenario(c) {
+  window._projCenario = c;
+  document.querySelectorAll('#proj-cenarios .pc-btn').forEach(b =>
+    b.classList.toggle('on', b.dataset.c === c));
+  const exp = document.getElementById('proj-explica');
+  if (exp) exp.textContent = c === 'real'
+    ? 'Só dinheiro contratado: PIX e espécie do dia, cartão na data de recebimento (débito D+1, crédito D+30), menos as contas a vencer.'
+    : 'Quanto precisa vender para pagar as contas: meta ÷ dias abertos, menos a despesa média do dia e as contas a vencer.';
+  if (typeof loadProjecaoCaixa === 'function') loadProjecaoCaixa();
+}
+
+function projRenderTabelas() {
+  const d = window._projDados;
+  if (!d) return;
+  const brl = v => 'R$ ' + Number(v||0).toLocaleString('pt-BR',
+    { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const esc = t => String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cen = window._projCenario || 'meta';
+  const serie = cen === 'real' ? d.serieReal : d.serieMeta;
+
+  // ── próximos 15 dias ──
+  const alvo = document.getElementById('proj-tabela');
+  if (alvo) {
+    const linhas = [];
+    for (let i = d.diasCorridos; i < d.dias.length && linhas.length < 15; i++) {
+      const dia = d.dias[i];
+      const entra = cen === 'real' ? (d.recebDia[dia] || 0) : d.receitaDiaProj;
+      const sai   = (d.contasPorDia[dia] || 0) + (cen === 'real' ? 0 : d.despesaDiaProj);
+      const saldo = serie[i];
+      if (saldo == null) continue;
+      linhas.push(
+        '<tr class="' + (saldo < 0 ? 'pt-neg' : '') + '">' +
+          '<td>' + String(dia).padStart(2,'0') + '/' + String(d.mes).padStart(2,'0') + '</td>' +
+          '<td class="pt-num pt-e">' + (entra ? brl(entra) : '—') + '</td>' +
+          '<td class="pt-num pt-s">' + (sai ? brl(sai) : '—') + '</td>' +
+          '<td class="pt-num"><b>' + brl(saldo) + '</b></td>' +
+        '</tr>');
+    }
+    alvo.innerHTML = linhas.length
+      ? '<table class="pt-tab"><thead><tr><th>Dia</th><th style="text-align:right">Entra</th>' +
+        '<th style="text-align:right">Sai</th><th style="text-align:right">Saldo</th></tr></thead>' +
+        '<tbody>' + linhas.join('') + '</tbody></table>'
+      : '<div class="pt-vazio">Mês encerrado — não há dias futuros a projetar.</div>';
+  }
+
+  // ── imprevistos ──
+  const alvoI = document.getElementById('proj-imprevistos');
+  if (alvoI) {
+    if (!d.imprevistos?.length) {
+      alvoI.innerHTML = '<div class="pt-vazio">Nenhuma saída fora do previsto neste mês.</div>';
+    } else {
+      alvoI.innerHTML =
+        '<div class="pt-aviso">' + d.imprevistos.length + ' saída(s) aconteceram sem estar no contas a pagar, ' +
+        'somando <b>' + brl(d.totalImprevisto) + '</b>. A projeção não contava com elas.</div>' +
+        '<table class="pt-tab"><thead><tr><th>Data</th><th>Descrição</th>' +
+        '<th style="text-align:right">Valor</th></tr></thead><tbody>' +
+        d.imprevistos.slice(0, 10).map(i => {
+          const [a,m,dd] = i.data.split('-');
+          return '<tr><td>' + dd + '/' + m + '</td><td>' + esc(i.desc) +
+                 '</td><td class="pt-num pt-s">' + brl(i.valor) + '</td></tr>';
+        }).join('') +
+        (d.imprevistos.length > 10
+          ? '<tr><td colspan="3" class="pt-mais">e mais ' + (d.imprevistos.length - 10) + '…</td></tr>'
+          : '') +
+        '</tbody></table>';
+    }
+  }
+
+  // ── resumo do cenário ──
+  const res = document.getElementById('proj-resumo-cen');
+  if (res) {
+    res.innerHTML = cen === 'real'
+      ? '<span>A receber de cartão neste mês</span><b>' + brl(d.totalReceber) + '</b>'
+      : '<span>Meta do mês</span><b>' + brl(d.meta || 0) + '</b>';
+  }
+}
+
 async function loadProjecaoCaixa() {
   const canvas = document.getElementById('chart-projecao');
   if (!canvas) return;
@@ -30683,11 +30829,159 @@ async function loadProjecaoCaixa() {
 
   // Primeiro dia em que o caixa fica negativo — a informacao mais
   // importante do grafico inteiro.
-  let diaEstouro = null;
-  for (let i = 0; i < dias.length; i++) {
-    const v = saldoRealizado[i] != null ? saldoRealizado[i] : saldoProjetado[i];
-    if (v != null && v < 0) { diaEstouro = dias[i]; break; }
+  let diaEstouro = null;   // recalculado depois, conforme o cenário
+
+  // ══════════════════════════════════════════════════════════════
+  // DOIS CENARIOS DE CAIXA
+  //
+  // META  — "quanto preciso vender para pagar as contas?"
+  //         receita do dia = meta / dias abertos. E uma cobranca.
+  //
+  // REAL  — "com o que ja esta contratado, eu pago?"
+  //         so dinheiro que entrou ou tem data marcada para entrar.
+  //         Dinheiro e PIX caem no dia. Cartao cai com prazo:
+  //         debito D+1, credito D+30 — gerado do proprio PDV, sem
+  //         precisar lancar contas a receber na mao.
+  // ══════════════════════════════════════════════════════════════
+  const PRAZO_DEBITO  = 1;
+  const PRAZO_CREDITO = 30;
+
+  const _n = v => String(v == null ? '' : v).toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+
+  // entra no caixa na hora
+  const ehAVista  = f => { const x = _n(f);
+    return x.includes('dinheiro') || x.includes('pix') || x.includes('especie') ||
+           x.includes('caixa') || x.includes('comanda'); };
+  const ehDebito  = f => { const x = _n(f);
+    return x.includes('debito') || x.includes('maquininha'); };
+  const ehCredito = f => _n(f).includes('credito');
+
+  // ── PDV do mês: separa por forma de pagamento e por dia ──
+  const pdvAVista = {};      // dia -> valor que cai no mesmo dia
+  const recebDia  = {};      // dia -> valor de cartão a receber nesse dia
+  let totalCartaoMes = 0;
+  try {
+    const { data: cxP } = await sb.from('pdv_caixas')
+      .select('id,data_caixa').eq('empresa_id', empId)
+      .gte('data_caixa', iniStr).lte('data_caixa', fimStr);
+    const mapaCx = {}; (cxP || []).forEach(c => { mapaCx[c.id] = c.data_caixa; });
+    const idsCx = Object.keys(mapaCx);
+    if (idsCx.length) {
+      const lotes = [];
+      for (let i = 0; i < idsCx.length; i += 200) {
+        lotes.push(sb.from('pdv_itens').select('caixa_id,forma_pagamento,valor,tipo')
+                     .in('caixa_id', idsCx.slice(i, i + 200)));
+      }
+      const res = await Promise.all(lotes);
+      res.forEach(r => (r?.data || []).forEach(it => {
+        if (_n(it.tipo) !== 'entrada') return;
+        const dataCx = mapaCx[it.caixa_id]; if (!dataCx) return;
+        const v = Number(it.valor || 0); if (!v) return;
+        const dia = parseInt(dataCx.split('-')[2]);
+
+        if (ehAVista(it.forma_pagamento)) {
+          pdvAVista[dia] = (pdvAVista[dia] || 0) + v;
+          return;
+        }
+        // cartão: joga para a data de recebimento
+        const prazo = ehCredito(it.forma_pagamento) ? PRAZO_CREDITO
+                    : ehDebito(it.forma_pagamento)  ? PRAZO_DEBITO
+                    : PRAZO_DEBITO;
+        totalCartaoMes += v;
+        const dRec = new Date(dataCx + 'T00:00:00');
+        dRec.setDate(dRec.getDate() + prazo);
+        // só interessa se cair dentro do mês exibido
+        if (dRec.getFullYear() === _projAno && (dRec.getMonth() + 1) === _projMes) {
+          const d2 = dRec.getDate();
+          recebDia[d2] = (recebDia[d2] || 0) + v;
+        }
+      }));
+    }
+  } catch (e) { window.vnErro?.(e, 'projecao-pdv'); }
+
+  // ── contas a receber lançadas na mão (se houver) somam junto ──
+  try {
+    const { data: cr } = await sb.from('contas_receber')
+      .select('valor,data_vencimento,status').eq('empresa_id', empId)
+      .gte('data_vencimento', iniStr).lte('data_vencimento', fimStr);
+    (cr || []).forEach(r => {
+      if (_n(r.status) === 'recebido') return;   // já virou lançamento
+      const d = parseInt(r.data_vencimento.split('-')[2]);
+      recebDia[d] = (recebDia[d] || 0) + Number(r.valor || 0);
+    });
+  } catch (e) { /* tabela pode não existir ainda */ }
+
+  // ── monta as duas curvas ──
+  const serieMeta = [];
+  const serieReal = [];
+  let aMeta = saldoInicial, aReal = saldoInicial;
+
+  for (const d of dias) {
+    const eDia = entradaPorDia[d] || 0;
+    const sDia = saidaPorDia[d]   || 0;
+    const cDia = contasPorDia[d]  || 0;
+    const jaAconteceu = d <= diasCorridos;
+
+    if (jaAconteceu) {
+      // passado é igual nos dois: o que de fato aconteceu
+      aMeta += eDia - sDia;
+      aReal += eDia - sDia;
+    } else {
+      // META: aposta na venda diária
+      aMeta += receitaDiaProj - despesaDiaProj - cDia;
+      // REAL: só o contratado. Nada de venda futura.
+      aReal += (recebDia[d] || 0) - cDia;
+    }
+    serieMeta.push(mesEncerradoCalc && !jaAconteceu ? null : aMeta);
+    serieReal.push(mesEncerradoCalc && !jaAconteceu ? null : aReal);
   }
+
+  const totalReceber = Object.values(recebDia).reduce((a,b) => a + b, 0);
+
+  // ══════════════════════════════════════════════════════════════
+  // IMPREVISTOS — saída que aconteceu sem estar no contas a pagar
+  //
+  // Toda projeção erra por aqui: a conta que ninguém previu. Em vez
+  // de esconder, listamos. Serve para você ver o tamanho do que
+  // escapa e decidir se vale provisionar.
+  // ══════════════════════════════════════════════════════════════
+  let imprevistos = [];
+  try {
+    const { data: pagas } = await sb.from('contas_pagar')
+      .select('valor,data_vencimento,descricao,status').eq('empresa_id', empId)
+      .gte('data_vencimento', iniStr).lte('data_vencimento', fimStr);
+    // assinatura simples: valor arredondado. Se existe conta a pagar
+    // com o mesmo valor, consideramos que aquela saída estava prevista.
+    const previstos = {};
+    (pagas || []).forEach(c => {
+      const k = Math.round(Number(c.valor || 0) * 100);
+      previstos[k] = (previstos[k] || 0) + 1;
+    });
+    const { data: saidas } = await sb.from('lancamentos')
+      .select('data_lancamento,descricao,saida,valor,tipo,categoria')
+      .eq('empresa_id', empId)
+      .gte('data_lancamento', iniStr).lte('data_lancamento', fimStr);
+    (saidas || []).forEach(l => {
+      const v = Number(l.saida || (String(l.tipo).toUpperCase() === 'SAIDA' ? l.valor : 0) || 0);
+      if (v <= 0) return;
+      const k = Math.round(v * 100);
+      if (previstos[k] > 0) { previstos[k]--; return; }   // estava prevista
+      imprevistos.push({ data: l.data_lancamento, desc: l.descricao || l.categoria || '—', valor: v });
+    });
+    imprevistos.sort((a,b) => b.valor - a.valor);
+  } catch (e) { window.vnErro?.(e, 'projecao-imprevistos'); }
+
+  const totalImprevisto = imprevistos.reduce((s,i) => s + i.valor, 0);
+
+  // ── guarda tudo para o botão de alternar usar sem refazer consulta ──
+  window._projDados = {
+    dias, serieMeta, serieReal, saldoInicial, diasCorridos,
+    entradaPorDia, saidaPorDia, contasPorDia, recebDia, pdvAVista,
+    mesEncerradoCalc, totalContas, totalReceber, totalImprevisto,
+    imprevistos, receitaDiaProj, despesaDiaProj, meta,
+    ano: _projAno, mes: _projMes
+  };
 
   // 6. Cards resumo
   // maximumFractionDigits: sem isso o toLocaleString mostra 3 casas ("123.665,934")
@@ -30700,9 +30994,10 @@ async function loadProjecaoCaixa() {
   // O card TEM que mostrar o fim da linha do grafico. Antes usava
   // saldoMeta, que era uma das duas linhas contraditorias — o numero
   // do card nao batia com nenhuma delas.
+  const ultimoCen = [...serieEscolhida].reverse().find(v => v !== null);
   const saldoFinal = mesEncerrado
     ? (ultimoReal !== undefined ? ultimoReal : saldoInicial)
-    : (ultimoProj !== undefined ? ultimoProj
+    : (ultimoCen !== undefined ? ultimoCen
        : (ultimoReal !== undefined ? ultimoReal : saldoInicial));
 
   if (document.getElementById('proj-saldo-ini')) 
@@ -30742,6 +31037,24 @@ async function loadProjecaoCaixa() {
   const gradSaldo = ctxG.createLinearGradient(0, 0, 0, 260);
   gradSaldo.addColorStop(0, 'rgba(217,166,63,.22)');
   gradSaldo.addColorStop(1, 'rgba(217,166,63,0)');
+
+  // Qual cenário está selecionado no botão
+  const cen = window._projCenario || 'meta';
+  const serieEscolhida = cen === 'real' ? serieReal : serieMeta;
+  // realizado = passado (igual nos dois); projetado = futuro do cenário
+  for (let i = 0; i < dias.length; i++) {
+    const passado = (i + 1) <= diasCorridos;
+    saldoRealizado[i] = passado ? serieEscolhida[i] : null;
+    saldoProjetado[i] = passado ? null : serieEscolhida[i];
+  }
+  if (!mesEncerradoCalc && diasCorridos > 0 && diasCorridos <= dias.length) {
+    saldoProjetado[diasCorridos - 1] = saldoRealizado[diasCorridos - 1];
+  }
+  diaEstouro = null;
+  for (let i = 0; i < dias.length; i++) {
+    const v = serieEscolhida[i];
+    if (v != null && v < 0) { diaEstouro = dias[i]; break; }
+  }
 
   const serieCheia = dias.map((_, i) =>
     saldoRealizado[i] != null ? saldoRealizado[i] : saldoProjetado[i]);
@@ -30943,6 +31256,8 @@ async function loadProjecaoCaixa() {
       }
     }]
   });
+
+  projRenderTabelas();
 
   if (document.getElementById('proj-periodo-label'))
     document.getElementById('proj-periodo-label').textContent = 
