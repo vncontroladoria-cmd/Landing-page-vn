@@ -3789,6 +3789,15 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 .sub-nova input:focus{ outline:none; border-color:var(--g500);
   box-shadow:0 0 0 3px rgba(34,164,93,.15); }
 
+
+/* subcategoria na lista de escolha do lançamento */
+.cat-filha{ display:inline-flex; align-items:center; gap:7px; }
+.cat-fio{ width:12px; height:1px; background:var(--border2); flex-shrink:0; margin-left:6px; }
+.cat-cod{ font-size:10px; font-weight:600; color:var(--g700);
+  background:var(--g100); border-radius:5px; padding:1px 6px;
+  font-variant-numeric:tabular-nums; }
+.cat-mae{ font-size:10px; color:var(--text3); }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -15304,8 +15313,20 @@ async function garantirCategorias() {
   _categorias = data || [];
   _categoriasEmpresaId = empId;
   _catMapAtual = {};
+  // mapa id -> nome, para saber de quem a subcategoria é filha
+  const _nomePorId = {};
+  _categorias.forEach(c => { _nomePorId[c.id] = c.nome; });
   _categorias.forEach(c => {
-    if (!_catMapAtual[c.nome]) _catMapAtual[c.nome] = { nome: c.nome, dfc: null, dre: null };
+    if (!_catMapAtual[c.nome]) _catMapAtual[c.nome] = {
+      nome: c.nome, dfc: null, dre: null,
+      // subcategoria: guarda o nome da mãe para agrupar na lista
+      mae: c.categoria_pai_id ? (_nomePorId[c.categoria_pai_id] || null) : null,
+      codigo: c.codigo || ''
+    };
+    if (c.categoria_pai_id && !_catMapAtual[c.nome].mae) {
+      _catMapAtual[c.nome].mae = _nomePorId[c.categoria_pai_id] || null;
+      _catMapAtual[c.nome].codigo = c.codigo || '';
+    }
     if (c.demonstrativo === 'DFC' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dfc = c.codigo;
     if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') _catMapAtual[c.nome].dre = c.codigo;
   });
@@ -16009,9 +16030,19 @@ function buscarCategoria(texto) {
   const dropdown = document.getElementById('nl-cat-dropdown');
   if (!dropdown) return;
   const termo = texto.toLowerCase().trim();
-  const resultados = Object.values(_catMapAtual).filter(c =>
-    !termo || incStr(c.nome, termo)
+  let resultados = Object.values(_catMapAtual).filter(c =>
+    // busca também pelo nome da mãe: digitar "comissao" traz as filhas
+    !termo || incStr(c.nome, termo) || (c.mae && incStr(c.mae, termo))
   );
+  // ordena para a filha aparecer logo abaixo da mãe, não solta na lista
+  resultados = resultados.sort((a, b) => {
+    const ra = (a.mae || a.nome).toLowerCase();
+    const rb = (b.mae || b.nome).toLowerCase();
+    if (ra !== rb) return ra < rb ? -1 : 1;
+    if (!a.mae && b.mae) return -1;          // mãe antes das filhas
+    if (a.mae && !b.mae) return 1;
+    return (a.codigo || '').localeCompare(b.codigo || '', 'pt-BR', { numeric: true });
+  });
   if (!resultados.length) { dropdown.style.display = 'none'; return; }
   dropdown.style.display = 'block';
   dropdown.innerHTML = resultados.map(c => {
@@ -16021,7 +16052,15 @@ function buscarCategoria(texto) {
     return `<div onclick="selecionarCategoria(this)" data-val='${val}' data-nome="${c.nome}" data-comp-tipo="${c.competencia_tipo||'atual'}"
       style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)"
       onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-      <strong>${c.nome}</strong> <span style="font-size:11px;color:var(--text2)">${refs}</span>${compLabel}
+      ${c.mae
+        ? `<span class="cat-filha">
+             <span class="cat-fio"></span>
+             <span class="cat-cod">${c.codigo || ''}</span>
+             <strong>${c.nome}</strong>
+             <span class="cat-mae">em ${c.mae}</span>
+           </span>`
+        : `<strong>${c.nome}</strong>`}
+      <span style="font-size:11px;color:var(--text2)">${refs}</span>${compLabel}
     </div>`;
   }).join('');
 }
