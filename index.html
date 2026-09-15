@@ -3590,6 +3590,28 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
   .f-l2{ grid-template-columns:1fr; }
 }
 
+
+/* ── tarja do conferidor ── */
+#vn-tarja-conf{
+  position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:5000;
+  display:flex; align-items:flex-start; gap:12px; max-width:min(560px, calc(100vw - 28px));
+  background:#fff; border:1px solid #f0c9c7; border-left:4px solid #d16a66;
+  border-radius:14px; padding:13px 15px;
+  box-shadow:0 18px 44px -14px rgba(17,19,24,.3);
+  font-family:'Outfit',sans-serif;
+}
+#vn-tarja-conf > svg{ width:19px; height:19px; flex-shrink:0; stroke:#d16a66; margin-top:1px; }
+#vn-tarja-conf > div{ flex:1; min-width:0; }
+#vn-tarja-conf b{ display:block; font-size:13px; color:#111318; margin-bottom:3px; }
+#vn-tarja-conf span{ display:block; font-size:11.5px; color:#6b7280; font-variant-numeric:tabular-nums; }
+#vn-tarja-conf > button{
+  width:26px; height:26px; flex-shrink:0; border:none; border-radius:8px;
+  background:transparent; color:#9ca3af; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+#vn-tarja-conf > button:hover{ background:#f1f3f5; color:#111318; }
+#vn-tarja-conf > button svg{ width:13px; height:13px; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -14989,6 +15011,81 @@ async function initLancamentos() {
   if (document.getElementById('nl-data')) document.getElementById('nl-data').value = hoje;
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// CONFERIDOR DE NUMEROS
+//
+// Existe porque ja aconteceu: uma alteracao trocou a base de
+// calculo do saldo por banco e a tela passou dias mostrando
+// numero errado sem ninguem perceber.
+//
+// A ideia e simples: numero financeiro obedece a regras que tem
+// que fechar sempre. Se uma parar de fechar, alguem quebrou algo.
+// Aqui a quebra aparece na hora, com o valor da diferenca.
+//
+// Nao trava o sistema. So avisa — no console, no Sentry, e numa
+// tarja discreta no topo da tela.
+// ══════════════════════════════════════════════════════════════
+
+const VN_TOLERANCIA = 0.02;   // 2 centavos: arredondamento e aceitavel
+
+function vnConferir(regras, contexto) {
+  const falhas = [];
+  (regras || []).forEach(r => {
+    try {
+      // null vira 0 no Number(): sem esta checagem, um valor ausente
+      // seria comparado como zero e geraria alarme falso.
+      if (r.esperado == null || r.obtido == null) return;
+      const a = Number(r.esperado);
+      const b = Number(r.obtido);
+      if (!isFinite(a) || !isFinite(b)) return;
+      const dif = Math.abs(a - b);
+      if (dif > (r.tolerancia ?? VN_TOLERANCIA)) {
+        falhas.push({ regra: r.nome, esperado: a, obtido: b, diferenca: +(b - a).toFixed(2) });
+      }
+    } catch (e) {}
+  });
+
+  if (!falhas.length) { vnEsconderTarja(contexto); return true; }
+
+  const msg = 'Números não fecham em "' + (contexto || 'tela') + '": ' +
+    falhas.map(f => f.regra + ' (diferença de ' + f.diferenca.toFixed(2) + ')').join('; ');
+
+  try { console.error('[CONFERIDOR]', msg, falhas); } catch (e) {}
+  try {
+    window.vnErro?.(new Error(msg), 'conferidor');
+    if (window.Sentry?.setContext) Sentry.setContext('conferencia', { contexto, falhas });
+  } catch (e) {}
+  vnMostrarTarja(contexto, falhas);
+  return false;
+}
+
+function vnMostrarTarja(contexto, falhas) {
+  let t = document.getElementById('vn-tarja-conf');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'vn-tarja-conf';
+    document.body.appendChild(t);
+  }
+  t.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+      '<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>' +
+    '<div><b>Conferência falhou em ' + String(contexto || 'tela') + '</b>' +
+      falhas.map(f => '<span>' + f.regra + ': diferença de ' +
+        f.diferenca.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '</span>').join('') +
+    '</div>' +
+    '<button onclick="this.parentNode.remove()" aria-label="Fechar">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+    '</button>';
+  t.dataset.ctx = contexto || '';
+  t.style.display = 'flex';
+}
+
+function vnEsconderTarja(contexto) {
+  const t = document.getElementById('vn-tarja-conf');
+  if (t && (!contexto || t.dataset.ctx === contexto)) t.remove();
+}
+
 async function loadLancamentos(forcarBancoFilter) {
   garantirCategorias();
   carregarCodOperador();
@@ -15097,12 +15194,23 @@ async function loadLancamentos(forcarBancoFilter) {
     if (n.includes('c6')) return 'c6';
     return n;
   };
+  // ATENCAO — REGRA DE OURO DESTE BLOCO
+  // Card de banco = SALDO ACUMULADO ate o fim do periodo filtrado.
+  // NAO e o movimento do periodo.
+  //
+  // Ja foi trocado por `lancs` (so o periodo) uma vez, e o resultado
+  // foi CAIXA e STONE zerados e ITAU mostrando o "Resultado" do mes.
+  // A soma dos bancos TEM que fechar com o card "Saldo Final", que
+  // usa `todos` ate `ultimaDataFiltroGlobal`. Se usar bases
+  // diferentes, os dois numeros da mesma tela se contradizem.
+  //
+  // A verificacao automatica no fim desta funcao acusa se quebrar.
   const saldoBanco = (b) => {
     const nomeB = normalizarBanco(b.nome);
-    // Usa `lancs` (já filtrado por ano/mês) em vez de `todos`: o card passa a
-    // mostrar o MOVIMENTO DO PERÍODO selecionado, batendo com a tabela abaixo.
-    // Antes somava tudo desde o início e o número não correspondia ao filtro.
-    const lancsB = lancs.filter(l =>
+    const base = ultimaDataFiltroGlobal
+      ? todos.filter(l => l.data_lancamento <= ultimaDataFiltroGlobal)
+      : todos;
+    const lancsB = base.filter(l =>
       l.banco_id === b.id || normalizarBanco(l.banco_nome) === nomeB
     );
     return lancsB.reduce((s,l) => s + vlLanc(l), 0);
@@ -15153,6 +15261,34 @@ async function loadLancamentos(forcarBancoFilter) {
   _ls('lanc-hero-saldo', fmtBRL(saldoTotal));
   _ls('lanc-hero-n', lancs.length.toLocaleString('pt-BR'));
   _ls('lanc-hero-res', fmtBRL(totalEntrada-totalSaida));
+
+  // ── CONFERENCIA AUTOMATICA ──────────────────────────────────
+  // Roda a cada carregamento. Se um numero parar de fechar, avisa
+  // na hora em vez de a tela mostrar valor errado por dias.
+  {
+    const somaBancos = _bancos.reduce((t, b) => t + saldoBanco(b), 0);
+    vnConferir([
+      {
+        // O saldo por banco e o saldo total tem que sair da MESMA base.
+        // Foi exatamente isso que quebrou uma vez.
+        nome: 'soma dos bancos = saldo final',
+        esperado: saldoTotal,
+        obtido: somaBancos,
+        tolerancia: 0.05
+      },
+      {
+        nome: 'entradas - saidas = resultado',
+        esperado: totalEntrada - totalSaida,
+        obtido: Number((totalEntrada - totalSaida).toFixed(2))
+      },
+      {
+        nome: 'contagem de lancamentos',
+        esperado: lancs.length,
+        obtido: document.querySelectorAll('#lanc-tbody tr[data-id]').length || lancs.length,
+        tolerancia: 0.5
+      }
+    ], 'Lançamentos');
+  }
 
   // Confere se o saldo bate com o DFC (comparacao valida so no regime de caixa)
   conferirSaldoDFC();

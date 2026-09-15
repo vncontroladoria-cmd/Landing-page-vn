@@ -138,6 +138,39 @@ JS usa continuam alcançáveis.
 
 ---
 
+## Números financeiros — regra de ouro
+
+**Card de banco = saldo ACUMULADO até o fim do período filtrado.**
+Não é o movimento do período.
+
+Isso já foi trocado uma vez por engano (passou a somar só o mês) e a
+tela ficou dias mostrando CAIXA e STONE zerados e ITAÚ com o valor do
+"Resultado". O card ao lado, "Saldo Final", continuava usando a base
+acumulada — dois números da mesma tela seguindo regras diferentes.
+
+Regra geral: **card de saldo usa `todos` até `ultimaDataFiltroGlobal`.
+Card de movimento usa `lancs`.** Nunca misture.
+
+### O conferidor
+
+Existe uma verificação automática (`vnConferir`) que roda a cada
+carregamento dos Lançamentos e checa:
+
+- soma dos bancos = saldo final
+- entradas − saídas = resultado
+- contagem de linhas na tela = contagem calculada
+
+Se algo não fechar, aparece uma tarja vermelha no topo com o valor da
+diferença, e o erro vai para o console e para o Sentry.
+
+**Ao criar tela nova com número financeiro, adicione as regras dela ao
+conferidor.** É o que transforma um erro silencioso em erro visível.
+
+Tolerância padrão: 2 centavos (arredondamento). Valor nulo ou inválido
+é ignorado, para não gerar alarme falso.
+
+---
+
 ## Desempenho
 
 - `loadDashboard()` buscava `pdv_caixas` e `pdv_itens` **quatro vezes**.
