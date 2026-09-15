@@ -3656,7 +3656,7 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 .proj-legenda .pl-linha{ width:14px; height:3px; border-radius:2px; }
 .proj-legenda .pl-linha.tracejada{
   background:none !important;
-  border-top:2px dashed rgba(79,127,221,.75); height:0; border-radius:0;
+  border-top:2px dashed #c08a2e; height:0; border-radius:0;
 }
 .proj-legenda .pl-barra{ width:9px; height:13px; border-radius:3px; }
 .proj-legenda .pl-barra{ width:9px; height:11px; border-radius:2px; }
@@ -5968,7 +5968,7 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
               <div class="proj-legenda">
                 <span><i class="pl-barra" style="background:linear-gradient(180deg,#3fb074,#2a7a4f)"></i>Entrou no dia</span>
                 <span><i class="pl-barra" style="background:linear-gradient(180deg,#d98b87,#b8544f)"></i>Saiu no dia</span>
-                <span><i class="pl-linha" style="background:rgba(79,127,221,.75)"></i>Saldo acumulado</span>
+                <span><i class="pl-linha" style="background:#d9a63f"></i>Saldo acumulado</span>
                 <span><i class="pl-linha tracejada"></i>Saldo projetado</span>
               </div>
             </div>
@@ -5986,7 +5986,7 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
             <div class="proj-legenda" style="margin-top:6px">
               <span><i class="pl-barra" style="background:linear-gradient(180deg,#3fb074,#2a7a4f)"></i>Entrou no dia</span>
               <span><i class="pl-barra" style="background:linear-gradient(180deg,#d98b87,#b8544f)"></i>Saiu no dia</span>
-              <span><i class="pl-linha" style="background:rgba(79,127,221,.75)"></i>Saldo acumulado</span>
+              <span><i class="pl-linha" style="background:#d9a63f"></i>Saldo acumulado</span>
             </div>
             <div id="dash-fluxo-resumo" style="display:flex;gap:0;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"></div>
           </div>
@@ -13743,8 +13743,8 @@ async function renderFluxoCaixaChart(ini, fim) {
   const gSai = ctxF.createLinearGradient(0, 0, 0, 320);
   gSai.addColorStop(0, '#d98b87'); gSai.addColorStop(1, '#b8544f');
   const gSaldo = ctxF.createLinearGradient(0, 0, 0, 320);
-  gSaldo.addColorStop(0, 'rgba(79,127,221,.16)');
-  gSaldo.addColorStop(1, 'rgba(79,127,221,0)');
+  gSaldo.addColorStop(0, 'rgba(217,166,63,.22)');
+  gSaldo.addColorStop(1, 'rgba(217,166,63,0)');
 
   const rotulosFluxo = {
     id: 'rotulosFluxo',
@@ -13796,14 +13796,14 @@ async function renderFluxoCaixaChart(ini, fim) {
         {
           type:'line', label:'Saldo acumulado',
           data: saldos,
-          borderColor:'rgba(79,127,221,.75)',
+          borderColor:'#d9a63f',
           backgroundColor: gSaldo,
-          borderWidth:1.8,
+          borderWidth:2.8,
           cubicInterpolationMode:'monotone',
           tension:0.35, fill:true,
-          pointRadius:0, pointHoverRadius:4,
-          pointHoverBackgroundColor:'#4f7fdd',
-          pointHoverBorderColor:'#fff', pointHoverBorderWidth:2,
+          pointRadius:0, pointHoverRadius:5,
+          pointHoverBackgroundColor:'#d9a63f',
+          pointHoverBorderColor:'#fff', pointHoverBorderWidth:2.5,
           pointHitRadius:14,
           yAxisID:'y2', order:1
         }
@@ -13851,7 +13851,26 @@ async function renderFluxoCaixaChart(ini, fim) {
             }
           }
         },
-        y2:{ position:'right', display:false, grid:{ display:false } }
+        // ESTE EIXO PRECISA APARECER.
+        // Escondido, o Chart.js escalava a linha sozinho e ela era
+        // desenhada num lugar que nao correspondia a nenhum numero da
+        // tela: o saldo marcava R$ 10 mil e a linha aparecia na altura
+        // de -13 mil. Com o eixo visivel, a posicao passa a ter
+        // significado e da pra conferir.
+        y2:{
+          position:'right', display:true,
+          border:{ display:false },
+          grid:{ display:false },
+          ticks:{
+            font:{size:9, weight:'600'}, color:'#b8862c', padding:6, maxTicksLimit:6,
+            callback: v => {
+              const a = Math.abs(v);
+              return (v<0?'-':'') + (a >= 1000 ? 'R$'+(a/1000).toFixed(0)+'k' : 'R$'+a.toFixed(0));
+            }
+          },
+          title:{ display:true, text:'saldo acumulado', color:'#b8862c',
+                  font:{size:9, weight:'600'} }
+        }
       }
     },
     plugins:[rotulosFluxo, {
@@ -30689,8 +30708,8 @@ async function loadProjecaoCaixa() {
   const gradSai = ctxG.createLinearGradient(0, 0, 0, 260);
   gradSai.addColorStop(0, '#d98b87'); gradSai.addColorStop(1, '#b8544f');
   const gradSaldo = ctxG.createLinearGradient(0, 0, 0, 260);
-  gradSaldo.addColorStop(0, 'rgba(79,127,221,.16)');
-  gradSaldo.addColorStop(1, 'rgba(79,127,221,0)');
+  gradSaldo.addColorStop(0, 'rgba(217,166,63,.22)');
+  gradSaldo.addColorStop(1, 'rgba(217,166,63,0)');
 
   const serieCheia = dias.map((_, i) =>
     saldoRealizado[i] != null ? saldoRealizado[i] : saldoProjetado[i]);
@@ -30755,9 +30774,9 @@ async function loadProjecaoCaixa() {
           data: saldoRealizado,
           type: 'line',
           yAxisID: 'y2',
-          borderColor: 'rgba(79,127,221,.75)',
+          borderColor: '#d9a63f',
           backgroundColor: gradSaldo,
-          borderWidth: 1.8,
+          borderWidth: 2.8,
           tension: 0.35,
           fill: true,
           pointRadius: 0,
@@ -30770,10 +30789,10 @@ async function loadProjecaoCaixa() {
           data: saldoProjetado,
           type: 'line',
           yAxisID: 'y2',
-          borderColor: 'rgba(79,127,221,.6)',
+          borderColor: '#c08a2e',
           backgroundColor: gradSaldo,
-          borderWidth: 1.8,
-          borderDash: [6,4],
+          borderWidth: 2.6,
+          borderDash: [7,5],
           tension: 0.35,
           fill: true,
           pointRadius: 0,
@@ -30832,8 +30851,22 @@ async function loadProjecaoCaixa() {
             }
           }
         },
-        // Eixo do saldo, invisivel: a linha e referencia de fundo
-        y2: { position: 'right', display: false, grid: { display: false } }
+        // Eixo do saldo VISIVEL. Escondido, o Chart.js escalava a linha
+        // por conta propria e ela ficava numa altura que nao batia com
+        // numero nenhum da tela.
+        y2: {
+          position: 'right', display: true,
+          border: { display: false },
+          grid: { display: false },
+          ticks: {
+            font: { size: 9, weight: '600' }, color: '#b8862c', padding: 6, maxTicksLimit: 6,
+            callback: v => {
+              const a = Math.abs(v);
+              return (v<0?'-':'') + (a >= 1000 ? 'R$'+(a/1000).toFixed(0)+'k' : 'R$'+a.toFixed(0));
+            }
+          },
+          title: { display: true, text: 'saldo', color: '#b8862c', font: { size: 9, weight: '600' } }
+        }
       }
     },
     plugins: [rotulosBarras, {
