@@ -15468,7 +15468,7 @@ function vnMostrarTarja(contexto, falhas) {
 const VN_EXPLICACOES = {
   'soma dos bancos = saldo final': {
     rotuloA: 'Saldo Final (card grande)',
-    rotuloB: 'Somando os bancos',
+    rotuloB: 'Somando bancos + sem banco',
     oque: 'Cada lançamento deveria estar ligado a um banco. Quando os dois números ' +
           'não batem, existe dinheiro no total que não está em banco nenhum — ' +
           'geralmente lançamento sem banco preenchido, ou com o nome do banco escrito ' +
@@ -15618,16 +15618,39 @@ async function loadLancamentos(forcarBancoFilter) {
   // diferentes, os dois numeros da mesma tela se contradizem.
   //
   // A verificacao automatica no fim desta funcao acusa se quebrar.
-  const saldoBanco = (b) => {
-    const nomeB = normalizarBanco(b.nome);
+  // ── SALDO POR BANCO — cada lançamento conta UMA VEZ SÓ ──
+  //
+  // Antes o casamento era "id igual OU nome normalizado igual". Se a
+  // empresa tem dois bancos que normalizam para o mesmo nome (ex.:
+  // "Itaú" e "Itau C/C"), o mesmo lançamento entrava nos dois e a
+  // soma dos bancos ficava MAIOR que o saldo total.
+  //
+  // Agora é feito em uma passada só, com destino único por lançamento:
+  //   1. bate o banco_id -> vai para esse banco
+  //   2. senão, bate o nome -> vai para o PRIMEIRO banco com esse nome
+  const _saldosPorBanco = (() => {
     const base = ultimaDataFiltroGlobal
       ? todos.filter(l => l.data_lancamento <= ultimaDataFiltroGlobal)
       : todos;
-    const lancsB = base.filter(l =>
-      l.banco_id === b.id || normalizarBanco(l.banco_nome) === nomeB
-    );
-    return lancsB.reduce((s,l) => s + vlLanc(l), 0);
-  };
+    const porId = {};
+    const primeiroPorNome = {};
+    _bancos.forEach(b => {
+      porId[b.id] = 0;
+      const n = normalizarBanco(b.nome);
+      if (n && primeiroPorNome[n] === undefined) primeiroPorNome[n] = b.id;
+    });
+    let semDestino = 0;
+    base.forEach(l => {
+      const v = vlLanc(l);
+      if (porId[l.banco_id] !== undefined) { porId[l.banco_id] += v; return; }
+      const alvo = primeiroPorNome[normalizarBanco(l.banco_nome)];
+      if (alvo !== undefined) { porId[alvo] += v; return; }
+      semDestino += v;      // nenhum banco reconhecido
+    });
+    return { porId, semDestino };
+  })();
+
+  const saldoBanco = (b) => _saldosPorBanco.porId[b.id] || 0;
 
   // Cards por banco
   const saldoDiv = document.getElementById('lanc-saldo-bancos');
@@ -15681,8 +15704,16 @@ async function loadLancamentos(forcarBancoFilter) {
   // ── CONFERENCIA AUTOMATICA ──────────────────────────────────
   // Roda a cada carregamento. Se um numero parar de fechar, avisa
   // na hora em vez de a tela mostrar valor errado por dias.
-  {
+  if (!bancoFilter) {      // com filtro de banco ativo a comparação não faz sentido
     const somaBancos = _bancos.reduce((t, b) => t + saldoBanco(b), 0);
+
+    // bancos cadastrados que normalizam para o mesmo nome
+    const porNomeNorm = {};
+    _bancos.forEach(b => {
+      const n = normalizarBanco(b.nome);
+      (porNomeNorm[n] = porNomeNorm[n] || []).push(b.nome);
+    });
+    const duplicados = Object.entries(porNomeNorm).filter(([,v]) => v.length > 1);
 
     // Quais lancamentos nao caem em banco nenhum? E isso que explica
     // a diferenca, entao a tarja mostra a lista em vez de so o valor.
@@ -15696,14 +15727,22 @@ async function loadLancamentos(forcarBancoFilter) {
       const orfaos  = baseConf.filter(l =>
         !idsOk.has(l.banco_id) && !nomesOk.includes(normalizarBanco(l.banco_nome)));
 
-      if (orfaos.length) {
+      if (duplicados.length) {
+        detalheBancos =
+          '<b>Bancos cadastrados com nomes equivalentes:</b>' +
+          duplicados.map(([n, nomes]) =>
+            '<span>' + nomes.join('  •  ') + '</span>').join('') +
+          '<span style="margin-top:6px;color:#b3453f">O sistema trata os dois como o mesmo banco. ' +
+          'Deixe apenas um cadastrado.</span>';
+      } else if (orfaos.length) {
         const porNome = {};
         orfaos.forEach(l => {
           const k = (l.banco_nome || '').trim() || '(banco em branco)';
           porNome[k] = (porNome[k] || 0) + vlLanc(l);
         });
         detalheBancos =
-          '<b>' + orfaos.length + ' lançamento(s) sem banco reconhecido:</b>' +
+          '<b>' + orfaos.length + ' lançamento(s) sem banco reconhecido' +
+          ' (total ' + vnBRL(_saldosPorBanco.semDestino) + '):</b>' +
           Object.entries(porNome)
             .sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]))
             .slice(0, 6)
@@ -15718,7 +15757,10 @@ async function loadLancamentos(forcarBancoFilter) {
         // Foi exatamente isso que quebrou uma vez.
         nome: 'soma dos bancos = saldo final',
         esperado: saldoTotal,
-        obtido: somaBancos,
+        // soma o que não caiu em banco nenhum: senão o conferidor
+        // acusaria sempre que houvesse lançamento sem banco, mesmo
+        // com o cálculo correto
+        obtido: somaBancos + _saldosPorBanco.semDestino,
         tolerancia: 0.05,
         detalhe: detalheBancos
       },
