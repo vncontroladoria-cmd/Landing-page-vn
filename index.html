@@ -28217,6 +28217,34 @@ function popularSelectMesAno(idMes, idAno) {
 
 let _feriasLista = [];
 let _feriasCLT   = [];
+let _feriasTabelaFalta = false;
+
+// Quem tem direito a ferias. Nao compara com 'clt' cru porque o dado
+// pode estar como 'CLT', 'Clt', com espaco, ou a marcacao pode ter
+// vindo no campo regime em vez do tipo.
+function ehCLT(p){
+  if (!p) return false;
+  const norm = v => String(v == null ? '' : v).trim().toLowerCase()
+                      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const t = norm(p.tipo);
+  const r = norm(p.regime);
+  if (t === 'clt' || r === 'clt') return true;
+  if (t.includes('clt') || r.includes('clt')) return true;
+  if (t.includes('carteira') || r.includes('carteira')) return true;   // "carteira assinada"
+  return false;
+}
+
+// Diagnostico: mostra como cada profissional foi classificado.
+// Chame vnDiagnosticoCLT() no console (F12).
+function vnDiagnosticoCLT(){
+  const l = (window._rhProfsCache || _feriasCLT).length ? null : null;
+  qE('rh_profissionais').select('nome,tipo,regime').order('nome').then(({data}) => {
+    console.table((data||[]).map(p => ({
+      nome: p.nome, tipo: p.tipo, regime: p.regime,
+      considerado: ehCLT(p) ? 'CLT (tem férias)' : 'sem direito'
+    })));
+  });
+}
 let _feriasFiltro = 'todas';   // todas | programadas | emcurso | concluidas
 
 function fISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -28256,23 +28284,36 @@ async function loadRHFerias(){
       '<span class="sk" style="height:12px;width:16%"></span>' +
       '<span class="sk" style="height:12px;width:18%"></span></div>').join('') + '</div>';
 
-  try {
-    // só CLT
-    const { data: profs, error: e1 } = await qE('rh_profissionais')
-      .select('id,nome,cargo,tipo,admissao').eq('tipo','clt').order('nome');
-    if (e1) throw new Error(e1.message);
-    _feriasCLT = profs || [];
+  // As duas consultas sao SEPARADAS de proposito. Antes estavam no
+  // mesmo try: se a tabela rh_ferias ainda nao existisse, a falha
+  // dela derrubava tambem a lista de CLT, e a tela dizia que nao
+  // havia CLT cadastrado — quando havia.
+  _feriasTabelaFalta = false;
 
-    const { data: fer, error: e2 } = await qE('rh_ferias')
+  // 1) profissionais CLT — traz todos e filtra aqui, para nao depender
+  //    de o banco ter gravado exatamente 'clt' minusculo
+  try {
+    const { data: profs, error } = await qE('rh_profissionais')
+      .select('id,nome,cargo,tipo,regime,admissao,ativo').order('nome');
+    if (error) throw new Error(error.message);
+    _feriasCLT = (profs || []).filter(ehCLT);
+  } catch (e) {
+    window.vnErro?.(e, 'rh-ferias-profissionais');
+    _feriasCLT = [];
+  }
+
+  // 2) períodos de férias
+  try {
+    const { data: fer, error } = await qE('rh_ferias')
       .select('*, rh_profissionais(nome,cargo,admissao)').order('inicio', { ascending:false });
-    if (e2) throw new Error(e2.message);
+    if (error) throw new Error(error.message);
     _feriasLista = fer || [];
   } catch (e) {
-    window.vnErro?.(e, 'rh-ferias-carregar');
-    if (corpo) corpo.innerHTML = '<div class="ferias-vazio">Não consegui carregar: ' + fEsc(e.message) +
-      '<br><small>Se a tabela ainda não existe, rode o arquivo <b>rh_ferias.sql</b> no Supabase.</small></div>';
-    return;
+    _feriasLista = [];
+    _feriasTabelaFalta = true;
+    window.vnErro?.(e, 'rh-ferias-periodos');
   }
+
   fRender();
 }
 
@@ -28323,9 +28364,17 @@ function fRender(){
     ? _feriasLista
     : _feriasLista.filter(f => fSituacao(f) === mapaFiltro[_feriasFiltro]);
 
+  if (_feriasTabelaFalta) {
+    corpo.innerHTML = '<div class="ferias-vazio"><b>Falta criar a tabela no banco.</b><br>' +
+      '<small>Abra o SQL Editor do Supabase e rode o arquivo <b>rh_ferias.sql</b>. ' +
+      'Encontrei ' + _feriasCLT.length + ' profissional(is) CLT — a lista aparece assim que a tabela existir.</small></div>';
+    return;
+  }
   if (!_feriasCLT.length) {
-    corpo.innerHTML = '<div class="ferias-vazio">Nenhum profissional CLT cadastrado.<br>' +
-      '<small>Férias valem só para CLT. Cadastre em <b>Profissionais</b> com o tipo CLT.</small></div>';
+    corpo.innerHTML = '<div class="ferias-vazio">Nenhum profissional CLT encontrado.<br>' +
+      '<small>Férias valem só para CLT. Cadastre em <b>Profissionais</b> com o tipo CLT.<br>' +
+      'Se você tem CLT cadastrado e mesmo assim aparece esta mensagem, abra o console (F12) ' +
+      'e rode <b>vnDiagnosticoCLT()</b> para ver como cada um está classificado.</small></div>';
     return;
   }
   if (!lista.length) {
