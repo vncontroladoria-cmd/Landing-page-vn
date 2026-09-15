@@ -29689,9 +29689,26 @@ async function loadCartaoLancamentos() {
   if (nSemCatCC) nSemCatCC.textContent = semCatCC.length;
   if (btnSemCatCC) {
     btnSemCatCC.style.display = semCatCC.length > 0 ? 'inline-flex' : 'none';
-    btnSemCatCC.dataset.ativo = '0';
-    btnSemCatCC.style.background = 'rgba(245,158,11,0.1)';
-    btnSemCatCC.style.color = '#b45309';
+    // O filtro esconde linhas com style.display. Toda vez que a tabela
+    // era redesenhada (salvar, excluir, categorizar) as linhas voltavam
+    // e o usuário era jogado para fora da lista de "sem categoria".
+    // Agora o estado é lembrado e reaplicado após o render.
+    const manter = _filtroSemCatAtivoCC && semCatCC.length > 0;
+    btnSemCatCC.dataset.ativo = manter ? '1' : '0';
+    btnSemCatCC.style.background = manter ? '#f59e0b' : 'rgba(245,158,11,0.1)';
+    btnSemCatCC.style.color      = manter ? '#fff' : '#b45309';
+    if (manter) {
+      const ids = new Set(semCatCC.map(l => 'cc-row-' + l.id));
+      setTimeout(() => {
+        document.querySelectorAll('#cc-tbody tr[id]').forEach(r => {
+          r.style.display = ids.has(r.id) ? '' : 'none';
+        });
+      }, 0);
+    } else if (_filtroSemCatAtivoCC && !semCatCC.length) {
+      // acabaram as pendências: sai do filtro e avisa
+      _filtroSemCatAtivoCC = false;
+      showToast('Todos os lançamentos já têm categoria', 'success');
+    }
   }
 
   if (!lista.length) {
@@ -29908,6 +29925,12 @@ async function excluirSelecionadosCC() {
   loadCartaoLancamentos();
 }
 
+// var (não let): é içada, então pode ser usada por funções
+// declaradas antes desta linha no arquivo.
+var _filtroSemCatAtivoCC = (() => {
+  try { return sessionStorage.getItem('vn_cc_semcat') === '1'; } catch (e) { return false; }
+})();
+
 function filtrarSemCategoriaCC() {
   const semCat = (_ccLancamentosAtuais||[]).filter(l => !l.categoria);
   const btn = document.getElementById('btn-sem-cat-cc');
@@ -29915,6 +29938,7 @@ function filtrarSemCategoriaCC() {
   if (btn?.dataset.ativo === '1') {
     btn.dataset.ativo = '0';
     _filtroSemCatAtivoCC = false;
+    try { sessionStorage.setItem('vn_cc_semcat', '0'); } catch (e) {}
     btn.style.background = 'rgba(245,158,11,0.1)';
     btn.style.color = '#b45309';
     document.querySelectorAll('#cc-tbody tr[id]').forEach(r => r.style.display = '');
@@ -29934,13 +29958,15 @@ function filtrarSemCategoriaCC() {
     btn.style.color = '#fff';
   }
   _filtroSemCatAtivoCC = true;
+  try { sessionStorage.setItem('vn_cc_semcat', '1'); } catch (e) {}
+  _filtroSemCatAtivoCC = true;
 
   showToast(`Mostrando ${semCat.length} lançamento(s) sem categoria`, 'info');
 }
 
 // Reaplica o filtro "sem categoria" depois que a tabela e redesenhada,
 // pra nao perder a fila de edicao a cada save
-let _filtroSemCatAtivoCC = false;
+// declarada com var mais acima; esta linha fica só como referência
 function reaplicarFiltroSemCatCC() {
   if (!_filtroSemCatAtivoCC) return;
   const semCat = (_ccLancamentosAtuais||[]).filter(l => !l.categoria);
