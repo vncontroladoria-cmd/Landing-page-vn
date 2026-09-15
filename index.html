@@ -12690,10 +12690,10 @@ async function excluirSelecionadosPDV() {
   if (!confirm(`Excluir ${ids.length} caixa(s) selecionado(s)?
 Essa ação não pode ser desfeita.`)) return;
   for (const id of ids) {
-    await sb.from('pdv_itens').delete().eq('caixa_id', id);
+    await sb.from('pdv_itens').delete().eq('empresa_id', empIdAtual()).eq('caixa_id', id);
     // Apaga também o lançamento gerado por este caixa. Sem isto ele ficava
     // órfão em Lançamentos, inflando o saldo do Caixa no DFC.
-    await sb.from('lancamentos').delete().eq('pdv_caixa_id', id);
+    await sb.from('lancamentos').delete().eq('empresa_id', empIdAtual()).eq('pdv_caixa_id', id);
     await sb.from('pdv_caixas').delete().eq('id', id);
     document.getElementById('pdv-row-' + id)?.remove();
   }
@@ -13184,7 +13184,7 @@ async function salvarCaixa() {
       updated_at: new Date().toISOString(), updated_by: usuario
     }).eq('id', caixaId);
     if (error) { showToast('Erro: ' + error.message, 'error'); return; }
-    await sb.from('pdv_itens').delete().eq('caixa_id', caixaId);
+    await sb.from('pdv_itens').delete().eq('empresa_id', empIdAtual()).eq('caixa_id', caixaId);
   } else {
     // Evita criar caixa duplicado pra mesma data E mesmo responsável
     // (responsáveis diferentes podem ter cada um seu caixa no mesmo dia — isso é esperado)
@@ -13232,7 +13232,7 @@ async function sincronizarComandaParaLancamento(caixaId, data_caixa, itens) {
     .reduce((s,i) => s + i.valor, 0);
 
   // Remove o lançamento anterior desse caixa (se existir), pra não duplicar ao editar
-  await sb.from('lancamentos').delete().eq('pdv_caixa_id', caixaId);
+  await sb.from('lancamentos').delete().eq('empresa_id', empIdAtual()).eq('pdv_caixa_id', caixaId);
 
   if (totalComanda <= 0) return; // nada de comanda nesse caixa — não cria lançamento
 
@@ -13277,9 +13277,9 @@ async function sincronizarComandaParaLancamento(caixaId, data_caixa, itens) {
 
 async function excluirCaixa(id) {
   if (!confirm('Excluir este caixa?')) return;
-  await sb.from('pdv_itens').delete().eq('caixa_id', id);
+  await sb.from('pdv_itens').delete().eq('empresa_id', empIdAtual()).eq('caixa_id', id);
   // O lançamento de "Comandas PDV" gerado por este caixa vai junto
-  await sb.from('lancamentos').delete().eq('pdv_caixa_id', id);
+  await sb.from('lancamentos').delete().eq('empresa_id', empIdAtual()).eq('pdv_caixa_id', id);
   await sb.from('pdv_caixas').delete().eq('id', id);
   showToast('Caixa excluído', 'success');
   loadPDV();
@@ -19629,8 +19629,8 @@ async function salvarCategoriaInline(id, rowId) {
   if (ant?.nome && ant.nome !== novoNome) {
     const { count: c1 } = await qE('lancamentos').select('id',{count:'exact',head:true}).eq('categoria', ant.nome);
     if (c1 > 0) {
-      await sb.from('lancamentos').update({ categoria: novoNome }).eq('categoria', ant.nome);
-      await sb.from('lancamentos').update({ categoria_dre: novoNome }).eq('categoria_dre', ant.nome);
+      await sb.from('lancamentos').update({ categoria: novoNome }).eq('empresa_id', empIdAtual()).eq('categoria', ant.nome);
+      await sb.from('lancamentos').update({ categoria_dre: novoNome }).eq('empresa_id', empIdAtual()).eq('categoria_dre', ant.nome);
       msgs.push(`${c1} lançamento${c1>1?'s':''} renomeado${c1>1?'s':''}`);
     }
   }
@@ -19642,7 +19642,7 @@ async function salvarCategoriaInline(id, rowId) {
     if ((ant.demonstrativo === 'AMBOS' || ant.demonstrativo === 'DFC') && novoDemo === 'DRE') {
       const { count: cF } = await qE('lancamentos').select('id',{count:'exact',head:true}).eq('categoria', nomeAtual).not('categoria_dfc','is',null);
       if (cF > 0) {
-        await sb.from('lancamentos').update({ categoria_dfc: null }).eq('categoria', nomeAtual);
+        await sb.from('lancamentos').update({ categoria_dfc: null }).eq('empresa_id', empIdAtual()).eq('categoria', nomeAtual);
         msgs.push(`${cF} lançamento${cF>1?'s':''} removido${cF>1?'s':''} do DFC`);
       }
     }
@@ -19650,7 +19650,7 @@ async function salvarCategoriaInline(id, rowId) {
     if ((ant.demonstrativo === 'AMBOS' || ant.demonstrativo === 'DRE') && novoDemo === 'DFC') {
       const { count: cD } = await qE('lancamentos').select('id',{count:'exact',head:true}).eq('categoria', nomeAtual).not('categoria_dre','is',null);
       if (cD > 0) {
-        await sb.from('lancamentos').update({ categoria_dre: null }).eq('categoria', nomeAtual);
+        await sb.from('lancamentos').update({ categoria_dre: null }).eq('empresa_id', empIdAtual()).eq('categoria', nomeAtual);
         msgs.push(`${cD} lançamento${cD>1?'s':''} removido${cD>1?'s':''} do DRE`);
       }
     }
@@ -19678,7 +19678,7 @@ async function salvarCategoriaInline(id, rowId) {
   if (novoCompTipo === 'atual' && ant?.competencia_tipo === 'anterior') {
     const { count: cComp } = await qE('lancamentos').select('id',{count:'exact',head:true}).eq('categoria', novoNome).not('competencia','is',null);
     if (cComp > 0 && confirm(`Remover as ${cComp} competências definidas automaticamente para "${novoNome}"?`)) {
-      await sb.from('lancamentos').update({ competencia: null }).eq('categoria', novoNome);
+      await sb.from('lancamentos').update({ competencia: null }).eq('empresa_id', empIdAtual()).eq('categoria', novoNome);
       msgs.push(`${cComp} competência${cComp>1?'s':''} removida${cComp>1?'s':''}`);
     }
   }
@@ -19824,7 +19824,7 @@ async function saveCategoria() {
     const res = await sb.from('plano_contas').update(payload).eq('id', editId);
     error = res.error;
     if (!error && ant?.nome && ant.nome !== nome) {
-      await sb.from('lancamentos').update({ categoria: nome }).eq('categoria', ant.nome);
+      await sb.from('lancamentos').update({ categoria: nome }).eq('empresa_id', empIdAtual()).eq('categoria', ant.nome);
     }
     // Código mudou (trocou de grupo, por exemplo) → propaga pros lançamentos que usavam o código antigo
     if (!error && codigoAntigoReal && codigoAntigoReal !== codigo) {
@@ -23966,7 +23966,9 @@ async function salvarConta() {
   const fileInput = document.getElementById('ct-arquivo');
   if (fileInput?.files[0]) {
     const file = fileInput.files[0];
-    const path = `${_tipoContaModal}/${Date.now()}_${file.name.replace(/\s/g,'_')}`;
+    // Pasta por empresa: sem isso os arquivos de todas as empresas
+    // ficam no mesmo diretório do Storage e se misturam na listagem.
+    const path = `${empIdAtual()}/${_tipoContaModal}/${Date.now()}_${file.name.replace(/\s/g,'_')}`;
     const { error: upErr } = await sb.storage.from('documentos').upload(path, file);
     if (upErr) { showToast('Erro no upload: '+upErr.message,'error'); return; }
     const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
@@ -27517,6 +27519,15 @@ function qE(tabela) {
 }
 
 // Para INSERT: adiciona empresa_id automaticamente no payload
+// Empresa da sessão. Usar SEMPRE em update/delete de tabela
+// multiempresa — qE() só protege o select, não o update.
+function empIdAtual() {
+  return _empresaAtual?.id
+      || sessionStorage.getItem('vn_empresa_id')
+      || localStorage.getItem('vn_empresa_id')
+      || '00000000-0000-0000-0000-000000000000';   // não pega nada
+}
+
 function addEmpresaId(payload) {
   // Pega empresa_id de todas as fontes possíveis
   const empId = _empresaAtual?.id 
