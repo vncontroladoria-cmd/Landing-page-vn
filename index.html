@@ -23686,6 +23686,65 @@ function toggleDREGrupo(gId) {
 // ─── CONTAS A PAGAR / RECEBER ────────────────────────────
 let _tipoContaModal = 'pagar';
 
+
+// ══════════════════════════════════════════════════════════════
+// LIMPAR O ANEXO AO ABRIR O MODAL DE CONTA
+//
+// O <input type="file"> guarda o arquivo escolhido ate a pagina
+// recarregar. Como o modal e o MESMO elemento reaproveitado, abrir
+// outra conta mantinha o arquivo da anterior — e salvar anexava o
+// boleto errado. Tambem deixava o botao verde de "tem documento"
+// aceso numa conta que nao tinha nada.
+//
+// Esta funcao zera tudo que diz respeito a arquivo. Chamada ao
+// abrir para criar E ao abrir para editar.
+// ══════════════════════════════════════════════════════════════
+function limparAnexoConta() {
+  const inp = document.getElementById('ct-arquivo');
+  if (inp) {
+    inp.value = '';
+    try { inp.files = new DataTransfer().files; } catch (e) {}   // Safari antigo
+  }
+
+  const prev = document.getElementById('ct-arquivo-preview');
+  if (prev) prev.style.display = 'none';
+
+  ['ct-arquivo-nome', 'ct-arquivo-tamanho'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.textContent = '';
+  });
+
+  const st = document.getElementById('ct-pdf-status');
+  if (st) st.textContent = 'Nenhum arquivo selecionado';
+
+  const drop = document.getElementById('ct-arquivo-drop');
+  if (drop) drop.style.borderColor = '';
+
+  const sel = document.getElementById('ct-pasta-sel');
+  if (sel) { sel.value = ''; sel.style.borderColor = ''; }
+
+  // estado de parcelas lido de PDF
+  if (typeof _contaParcelas !== 'undefined') _contaParcelas = [];
+
+  // url do documento existente: quem define é quem abre a conta
+  const modal = document.getElementById('modal-conta');
+  if (modal) delete modal.dataset.arquivoUrl;
+}
+
+// Mostra o anexo que a conta JÁ tem, sem confundir com um novo
+function mostrarAnexoExistente(url, nome) {
+  const modal = document.getElementById('modal-conta');
+  if (!url) return;
+  if (modal) modal.dataset.arquivoUrl = url;
+  const prev = document.getElementById('ct-arquivo-preview');
+  const nEl  = document.getElementById('ct-arquivo-nome');
+  const tEl  = document.getElementById('ct-arquivo-tamanho');
+  if (nEl) nEl.textContent = nome || decodeURIComponent(String(url).split('/').pop() || 'documento');
+  if (tEl) tEl.innerHTML = 'Documento já salvo · <a href="' + url + '" target="_blank" rel="noopener" ' +
+                           'style="color:var(--g700);text-decoration:underline">abrir</a>';
+  if (prev) prev.style.display = 'flex';
+}
+
 function abrirModalConta(tipo) {
   _tipoContaModal = tipo;
   document.getElementById('modal-conta-title').textContent = tipo === 'pagar' ? 'Nova conta a pagar' : 'Nova conta a receber';
@@ -23715,6 +23774,7 @@ function abrirModalConta(tipo) {
   if (lancPreview) lancPreview.style.display = 'none';
   _contaParcelas = [];
   document.getElementById('modal-conta').dataset.editId = '';
+  limparAnexoConta();   // sem isso o arquivo da conta anterior vem junto
   // Popula select de pasta
   const selPasta = document.getElementById('ct-pasta-sel');
   if (selPasta) {
@@ -24039,7 +24099,10 @@ async function salvarConta() {
   const tabela = _tipoContaModal === 'pagar' ? 'contas_pagar' : 'contas_receber';
 
   // Upload arquivo
-  let arquivoUrl = '';
+  // Começa com o anexo que a conta JÁ tinha. Se o usuário não
+  // escolher arquivo novo, ele é mantido. Antes começava vazio e
+  // uma edição sem anexo apagava o boleto que já estava lá.
+  let arquivoUrl = document.getElementById('modal-conta')?.dataset.arquivoUrl || '';
   const fileInput = document.getElementById('ct-arquivo');
   if (fileInput?.files[0]) {
     const file = fileInput.files[0];
@@ -24131,7 +24194,13 @@ async function salvarConta() {
     // Colunas de auditoria (adiciona só se existirem no banco)
     try { payload.criado_por = _vnUser?.id || null; } catch(e){}
     try { payload.criado_por_nome = _vnUser?.nome || _vnUser?.email || null; } catch(e){}
-    try { payload.pasta_id = document.getElementById('ct-pasta-sel')?.value || null; } catch(e){}
+    // Só grava a pasta quando há uma escolhida. Escrever null por
+    // omissão tirava a conta da pasta em qualquer edição.
+    try {
+      const _p = document.getElementById('ct-pasta-sel')?.value || '';
+      if (_p) payload.pasta_id = _p;
+      else if (!editId) payload.pasta_id = null;   // conta nova sem pasta
+    } catch(e){}
 
     const { error } = (editId && i === 0)
       ? await sb.from(tabela).update(payload).eq('id', editId)
@@ -24520,6 +24589,12 @@ async function editarConta(id, tipo) {
   document.getElementById('ct-obs').value = c.observacao || '';
   document.getElementById('ct-cat-busca').value = c.categoria || '';
   document.getElementById('ct-categoria').value = c.categoria || '';
+  limparAnexoConta();                      // zera o que sobrou da conta anterior
+  mostrarAnexoExistente(c.arquivo_url);    // e mostra o anexo DESTA conta, se houver
+  // A pasta é da conta, não do formulário: sem restaurar, salvar
+  // depois de editar apagaria o arquivamento.
+  const _selP = document.getElementById('ct-pasta-sel');
+  if (_selP && c.pasta_id) _selP.value = c.pasta_id;
   document.getElementById('modal-conta').dataset.editId = id;
   document.getElementById('modal-conta').classList.add('open');
 }
