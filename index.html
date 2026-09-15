@@ -13913,9 +13913,19 @@ async function loadDashboard() {
   // da tela — dois períodos diferentes na mesma página.
   try {
     const a = parseInt(document.getElementById('dash-ano')?.value);
-    const m = parseInt(document.getElementById('dash-mes')?.value);
+    const mRaw = document.getElementById('dash-mes')?.value || '';
+    const m = parseInt(mRaw);
     if (a && a > 2000) _projAno = a;
-    if (m && m >= 1 && m <= 12) _projMes = m;
+    if (m && m >= 1 && m <= 12) {
+      _projMes = m;
+    } else if (!mRaw) {
+      // "Todos os meses": a projeção é sempre mensal, então mostra o
+      // último mês com movimento no ano escolhido (ou dezembro, se o
+      // ano for passado). Projetar "o ano todo" num gráfico de dias
+      // não faria sentido.
+      const h = new Date();
+      _projMes = (a === h.getFullYear()) ? (h.getMonth() + 1) : 12;
+    }
   } catch (e) {}
   try { return await _loadDashboardInterno(); }
   finally { if (typeof skDashboardDesligar === 'function') skDashboardDesligar(); }
@@ -13946,10 +13956,16 @@ async function _loadDashboardInterno() {
   const mesLabel = mes ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(mes)-1] + '/' + ano : `Ano ${ano}`;
   if (el('dash-period')) el('dash-period').textContent = mesLabel + ' · serviços por dia';
 
-  // Inicializa ano/mes com mês atual se vazio
-  if (el('dash-mes') && !el('dash-mes').value) {
-    el('dash-mes').value = String(hoje.getMonth()+1).padStart(2,'0');
-    return loadDashboard();
+  // Preenche o mês atual APENAS na primeira abertura.
+  // Antes esta checagem rodava sempre que o mês estivesse vazio — e
+  // "Todos os meses" é justamente o valor vazio. Resultado: escolher
+  // "Todos os meses" era desfeito na hora e voltava para o mês de hoje.
+  if (!window._dashMesIniciado) {
+    window._dashMesIniciado = true;
+    if (el('dash-mes') && !el('dash-mes').value) {
+      el('dash-mes').value = String(hoje.getMonth()+1).padStart(2,'0');
+      return loadDashboard();
+    }
   }
 
   const CORES_ENT = ['#15803d','#34c97a','#6ee7a8','#6ee7b7','#a7f3d0','#dcfce7'];
