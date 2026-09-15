@@ -3718,6 +3718,20 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 
 .pt-qtd{ display:block; font-size:10px; color:var(--text3); margin-top:1px; }
 
+
+/* As tabelas mostram tudo. Para não esticar a página sem fim, elas
+   rolam por dentro — cabeçalho e total ficam fixos. */
+#proj-tabela, #proj-imprevistos{ max-height:320px; overflow-y:auto; }
+#proj-tabela::-webkit-scrollbar, #proj-imprevistos::-webkit-scrollbar{ width:7px; }
+#proj-tabela::-webkit-scrollbar-thumb, #proj-imprevistos::-webkit-scrollbar-thumb{
+  background:#d5d9de; border-radius:999px; }
+.pt-tab thead th{ position:sticky; top:0; background:#fff; z-index:2; }
+.pt-tab tfoot td{
+  position:sticky; bottom:0; background:var(--bg3); z-index:2;
+  border-top:1px solid var(--border2); padding:9px 8px; font-size:12px;
+}
+#proj-imprevistos .pt-aviso{ position:sticky; top:0; z-index:3; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -7226,7 +7240,7 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
           <div class="card" style="padding:18px 20px">
             <div class="pt-grid" style="margin-top:0;padding-top:0;border-top:none">
               <div class="pt-bloco">
-                <div class="pt-tit">Próximos 15 dias</div>
+                <div class="pt-tit">Dias que faltam no mês</div>
                 <div id="proj-tabela"></div>
               </div>
               <div class="pt-bloco">
@@ -13792,13 +13806,15 @@ async function renderFluxoCaixaChart(ini, fim) {
   if (!dias.length) return;
 
   const { data: lancs } = await qE('lancamentos')
-    .select('data_lancamento,entrada,saida')
+    .select('data_lancamento,entrada,saida,categoria,categoria_dfc,descricao,extrato')
     .gte('data_lancamento', ini).lte('data_lancamento', fim);
 
   const entDia = {}, saiDia = {};
   (lancs||[]).forEach(l => {
     const dia = l.data_lancamento;
     if (!dias.includes(dia)) return;
+    // entre contas não é movimento: entra numa conta e sai de outra
+    if (typeof isLancContabil === 'function' && isLancContabil(l)) return;
     if (Number(l.entrada||0) > 0) entDia[dia] = (entDia[dia]||0) + Number(l.entrada);
     if (Number(l.saida||0)   > 0) saiDia[dia] = (saiDia[dia]||0) + Number(l.saida);
   });
@@ -15553,8 +15569,11 @@ async function loadLancamentos(forcarBancoFilter) {
   }
 
   // Entradas e Saídas do período filtrado (exclui Entre Contas e Saldo Inicial)
-  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA'&&!isSaldoInicial(l)).reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
-  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA'&&!isSaldoInicial(l)).reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
+  // Entre Contas fica de fora: transferência entre bancos próprios não é
+  // entrada nem saída — o dinheiro não entrou nem saiu da empresa, só
+  // mudou de conta. O comentário acima já dizia isso, mas o filtro não fazia.
+  const totalEntrada = lancs.filter(l=>l.tipo==='ENTRADA'&&!isLancContabil(l)).reduce((s,l)=>s+Number(l.entrada||l.valor||0),0);
+  const totalSaida   = lancs.filter(l=>l.tipo==='SAIDA'&&!isLancContabil(l)).reduce((s,l)=>s+Number(l.saida||l.valor||0),0);
 
   // Saldo Total = saldo acumulado até o último dia do período filtrado (mesma data-limite usada nos bancos acima)
   let saldoTotal;
@@ -30619,7 +30638,7 @@ function projRenderTabelas() {
   const alvo = document.getElementById('proj-tabela');
   if (alvo) {
     const linhas = [];
-    for (let i = d.diasCorridos; i < d.dias.length && linhas.length < 15; i++) {
+    for (let i = d.diasCorridos; i < d.dias.length; i++) {
       const dia = d.dias[i];
       const entra = cen === 'real' ? (d.recebDia[dia] || 0) : d.receitaDiaProj;
       const sai   = (d.contasPorDia[dia] || 0) + (cen === 'real' ? 0 : d.despesaDiaProj);
@@ -30652,17 +30671,15 @@ function projRenderTabelas() {
         'A projeção não contava com elas.</div>' +
         '<table class="pt-tab"><thead><tr><th>Data</th><th>Descrição</th>' +
         '<th style="text-align:right">Valor</th></tr></thead><tbody>' +
-        d.imprevistos.slice(0, 10).map(i => {
+        d.imprevistos.map(i => {
           const [a,m,dd] = (i.primeira || '').split('-');
           return '<tr><td>' + (dd ? dd + '/' + m : '—') + '</td>' +
                  '<td><b>' + esc(i.cat) + '</b>' +
                  (i.qtd > 1 ? '<span class="pt-qtd">' + i.qtd + ' lançamentos</span>' : '') +
                  '</td><td class="pt-num pt-s">' + brl(i.valor) + '</td></tr>';
         }).join('') +
-        (d.imprevistos.length > 10
-          ? '<tr><td colspan="3" class="pt-mais">e mais ' + (d.imprevistos.length - 10) + '…</td></tr>'
-          : '') +
-        '</tbody></table>';
+        '</tbody><tfoot><tr><td colspan="2"><b>Total</b></td>' +
+        '<td class="pt-num pt-s"><b>' + brl(d.totalImprevisto) + '</b></td></tr></tfoot></table>';
     }
   }
 
@@ -30719,7 +30736,7 @@ async function loadProjecaoCaixa() {
   // 2. Buscar lançamentos do mês (realizados)
   const fimStr = `${_projAno}-${String(_projMes).padStart(2,'0')}-${String(diasNoMes).padStart(2,'0')}`;
   const { data: lancMes } = await sb.from('lancamentos')
-    .select('entrada,saida,valor,tipo,data_lancamento')
+    .select('entrada,saida,valor,tipo,data_lancamento,categoria,categoria_dfc,descricao,extrato')
     .eq('empresa_id', empId)
     .gte('data_lancamento', iniStr)
     .lte('data_lancamento', fimStr)
@@ -30729,6 +30746,8 @@ async function loadProjecaoCaixa() {
   const entradaPorDia = {};
   const saidaPorDia  = {};
   (lancMes||[]).forEach(l => {
+    // transferência entre contas próprias não é movimento de caixa
+    if (typeof isLancContabil === 'function' && isLancContabil(l)) return;
     const d = parseInt(l.data_lancamento.split('-')[2]);
     const e = Number(l.entrada||(l.tipo==='ENTRADA'?l.valor:0)||0);
     const sa = Number(l.saida||(l.tipo==='SAIDA'?l.valor:0)||0);
@@ -31030,6 +31049,7 @@ async function loadProjecaoCaixa() {
     (saidas || []).forEach(l => {
       const v = Number(l.saida || (String(l.tipo).toUpperCase() === 'SAIDA' ? l.valor : 0) || 0);
       if (v <= 0) return;
+      if (typeof isLancContabil === 'function' && isLancContabil(l)) return;  // entre contas / saldo inicial
       const cat = normCat(l.categoria);
       if (!cat) return;                       // sem categoria: não dá para julgar
       if (catsPrevistas.has(cat)) return;     // essa categoria estava prevista
