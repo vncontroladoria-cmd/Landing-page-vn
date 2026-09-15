@@ -3834,6 +3834,88 @@ tr[data-editing="true"] select{
   .content tbody tr:hover{ background:#e7f6ed !important; }
 }
 
+
+/* ── perguntas para o dono ── */
+#painel-operador .pg-nova-wrap{ padding:14px 20px; border-bottom:1px solid rgba(255,255,255,.07); flex-shrink:0; }
+#painel-operador #pg-nova{
+  width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+  border-radius:11px; padding:10px 13px; color:#fff; font-family:'Outfit',sans-serif;
+  font-size:13px; resize:vertical;
+}
+#painel-operador #pg-nova:focus{ outline:none; border-color:#a855f7; box-shadow:0 0 0 3px rgba(168,85,247,.18); }
+#painel-operador .pg-nova-rod{ display:flex; align-items:center; gap:8px; margin-top:9px; flex-wrap:wrap; }
+#painel-operador #pg-prio{
+  height:36px; padding:0 12px; border-radius:999px; cursor:pointer;
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.13);
+  color:rgba(255,255,255,.85); font-family:'Outfit',sans-serif; font-size:12.5px;
+}
+#painel-operador .pg-tabs{ display:flex; gap:4px; padding:10px 20px 0; flex-shrink:0; }
+#painel-operador .pg-tab{
+  padding:7px 14px; border-radius:999px 999px 0 0; border:none; cursor:pointer;
+  background:transparent; color:rgba(255,255,255,.5);
+  font-family:'Outfit',sans-serif; font-size:12.5px; font-weight:500; transition:all .18s;
+}
+#painel-operador .pg-tab b{ margin-left:6px; background:rgba(255,255,255,.1); border-radius:999px; padding:1px 7px; font-size:10.5px; }
+#painel-operador .pg-tab:hover{ color:#fff; background:rgba(255,255,255,.05); }
+#painel-operador .pg-tab.on{ color:#fff; font-weight:600; background:rgba(168,85,247,.2); }
+#painel-operador .pg-tab.on b{ background:#a855f7; }
+
+#painel-operador .pg-item{
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+  border-left:3px solid #a855f7; border-radius:12px; padding:12px 14px; margin-bottom:9px;
+}
+#painel-operador .pg-item.feito{ opacity:.6; border-left-color:#4cb886; }
+#painel-operador .pg-item.velha{ border-left-color:#e8564f; background:rgba(232,86,79,.07); }
+#painel-operador .pg-topo{ display:flex; align-items:center; gap:9px; margin-bottom:7px; }
+#painel-operador .pg-prio{
+  font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+  padding:2px 8px; border-radius:999px;
+}
+#painel-operador .pg-prio.alta{ background:rgba(232,86,79,.22); color:#f5b8b5; }
+#painel-operador .pg-prio.media{ background:rgba(232,196,106,.2); color:#e8c46a; }
+#painel-operador .pg-prio.baixa{ background:rgba(255,255,255,.08); color:rgba(255,255,255,.5); }
+#painel-operador .pg-data{ font-size:10.5px; color:rgba(255,255,255,.4); }
+#painel-operador .pg-acoes{ margin-left:auto; display:flex; gap:5px; }
+#painel-operador .pg-acoes button{
+  padding:4px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05); color:rgba(255,255,255,.75); cursor:pointer;
+  font-family:'Outfit',sans-serif; font-size:11px; transition:all .16s;
+}
+#painel-operador .pg-acoes button:hover{ background:rgba(255,255,255,.12); color:#fff; }
+#painel-operador .pg-acoes button.del{ padding:4px 7px; }
+#painel-operador .pg-acoes button.del:hover{ background:rgba(232,86,79,.2); color:#f5b8b5; }
+#painel-operador .pg-acoes svg{ width:13px; height:13px; display:block; }
+#painel-operador .pg-texto{ font-size:13.5px; color:#fff; line-height:1.5; }
+#painel-operador .pg-item.feito .pg-texto{ text-decoration:line-through; color:rgba(255,255,255,.5); }
+#painel-operador .pg-resp{
+  margin-top:8px; padding:8px 11px; border-radius:9px;
+  background:rgba(76,184,134,.12); border:1px solid rgba(76,184,134,.25);
+  font-size:12px; color:#bdf0d5; line-height:1.5;
+}
+#painel-operador .pg-vazio{ text-align:center; padding:30px 16px; font-size:12.5px; color:rgba(255,255,255,.38); }
+#painel-operador .pg-vazio small{ display:block; margin-top:6px; font-size:11px; }
+
+
+/* ── aviso: lançamentos fora do relatório ── */
+.dfc-fora{
+  background:#fffbeb; border:1px solid #f7e4b5; border-left:4px solid #d9a63f;
+  border-radius:14px; padding:13px 16px; margin-bottom:14px;
+}
+.dfc-fora-cab{ display:flex; align-items:center; gap:9px; }
+.dfc-fora-cab svg{ width:17px; height:17px; stroke:#d9a63f; flex-shrink:0; }
+.dfc-fora-cab b{ font-size:13px; color:#111318; flex:1; }
+.dfc-fora-cab span{ font-size:14px; font-weight:700; color:#b3453f; font-variant-numeric:tabular-nums; }
+.dfc-fora-txt{ font-size:12px; color:#8a5a12; line-height:1.5; margin-top:6px; }
+.dfc-fora-lista{ display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+.dfc-fora-lista span{
+  display:inline-flex; align-items:baseline; gap:7px;
+  background:#fff; border:1px solid #f0d9a8; border-radius:999px;
+  padding:4px 12px; font-size:11.5px; color:var(--text2);
+}
+.dfc-fora-lista b{ color:#111318; font-weight:600; }
+.dfc-fora-lista i{ font-style:normal; color:#b3453f; font-weight:600;
+  font-variant-numeric:tabular-nums; }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -4797,6 +4879,40 @@ tr[data-editing="true"] select{
         </div>
       </div>
 
+      <!-- PERGUNTAS PARA O DONO -->
+      <div id="pg-modal" class="cal-modal">
+        <div class="cal-modal-box" style="max-width:600px;height:min(620px,90vh)">
+          <div class="cal-modal-cab">
+            <span id="pg-titulo">Perguntas</span>
+            <button onclick="pgFechar()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          </div>
+          <div class="pg-nova-wrap">
+            <textarea id="pg-nova" rows="2" placeholder="O que o dono precisa responder?&#10;Uma pergunta por linha — dá para colar várias de uma vez."></textarea>
+            <div class="pg-nova-rod">
+              <select id="pg-prio">
+                <option value="alta">Prioridade alta</option>
+                <option value="media" selected>Prioridade média</option>
+                <option value="baixa">Prioridade baixa</option>
+              </select>
+              <div style="flex:1"></div>
+              <button class="cal-btn" onclick="pgCopiar()" title="Copiar as abertas para mandar no WhatsApp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+                Copiar
+              </button>
+              <button class="cal-btn cal-btn-go" id="pg-btn-salvar" onclick="pgSalvar()">Adicionar</button>
+            </div>
+          </div>
+          <div class="pg-tabs">
+            <button class="pg-tab on" data-f="aberta" onclick="pgFiltrar('aberta')">Em aberto <b id="pg-c-abertas">0</b></button>
+            <button class="pg-tab" data-f="respondida" onclick="pgFiltrar('respondida')">Respondidas <b id="pg-c-resp">0</b></button>
+            <button class="pg-tab" data-f="todas" onclick="pgFiltrar('todas')">Todas</button>
+          </div>
+          <div class="cal-modal-corpo" style="padding-top:8px">
+            <div id="pg-lista"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- IMPORTAR TAREFAS EXISTENTES -->
       <div id="cal-imp" class="cal-modal">
         <div class="cal-modal-box" style="max-width:560px">
@@ -4917,37 +5033,6 @@ tr[data-editing="true"] select{
           <div class="cal-modal-rod">
             <button class="cal-btn" onclick="calFecharModal()">Cancelar</button>
             <button class="cal-btn cal-btn-go" id="cal-m-salvar" onclick="calSalvar()">Salvar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- IMPORTAR TAREFAS EXISTENTES -->
-      <div id="cal-imp" class="cal-modal">
-        <div class="cal-modal-box" style="max-width:560px">
-          <div class="cal-modal-cab">
-            <span>Importar tarefas para a agenda</span>
-            <button onclick="calFecharImportar()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-          </div>
-          <div class="cal-modal-corpo">
-            <div id="cal-imp-prev"></div>
-            <div class="cal-imp-como">
-              <div class="cal-imp-como-t">Como cada repetição é traduzida</div>
-              <div class="cal-imp-de-para">
-                <span>Todos os dias</span><i>&#8594;</i><span>repete diariamente</span>
-                <span>Semanal</span><i>&#8594;</i><span>repete nos dias marcados</span>
-                <span>Mensal</span><i>&#8594;</i><span>repete no dia do mês</span>
-                <span>Data única</span><i>&#8594;</i><span>um único dia, sem repetir</span>
-              </div>
-            </div>
-            <div class="cal-nota">
-              Importa <b>somente as tarefas em que você é o responsável</b>. As de outros operadores não entram.
-              Rodar de novo não duplica: o que já foi importado é reconhecido e pulado.
-            </div>
-            <div id="cal-imp-log" class="cal-imp-log"></div>
-          </div>
-          <div class="cal-modal-rod">
-            <button class="cal-btn" onclick="calFecharImportar()">Fechar</button>
-            <button class="cal-btn cal-btn-go" id="cal-imp-rodar" onclick="calImportar()">Importar agora</button>
           </div>
         </div>
       </div>
@@ -22522,10 +22607,86 @@ async function loadDFC() {
     ? compDe(l).substring(5,7)
     : (l.data_lancamento||'').substring(5,7);
 
+  // ══════════════════════════════════════════════════════════════
+  // CASAMENTO LANÇAMENTO -> CATEGORIA
+  //
+  // Antes era igualdade exata de texto: (l.categoria) === c.nome.
+  // Bastava um acento, uma maiúscula ou um espaço sobrando para o
+  // lançamento sumir do relatório sem aviso nenhum.
+  //
+  // Agora compara normalizado, e SUBCATEGORIA SOMA NA MÃE: um
+  // lançamento em "Cabeleireiro" entra na linha "Comissão".
+  // ══════════════════════════════════════════════════════════════
+  const _normCat = t => String(t == null ? '' : t).trim().toLowerCase()
+                          .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                          .replace(/\s+/g,' ');
+
+  // nome normalizado -> nome da categoria de PRIMEIRO NÍVEL
+  const _mapaCat = {};
+  {
+    const porId = {};
+    (catsAllDFC || []).forEach(c => { porId[c.id] = c; });
+    (catsAllDFC || []).forEach(c => {
+      const raiz = c.categoria_pai_id && porId[c.categoria_pai_id]
+                 ? porId[c.categoria_pai_id].nome
+                 : c.nome;
+      _mapaCat[_normCat(c.nome)] = raiz;
+      if (c.codigo) _mapaCat[_normCat(c.codigo)] = raiz;   // aceita o código também
+    });
+  }
+
+  // Para que linha do relatório este lançamento vai?
+  const _linhaDo = l => {
+    const bruto = l.categoria || l.categoria_dfc || '';
+    return _mapaCat[_normCat(bruto)] || null;   // null = não bate com nada
+  };
+
   function calcular(fn, mes) {
     return (lancs||[]).filter(l => mesDoLanc(l) === mes && fn(l))
       .reduce((s,l) => s + (Number(l.entrada)||0) - (Number(l.saida)||0), 0);
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // O QUE NÃO ENTROU NO RELATÓRIO
+  //
+  // Um lançamento cuja categoria não existe no plano de contas
+  // simplesmente não aparecia — nenhum aviso, e o relatório fechava
+  // com um valor menor do que a realidade. Agora é acusado.
+  // ══════════════════════════════════════════════════════════════
+  const _foraDoDFC = {};
+  let _foraTotal = 0, _foraQtd = 0;
+  (lancs || []).forEach(l => {
+    if (isLancContabil && isLancContabil(l)) return;      // entre contas / saldo inicial
+    const mm = mesDoLanc(l);
+    if (!mCols.includes(mm)) return;                      // fora dos meses exibidos
+    if (_linhaDo(l)) return;                              // achou a linha, tudo certo
+    const nome = String(l.categoria || l.categoria_dfc || '').trim() || '(sem categoria)';
+    const v = (Number(l.entrada)||0) - (Number(l.saida)||0);
+    if (!_foraDoDFC[nome]) _foraDoDFC[nome] = { nome, valor: 0, qtd: 0 };
+    _foraDoDFC[nome].valor += v;
+    _foraDoDFC[nome].qtd++;
+    _foraTotal += v; _foraQtd++;
+  });
+
+  const _avisoFora = (() => {
+    const itens = Object.values(_foraDoDFC).sort((a,b) => Math.abs(b.valor) - Math.abs(a.valor));
+    if (!itens.length) return '';
+    const brl = v => 'R$ ' + Math.abs(Number(v||0)).toLocaleString('pt-BR',
+      { minimumFractionDigits:2, maximumFractionDigits:2 });
+    return '<div class="dfc-fora">' +
+      '<div class="dfc-fora-cab">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>' +
+        '<b>' + _foraQtd + ' lançamento(s) não entraram neste relatório</b>' +
+        '<span>' + brl(_foraTotal) + '</span>' +
+      '</div>' +
+      '<div class="dfc-fora-txt">A categoria deles não existe no Plano de Contas do DFC. ' +
+        'Cadastre a categoria ou corrija o lançamento — enquanto isso, o total está menor que a realidade.</div>' +
+      '<div class="dfc-fora-lista">' +
+        itens.map(i => '<span><b>' + String(i.nome).replace(/</g,'&lt;') + '</b>' +
+          (i.qtd > 1 ? ' · ' + i.qtd + ' lanç.' : '') +
+          '<i>' + brl(i.valor) + '</i></span>').join('') +
+      '</div></div>';
+  })();
 
   // ── PROJEÇÕES: carrega o ANO inteiro, mes a mes ──────────
   const modo = document.getElementById('dfc-modo')?.value || 'ambos';
@@ -22648,7 +22809,7 @@ async function loadDFC() {
     .filter(g => !(porCompetencia && incStr(g.nome, 'cart')))
     .map(g => {
     const gCats = (cats||[]).filter(c => c.grupo === g.nome);
-    const totalGrupo = mCols.map(m => gCats.reduce((s,c) => s + calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m), 0));
+    const totalGrupo = mCols.map(m => gCats.reduce((s,c) => s + calcular(l => _linhaDo(l) === c.nome, m), 0));
     return { ...g, gCats, totalGrupo };
   });
 
@@ -22871,7 +23032,7 @@ async function loadDFC() {
     </tr>`;
 
     g.gCats.forEach((c, ci) => {
-      const vals = mCols.map(m => calcular(l => (l.categoria||l.categoria_dfc||'') === c.nome, m));
+      const vals = mCols.map(m => calcular(l => _linhaDo(l) === c.nome, m));
       const total = vals.reduce((s,v) => s+v, 0);
       const media = mediaFechados(vals) || 0;
       const bgC = (gi+ci)%2===0 ? 'var(--bg2)' : '#fafafa';
@@ -22971,7 +23132,7 @@ async function loadDFC() {
   </tr>`;
 
   html += '</tbody></table></div>';
-  el.innerHTML = html;
+  el.innerHTML = _avisoFora + html;
 }
 
 let _dfcAllExpanded = false;
@@ -29402,6 +29563,8 @@ async function loadRHProfissionais() {
       </td>
     </tr>
   `).join('');
+
+  try { pgCarregarContagem(_visiveis.map(e => e.id)); } catch (e) {}
 }
 
 function abrirModalProfissionalRH(id) {
@@ -32083,6 +32246,12 @@ async function loadEmpresasOperador() {
       </div>
       ${botaoPasta(e, 'dono', '📁 Pendente Dono', 'padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700')}
       ${botaoPasta(e, 'recepcao', '📁 Pendente Recepção', 'padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700')}
+      <button onclick="pgAbrir('${e.id}','${(e.nome||'').replace(/'/g,"\\'")}')" title="Perguntas em aberto para o dono"
+        style="position:relative;padding:8px 14px;background:rgba(168,85,247,.18);border:none;border-radius:8px;color:#c4a5f0;font-size:12px;cursor:pointer;font-weight:700;white-space:nowrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        Perguntas
+        <span id="pg-badge-${e.id}" style="display:none;position:absolute;top:-6px;right:-6px;background:#e8564f;color:#fff;border-radius:999px;min-width:18px;height:18px;line-height:18px;font-size:10px;font-weight:800;padding:0 5px;border:2px solid #222226"></span>
+      </button>
       <button onclick="abrirModalDados('${e.id}')"
         style="padding:8px 14px;background:rgba(59,130,246,.2);border:none;border-radius:8px;color:#60a5fa;font-size:12px;cursor:pointer;font-weight:700">
         📋 Dados
@@ -35467,6 +35636,216 @@ const _dcCampos = ['razao-social','cnpj','telefone','endereco','sistema','sistem
 // Duas pastas: "Pendente Dono" e "Pendente Recepção".
 // Guardadas em dados_cadastro.drive_dono / drive_recepcao.
 // Monta o botão: com link abre a pasta; sem link, pede o endereço.
+
+// ══════════════════════════════════════════════════════════════
+// PERGUNTAS EM ABERTO PARA O DONO
+//
+// Quando o dono nao responde, a duvida some no meio das conversas.
+// Aqui ela fica registrada por empresa, com status, ate ser
+// respondida. A contagem aparece no botao da lista de empresas.
+// ══════════════════════════════════════════════════════════════
+
+let _pgEmpresaId = null;
+let _pgEmpresaNome = '';
+let _pgLista = [];
+let _pgFiltro = 'aberta';        // aberta | respondida | todas
+const _pgContagem = {};          // empresa_id -> quantas abertas
+
+function pgEsc(t) {
+  return String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Contagem por empresa, para o botão mostrar o número
+async function pgCarregarContagem(ids) {
+  if (!ids?.length) return;
+  try {
+    const { data } = await sb.from('perguntas_empresa')
+      .select('empresa_id,status').in('empresa_id', ids).eq('status', 'aberta');
+    ids.forEach(id => { _pgContagem[id] = 0; });
+    (data || []).forEach(p => { _pgContagem[p.empresa_id] = (_pgContagem[p.empresa_id] || 0) + 1; });
+    // atualiza os botões já desenhados
+    ids.forEach(id => {
+      const b = document.getElementById('pg-badge-' + id);
+      if (b) {
+        const n = _pgContagem[id] || 0;
+        b.textContent = n || '';
+        b.style.display = n ? '' : 'none';
+      }
+    });
+  } catch (e) { /* tabela pode não existir ainda */ }
+}
+
+async function pgAbrir(empresaId, nome) {
+  _pgEmpresaId = empresaId;
+  _pgEmpresaNome = nome || '';
+  document.getElementById('pg-titulo').textContent = 'Perguntas · ' + _pgEmpresaNome;
+  document.getElementById('pg-nova').value = '';
+  document.getElementById('pg-modal').classList.add('on');
+  await pgCarregar();
+}
+function pgFechar() {
+  document.getElementById('pg-modal').classList.remove('on');
+  // atualiza a contagem no botão da lista
+  if (_pgEmpresaId) pgCarregarContagem([_pgEmpresaId]);
+}
+
+async function pgCarregar() {
+  const alvo = document.getElementById('pg-lista');
+  if (alvo) alvo.innerHTML = '<div class="pg-vazio">Carregando...</div>';
+  try {
+    const { data, error } = await sb.from('perguntas_empresa')
+      .select('*').eq('empresa_id', _pgEmpresaId).order('criado_em', { ascending: false });
+    if (error) throw new Error(error.message);
+    _pgLista = data || [];
+  } catch (e) {
+    _pgLista = [];
+    if (alvo) alvo.innerHTML = '<div class="pg-vazio">Não consegui carregar.<br>' +
+      '<small>Se a tabela ainda não existe, rode <b>perguntas_empresa.sql</b> no Supabase.</small></div>';
+    window.vnErro?.(e, 'perguntas-carregar');
+    return;
+  }
+  pgRender();
+}
+
+function pgRender() {
+  const alvo = document.getElementById('pg-lista');
+  if (!alvo) return;
+
+  const abertas = _pgLista.filter(p => p.status === 'aberta');
+  const resp    = _pgLista.filter(p => p.status === 'respondida');
+
+  // contadores das abas
+  const c1 = document.getElementById('pg-c-abertas');
+  const c2 = document.getElementById('pg-c-resp');
+  if (c1) c1.textContent = abertas.length;
+  if (c2) c2.textContent = resp.length;
+
+  let lista = _pgFiltro === 'todas' ? _pgLista
+            : _pgLista.filter(p => p.status === _pgFiltro);
+
+  if (!lista.length) {
+    alvo.innerHTML = '<div class="pg-vazio">' +
+      (_pgFiltro === 'aberta' ? 'Nenhuma pergunta em aberto.' : 'Nada aqui.') + '</div>';
+    return;
+  }
+
+  alvo.innerHTML = lista.map(p => {
+    const d = new Date(p.criado_em);
+    const dataTxt = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+    const dias = Math.floor((Date.now() - d.getTime()) / 86400000);
+    const velha = p.status === 'aberta' && dias >= 7;
+    return '<div class="pg-item' + (p.status === 'respondida' ? ' feito' : '') + (velha ? ' velha' : '') + '">' +
+      '<div class="pg-topo">' +
+        '<span class="pg-prio ' + (p.prioridade || 'media') + '">' + (p.prioridade || 'media') + '</span>' +
+        '<span class="pg-data">' + dataTxt +
+          (p.status === 'aberta' ? ' · ' + (dias === 0 ? 'hoje' : dias + ' dia(s) em aberto') : '') +
+        '</span>' +
+        '<div class="pg-acoes">' +
+          (p.status === 'aberta'
+            ? '<button onclick="pgResponder(\'' + p.id + '\')" title="Registrar resposta">Responder</button>'
+            : '<button onclick="pgReabrir(\'' + p.id + '\')" title="Voltar para aberta">Reabrir</button>') +
+          '<button class="del" onclick="pgExcluir(\'' + p.id + '\')" title="Excluir">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="pg-texto">' + pgEsc(p.pergunta) + '</div>' +
+      (p.resposta ? '<div class="pg-resp"><b>Resposta:</b> ' + pgEsc(p.resposta) + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+function pgFiltrar(f) {
+  _pgFiltro = f;
+  document.querySelectorAll('#pg-modal .pg-tab').forEach(b =>
+    b.classList.toggle('on', b.dataset.f === f));
+  pgRender();
+}
+
+async function pgSalvar() {
+  const inp = document.getElementById('pg-nova');
+  const txt = (inp?.value || '').trim();
+  if (!txt) { showToast('Escreva a pergunta', 'error'); return; }
+  const prio = document.getElementById('pg-prio')?.value || 'media';
+
+  const btn = document.getElementById('pg-btn-salvar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+  try {
+    // Uma linha por pergunta: quebra por quebra de linha, para dar
+    // para colar várias de uma vez.
+    const linhas = txt.split('\n').map(l => l.trim()).filter(Boolean);
+    const registros = linhas.map(l => ({
+      empresa_id: _pgEmpresaId,
+      pergunta: l,
+      prioridade: prio,
+      destinatario: 'dono',
+      status: 'aberta',
+      criado_por: _vnUser?.id || null,
+      criado_por_nome: _vnUser?.nome || _vnUser?.email || null
+    }));
+    const { error } = await sb.from('perguntas_empresa').insert(registros);
+    if (error) throw new Error(error.message);
+    if (inp) inp.value = '';
+    showToast(linhas.length > 1 ? linhas.length + ' perguntas registradas' : 'Pergunta registrada', 'success');
+    await pgCarregar();
+  } catch (e) {
+    showToast(e.message, 'error');
+    window.vnErro?.(e, 'perguntas-salvar');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Adicionar'; }
+  }
+}
+
+async function pgResponder(id) {
+  const p = _pgLista.find(x => x.id === id);
+  const r = prompt('Resposta para:\n\n' + (p?.pergunta || ''), p?.resposta || '');
+  if (r === null) return;                       // cancelou
+  try {
+    const { error } = await sb.from('perguntas_empresa')
+      .update({ status: 'respondida', resposta: r.trim() || null,
+                respondido_por: _vnUser?.nome || _vnUser?.email || null })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+    await pgCarregar();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function pgReabrir(id) {
+  try {
+    const { error } = await sb.from('perguntas_empresa')
+      .update({ status: 'aberta' }).eq('id', id);
+    if (error) throw new Error(error.message);
+    await pgCarregar();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function pgExcluir(id) {
+  const p = _pgLista.find(x => x.id === id);
+  if (!confirm('Excluir esta pergunta?\n\n' + (p?.pergunta || ''))) return;
+  try {
+    const { error } = await sb.from('perguntas_empresa').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    await pgCarregar();
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// Copia as abertas para mandar no WhatsApp
+function pgCopiar() {
+  const abertas = _pgLista.filter(p => p.status === 'aberta');
+  if (!abertas.length) { showToast('Nenhuma pergunta em aberto', 'info'); return; }
+  const txt = 'Olá! Preciso de ajuda com estes pontos:\n\n' +
+    abertas.map((p, i) => (i+1) + '. ' + p.pergunta).join('\n');
+  const ok = () => showToast('Copiado — é só colar no WhatsApp', 'success');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok).catch(()=>{});
+  else {
+    const t = document.createElement('textarea');
+    t.value = txt; document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); ok(); } catch (e) {}
+    document.body.removeChild(t);
+  }
+}
+
 function botaoPasta(emp, tipo, rotulo, estiloBase) {
   const url = emp?.dados_cadastro?.[_CHAVE_PASTA[tipo]] || '';
   const cor = tipo === 'dono' ? '251,191,36' : '96,165,250';   // âmbar / azul
