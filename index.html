@@ -3732,6 +3732,63 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 }
 #proj-imprevistos .pt-aviso{ position:sticky; top:0; z-index:3; }
 
+
+/* ══════════════════════════════════════════════════════════
+   41. SUBCATEGORIAS DO PLANO DE CONTAS
+   ══════════════════════════════════════════════════════════ */
+.sub-seta{
+  width:20px; height:20px; flex-shrink:0; padding:0; border:none; cursor:pointer;
+  background:transparent; color:var(--text3); border-radius:5px;
+  display:flex; align-items:center; justify-content:center; transition:all .18s var(--ease);
+}
+.sub-seta:hover{ background:var(--bg4); color:var(--g700); }
+.sub-seta svg{ width:12px; height:12px; transition:transform .22s var(--ease); }
+.sub-seta.vazia{ background:none; cursor:default; }
+.sub-conta{
+  font-size:9.5px; font-weight:600; margin-left:8px; padding:2px 7px;
+  border-radius:999px; background:var(--g100); color:var(--g700);
+}
+
+.sub-lista{ background:var(--bg3); border-bottom:1px solid var(--border); }
+.sub-row{
+  display:flex; align-items:center; gap:10px;
+  padding:7px 14px 7px 48px; border-bottom:1px solid var(--border);
+  position:relative;
+}
+.sub-row:last-child{ border-bottom:none; }
+/* fio vertical ligando as filhas à mãe */
+.sub-row::before{
+  content:''; position:absolute; left:30px; top:0; bottom:0; width:1px;
+  background:var(--border2);
+}
+.sub-row::after{
+  content:''; position:absolute; left:30px; top:50%; width:10px; height:1px;
+  background:var(--border2);
+}
+.sub-row:last-child::before{ bottom:50%; }
+.sub-cod{ font-size:10.5px; color:var(--g700); font-weight:600; min-width:42px;
+  font-variant-numeric:tabular-nums; }
+.sub-nome{ font-size:12.5px; flex:1; color:var(--text); }
+.sub-demo{ font-size:10px; color:var(--text3); min-width:45px; }
+
+.sub-nova{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:9px 14px 9px 48px; background:var(--g100);
+  border-bottom:1px solid var(--g200);
+}
+.sub-cod-prev{
+  font-size:11px; font-weight:700; color:var(--g700);
+  background:#fff; border:1px solid var(--g300); border-radius:6px; padding:4px 9px;
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.sub-nova input{
+  flex:1; min-width:170px; padding:7px 11px; font-size:12.5px;
+  border:1px solid var(--g300); border-radius:8px;
+  font-family:'Outfit',sans-serif; background:#fff;
+}
+.sub-nova input:focus{ outline:none; border-color:var(--g500);
+  box-shadow:0 0 0 3px rgba(34,164,93,.15); }
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -19195,6 +19252,106 @@ async function saveFornecedor() {
 // Variável global para guardar grupos carregados
 let _grupos = [];
 
+
+// ══════════════════════════════════════════════════════════════
+// SUBCATEGORIAS DO PLANO DE CONTAS
+//
+// Hierarquia: GRUPO -> CATEGORIA -> SUBCATEGORIA (dois niveis, so).
+// A subcategoria e uma linha normal de plano_contas com
+// categoria_pai_id preenchido. Para o resto do sistema ela e uma
+// categoria comum — por isso nada do que ja existe quebra.
+//
+// Codigo segue a mae: 2.3 Comissao -> 2.3.1, 2.3.2 ...
+// ══════════════════════════════════════════════════════════════
+
+function subAbrirNova(catId) {
+  const el = document.getElementById('nova-sub-' + catId);
+  if (!el) return;
+  const mostrar = el.style.display === 'none';
+  el.style.display = mostrar ? '' : 'none';
+  if (mostrar) document.getElementById('nova-sub-nome-' + catId)?.focus();
+}
+
+async function subSalvar(catId, codigoPai, grupo, demo, tipo, qtdAtual) {
+  const inp = document.getElementById('nova-sub-nome-' + catId);
+  const nome = (inp?.value || '').trim();
+  if (!nome) { showToast('Digite o nome', 'error'); return; }
+
+  const codigo = codigoPai + '.' + (Number(qtdAtual) + 1);
+  const { error } = await sb.from('plano_contas').insert(addEmpresaId({
+    codigo, nome, tipo: tipo || 'SAIDA',
+    demonstrativo: demo || 'AMBOS',
+    grupo, ordem: Number(qtdAtual) + 1,
+    categoria_pai_id: catId
+  }));
+  if (error) {
+    // a trigger do banco devolve mensagem em português
+    showToast(error.message, 'error');
+    window.vnErro?.(error, 'subcategoria-salvar');
+    return;
+  }
+  showToast('Subcategoria adicionada', 'success');
+  if (inp) inp.value = '';
+  _categorias = [];                  // limpa o cache
+  if (typeof loadPlanoContas === 'function') loadPlanoContas();
+}
+
+// Abre e fecha a lista de filhas
+function subAlternar(catId) {
+  const box = document.getElementById('subs-' + catId);
+  const ico = document.getElementById('seta-' + catId);
+  if (!box) return;
+  const aberto = box.style.display !== 'none';
+  box.style.display = aberto ? 'none' : '';
+  if (ico) ico.style.transform = aberto ? '' : 'rotate(90deg)';
+  try {
+    const abertas = JSON.parse(localStorage.getItem('vn_subs_abertas') || '[]');
+    const i = abertas.indexOf(catId);
+    if (aberto && i >= 0) abertas.splice(i, 1);
+    if (!aberto && i < 0) abertas.push(catId);
+    localStorage.setItem('vn_subs_abertas', JSON.stringify(abertas));
+  } catch (e) {}
+}
+
+function subEstaAberta(catId) {
+  try { return JSON.parse(localStorage.getItem('vn_subs_abertas') || '[]').includes(catId); }
+  catch (e) { return false; }
+}
+
+// Monta o bloco de subcategorias de uma categoria
+function subHtml(cat, filhas, grupo) {
+  const aberto = subEstaAberta(cat.id);
+  const esc = t => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  let h = '';
+
+  // linha para adicionar (oculta)
+  h += '<div id="nova-sub-' + cat.id + '" class="sub-nova" style="display:none">' +
+         '<span class="sub-cod-prev">' + esc(cat.codigo || '') + '.' + (filhas.length + 1) + '</span>' +
+         '<input type="text" id="nova-sub-nome-' + cat.id + '" placeholder="Nome da subcategoria (ex: Cabeleireiro)">' +
+         '<button class="btn btn-sm btn-primary" onclick="subSalvar(\'' + cat.id + '\',\'' +
+            esc(cat.codigo || '') + '\',\'' + esc(grupo) + '\',\'' + esc(cat.demonstrativo || 'AMBOS') + '\',\'' +
+            esc(cat.tipo || 'SAIDA') + '\',' + filhas.length + ')">Salvar</button>' +
+         '<button class="btn btn-sm" onclick="subAbrirNova(\'' + cat.id + '\')">Cancelar</button>' +
+       '</div>';
+
+  if (filhas.length) {
+    h += '<div id="subs-' + cat.id + '" class="sub-lista" style="display:' + (aberto ? '' : 'none') + '">';
+    filhas.forEach(f => {
+      h += '<div class="sub-row">' +
+             '<span class="sub-cod">' + esc(f.codigo || '') + '</span>' +
+             '<span class="sub-nome">' + esc(f.nome) + '</span>' +
+             '<span class="sub-demo">' + esc(f.demonstrativo || '') + '</span>' +
+             '<button class="btn btn-sm" onclick="excluirCategoria(\'' + f.id + '\')" ' +
+               'style="color:var(--red);border-color:var(--red);padding:3px 7px" title="Excluir">' +
+               '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="width:12px;height:12px"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>' +
+             '</button>' +
+           '</div>';
+    });
+    h += '</div>';
+  }
+  return h;
+}
+
 async function loadPlanoContas() {
   const elDfc = document.getElementById('grupos-dfc');
   const elDre = document.getElementById('grupos-dre');
@@ -19214,7 +19371,13 @@ async function loadPlanoContas() {
 
     let html = '';
     list.forEach(g => {
-      const gCats = (cats||[]).filter(c => c.grupo === g.nome && (c.demonstrativo === g.demonstrativo || c.demonstrativo === 'AMBOS' || g.demonstrativo === 'AMBOS'));
+      // Só categorias de primeiro nível na lista. As subcategorias
+      // aparecem recuadas dentro da mãe, não soltas no grupo.
+      const gCats = (cats||[]).filter(c => c.grupo === g.nome
+        && !c.categoria_pai_id
+        && (c.demonstrativo === g.demonstrativo || c.demonstrativo === 'AMBOS' || g.demonstrativo === 'AMBOS'));
+      const filhasDe = (catId) => (cats||[]).filter(c => c.categoria_pai_id === catId)
+                                            .sort((a,b) => (a.ordem||0) - (b.ordem||0));
       html += `<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)">
           <div style="display:flex;align-items:center;gap:10px">
@@ -19250,9 +19413,18 @@ async function loadPlanoContas() {
         html += `<div style="padding:0">`;
         gCats.forEach((c, idx) => {
           html += `<div id="cat-row-${c.id}" style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);${idx%2===1?'background:var(--bg3)':''}">
+            ${(() => { const nf = filhasDe(c.id).length;
+              return nf
+                ? `<button class="sub-seta" onclick="subAlternar('${c.id}')" title="Ver subcategorias">
+                     <svg id="seta-${c.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+                          style="${subEstaAberta(c.id)?'transform:rotate(90deg)':''}"><polyline points="9 18 15 12 9 6"/></svg>
+                   </button>`
+                : `<span class="sub-seta vazia"></span>`; })()}
             <span style="font-family:'Outfit',sans-serif;font-size:11px;color:var(--accent);min-width:32px" class="cell-view">${c.codigo||''}</span>
             <input class="cell-edit" style="display:none;width:50px;font-family:monospace;font-size:12px" value="${c.codigo||''}">
-            <span style="font-size:13px;flex:1" class="cell-view">${c.nome}</span>
+            <span style="font-size:13px;flex:1" class="cell-view">${c.nome}${(() => {
+              const nf = filhasDe(c.id).length;
+              return nf ? `<span class="sub-conta">${nf} sub</span>` : ''; })()}</span>
             <input class="cell-edit" style="display:none;flex:1;font-size:13px" value="${c.nome||''}">
             <span style="font-size:11px;color:var(--text2);min-width:45px" class="cell-view">${c.demonstrativo||''}</span>
             <select class="cell-edit" style="display:none;font-size:12px;padding:4px 6px;border:1.5px solid var(--accent);border-radius:6px;background:var(--bg2)">
@@ -19269,11 +19441,13 @@ async function loadPlanoContas() {
             <div style="display:flex;gap:4px">
               <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="moverCategoria('${c.id}','up','${g.nome}','${g.demonstrativo}')" ${idx===0?'disabled':''}>↑</button>
               <button class="btn btn-sm" style="padding:3px 7px;font-size:11px" onclick="moverCategoria('${c.id}','down','${g.nome}','${g.demonstrativo}')" ${idx===gCats.length-1?'disabled':''}>↓</button>
+              <button class="btn btn-sm cell-view" onclick="subAbrirNova('${c.id}')" title="Adicionar subcategoria" style="padding:3px 7px;color:var(--g700);border-color:var(--g300)">+ sub</button>
               <button class="btn btn-sm cell-view" onclick="toggleInline('cat-row-${c.id}')">✏️</button>
               <button class="btn btn-sm btn-save-inline cell-edit" style="display:none;background:var(--green);color:#fff;border-color:var(--green)" onclick="salvarCategoriaInline('${c.id}','cat-row-${c.id}')">💾</button>
               <button class="btn btn-sm" style="color:var(--red);border-color:var(--red);padding:3px 7px" onclick="excluirCategoria('${c.id}')">🗑️</button>
             </div>
           </div>`;
+          html += subHtml(c, filhasDe(c.id), g.nome);
         });
         html += `</div>`;
       } else {
