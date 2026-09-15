@@ -3645,6 +3645,25 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
 @media (max-width:560px){
   #vn-tarja-conf{ width:calc(100vw - 20px); top:10px; }
 }
+
+/* ── legenda da Projeção de Caixa ── */
+.proj-legenda{
+  display:flex; gap:16px; justify-content:center; align-items:center;
+  margin-top:10px; font-size:11px; color:var(--text2); flex-wrap:wrap;
+}
+.proj-legenda span{ display:flex; align-items:center; gap:5px; }
+.proj-legenda i{ display:inline-block; flex-shrink:0; }
+.proj-legenda .pl-linha{ width:14px; height:3px; border-radius:2px; }
+.proj-legenda .pl-linha.tracejada{
+  background:none !important;
+  border-top:3px dashed #4f7fdd; height:0; border-radius:0;
+}
+.proj-legenda .pl-barra{ width:9px; height:11px; border-radius:2px; }
+.proj-legenda .pl-obs{
+  width:100%; justify-content:center; text-align:center;
+  color:var(--text3); font-size:10.5px; margin-top:2px;
+}
+
 /* ══════ SKIN VN 2.0 — FIM ══════ */
 </style>
 </head>
@@ -5945,11 +5964,12 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
               <div style="position:relative;height:220px">
                 <canvas id="chart-projecao"></canvas>
               </div>
-              <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;font-size:11px;flex-wrap:wrap">
-                <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:#22a45d;display:inline-block;border-radius:2px"></span>Realizado</span>
-                <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:#3b82f6;display:inline-block;border-radius:2px;border:1px dashed #3b82f6"></span>Projeção (meta)</span>
-                <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:3px;background:#f59e0b;display:inline-block;border-radius:2px;border:1px dashed #f59e0b"></span>Projeção (média atual)</span>
-                <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:8px;background:rgba(239,68,68,.4);display:inline-block;border-radius:2px"></span>Contas a pagar</span>
+              <div class="proj-legenda">
+                <span><i class="pl-linha" style="background:#1a8f52"></i>Saldo realizado</span>
+                <span><i class="pl-linha tracejada" style="background:#4f7fdd"></i>Saldo projetado</span>
+                <span><i class="pl-barra" style="background:rgba(47,154,100,.55)"></i>Entradas do dia</span>
+                <span><i class="pl-barra" style="background:rgba(209,106,102,.5)"></i>Saídas do dia</span>
+                <span class="pl-obs">A projeção usa a meta do mês menos a despesa média diária e as contas a vencer.</span>
               </div>
             </div>
           </div>
@@ -15268,7 +15288,12 @@ async function loadLancamentos(forcarBancoFilter) {
     if (n.includes('santander')) return 'santander';
     if (n.includes('nubank') || n.includes('nu ')) return 'nubank';
     if (n.includes('inter')) return 'inter';
-    if (n.includes('caixa')) return 'caixa';
+    // Dinheiro em espécie É o caixa. Contabilmente são a mesma conta:
+    // disponibilidade imediata em papel-moeda. Sem esta linha, o
+    // lançamento do PDV gravado como "Dinheiro" ficava sem banco e
+    // sumia da soma — exatamente o que o conferidor acusou.
+    if (n.includes('caixa') || n.includes('dinheiro') ||
+        n.includes('especie') || n === 'cash') return 'caixa';
     if (n.includes('brasil') || n === 'bb') return 'bb';
     if (n.includes('sicoob')) return 'sicoob';
     if (n.includes('c6')) return 'c6';
@@ -28185,7 +28210,9 @@ function normalizarBancoFiltro(nome) {
   if (n.includes('santander')) return 'santander';
   if (n.includes('nubank')) return 'nubank';
   if (n.includes('inter')) return 'inter';
-  if (n.includes('caixa')) return 'caixa';
+  // Dinheiro em espécie É o caixa (mesma conta contábil)
+  if (n.includes('caixa') || n.includes('dinheiro') ||
+      n.includes('especie') || n === 'cash') return 'caixa';
   if (n.includes('brasil') || n === 'bb') return 'bb';
   if (n.includes('sicoob')) return 'sicoob';
   if (n.includes('c6')) return 'c6';
@@ -30461,42 +30488,102 @@ async function loadProjecaoCaixa() {
   }
   const mediaDia = diasRealizados > 0 ? totalRealizado / diasRealizados : 0;
 
-  // 5. Calcular curvas
-  const mesEncerradoCalc = (_projAno < anoAtual) || (_projAno === anoAtual && _projMes < mesAtual);
-  const saldoRealizado   = [];
-  const saldoMeta        = [];
-  const saldoMedia       = [];
-  const barrasContas     = [];
+  // ══════════════════════════════════════════════════════════════
+  // 5. CURVAS — reescrito
+  //
+  // Erros que existiam antes e o porque de cada correcao:
+  //
+  // (a) A linha REALIZADA subtraia contas a pagar em aberto. Conta
+  //     nao paga nao saiu do caixa. Pior: quando e paga, vira
+  //     lancamento e entra de novo — contava duas vezes.
+  //
+  // (b) A projecao pela META so somava receita e subtraia contas a
+  //     pagar. Nunca subtraia a despesa do dia a dia (produto,
+  //     comissao, aluguel fora do contas a pagar). So subia.
+  //
+  // (c) A projecao pela MEDIA usava o saldo liquido medio como se
+  //     fosse receita e AINDA subtraia contas a pagar. Num mes
+  //     negativo isso despencava sem parar — era a linha laranja
+  //     indo a -120 mil.
+  //
+  // Agora existe UMA projecao, com a conta certa:
+  //     saldo = saldo anterior + receita do dia - despesa do dia
+  //             - contas a pagar que vencem no dia
+  // ══════════════════════════════════════════════════════════════
 
-  let acumReal = saldoInicial;
-  let acumMeta = saldoInicial;
-  let acumMed  = saldoInicial;
+  const mesEncerradoCalc = (_projAno < anoAtual) || (_projAno === anoAtual && _projMes < mesAtual);
+  const mesFuturo        = (_projAno > anoAtual) || (_projAno === anoAtual && _projMes > mesAtual);
+
+  // ── base diaria realizada ──
+  const diasCorridos = ehMesAtual ? diaHoje : (mesEncerradoCalc ? diasNoMes : 0);
+  let entradaReal = 0, saidaReal = 0;
+  for (let d = 1; d <= diasCorridos; d++) {
+    entradaReal += (entradaPorDia[d] || 0);
+    saidaReal   += (saidaPorDia[d]   || 0);
+  }
+  // dias que de fato tiveram movimento: usar dias corridos inflaria a
+  // media para baixo em salao que nao abre todo dia
+  const diasComMov = dias.filter(d => d <= diasCorridos &&
+                      ((entradaPorDia[d]||0) + (saidaPorDia[d]||0)) > 0).length;
+  const baseMedia  = diasComMov || diasCorridos || 1;
+
+  const receitaMediaDia = entradaReal / baseMedia;
+  const despesaMediaDia = saidaReal  / baseMedia;
+
+  // Receita projetada por dia: a meta manda; sem meta, usa a media.
+  const receitaDiaProj = (meta > 0)
+    ? meta / (diasAbertos > 0 ? diasAbertos : diasNoMes)
+    : receitaMediaDia;
+
+  // Despesa projetada por dia: media das saidas ja realizadas.
+  // As contas a pagar entram SEPARADO, na data de vencimento, para
+  // nao contar a mesma saida duas vezes.
+  const despesaDiaProj = despesaMediaDia;
+
+  const saldoRealizado = [];   // solida, so ate hoje
+  const saldoProjetado = [];   // tracejada, de hoje ate o fim
+  const barraEntrada   = [];
+  const barraSaida     = [];
+
+  let acum = saldoInicial;
+  let saldoHoje = saldoInicial;
 
   for (const d of dias) {
-    // Realizado (até hoje)
-    if (d <= diaHoje || !ehMesAtual) {
-      acumReal += (entradaPorDia[d]||0) - (saidaPorDia[d]||0) - (contasPorDia[d]||0);
-      saldoRealizado.push(acumReal);
+    const eDia = entradaPorDia[d] || 0;
+    const sDia = saidaPorDia[d]   || 0;
+    const cDia = contasPorDia[d]  || 0;
+    const jaAconteceu = d <= diasCorridos;
+
+    barraEntrada.push(eDia || null);
+    barraSaida.push(sDia ? -sDia : null);
+
+    if (jaAconteceu) {
+      // Realizado: SO o que de fato entrou e saiu. Conta a pagar em
+      // aberto nao entra aqui — ela ainda nao saiu do caixa.
+      acum += eDia - sDia;
+      saldoRealizado.push(acum);
+      saldoProjetado.push(null);
+      saldoHoje = acum;
     } else {
       saldoRealizado.push(null);
+      if (mesEncerradoCalc) { saldoProjetado.push(null); continue; }
+      acum += receitaDiaProj - despesaDiaProj - cDia;
+      saldoProjetado.push(acum);
     }
-    // Projeção meta
-    if (d > diaHoje || !ehMesAtual) {
-      acumMeta += metaDia - (contasPorDia[d]||0);
-    } else {
-      acumMeta = acumReal !== null ? acumReal : acumMeta;
-    }
-    // Mes encerrado: nao ha futuro pra projetar, entao a linha nem aparece
-    saldoMeta.push(mesEncerradoCalc ? null : acumMeta);
-    // Projeção média
-    if (d > diaHoje || !ehMesAtual) {
-      acumMed += mediaDia - (contasPorDia[d]||0);
-    } else {
-      acumMed = acumReal !== null ? acumReal : acumMed;
-    }
-    saldoMedia.push(mesEncerradoCalc ? null : acumMed);
-    // Barras de contas a pagar
-    barrasContas.push(contasPorDia[d] ? -(contasPorDia[d]) : 0);
+  }
+
+  // Emenda: a linha tracejada comeca exatamente onde a solida termina,
+  // senao aparece um buraco no grafico no dia de hoje.
+  if (!mesEncerradoCalc && diasCorridos > 0 && diasCorridos <= diasNoMes) {
+    saldoProjetado[diasCorridos - 1] = saldoRealizado[diasCorridos - 1];
+  }
+
+  // Primeiro dia em que o caixa fica negativo — a informacao mais
+  // importante do grafico inteiro.
+  let diaEstouro = null;
+  for (let i = 0; i < dias.length; i++) {
+    const v = saldoRealizado[i] != null ? saldoRealizado[i] : saldoProjetado[i];
+    if (v != null && v < 0) { diaEstouro = dias[i]; break; }
   }
 
   // 6. Cards resumo
@@ -30506,16 +30593,21 @@ async function loadProjecaoCaixa() {
   // Sem isso, julho aparecia projetando a meta de agosto pra frente.
   const mesEncerrado = mesEncerradoCalc;
   const ultimoReal = [...saldoRealizado].reverse().find(v => v !== null);
+  const ultimoProj = [...saldoProjetado].reverse().find(v => v !== null);
+  // O card TEM que mostrar o fim da linha do grafico. Antes usava
+  // saldoMeta, que era uma das duas linhas contraditorias — o numero
+  // do card nao batia com nenhuma delas.
   const saldoFinal = mesEncerrado
     ? (ultimoReal !== undefined ? ultimoReal : saldoInicial)
-    : saldoMeta[saldoMeta.length-1];
+    : (ultimoProj !== undefined ? ultimoProj
+       : (ultimoReal !== undefined ? ultimoReal : saldoInicial));
 
   if (document.getElementById('proj-saldo-ini')) 
     document.getElementById('proj-saldo-ini').textContent = fmt(saldoInicial);
   if (document.getElementById('proj-receita'))   
     document.getElementById('proj-receita').textContent = mesEncerrado
       ? fmt(Object.values(entradaPorDia).reduce((a,b)=>a+b,0))
-      : fmt(meta || mediaDia * diasNoMes);
+      : fmt(entradaReal + receitaDiaProj * Math.max(diasNoMes - diasCorridos, 0));
   if (document.getElementById('proj-contas'))    
     document.getElementById('proj-contas').textContent = fmt(totalContas);
   
@@ -30530,56 +30622,66 @@ async function loadProjecaoCaixa() {
 
   ajustarZoomGrafico(canvas, 220);   // container tem height:220px
 
+  const corEstouro = '#d16a66';
+
   _chartProjecao = new Chart(canvas, {
     type: 'bar',
     data: {
       labels: dias,
       datasets: [
+        // Barras do movimento do dia, em eixo PROPRIO. Antes as contas
+        // a pagar dividiam o eixo do saldo e viravam risquinhos
+        // invisiveis, porque saldo esta na casa dos milhares e o
+        // movimento diario e muito menor.
         {
-          label: 'Realizado',
+          label: 'Entradas do dia',
+          data: barraEntrada,
+          type: 'bar',
+          yAxisID: 'y2',
+          backgroundColor: 'rgba(47,154,100,.55)',
+          borderRadius: { topLeft:4, topRight:4, bottomLeft:0, bottomRight:0 },
+          maxBarThickness: 13,
+          order: 4,
+        },
+        {
+          label: 'Saídas do dia',
+          data: barraSaida,
+          type: 'bar',
+          yAxisID: 'y2',
+          backgroundColor: 'rgba(209,106,102,.5)',
+          borderRadius: { topLeft:0, topRight:0, bottomLeft:4, bottomRight:4 },
+          maxBarThickness: 13,
+          order: 5,
+        },
+        {
+          label: 'Saldo realizado',
           data: saldoRealizado,
           type: 'line',
-          borderColor: '#22a45d',
-          backgroundColor: 'rgba(34,164,93,.1)',
-          borderWidth: 2,
-          tension: 0.3,
+          yAxisID: 'y',
+          borderColor: '#1a8f52',
+          backgroundColor: 'rgba(47,154,100,.10)',
+          borderWidth: 2.6,
+          tension: 0.25,
           fill: true,
-          pointRadius: 2,
+          pointRadius: 0,
+          pointHoverRadius: 5,
           spanGaps: false,
           order: 1,
         },
         {
-          label: 'Projeção (meta)',
-          data: saldoMeta,
+          label: 'Saldo projetado',
+          data: saldoProjetado,
           type: 'line',
-          borderColor: '#3b82f6',
-          borderWidth: 2,
-          borderDash: [5,3],
-          tension: 0.3,
-          pointRadius: 0,
+          yAxisID: 'y',
+          borderColor: '#4f7fdd',
+          borderWidth: 2.2,
+          borderDash: [6,4],
+          tension: 0.25,
           fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          spanGaps: false,
           order: 2,
-        },
-        {
-          label: 'Projeção (média)',
-          data: saldoMedia,
-          type: 'line',
-          borderColor: '#f59e0b',
-          borderWidth: 2,
-          borderDash: [3,3],
-          tension: 0.3,
-          pointRadius: 0,
-          fill: false,
-          order: 3,
-        },
-        {
-          label: 'Contas a pagar',
-          data: barrasContas,
-          type: 'bar',
-          backgroundColor: 'rgba(239,68,68,.4)',
-          borderColor: 'rgba(239,68,68,.7)',
-          borderWidth: 1,
-          order: 4,
         },
       ]
     },
@@ -30591,25 +30693,84 @@ async function loadProjecaoCaixa() {
         legend: { display: false },
         tooltip: {
           callbacks: {
+            title: itens => 'Dia ' + itens[0].label,
             label: ctx => {
-              if (ctx.parsed.y === null) return null;
-              const v = ctx.parsed.y;
-              return `${ctx.dataset.label}: R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+              if (ctx.parsed.y === null || ctx.parsed.y === undefined) return null;
+              const v = Math.abs(ctx.parsed.y);
+              return ctx.dataset.label + ': R$ ' +
+                v.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+            },
+            afterBody: itens => {
+              const d = Number(itens[0].label);
+              const c = contasPorDia[d];
+              return c ? ['Contas a pagar vencendo: R$ ' +
+                c.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})] : [];
             }
           }
-        }
+        },
+        // Marca o dia em que o caixa fica negativo e a linha do zero.
+        // E a leitura mais importante do grafico e antes nao existia.
+        vnMarcasProjecao: { diaEstouro }
       },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 9 } } },
         y: {
-          grid: { color: 'rgba(0,0,0,.05)' },
+          position: 'left',
+          grid: { color: 'rgba(17,19,24,.05)' },
           ticks: {
             font: { size: 9 },
             callback: v => 'R$' + (v/1000).toFixed(0) + 'k'
           }
+        },
+        y2: {
+          position: 'right',
+          grid: { display: false },
+          ticks: {
+            font: { size: 9 },
+            color: 'rgba(17,19,24,.35)',
+            callback: v => (v === 0 ? '0' : (Math.abs(v)/1000).toFixed(0) + 'k')
+          }
         }
       }
-    }
+    },
+    plugins: [{
+      id: 'vnMarcasProjecao',
+      afterDatasetsDraw(chart, args, opts) {
+        const { ctx, chartArea: a, scales } = chart;
+        if (!a || !scales.y) return;
+        ctx.save();
+        // linha do zero
+        const y0 = scales.y.getPixelForValue(0);
+        if (y0 > a.top && y0 < a.bottom) {
+          ctx.strokeStyle = 'rgba(17,19,24,.22)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3,3]);
+          ctx.beginPath(); ctx.moveTo(a.left, y0); ctx.lineTo(a.right, y0); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        // dia do estouro
+        const de = opts?.diaEstouro;
+        if (de) {
+          const x = scales.x.getPixelForValue(de - 1);
+          ctx.strokeStyle = corEstouro; ctx.lineWidth = 1.6;
+          ctx.setLineDash([4,3]);
+          ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom); ctx.stroke();
+          ctx.setLineDash([]);
+          const txt = 'caixa negativo · dia ' + de;
+          ctx.font = '600 10px Outfit, sans-serif';
+          const w = ctx.measureText(txt).width + 14;
+          const bx = Math.min(Math.max(x - w/2, a.left), a.right - w);
+          ctx.fillStyle = corEstouro;
+          ctx.beginPath();
+          (ctx.roundRect ? ctx.roundRect(bx, a.top + 2, w, 17, 9)
+                         : ctx.rect(bx, a.top + 2, w, 17));
+          ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(txt, bx + w/2, a.top + 11);
+        }
+        ctx.restore();
+      }
+    }]
   });
 
   if (document.getElementById('proj-periodo-label'))
