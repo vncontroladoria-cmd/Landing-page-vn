@@ -30983,6 +30983,28 @@ async function loadProjecaoCaixa() {
     ano: _projAno, mes: _projMes
   };
 
+  // ── qual cenário está selecionado ──
+  // Este bloco precisa vir ANTES dos cards: eles usam serieEscolhida.
+  // Estava depois, no trecho do gráfico, e o JavaScript parava com
+  // "Cannot access before initialization" — a tela ficava em branco.
+  // Qual cenário está selecionado no botão
+  const cen = window._projCenario || 'meta';
+  const serieEscolhida = cen === 'real' ? serieReal : serieMeta;
+  // realizado = passado (igual nos dois); projetado = futuro do cenário
+  for (let i = 0; i < dias.length; i++) {
+    const passado = (i + 1) <= diasCorridos;
+    saldoRealizado[i] = passado ? serieEscolhida[i] : null;
+    saldoProjetado[i] = passado ? null : serieEscolhida[i];
+  }
+  if (!mesEncerradoCalc && diasCorridos > 0 && diasCorridos <= dias.length) {
+    saldoProjetado[diasCorridos - 1] = saldoRealizado[diasCorridos - 1];
+  }
+  diaEstouro = null;
+  for (let i = 0; i < dias.length; i++) {
+    const v = serieEscolhida[i];
+    if (v != null && v < 0) { diaEstouro = dias[i]; break; }
+  }
+
   // 6. Cards resumo
   // maximumFractionDigits: sem isso o toLocaleString mostra 3 casas ("123.665,934")
   const fmt = v => 'R$ ' + Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
@@ -31037,24 +31059,6 @@ async function loadProjecaoCaixa() {
   const gradSaldo = ctxG.createLinearGradient(0, 0, 0, 260);
   gradSaldo.addColorStop(0, 'rgba(217,166,63,.22)');
   gradSaldo.addColorStop(1, 'rgba(217,166,63,0)');
-
-  // Qual cenário está selecionado no botão
-  const cen = window._projCenario || 'meta';
-  const serieEscolhida = cen === 'real' ? serieReal : serieMeta;
-  // realizado = passado (igual nos dois); projetado = futuro do cenário
-  for (let i = 0; i < dias.length; i++) {
-    const passado = (i + 1) <= diasCorridos;
-    saldoRealizado[i] = passado ? serieEscolhida[i] : null;
-    saldoProjetado[i] = passado ? null : serieEscolhida[i];
-  }
-  if (!mesEncerradoCalc && diasCorridos > 0 && diasCorridos <= dias.length) {
-    saldoProjetado[diasCorridos - 1] = saldoRealizado[diasCorridos - 1];
-  }
-  diaEstouro = null;
-  for (let i = 0; i < dias.length; i++) {
-    const v = serieEscolhida[i];
-    if (v != null && v < 0) { diaEstouro = dias[i]; break; }
-  }
 
   const serieCheia = dias.map((_, i) =>
     saldoRealizado[i] != null ? saldoRealizado[i] : saldoProjetado[i]);
