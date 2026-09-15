@@ -5961,7 +5961,7 @@ tr[onclick],li[onclick],div[onclick].item,.lista-item{ cursor:pointer; }
                 </div>
               </div>
               <!-- Gráfico -->
-              <div style="position:relative;height:220px">
+              <div style="position:relative;height:260px">
                 <canvas id="chart-projecao"></canvas>
               </div>
               <div class="proj-legenda">
@@ -13830,6 +13830,15 @@ async function renderFluxoCaixaChart(ini, fim) {
 
 async function loadDashboard() {
   if (typeof skDashboardLigar === 'function') skDashboardLigar();
+  // A Projeção de Caixa acompanha o filtro do topo. Antes ela tinha
+  // navegação própria e podia ficar mostrando outro mês que o resto
+  // da tela — dois períodos diferentes na mesma página.
+  try {
+    const a = parseInt(document.getElementById('dash-ano')?.value);
+    const m = parseInt(document.getElementById('dash-mes')?.value);
+    if (a && a > 2000) _projAno = a;
+    if (m && m >= 1 && m <= 12) _projMes = m;
+  } catch (e) {}
   try { return await _loadDashboardInterno(); }
   finally { if (typeof skDashboardDesligar === 'function') skDashboardDesligar(); }
 }
@@ -30620,27 +30629,45 @@ async function loadProjecaoCaixa() {
   // 7. Renderizar gráfico
   if (_chartProjecao) { _chartProjecao.destroy(); _chartProjecao = null; }
 
-  ajustarZoomGrafico(canvas, 220);   // container tem height:220px
+  ajustarZoomGrafico(canvas, 260);   // +40px: as etiquetas de máximo e mínimo precisam de folga
 
   const corEstouro = '#d16a66';
+
+  // Preenchimento em degrade sob a linha. Cor chapada num grafico de
+  // 31 dias vira uma mancha pesada; o degrade deixa o olho seguir a
+  // linha em vez da area.
+  const ctxG = canvas.getContext('2d');
+  const grad = ctxG.createLinearGradient(0, 0, 0, 240);
+  grad.addColorStop(0,   'rgba(47,154,100,.26)');
+  grad.addColorStop(0.55,'rgba(47,154,100,.08)');
+  grad.addColorStop(1,   'rgba(47,154,100,0)');
+
+  // Marca o melhor e o pior dia do saldo — e o que se procura num
+  // fluxo de caixa, e antes era preciso caçar com o mouse.
+  const serieCheia = dias.map((_, i) =>
+    saldoRealizado[i] != null ? saldoRealizado[i] : saldoProjetado[i]);
+  let iMax = -1, iMin = -1;
+  serieCheia.forEach((v, i) => {
+    if (v == null) return;
+    if (iMax < 0 || v > serieCheia[iMax]) iMax = i;
+    if (iMin < 0 || v < serieCheia[iMin]) iMin = i;
+  });
 
   _chartProjecao = new Chart(canvas, {
     type: 'bar',
     data: {
       labels: dias,
       datasets: [
-        // Barras do movimento do dia, em eixo PROPRIO. Antes as contas
-        // a pagar dividiam o eixo do saldo e viravam risquinhos
-        // invisiveis, porque saldo esta na casa dos milhares e o
-        // movimento diario e muito menor.
         {
           label: 'Entradas do dia',
           data: barraEntrada,
           type: 'bar',
           yAxisID: 'y2',
-          backgroundColor: 'rgba(47,154,100,.55)',
-          borderRadius: { topLeft:4, topRight:4, bottomLeft:0, bottomRight:0 },
-          maxBarThickness: 13,
+          backgroundColor: 'rgba(47,154,100,.30)',
+          hoverBackgroundColor: 'rgba(47,154,100,.6)',
+          borderRadius: 3,
+          borderSkipped: false,
+          maxBarThickness: 9,
           order: 4,
         },
         {
@@ -30648,9 +30675,11 @@ async function loadProjecaoCaixa() {
           data: barraSaida,
           type: 'bar',
           yAxisID: 'y2',
-          backgroundColor: 'rgba(209,106,102,.5)',
-          borderRadius: { topLeft:0, topRight:0, bottomLeft:4, bottomRight:4 },
-          maxBarThickness: 13,
+          backgroundColor: 'rgba(209,106,102,.28)',
+          hoverBackgroundColor: 'rgba(209,106,102,.58)',
+          borderRadius: 3,
+          borderSkipped: false,
+          maxBarThickness: 9,
           order: 5,
         },
         {
@@ -30659,12 +30688,15 @@ async function loadProjecaoCaixa() {
           type: 'line',
           yAxisID: 'y',
           borderColor: '#1a8f52',
-          backgroundColor: 'rgba(47,154,100,.10)',
-          borderWidth: 2.6,
-          tension: 0.25,
+          backgroundColor: grad,
+          borderWidth: 2.8,
+          tension: 0.35,
           fill: true,
           pointRadius: 0,
           pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#1a8f52',
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2.5,
           spanGaps: false,
           order: 1,
         },
@@ -30674,12 +30706,16 @@ async function loadProjecaoCaixa() {
           type: 'line',
           yAxisID: 'y',
           borderColor: '#4f7fdd',
-          borderWidth: 2.2,
-          borderDash: [6,4],
-          tension: 0.25,
-          fill: false,
+          backgroundColor: 'rgba(79,127,221,.07)',
+          borderWidth: 2.4,
+          borderDash: [7,5],
+          tension: 0.35,
+          fill: true,
           pointRadius: 0,
           pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#4f7fdd',
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2.5,
           spanGaps: false,
           order: 2,
         },
@@ -30688,49 +30724,54 @@ async function loadProjecaoCaixa() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 26, right: 6, left: 2 } },
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: '#111113',
+          cornerRadius: 12,
+          padding: 12,
+          displayColors: true,
+          usePointStyle: true,
           callbacks: {
-            title: itens => 'Dia ' + itens[0].label,
+            title: itens => 'Dia ' + itens[0].label + '/' + String(_projMes).padStart(2,'0'),
             label: ctx => {
-              if (ctx.parsed.y === null || ctx.parsed.y === undefined) return null;
+              if (ctx.parsed.y == null) return null;
               const v = Math.abs(ctx.parsed.y);
-              return ctx.dataset.label + ': R$ ' +
+              return '  ' + ctx.dataset.label + ':  R$ ' +
                 v.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
             },
             afterBody: itens => {
               const d = Number(itens[0].label);
               const c = contasPorDia[d];
-              return c ? ['Contas a pagar vencendo: R$ ' +
+              return c ? ['', 'A vencer neste dia: R$ ' +
                 c.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})] : [];
             }
           }
         },
-        // Marca o dia em que o caixa fica negativo e a linha do zero.
-        // E a leitura mais importante do grafico e antes nao existia.
-        vnMarcasProjecao: { diaEstouro }
+        vnMarcasProjecao: { diaEstouro, iMax, iMin, serieCheia }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
-        y: {
-          position: 'left',
-          grid: { color: 'rgba(17,19,24,.05)' },
+        x: {
+          grid: { display: false },
+          border: { display: false },
           ticks: {
-            font: { size: 9 },
-            callback: v => 'R$' + (v/1000).toFixed(0) + 'k'
+            font: { size: 9 }, color: 'rgba(17,19,24,.38)', maxRotation: 0, autoSkipPadding: 8
           }
         },
-        y2: {
-          position: 'right',
-          grid: { display: false },
+        y: {
+          position: 'left',
+          border: { display: false },
+          grid: { color: 'rgba(17,19,24,.045)', drawTicks: false },
           ticks: {
-            font: { size: 9 },
-            color: 'rgba(17,19,24,.35)',
-            callback: v => (v === 0 ? '0' : (Math.abs(v)/1000).toFixed(0) + 'k')
+            font: { size: 9 }, color: 'rgba(17,19,24,.38)', padding: 8, maxTicksLimit: 6,
+            callback: v => (Math.abs(v) >= 1000 ? 'R$' + (v/1000).toFixed(0) + 'k' : 'R$' + v)
           }
-        }
+        },
+        // Eixo das barras invisivel: o numero exato aparece no tooltip.
+        // Uma coluna de numeros na direita so competia com a leitura.
+        y2: { position: 'right', display: false, grid: { display: false } }
       }
     },
     plugins: [{
@@ -30738,22 +30779,52 @@ async function loadProjecaoCaixa() {
       afterDatasetsDraw(chart, args, opts) {
         const { ctx, chartArea: a, scales } = chart;
         if (!a || !scales.y) return;
+        const brl = v => 'R$ ' + Number(v).toLocaleString('pt-BR',
+          { minimumFractionDigits:0, maximumFractionDigits:0 });
         ctx.save();
+
         // linha do zero
         const y0 = scales.y.getPixelForValue(0);
         if (y0 > a.top && y0 < a.bottom) {
-          ctx.strokeStyle = 'rgba(17,19,24,.22)';
-          ctx.lineWidth = 1;
-          ctx.setLineDash([3,3]);
+          ctx.strokeStyle = 'rgba(17,19,24,.2)'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
           ctx.beginPath(); ctx.moveTo(a.left, y0); ctx.lineTo(a.right, y0); ctx.stroke();
           ctx.setLineDash([]);
         }
-        // dia do estouro
+
+        // etiqueta flutuante do melhor e do pior dia
+        const etiqueta = (i, valor, cor, acima) => {
+          if (i < 0 || valor == null) return;
+          const x = scales.x.getPixelForValue(i);
+          const y = scales.y.getPixelForValue(valor);
+          ctx.font = '600 10px Outfit, sans-serif';
+          const txt = brl(valor);
+          const w = ctx.measureText(txt).width + 14, h = 17;
+          let bx = Math.min(Math.max(x - w/2, a.left + 1), a.right - w - 1);
+          let by = acima ? y - h - 9 : y + 9;
+          by = Math.min(Math.max(by, a.top), a.bottom - h);
+          ctx.fillStyle = cor;
+          ctx.beginPath();
+          (ctx.roundRect ? ctx.roundRect(bx, by, w, h, 9) : ctx.rect(bx, by, w, h));
+          ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(txt, bx + w/2, by + h/2);
+          // pontinho no valor
+          ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI*2);
+          ctx.fillStyle = cor; ctx.fill();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        };
+        const sc = opts?.serieCheia || [];
+        etiqueta(opts?.iMax, sc[opts?.iMax], '#1a8f52', true);
+        if (opts?.iMin !== opts?.iMax) {
+          const vMin = sc[opts?.iMin];
+          etiqueta(opts?.iMin, vMin, vMin < 0 ? corEstouro : 'rgba(17,19,24,.55)', false);
+        }
+
+        // dia em que o caixa fica negativo
         const de = opts?.diaEstouro;
         if (de) {
           const x = scales.x.getPixelForValue(de - 1);
-          ctx.strokeStyle = corEstouro; ctx.lineWidth = 1.6;
-          ctx.setLineDash([4,3]);
+          ctx.strokeStyle = corEstouro; ctx.lineWidth = 1.6; ctx.setLineDash([4,3]);
           ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom); ctx.stroke();
           ctx.setLineDash([]);
           const txt = 'caixa negativo · dia ' + de;
@@ -30762,11 +30833,10 @@ async function loadProjecaoCaixa() {
           const bx = Math.min(Math.max(x - w/2, a.left), a.right - w);
           ctx.fillStyle = corEstouro;
           ctx.beginPath();
-          (ctx.roundRect ? ctx.roundRect(bx, a.top + 2, w, 17, 9)
-                         : ctx.rect(bx, a.top + 2, w, 17));
+          (ctx.roundRect ? ctx.roundRect(bx, a.top - 24, w, 17, 9) : ctx.rect(bx, a.top - 24, w, 17));
           ctx.fill();
           ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(txt, bx + w/2, a.top + 11);
+          ctx.fillText(txt, bx + w/2, a.top - 15.5);
         }
         ctx.restore();
       }
