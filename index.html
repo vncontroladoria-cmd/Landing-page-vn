@@ -25949,11 +25949,21 @@ function renderConciliacao() {
             <span style="font-size:11px;color:var(--green);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${catNome}</span>
             <span style="margin-left:auto;font-size:10px;background:var(--green);color:#fff;padding:2px 6px;border-radius:10px;flex-shrink:0">Aprovar</span>
           </div>` : ''}
-          <input type="text" id="conc-cat-${idx}" placeholder="Buscar categoria..."
-            value="${catNome}"
-            oninput="buscaCatConc(this.value,${idx})"
-            onblur="setTimeout(()=>{const d=document.getElementById('conc-cat-dd-${idx}');if(d)d.style.display='none'},200)"
-            style="width:100%;font-size:12px;padding:6px 10px;border:1.5px solid ${temSugestao?'var(--green)':'var(--border)'};border-radius:7px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif;box-sizing:border-box">
+          <div style="position:relative">
+            <input type="text" id="conc-cat-${idx}" placeholder="Clique para ver as categorias"
+              value="${catNome}"
+              oninput="buscaCatConc(this.value,${idx})"
+              onfocus="buscaCatConc(this.value,${idx},true)"
+              onclick="buscaCatConc(this.value,${idx},true)"
+              onblur="setTimeout(()=>{const d=document.getElementById('conc-cat-dd-${idx}');if(d)d.style.display='none'},200)"
+              style="width:100%;font-size:12px;padding:6px 26px 6px 10px;border:1.5px solid ${temSugestao?'var(--green)':'var(--border)'};border-radius:7px;background:var(--bg2);color:var(--text);font-family:'Outfit',sans-serif;box-sizing:border-box">
+            <button type="button" tabindex="-1"
+              onmousedown="event.preventDefault();const i=document.getElementById('conc-cat-${idx}');i.focus();buscaCatConc('',${idx},true)"
+              title="Ver todas as categorias"
+              style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:20px;height:20px;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="width:12px;height:12px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
           <input type="hidden" id="conc-cat-dfc-${idx}" value="${catDfc}">
           <input type="hidden" id="conc-cat-dre-${idx}" value="${catDre}">
           <div id="conc-cat-dd-${idx}" style="display:none;position:absolute;background:var(--bg2);border:1.5px solid var(--accent);border-radius:8px;max-height:260px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.22)"></div>
@@ -26379,7 +26389,7 @@ if (!window._concDDHook) {
 //  Ao final da função há uma auto-verificação que avisa no console se algo
 //  desses voltar a quebrar.
 // ═══════════════════════════════════════════════════════════════════════
-async function buscaCatConc(texto, idx) {
+async function buscaCatConc(texto, idx, forcar) {
   const dd = document.getElementById(`conc-cat-dd-${idx}`);
   if (!dd) { console.warn('[conc] dropdown não encontrado para idx', idx); return; }
 
@@ -26403,11 +26413,38 @@ async function buscaCatConc(texto, idx) {
     if (c.demonstrativo === 'DRE' || c.demonstrativo === 'AMBOS') map[c.nome].dre = c.codigo;
   });
 
-  // Só mostra a lista depois de digitar algo — abrir no clique atrapalhava
-  // a leitura da linha e cobria o campo.
-  if (!termo) { dd.style.display = 'none'; return; }
-  const resultados = Object.values(map).filter(c => incStr(c.nome, termo));
-  if (!resultados.length) { dd.style.display = 'none'; return; }
+  // Digitando: filtra. Clicando na seta ou no campo vazio: mostra tudo.
+  // Antes a lista NUNCA abria sem digitar, então quem não sabia o nome
+  // exato da categoria simplesmente não conseguia escolher.
+  if (!termo && !forcar) { dd.style.display = 'none'; return; }
+
+  // hierarquia: subcategoria aparece recuada, logo abaixo da mãe
+  const _porId = {};
+  lista.forEach(c => { _porId[c.id] = c; });
+  Object.keys(map).forEach(nome => {
+    const c = lista.find(x => x.nome === nome);
+    if (c?.categoria_pai_id && _porId[c.categoria_pai_id]) {
+      map[nome].mae = _porId[c.categoria_pai_id].nome;
+      map[nome].codigo = c.codigo || '';
+    }
+  });
+
+  let resultados = Object.values(map).filter(c =>
+    !termo || incStr(c.nome, termo) || (c.mae && incStr(c.mae, termo)));
+
+  resultados.sort((a, b) => {
+    const ra = (a.mae || a.nome).toLowerCase(), rb = (b.mae || b.nome).toLowerCase();
+    if (ra !== rb) return ra < rb ? -1 : 1;
+    if (!a.mae && b.mae) return -1;
+    if (a.mae && !b.mae) return 1;
+    return String(a.codigo||'').localeCompare(String(b.codigo||''), 'pt-BR', { numeric: true });
+  });
+
+  if (!resultados.length) {
+    dd.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--text2)">Nenhuma categoria com esse nome</div>';
+    dd.style.display = 'block';
+    return;
+  }
 
   // position:fixed pra escapar de qualquer pai com overflow:hidden — com
   // absolute a lista era cortada pelo card e so aparecia a primeira opcao.
@@ -26415,15 +26452,22 @@ async function buscaCatConc(texto, idx) {
   // compensando o `zoom: 1.3` do body.
   ancorarDropdown(dd, document.getElementById(`conc-cat-${idx}`) || dd.previousElementSibling, 240);
   dd.style.display = 'block';
-  dd.innerHTML = resultados.slice(0,15).map(c => {
+  // 15 era pouco quando a lista abre inteira (o plano tem 100+ contas)
+  dd.innerHTML = resultados.slice(0, 60).map(c => {
     const refs = [c.dfc?`DFC:${c.dfc}`:null, c.dre?`DRE:${c.dre}`:null].filter(Boolean).join(' / ');
+    const sub = !!c.mae;
     return `<div
-      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)"
-      onmousedown="selecionarCatConc('${c.nome}','${c.dfc||''}','${c.dre||''}',${idx})"
-      onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border)${sub?';padding-left:26px;background:var(--bg3)':''}"
+      onmousedown="selecionarCatConc('${String(c.nome).replace(/'/g,"\\'")}','${c.dfc||''}','${c.dre||''}',${idx})"
+      onmouseover="this.style.background='var(--g100)'" onmouseout="this.style.background='${sub?'var(--bg3)':''}'">
+      ${sub ? `<span style="color:var(--text3);margin-right:6px">└</span>
+              <span style="font-size:10px;font-weight:600;color:var(--g700);background:var(--g100);border-radius:5px;padding:1px 6px;margin-right:6px">${c.codigo||''}</span>` : ''}
       <strong>${c.nome}</strong> <span style="color:var(--text3);font-size:11px">${refs}</span>
+      ${sub ? `<span style="color:var(--text3);font-size:10px;margin-left:6px">em ${c.mae}</span>` : ''}
     </div>`;
-  }).join('');
+  }).join('') + (resultados.length > 60
+    ? '<div style="padding:8px 12px;font-size:11px;color:var(--text3);text-align:center">digite para filtrar — ' + (resultados.length - 60) + ' a mais</div>'
+    : '');
 
   // AUTO-VERIFICAÇÃO: confere se a lista abriu visível e no lugar certo.
   // Se voltar a quebrar, o problema aparece na tela em vez de em silêncio.
