@@ -23957,6 +23957,18 @@ function mostrarAnexoExistente(url, nome) {
   if (prev) prev.style.display = 'flex';
 }
 
+// Carrega as pastas no select do modal de conta (vale pra nova e pra edição)
+async function carregarPastasModalConta(selecionada) {
+  const sel = document.getElementById('ct-pasta-sel');
+  if (!sel) return;
+  const { data, error } = await qE('documentos_fiscais')
+    .select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id', null).order('fornecedor');
+  if (error) { showToast('Erro ao carregar pastas: ' + error.message, 'error'); return; }
+  sel.innerHTML = '<option value="">— Não arquivar —</option>' +
+    (data||[]).map(p => `<option value="${p.id}">${p.fornecedor}</option>`).join('');
+  if (selecionada) sel.value = selecionada;
+}
+
 function abrirModalConta(tipo) {
   _tipoContaModal = tipo;
   document.getElementById('modal-conta-title').textContent = tipo === 'pagar' ? 'Nova conta a pagar' : 'Nova conta a receber';
@@ -23987,15 +23999,7 @@ function abrirModalConta(tipo) {
   _contaParcelas = [];
   document.getElementById('modal-conta').dataset.editId = '';
   limparAnexoConta();   // sem isso o arquivo da conta anterior vem junto
-  // Popula select de pasta
-  const selPasta = document.getElementById('ct-pasta-sel');
-  if (selPasta) {
-    qE('documentos_fiscais').select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id',null).order('fornecedor')
-      .then(({data}) => {
-        selPasta.innerHTML = '<option value="">— Não arquivar —</option>' +
-          (data||[]).map(p=>`<option value="${p.id}">${p.fornecedor}</option>`).join('');
-      });
-  }
+  carregarPastasModalConta();
   document.getElementById('modal-conta').classList.add('open');
   if (!_categorias.length) {
     qE('plano_contas').select('*').order('ordem').then(({data}) => { _categorias = data || []; });
@@ -24805,8 +24809,7 @@ async function editarConta(id, tipo) {
   mostrarAnexoExistente(c.arquivo_url);    // e mostra o anexo DESTA conta, se houver
   // A pasta é da conta, não do formulário: sem restaurar, salvar
   // depois de editar apagaria o arquivamento.
-  const _selP = document.getElementById('ct-pasta-sel');
-  if (_selP && c.pasta_id) _selP.value = c.pasta_id;
+  await carregarPastasModalConta(c.pasta_id);
   document.getElementById('modal-conta').dataset.editId = id;
   document.getElementById('modal-conta').classList.add('open');
 }
@@ -26154,26 +26157,39 @@ async function conciliarLinha(idx) {
 
   if (error) { showToast('Erro: '+error.message,'error'); return; }
 
-  // Baixa automática em Contas a Pagar: se for SAÍDA, busca conta com mesmo valor e mês
-  if (tipo === 'SAIDA' && (r.saida || r.valor)) {
-    const valorSaida = Number(r.saida || r.valor || 0);
-    const mesBaixa   = `${ano}-${m.padStart(2,'0')}`;
+  // Baixa automática em Contas a Pagar pela CATEGORIA
+  // 1 conta aberta = baixa direto | 2 ou mais = pergunta | nenhuma = só concilia
+  if (tipo === 'SAIDA' && catNome) {
+    const valorPago = Number(r.saida || r.valor || 0);
+    const [aB, mB] = r.data.substring(0,7).split('-').map(Number);
+    const fimMes = `${aB}-${String(mB).padStart(2,'0')}-${String(new Date(aB, mB, 0).getDate()).padStart(2,'0')}`;
     try {
-      const { data: contasMatch } = await qE('contas_pagar')
-        .select('id, descricao, valor')
-        .eq('valor', valorSaida)
-        .gte('data_vencimento', mesBaixa + '-01')
-        .lte('data_vencimento', (() => { const [a,m2] = mesBaixa.split('-'); return a+'-'+m2+'-'+String(new Date(parseInt(a),parseInt(m2),0).getDate()).padStart(2,'0'); })())
-        .not('status', 'in', '(pago,Pago,paga,Paga,recebido,Recebido)')
-        .limit(1);
-      if (contasMatch?.length) {
-        await sb.from('contas_pagar').update({
-          status: 'pago',
-          data_pagamento: dataCompetencia
-        }).eq('id', contasMatch[0].id);
-        showToast(`✅ Baixa automática: "${contasMatch[0].descricao}"`, 'success');
+      const { data: abertas, error: errCP } = await qE('contas_pagar')
+        .select('id, descricao, valor, data_vencimento, status, categoria')
+        .ilike('categoria', catNome)
+        .lte('data_vencimento', fimMes)
+        .order('data_vencimento');
+      if (errCP) throw errCP;
+      const pagos = ['pago','paga','recebido'];
+      const contas = (abertas||[]).filter(c => !pagos.includes(normStr(c.status)));
+      let contaId = null;
+      if (contas.length === 1) contaId = contas[0].id;
+      else if (contas.length > 1) contaId = await escolherContaBaixaConc(contas, valorPago, catNome);
+      if (contaId) {
+        const c = contas.find(x => x.id === contaId);
+        const { error: errBx } = await sb.from('contas_pagar').update({
+          status: 'Pago',
+          data_pagamento: r.data,
+          valor: valorPago,
+          valor_original: c.valor
+        }).eq('id', contaId);
+        if (errBx) throw errBx;
+        showToast(`✅ Baixa em "${c.descricao}" — pago ${fmtBRL(valorPago)}`, 'success');
       }
-    } catch(e) { console.warn('baixa auto CP:', e); }
+    } catch(e) {
+      console.warn('baixa auto CP:', e);
+      showToast('Conciliado, mas a baixa no Contas a Pagar falhou: ' + (e.message||e), 'error');
+    }
   }
 
   // Marca linha como conciliada visualmente
@@ -26200,6 +26216,37 @@ async function conciliarLinha(idx) {
   }
 
   showToast(`✓ Lançamento conciliado! Valor: ${fmtBRL(r.entrada||r.saida||0)}`, 'success');
+}
+
+// Pergunta qual conta dar baixa quando a categoria tem 2 ou mais contas abertas
+function escolherContaBaixaConc(contas, valorPago, catNome) {
+  return new Promise(resolve => {
+    const esc = t => String(t ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center';
+    ov.innerHTML = `
+      <div style="background:var(--bg2);border-radius:14px;padding:24px;width:460px;max-width:95vw;max-height:80vh;overflow-y:auto">
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">💸 Qual conta dar baixa?</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Tem ${contas.length} contas abertas em <b>${esc(catNome)}</b>. Valor pago no extrato: <b>${fmtBRL(valorPago)}</b></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${contas.map(c => `
+            <div data-id="${esc(c.id)}" style="padding:12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer">
+              <div style="font-size:13px;font-weight:600">${esc(c.descricao || '—')}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:3px">Venc: ${fmtDate(c.data_vencimento)} · ${fmtBRL(c.valor)} · ${esc(c.status || '')}</div>
+            </div>`).join('')}
+        </div>
+        <button data-nao style="margin-top:16px;width:100%;padding:9px;border:1.5px solid var(--border);border-radius:8px;background:none;color:var(--text);cursor:pointer;font-size:12px">
+          Não dar baixa (só conciliar)
+        </button>
+      </div>`;
+    ov.querySelectorAll('[data-id]').forEach(el => {
+      el.onmouseover = () => { el.style.borderColor = 'var(--accent)'; el.style.background = 'var(--bg3)'; };
+      el.onmouseout  = () => { el.style.borderColor = 'var(--border)'; el.style.background = ''; };
+      el.onclick = () => { ov.remove(); resolve(el.dataset.id); };
+    });
+    ov.querySelector('[data-nao]').onclick = () => { ov.remove(); resolve(null); };
+    document.body.appendChild(ov);
+  });
 }
 
 async function concluirTodos() {
