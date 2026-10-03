@@ -6641,6 +6641,8 @@ tr[data-editing="true"] select{
                 <button class="btn" onclick="criarPastaDoc()" style="font-size:12px">+ Pasta</button>
                 <input type="file" id="doc-upload-input" multiple accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="uploadDocumentos(this.files);this.value=''">
                 <button class="btn" onclick="document.getElementById('doc-upload-input').click()" style="font-size:12px">📤 Enviar</button>
+                <button class="btn" onclick="exportarDocumentos(false)" style="font-size:12px" title="Baixa todas as pastas e arquivos desta empresa num ZIP">📦 Exportar</button>
+                <button class="btn" onclick="exportarDocumentos(true)" style="font-size:12px" title="Baixa de TODAS as empresas — pode demorar">🗄️ Exportar tudo</button>
                 <button class="btn" onclick="loadDocumentos()" style="font-size:12px">↻</button>
               </div>
             </div>
@@ -16803,6 +16805,171 @@ function atualizarSelectPastaModal(pastas) {
     pastas.map(p => `<option value="${p.id}">${p.fornecedor}</option>`).join('');
 }
 
+// ══════════════════════════════════════════════════════════════
+// EXPORTAR DOCUMENTOS
+// Monta um ZIP por empresa com a estrutura de pastas, os arquivos
+// e dois índices (manifesto.json e documentos.csv) para importar
+// no sistema novo.
+// ══════════════════════════════════════════════════════════════
+function _expSlug(t) {
+  return String(t || 'sem-nome')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9 ._-]/g, '')
+    .replace(/\s+/g, ' ').trim().substring(0, 60) || 'sem-nome';
+}
+
+function _expStatus(txt) {
+  const el = document.getElementById('doc-upload-status');
+  if (el) el.innerHTML = txt;
+}
+
+function _expCsv(valor) {
+  const t = String(valor ?? '');
+  return /[";\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+
+function _expCarregarJSZip() {
+  if (window.JSZip) return Promise.resolve();
+  return new Promise((ok, falha) => {
+    const t = document.createElement('script');
+    t.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    t.onload = ok;
+    t.onerror = () => falha(new Error('Nao consegui carregar o compactador'));
+    document.head.appendChild(t);
+  });
+}
+
+async function exportarDocumentos(todasEmpresas) {
+  try {
+    await _expCarregarJSZip();
+  } catch (e) {
+    showToast(e.message, 'error');
+    return;
+  }
+
+  // Quais empresas entram
+  let empresas;
+  if (todasEmpresas) {
+    empresas = ((typeof empresasAtivas === 'function')
+      ? empresasAtivas() : (_todasEmpresas || []))
+      .map(e => ({ id: e.id, nome: e.nome }));
+    if (!empresas.length) { showToast('Nenhuma empresa disponivel', 'error'); return; }
+    if (!confirm(`Exportar os documentos de ${empresas.length} empresa(s)?\n\n` +
+                 'Dependendo do volume isso pode demorar varios minutos e gerar ' +
+                 'um arquivo grande. Mantenha esta aba aberta.')) return;
+  } else {
+    const id = _empresaAtual?.id || sessionStorage.getItem('vn_empresa_id');
+    if (!id) { showToast('Nenhuma empresa selecionada', 'error'); return; }
+    empresas = [{ id, nome: _empresaAtual?.nome || 'empresa' }];
+  }
+
+  const zip = new JSZip();
+  const manifesto = { gerado_em: new Date().toISOString(), empresas: [] };
+  const csv = ['empresa;pasta;arquivo;tipo;fornecedor;numero_nf;cnpj;valor;parcela;data_emissao;caminho_no_zip;url_origem'];
+  let totalArquivos = 0, totalFalhas = 0;
+  const falhas = [];
+
+  for (const emp of empresas) {
+    const pastaEmp = zip.folder(_expSlug(emp.nome));
+    const regEmp = { id: emp.id, nome: emp.nome, pastas: [] };
+
+    // Pastas e documentos desta empresa
+    const { data: linhas, error } = await sb.from('documentos_fiscais')
+      .select('*').eq('empresa_id', emp.id).order('criado_em');
+    if (error) { falhas.push(`${emp.nome}: ${error.message}`); continue; }
+
+    const todas = linhas || [];
+    const pastas = todas.filter(d => d.tipo === 'pasta');
+    const docs   = todas.filter(d => d.tipo !== 'pasta');
+
+    // Documento solto (sem pasta) tambem precisa sair no ZIP
+    const grupos = pastas.map(p => ({
+      id: p.id, nome: p.fornecedor || 'Pasta',
+      itens: docs.filter(d => d.conta_pagar_id === p.id),
+    }));
+    const idsPasta = new Set(pastas.map(p => p.id));
+    const soltos = docs.filter(d => !d.conta_pagar_id || !idsPasta.has(d.conta_pagar_id));
+    if (soltos.length) grupos.push({ id: null, nome: '_sem_pasta', itens: soltos });
+
+    for (const g of grupos) {
+      const dirPasta = pastaEmp.folder(_expSlug(g.nome));
+      const regPasta = { nome: g.nome, id: g.id, documentos: [] };
+
+      for (const d of g.itens) {
+        const nomeBase = _expSlug(d.fornecedor || d.numero_nf || d.id);
+        const ext = (d.arquivo_url || '').split('?')[0].split('.').pop().toLowerCase();
+        const nomeArq = `${nomeBase}_${String(d.id).substring(0, 8)}` +
+                        (ext && ext.length <= 5 ? '.' + ext : '');
+        const caminho = `${_expSlug(emp.nome)}/${_expSlug(g.nome)}/${nomeArq}`;
+
+        _expStatus(`⏳ ${emp.nome} · ${g.nome} — ${totalArquivos + 1} arquivo(s)...`);
+
+        let baixou = false;
+        if (d.arquivo_url) {
+          try {
+            const resp = await fetch(d.arquivo_url);
+            if (resp.ok) {
+              dirPasta.file(nomeArq, await resp.blob());
+              baixou = true;
+              totalArquivos++;
+            } else {
+              throw new Error('HTTP ' + resp.status);
+            }
+          } catch (e) {
+            totalFalhas++;
+            falhas.push(`${emp.nome}/${g.nome}/${nomeArq}: ${e.message}`);
+          }
+        }
+
+        regPasta.documentos.push({
+          id: d.id, tipo: d.tipo, fornecedor: d.fornecedor,
+          numero_nf: d.numero_nf, cnpj: d.cnpj,
+          valor: d.valor, valor_total: d.valor_total,
+          parcela_info: d.parcela_info, parcelas: d.parcelas,
+          categoria: d.categoria, data_emissao: d.data_emissao,
+          criado_em: d.criado_em, criado_por_nome: d.criado_por_nome,
+          url_origem: d.arquivo_url,
+          arquivo_no_zip: baixou ? caminho : null,
+        });
+
+        csv.push([emp.nome, g.nome, nomeArq, d.tipo, d.fornecedor,
+                  d.numero_nf, d.cnpj, d.valor, d.parcela_info,
+                  d.data_emissao, baixou ? caminho : 'FALHOU',
+                  d.arquivo_url].map(_expCsv).join(';'));
+      }
+      regEmp.pastas.push(regPasta);
+    }
+    manifesto.empresas.push(regEmp);
+  }
+
+  manifesto.total_arquivos = totalArquivos;
+  manifesto.total_falhas = totalFalhas;
+  if (falhas.length) manifesto.falhas = falhas;
+
+  zip.file('manifesto.json', JSON.stringify(manifesto, null, 2));
+  zip.file('documentos.csv', '\ufeff' + csv.join('\n'));
+  if (falhas.length) zip.file('_falhas.txt', falhas.join('\n'));
+
+  _expStatus('📦 Compactando...');
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' },
+    m => _expStatus(`📦 Compactando... ${m.percent.toFixed(0)}%`));
+
+  const hoje = new Date().toISOString().substring(0, 10);
+  const nomeZip = todasEmpresas
+    ? `documentos_todas_empresas_${hoje}.zip`
+    : `documentos_${_expSlug(empresas[0].nome)}_${hoje}.zip`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nomeZip;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+  _expStatus(`✅ ${totalArquivos} arquivo(s) exportado(s)` +
+             (totalFalhas ? ` · ${totalFalhas} falha(s) — veja _falhas.txt` : ''));
+  showToast(`✅ ${totalArquivos} arquivo(s) no ZIP`, 'success');
+}
+
 async function criarPastaDoc() {
   const nomePasta = document.getElementById('doc-pasta-nova')?.value.trim();
   if (!nomePasta) { showToast('Digite o nome da pasta','error'); return; }
@@ -18819,20 +18986,18 @@ function parseFaturaItauCartaoXLSX(aoa) {
   let dentroDeTabela = false;
 
   // Converte data em qualquer formato que o XLSX possa entregar (Date, serial number ou texto)
-  // Devolve direto 'YYYY-MM-DD'. Usa SEMPRE UTC: o XLSX entrega a data como
-  // meia-noite UTC e, lido no fuso de Brasília (-3h), voltava um dia.
   const paraData = (v) => {
-    let dt = null;
-    if (v instanceof Date) dt = v;
-    else if (typeof v === 'number') {
+    if (v instanceof Date) return v;
+    if (typeof v === 'number') {
       // Serial do Excel: dias desde 1899-12-30
-      dt = new Date(Math.round((v - 25569) * 86400 * 1000));
-    } else if (typeof v === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}/.test(v.trim())) {
-      const [d,m,a] = v.trim().split('/');
-      return `${a}-${String(Number(m)).padStart(2,'0')}-${String(Number(d)).padStart(2,'0')}`;
+      const ms = Math.round((v - 25569) * 86400 * 1000);
+      return new Date(ms);
     }
-    if (!dt || isNaN(dt.getTime())) return null;
-    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;
+    if (typeof v === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}/.test(v.trim())) {
+      const [d,m,a] = v.trim().split('/');
+      return new Date(Number(a), Number(m)-1, Number(d));
+    }
+    return null;
   };
 
   for (let i = 0; i < aoa.length; i++) {
@@ -18847,11 +19012,12 @@ function parseFaturaItauCartaoXLSX(aoa) {
     if (/^Total de/i.test(c0)) { dentroDeTabela = false; continue; }
     if (!dentroDeTabela) continue;
 
-    const data = paraData(row[0]);
-    if (!data) continue;
+    const d = paraData(row[0]);
+    if (!d || isNaN(d.getTime())) continue;
 
     const valor = Number(row[10]) || 0;
     if (!valor) continue;
+    const data = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     out.push({ data, extrato: c2, entrada: valor < 0 ? Math.abs(valor) : 0, saida: valor >= 0 ? valor : 0 });
   }
   return out;
@@ -23958,18 +24124,6 @@ function mostrarAnexoExistente(url, nome) {
   if (prev) prev.style.display = 'flex';
 }
 
-// Carrega as pastas no select do modal de conta (vale pra nova e pra edição)
-async function carregarPastasModalConta(selecionada) {
-  const sel = document.getElementById('ct-pasta-sel');
-  if (!sel) return;
-  const { data, error } = await qE('documentos_fiscais')
-    .select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id', null).order('fornecedor');
-  if (error) { showToast('Erro ao carregar pastas: ' + error.message, 'error'); return; }
-  sel.innerHTML = '<option value="">— Não arquivar —</option>' +
-    (data||[]).map(p => `<option value="${p.id}">${p.fornecedor}</option>`).join('');
-  if (selecionada) sel.value = selecionada;
-}
-
 function abrirModalConta(tipo) {
   _tipoContaModal = tipo;
   document.getElementById('modal-conta-title').textContent = tipo === 'pagar' ? 'Nova conta a pagar' : 'Nova conta a receber';
@@ -24000,7 +24154,15 @@ function abrirModalConta(tipo) {
   _contaParcelas = [];
   document.getElementById('modal-conta').dataset.editId = '';
   limparAnexoConta();   // sem isso o arquivo da conta anterior vem junto
-  carregarPastasModalConta();
+  // Popula select de pasta
+  const selPasta = document.getElementById('ct-pasta-sel');
+  if (selPasta) {
+    qE('documentos_fiscais').select('id,fornecedor').eq('tipo','pasta').is('conta_pagar_id',null).order('fornecedor')
+      .then(({data}) => {
+        selPasta.innerHTML = '<option value="">— Não arquivar —</option>' +
+          (data||[]).map(p=>`<option value="${p.id}">${p.fornecedor}</option>`).join('');
+      });
+  }
   document.getElementById('modal-conta').classList.add('open');
   if (!_categorias.length) {
     qE('plano_contas').select('*').order('ordem').then(({data}) => { _categorias = data || []; });
@@ -24810,7 +24972,8 @@ async function editarConta(id, tipo) {
   mostrarAnexoExistente(c.arquivo_url);    // e mostra o anexo DESTA conta, se houver
   // A pasta é da conta, não do formulário: sem restaurar, salvar
   // depois de editar apagaria o arquivamento.
-  await carregarPastasModalConta(c.pasta_id);
+  const _selP = document.getElementById('ct-pasta-sel');
+  if (_selP && c.pasta_id) _selP.value = c.pasta_id;
   document.getElementById('modal-conta').dataset.editId = id;
   document.getElementById('modal-conta').classList.add('open');
 }
@@ -26158,39 +26321,26 @@ async function conciliarLinha(idx) {
 
   if (error) { showToast('Erro: '+error.message,'error'); return; }
 
-  // Baixa automática em Contas a Pagar pela CATEGORIA
-  // 1 conta aberta = baixa direto | 2 ou mais = pergunta | nenhuma = só concilia
-  if (tipo === 'SAIDA' && catNome) {
-    const valorPago = Number(r.saida || r.valor || 0);
-    const [aB, mB] = r.data.substring(0,7).split('-').map(Number);
-    const fimMes = `${aB}-${String(mB).padStart(2,'0')}-${String(new Date(aB, mB, 0).getDate()).padStart(2,'0')}`;
+  // Baixa automática em Contas a Pagar: se for SAÍDA, busca conta com mesmo valor e mês
+  if (tipo === 'SAIDA' && (r.saida || r.valor)) {
+    const valorSaida = Number(r.saida || r.valor || 0);
+    const mesBaixa   = `${ano}-${m.padStart(2,'0')}`;
     try {
-      const { data: abertas, error: errCP } = await qE('contas_pagar')
-        .select('id, descricao, valor, data_vencimento, status, categoria')
-        .ilike('categoria', catNome)
-        .lte('data_vencimento', fimMes)
-        .order('data_vencimento');
-      if (errCP) throw errCP;
-      const pagos = ['pago','paga','recebido'];
-      const contas = (abertas||[]).filter(c => !pagos.includes(normStr(c.status)));
-      let contaId = null;
-      if (contas.length === 1) contaId = contas[0].id;
-      else if (contas.length > 1) contaId = await escolherContaBaixaConc(contas, valorPago, catNome);
-      if (contaId) {
-        const c = contas.find(x => x.id === contaId);
-        const { error: errBx } = await sb.from('contas_pagar').update({
-          status: 'Pago',
-          data_pagamento: r.data,
-          valor: valorPago,
-          valor_original: c.valor
-        }).eq('id', contaId);
-        if (errBx) throw errBx;
-        showToast(`✅ Baixa em "${c.descricao}" — pago ${fmtBRL(valorPago)}`, 'success');
+      const { data: contasMatch } = await qE('contas_pagar')
+        .select('id, descricao, valor')
+        .eq('valor', valorSaida)
+        .gte('data_vencimento', mesBaixa + '-01')
+        .lte('data_vencimento', (() => { const [a,m2] = mesBaixa.split('-'); return a+'-'+m2+'-'+String(new Date(parseInt(a),parseInt(m2),0).getDate()).padStart(2,'0'); })())
+        .not('status', 'in', '(pago,Pago,paga,Paga,recebido,Recebido)')
+        .limit(1);
+      if (contasMatch?.length) {
+        await sb.from('contas_pagar').update({
+          status: 'pago',
+          data_pagamento: dataCompetencia
+        }).eq('id', contasMatch[0].id);
+        showToast(`✅ Baixa automática: "${contasMatch[0].descricao}"`, 'success');
       }
-    } catch(e) {
-      console.warn('baixa auto CP:', e);
-      showToast('Conciliado, mas a baixa no Contas a Pagar falhou: ' + (e.message||e), 'error');
-    }
+    } catch(e) { console.warn('baixa auto CP:', e); }
   }
 
   // Marca linha como conciliada visualmente
@@ -26217,37 +26367,6 @@ async function conciliarLinha(idx) {
   }
 
   showToast(`✓ Lançamento conciliado! Valor: ${fmtBRL(r.entrada||r.saida||0)}`, 'success');
-}
-
-// Pergunta qual conta dar baixa quando a categoria tem 2 ou mais contas abertas
-function escolherContaBaixaConc(contas, valorPago, catNome) {
-  return new Promise(resolve => {
-    const esc = t => String(t ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-    const ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center';
-    ov.innerHTML = `
-      <div style="background:var(--bg2);border-radius:14px;padding:24px;width:460px;max-width:95vw;max-height:80vh;overflow-y:auto">
-        <div style="font-size:15px;font-weight:700;margin-bottom:4px">💸 Qual conta dar baixa?</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Tem ${contas.length} contas abertas em <b>${esc(catNome)}</b>. Valor pago no extrato: <b>${fmtBRL(valorPago)}</b></div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          ${contas.map(c => `
-            <div data-id="${esc(c.id)}" style="padding:12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer">
-              <div style="font-size:13px;font-weight:600">${esc(c.descricao || '—')}</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:3px">Venc: ${fmtDate(c.data_vencimento)} · ${fmtBRL(c.valor)} · ${esc(c.status || '')}</div>
-            </div>`).join('')}
-        </div>
-        <button data-nao style="margin-top:16px;width:100%;padding:9px;border:1.5px solid var(--border);border-radius:8px;background:none;color:var(--text);cursor:pointer;font-size:12px">
-          Não dar baixa (só conciliar)
-        </button>
-      </div>`;
-    ov.querySelectorAll('[data-id]').forEach(el => {
-      el.onmouseover = () => { el.style.borderColor = 'var(--accent)'; el.style.background = 'var(--bg3)'; };
-      el.onmouseout  = () => { el.style.borderColor = 'var(--border)'; el.style.background = ''; };
-      el.onclick = () => { ov.remove(); resolve(el.dataset.id); };
-    });
-    ov.querySelector('[data-nao]').onclick = () => { ov.remove(); resolve(null); };
-    document.body.appendChild(ov);
-  });
 }
 
 async function concluirTodos() {
